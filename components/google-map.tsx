@@ -12,7 +12,7 @@ interface GoogleMapProps {
   zoom?: number
 }
 
-export default function GoogleMap({ apiKey, center, zoom = 15 }: GoogleMapProps) {
+export function GoogleMap({ apiKey, center, zoom = 15 }: GoogleMapProps) {
   const mapRef = useRef<HTMLDivElement>(null)
   const [isLoaded, setIsLoaded] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -44,7 +44,7 @@ export default function GoogleMap({ apiKey, center, zoom = 15 }: GoogleMapProps)
         document.head.removeChild(script)
       }
     }
-  }, [apiKey])
+  }, [apiKey, center, zoom])
 
   const initializeMap = () => {
     if (!mapRef.current) return

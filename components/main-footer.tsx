@@ -1,49 +1,71 @@
 import Link from "next/link"
-import { Github, Twitter, Linkedin, Facebook, Instagram, Mail, MapPin, Phone } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { ArrowRight, Twitter, Linkedin, Github, Facebook, Instagram } from "lucide-react"
 
 export function MainFooter() {
   return (
     <footer className="bg-background border-t">
-      <div className="container py-12 md:py-16">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
-          <div>
+      <div className="container py-16">
+        {/* Top Section */}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-12 mb-12">
+          {/* Company Info */}
+          <div className="md:col-span-5">
             <div className="flex items-center gap-2 font-bold text-xl mb-6">
               <div className="bg-primary text-primary-foreground p-1 rounded">JV</div>
               <span>JiraVision</span>
             </div>
-            <p className="text-muted-foreground mb-6">
-              Transforming project management with AI-powered insights, emotional intelligence, and ethical governance.
+            <p className="text-muted-foreground mb-6 max-w-md">
+              Transforming project management with AI-powered tools that prioritize team wellbeing, ethical metrics, and
+              human-centered collaboration.
             </p>
-            <div className="flex space-x-4">
-              <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
-                <Twitter className="h-5 w-5" />
+            <div className="flex gap-4">
+              <a
+                href="#"
+                className="h-10 w-10 rounded-full bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors"
+              >
+                <Twitter className="h-5 w-5 text-muted-foreground" />
                 <span className="sr-only">Twitter</span>
               </a>
-              <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
-                <Linkedin className="h-5 w-5" />
+              <a
+                href="#"
+                className="h-10 w-10 rounded-full bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors"
+              >
+                <Linkedin className="h-5 w-5 text-muted-foreground" />
                 <span className="sr-only">LinkedIn</span>
               </a>
-              <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
-                <Github className="h-5 w-5" />
+              <a
+                href="#"
+                className="h-10 w-10 rounded-full bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors"
+              >
+                <Github className="h-5 w-5 text-muted-foreground" />
                 <span className="sr-only">GitHub</span>
               </a>
-              <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
-                <Facebook className="h-5 w-5" />
+              <a
+                href="#"
+                className="h-10 w-10 rounded-full bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors"
+              >
+                <Facebook className="h-5 w-5 text-muted-foreground" />
                 <span className="sr-only">Facebook</span>
               </a>
-              <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
-                <Instagram className="h-5 w-5" />
+              <a
+                href="#"
+                className="h-10 w-10 rounded-full bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors"
+              >
+                <Instagram className="h-5 w-5 text-muted-foreground" />
                 <span className="sr-only">Instagram</span>
               </a>
             </div>
           </div>
-          <div>
-            <h3 className="font-semibold text-lg mb-4">Product</h3>
+
+          {/* Navigation Links */}
+          <div className="md:col-span-2">
+            <h3 className="font-semibold mb-4">Products</h3>
             <ul className="space-y-3">
               <li>
                 <Link
                   href="/products/ai-scrum-master"
-                  className="text-muted-foreground hover:text-primary transition-colors"
+                  className="text-muted-foreground hover:text-foreground transition-colors"
                 >
                   AI Scrum Master
                 </Link>
@@ -51,7 +73,7 @@ export function MainFooter() {
               <li>
                 <Link
                   href="/products/team-wellbeing"
-                  className="text-muted-foreground hover:text-primary transition-colors"
+                  className="text-muted-foreground hover:text-foreground transition-colors"
                 >
                   Team Wellbeing
                 </Link>
@@ -59,7 +81,7 @@ export function MainFooter() {
               <li>
                 <Link
                   href="/products/gamification"
-                  className="text-muted-foreground hover:text-primary transition-colors"
+                  className="text-muted-foreground hover:text-foreground transition-colors"
                 >
                   Gamification
                 </Link>
@@ -67,97 +89,85 @@ export function MainFooter() {
               <li>
                 <Link
                   href="/products/ethical-metrics"
-                  className="text-muted-foreground hover:text-primary transition-colors"
+                  className="text-muted-foreground hover:text-foreground transition-colors"
                 >
                   Ethical Metrics
                 </Link>
               </li>
               <li>
-                <Link href="/pricing" className="text-muted-foreground hover:text-primary transition-colors">
+                <Link href="/pricing" className="text-muted-foreground hover:text-foreground transition-colors">
                   Pricing
                 </Link>
               </li>
             </ul>
           </div>
-          <div>
-            <h3 className="font-semibold text-lg mb-4">Company</h3>
+
+          <div className="md:col-span-2">
+            <h3 className="font-semibold mb-4">Company</h3>
             <ul className="space-y-3">
               <li>
-                <Link href="/about" className="text-muted-foreground hover:text-primary transition-colors">
+                <Link href="/about" className="text-muted-foreground hover:text-foreground transition-colors">
                   About Us
                 </Link>
               </li>
               <li>
-                <Link href="/careers" className="text-muted-foreground hover:text-primary transition-colors">
+                <Link href="/careers" className="text-muted-foreground hover:text-foreground transition-colors">
                   Careers
                 </Link>
               </li>
               <li>
-                <Link href="/resources/blog" className="text-muted-foreground hover:text-primary transition-colors">
-                  Blog
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/resources/case-studies"
-                  className="text-muted-foreground hover:text-primary transition-colors"
-                >
-                  Case Studies
-                </Link>
-              </li>
-              <li>
-                <Link href="/contact" className="text-muted-foreground hover:text-primary transition-colors">
+                <Link href="/contact" className="text-muted-foreground hover:text-foreground transition-colors">
                   Contact
                 </Link>
               </li>
+              <li>
+                <Link href="/faq" className="text-muted-foreground hover:text-foreground transition-colors">
+                  FAQ
+                </Link>
+              </li>
+              <li>
+                <Link href="/legal-notice" className="text-muted-foreground hover:text-foreground transition-colors">
+                  Legal Notice
+                </Link>
+              </li>
             </ul>
           </div>
-          <div>
-            <h3 className="font-semibold text-lg mb-4">Contact</h3>
-            <ul className="space-y-3">
-              <li className="flex items-start gap-3">
-                <MapPin className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
-                <span className="text-muted-foreground">
-                  Kabarak, Nakuru
-                  <br />
-                  Kenya
-                </span>
-              </li>
-              <li className="flex items-center gap-3">
-                <Phone className="h-5 w-5 text-muted-foreground" />
-                <a href="tel:+254741140250" className="text-muted-foreground hover:text-primary transition-colors">
-                  +254 741 140 250
-                </a>
-              </li>
-              <li className="flex items-center gap-3">
-                <Mail className="h-5 w-5 text-muted-foreground" />
-                <a
-                  href="mailto:fakiiahmad@gmail.com"
-                  className="text-muted-foreground hover:text-primary transition-colors"
-                >
-                  fakiiahmad@gmail.com
-                </a>
-              </li>
-            </ul>
+
+          <div className="md:col-span-3">
+            <h3 className="font-semibold mb-4">Subscribe to our newsletter</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Stay updated with the latest features, tips, and insights from our team.
+            </p>
+            <div className="flex gap-2">
+              <Input type="email" placeholder="Enter your email" className="rounded-full" />
+              <Button size="icon" className="rounded-full h-10 w-10">
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </div>
-        <div className="border-t pt-8 flex flex-col md:flex-row justify-between items-center">
-          <p className="text-sm text-muted-foreground mb-4 md:mb-0">
-            © {new Date().getFullYear()} JiraVision. All rights reserved.
-          </p>
-          <div className="flex flex-wrap gap-4 text-sm">
-            <Link href="/terms" className="text-muted-foreground hover:text-primary transition-colors">
+
+        {/* Divider */}
+        <div className="border-t border-muted-foreground/10 my-8"></div>
+
+        {/* Bottom Section */}
+        <div className="flex flex-col md:flex-row justify-between gap-6">
+          <div className="flex flex-wrap gap-6 text-sm text-muted-foreground">
+            <Link href="/terms" className="hover:text-foreground transition-colors">
               Terms of Service
             </Link>
-            <Link href="/privacy" className="text-muted-foreground hover:text-primary transition-colors">
+            <Link href="/privacy" className="hover:text-foreground transition-colors">
               Privacy Policy
             </Link>
-            <Link href="/cookies" className="text-muted-foreground hover:text-primary transition-colors">
+            <Link href="/cookies" className="hover:text-foreground transition-colors">
               Cookie Policy
             </Link>
-            <Link href="/accessibility" className="text-muted-foreground hover:text-primary transition-colors">
+            <Link href="/accessibility" className="hover:text-foreground transition-colors">
               Accessibility
             </Link>
+          </div>
+          <div className="text-sm text-muted-foreground">
+            © {new Date().getFullYear()} JiraVision. All rights reserved.
           </div>
         </div>
       </div>

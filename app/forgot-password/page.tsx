@@ -18,7 +18,8 @@ export default function ForgotPasswordPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [error, setError] = useState("")
-  const { requestPasswordReset } = useAuth()
+  const [successMessage, setSuccessMessage] = useState("")
+  const { forgotPassword } = useAuth()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -26,11 +27,12 @@ export default function ForgotPasswordPage() {
     setIsSubmitting(true)
 
     try {
-      const success = await requestPasswordReset(email)
-      if (success) {
+      const result = await forgotPassword(email)
+      if (result.success) {
         setIsSubmitted(true)
+        setSuccessMessage(result.message || "Password reset email sent")
       } else {
-        setError("We couldn't find an account with that email address.")
+        setError(result.message || "Failed to send reset email")
       }
     } catch (err) {
       setError("An unexpected error occurred. Please try again.")
