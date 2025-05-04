@@ -1,16 +1,17 @@
-
 import { defineConfig } from "drizzle-kit";
-import 'dotenv/config';
+import "dotenv/config";
 
 export default defineConfig({
-  schema: "./drizzle/schema.ts",     // Adjust if you placed schema elsewhere
-  out: "./drizzle",                  // Folder for generated migrations
-  dialect: "postgresql",             // ✅ Required (no "driver" anymore)
+  schema: "./drizzle/schema.ts",
+  out: "./drizzle",
+  dialect: "postgresql",
   dbCredentials: {
     host: process.env.DB_HOST!,
-    port: parseInt(process.env.DB_PORT!, 10),
+    port: Number(process.env.DB_PORT!),
     user: process.env.DB_USER!,
     password: process.env.DB_PASSWORD!,
     database: process.env.DB_NAME!,
+    ssl: "require", // optional but recommended for Neon
   },
 });
+
