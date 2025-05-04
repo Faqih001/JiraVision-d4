@@ -212,7 +212,11 @@ export default function WebinarsPage() {
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">Sort by:</span>
-                <select className="bg-white border border-slate-200 rounded-md px-3 py-1 text-sm">
+                <select
+                  id="sort-webinars"
+                  className="bg-white border border-slate-200 rounded-md px-3 py-1 text-sm"
+                  aria-label="Sort webinars"
+                >
                   <option>Most Recent</option>
                   <option>Most Popular</option>
                   <option>Topic</option>
