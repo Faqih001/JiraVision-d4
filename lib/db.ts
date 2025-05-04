@@ -27,8 +27,18 @@ export const passwordResetTokens = pgTable("password_reset_tokens", {
 })
 
 // Initialize database connection
-const sql = neon(process.env.DATABASE_URL!)
-export const db = drizzle(sql)
+const sqlClient = neon(process.env.DATABASE_URL!)
+export const db = drizzle(sqlClient)
+
+// Import and initialize database tables
+import { initializeDatabase } from "./db-init"
+
+// We need to handle the initialization asynchronously but can't use top-level await
+// So we'll use a promise and catch errors
+const dbInitPromise = initializeDatabase().catch((error) => {
+  console.error("Failed to initialize database:", error)
+  return false
+})
 
 // User type
 export type User = {
@@ -42,13 +52,26 @@ export type User = {
 
 // Helper functions
 export async function getUserByEmail(email: string) {
-  const result = await db.select().from(users).where(eq(users.email, email))
-  return result[0]
+  try {
+    // Ensure database is initialized before querying
+    await dbInitPromise
+    const result = await db.select().from(users).where(eq(users.email, email))
+    return result[0]
+  } catch (error) {
+    console.error("Error getting user by email:", error)
+    return null
+  }
 }
 
 export async function getUserById(id: number) {
-  const result = await db.select().from(users).where(eq(users.id, id))
-  return result[0]
+  try {
+    await dbInitPromise
+    const result = await db.select().from(users).where(eq(users.id, id))
+    return result[0]
+  } catch (error) {
+    console.error("Error getting user by ID:", error)
+    return null
+  }
 }
 
 export async function createUser(data: {
@@ -57,27 +80,50 @@ export async function createUser(data: {
   passwordHash: string
   avatar?: string
 }) {
-  const result = await db.insert(users).values(data).returning()
-  return result[0]
+  try {
+    await dbInitPromise
+    const result = await db.insert(users).values(data).returning()
+    return result[0]
+  } catch (error) {
+    console.error("Error creating user:", error)
+    throw error
+  }
 }
 
 export async function createPasswordResetToken(userId: number, token: string, expiresAt: Date) {
-  const result = await db
-    .insert(passwordResetTokens)
-    .values({
-      userId,
-      token,
-      expiresAt,
-    })
-    .returning()
-  return result[0]
+  try {
+    await dbInitPromise
+    const result = await db
+      .insert(passwordResetTokens)
+      .values({
+        userId,
+        token,
+        expiresAt,
+      })
+      .returning()
+    return result[0]
+  } catch (error) {
+    console.error("Error creating password reset token:", error)
+    return null
+  }
 }
 
 export async function getPasswordResetToken(token: string) {
-  const result = await db.select().from(passwordResetTokens).where(eq(passwordResetTokens.token, token))
-  return result[0]
+  try {
+    await dbInitPromise
+    const result = await db.select().from(passwordResetTokens).where(eq(passwordResetTokens.token, token))
+    return result[0]
+  } catch (error) {
+    console.error("Error getting password reset token:", error)
+    return null
+  }
 }
 
 export async function deletePasswordResetToken(token: string) {
-  await db.delete(passwordResetTokens).where(eq(passwordResetTokens.token, token))
+  try {
+    await dbInitPromise
+    await db.delete(passwordResetTokens).where(eq(passwordResetTokens.token, token))
+  } catch (error) {
+    console.error("Error deleting password reset token:", error)
+  }
 }

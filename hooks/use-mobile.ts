@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 
+// Export both names for backward compatibility
 export const useMobile = () => {
   const [isMobile, setIsMobile] = useState(false)
 
@@ -24,3 +25,6 @@ export const useMobile = () => {
 
   return isMobile
 }
+
+// Add this alias export to fix the import error
+export const useIsMobile = useMobile

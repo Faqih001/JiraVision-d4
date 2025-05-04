@@ -149,7 +149,12 @@ export default function ContactPage() {
                 <div className="mt-8">
                   <h3 className="text-lg font-semibold mb-4">Our Location</h3>
                   <div className="h-[300px] rounded-xl overflow-hidden border">
-                    <GoogleMap />
+                    <GoogleMap
+                      center={{
+                        lat: 37.7749,
+                        lng: -122.4194,
+                      }}
+                    />
                   </div>
                 </div>
               </div>

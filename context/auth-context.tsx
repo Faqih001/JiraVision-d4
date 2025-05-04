@@ -4,9 +4,8 @@ import type React from "react"
 import { createContext, useContext, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 
-// Types of user adetails and role (Admin or User)
-type User = {
-  id: string
+export type User = {
+  id: number
   name: string
   email: string
   role: string
@@ -14,7 +13,6 @@ type User = {
   emailVerified: boolean
 }
 
-// Type for the context value
 type AuthContextType = {
   user: User | null
   isLoading: boolean

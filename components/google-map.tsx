@@ -3,8 +3,11 @@
 import { useEffect, useRef, useState } from "react"
 import { Loader2 } from "lucide-react"
 
+// Default API key
+const DEFAULT_API_KEY = "AIzaSyDPgttFbKx3V_mzD-UMAV0fWHDyU-QBk3c"
+
 interface GoogleMapProps {
-  apiKey: string
+  apiKey?: string
   center: {
     lat: number
     lng: number
@@ -12,7 +15,7 @@ interface GoogleMapProps {
   zoom?: number
 }
 
-export function GoogleMap({ apiKey, center, zoom = 15 }: GoogleMapProps) {
+export function GoogleMap({ apiKey = DEFAULT_API_KEY, center, zoom = 15 }: GoogleMapProps) {
   const mapRef = useRef<HTMLDivElement>(null)
   const [isLoaded, setIsLoaded] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)

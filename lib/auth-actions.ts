@@ -16,6 +16,7 @@ import {
 import { Resend } from "resend"
 import { db, users } from "./db"
 import { eq } from "drizzle-orm"
+import { initializeDatabase } from "./db-init"
 
 const resend = new Resend(process.env.JIRAVISION_RESEND_API)
 
@@ -110,6 +111,9 @@ export async function signup(formData: FormData) {
   }
 
   try {
+    // Ensure database tables exist
+    await initializeDatabase()
+
     const existingUser = await getUserByEmail(email)
     if (existingUser) {
       return { success: false, message: "Email already in use" }
@@ -131,6 +135,15 @@ export async function signup(formData: FormData) {
     return { success: true, user: userWithoutPassword }
   } catch (error) {
     console.error("Signup error:", error)
+
+    // Check if it's a database connection error
+    if (String(error).includes("connection") || String(error).includes("relation") || String(error).includes("table")) {
+      return {
+        success: false,
+        message: "Database connection issue. Please try again later or contact support.",
+      }
+    }
+
     return { success: false, message: "An unexpected error occurred" }
   }
 }
@@ -148,6 +161,9 @@ export async function forgotPassword(formData: FormData) {
   }
 
   try {
+    // Ensure database tables exist
+    await initializeDatabase()
+
     const user = await getUserByEmail(email)
     if (!user) {
       // Don't reveal that the email doesn't exist for security reasons
@@ -208,6 +224,9 @@ export async function verifyResetToken(token: string) {
   }
 
   try {
+    // Ensure database tables exist
+    await initializeDatabase()
+
     const resetToken = await getPasswordResetToken(token)
     if (!resetToken) {
       return { valid: false, message: "Invalid or expired token" }
@@ -239,6 +258,9 @@ export async function resetPassword(formData: FormData) {
   }
 
   try {
+    // Ensure database tables exist
+    await initializeDatabase()
+
     const resetToken = await getPasswordResetToken(token)
     if (!resetToken) {
       return { success: false, message: "Invalid or expired token" }
