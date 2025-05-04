@@ -18,7 +18,7 @@ interface BlogPostTemplateProps {
   title: string
   excerpt: string
   content: React.ReactNode
-  author: Author
+  author?: Author // Make author optional
   publishDate: string
   readTime: string
   coverImage: string
@@ -29,7 +29,7 @@ export default function BlogPostTemplate({
   title,
   excerpt,
   content,
-  author,
+  author = { name: "JiraVision Team", role: "Staff Writer", avatar: "/placeholder-user.jpg" }, // Provide default author
   publishDate,
   readTime,
   coverImage,
