@@ -2,10 +2,10 @@ import { defineConfig } from "drizzle-kit";
 import 'dotenv/config';
 
 export default defineConfig({
-  schema: "./drizzle/schema.ts",         // 👈 adjust path if your schema is elsewhere
-  out: "./drizzle",                      // where migrations & meta will be saved
-  driver: "pg",                          // PostgreSQL
+  schema: "./drizzle/schema.ts",
+  out: "./drizzle",
+  driver: "pg",
   dbCredentials: {
     connectionString: process.env.DATABASE_URL!,
   },
-});
+} as any); // 👈 quick workaround to avoid TS driver type mismatch
