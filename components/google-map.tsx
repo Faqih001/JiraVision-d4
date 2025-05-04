@@ -6,90 +6,6 @@ import { Loader2 } from "lucide-react"
 // Default API key
 const DEFAULT_API_KEY = "AIzaSyDPgttFbKx3V_mzD-UMAV0fWHDyU-QBk3c"
 
-// Create a global state to track the loading status of the Google Maps API
-interface GoogleMapsGlobal {
-  isLoaded: boolean
-  isLoading: boolean
-  loadPromise: Promise<void> | null
-}
-
-// Add to window object and Google Maps types
-declare global {
-  interface Window {
-    googleMapsLoaded?: GoogleMapsGlobal
-    google?: {
-      maps: {
-        Map: new (element: HTMLElement, options: any) => any
-        Marker: new (options: any) => any
-        LatLng: new (lat: number, lng: number) => any
-      }
-    }
-  }
-}
-
-// Function to load Google Maps API only once
-const loadGoogleMapsApi = (apiKey: string): Promise<void> => {
-  // Return existing promise if already loading
-  if (window.googleMapsLoaded?.isLoading && window.googleMapsLoaded.loadPromise) {
-    return window.googleMapsLoaded.loadPromise
-  }
-
-  // If already loaded, return resolved promise
-  if (window.googleMapsLoaded?.isLoaded) {
-    return Promise.resolve()
-  }
-
-  // Initialize the global state if not exists
-  if (!window.googleMapsLoaded) {
-    window.googleMapsLoaded = {
-      isLoaded: false,
-      isLoading: true,
-      loadPromise: null,
-    }
-  }
-
-  // Create and store the loading promise
-  const promise = new Promise<void>((resolve, reject) => {
-    // Check if Google Maps API is already loaded
-    if (window.google && window.google.maps) {
-      if (window.googleMapsLoaded) {
-        window.googleMapsLoaded.isLoaded = true
-        window.googleMapsLoaded.isLoading = false
-      }
-      resolve()
-      return
-    }
-
-    // Create script element
-    const script = document.createElement("script")
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`
-    script.async = true
-    script.defer = true
-
-    script.onload = () => {
-      if (window.googleMapsLoaded) {
-        window.googleMapsLoaded.isLoaded = true
-        window.googleMapsLoaded.isLoading = false
-      }
-      resolve()
-    }
-
-    script.onerror = () => {
-      if (window.googleMapsLoaded) {
-        window.googleMapsLoaded.isLoading = false
-      }
-      reject(new Error("Failed to load Google Maps API"))
-    }
-
-    document.head.appendChild(script)
-  })
-
-  if (window.googleMapsLoaded) {
-    window.googleMapsLoaded.loadPromise = promise
-  }
-  return promise
-}
-
 interface GoogleMapProps {
   apiKey?: string
   center: {
@@ -105,26 +21,36 @@ export function GoogleMap({ apiKey = DEFAULT_API_KEY, center, zoom = 15 }: Googl
   const [loadError, setLoadError] = useState<string | null>(null)
 
   useEffect(() => {
-    loadGoogleMapsApi(apiKey)
-      .then(() => {
-        setIsLoaded(true)
-        initializeMap()
-      })
-      .catch((error) => {
-        console.error("Error loading Google Maps API:", error)
-        setLoadError("Failed to load Google Maps API")
-      })
-  }, [apiKey])
+    // Check if Google Maps API is already loaded
+    if (window.google && window.google.maps) {
+      initializeMap()
+      return
+    }
 
-  useEffect(() => {
-    // Re-initialize map when center or zoom changes, but only if already loaded
-    if (isLoaded) {
+    // Load Google Maps API
+    const script = document.createElement("script")
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`
+    script.async = true
+    script.defer = true
+    script.onload = () => {
+      setIsLoaded(true)
       initializeMap()
     }
-  }, [center, zoom, isLoaded])
+    script.onerror = () => {
+      setLoadError("Failed to load Google Maps API")
+    }
+    document.head.appendChild(script)
+
+    return () => {
+      // Clean up script if component unmounts before loading
+      if (document.head.contains(script)) {
+        document.head.removeChild(script)
+      }
+    }
+  }, [apiKey, center, zoom])
 
   const initializeMap = () => {
-    if (!mapRef.current || !window.google || !window.google.maps) return
+    if (!mapRef.current) return
 
     try {
       const map = new window.google.maps.Map(mapRef.current, {

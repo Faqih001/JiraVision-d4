@@ -1,8 +1,9 @@
 import { MainNavbar } from "@/components/main-navbar"
 import { MainFooter } from "@/components/main-footer"
 import { Button } from "@/components/ui/button"
-import { Check, ArrowRight, BarChart3, Scale, LineChart, Shield, Users, BarChart2, PieChart } from "lucide-react"
+import { Check, ArrowRight, Shield, Users, BarChart2, Scale, LineChart, PieChart } from "lucide-react"
 import Link from "next/link"
+import Image from "next/image"
 
 export default function EthicalMetricsPage() {
   return (
@@ -10,10 +11,10 @@ export default function EthicalMetricsPage() {
       <MainNavbar />
 
       <main className="flex-1">
-        {/* Hero Section - Split Design with Gradient */}
-        <section className="relative py-24 md:py-32 overflow-hidden">
-          <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-primary/10 to-transparent"></div>
-          <div className="container relative">
+        {/* Hero Section - Modern Split Design */}
+        <section className="relative py-24 md:py-32 overflow-hidden bg-gradient-to-br from-slate-50 to-slate-100">
+          <div className="absolute inset-0 bg-grid-slate-200 [mask-image:radial-gradient(ellipse_at_center,white,transparent_70%)]"></div>
+          <div className="container relative z-10">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
               <div className="flex flex-col gap-6">
                 <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-sm text-primary w-fit">
@@ -42,10 +43,12 @@ export default function EthicalMetricsPage() {
               <div className="relative">
                 <div className="absolute -inset-0.5 rounded-xl bg-gradient-to-r from-primary to-purple-600 opacity-30 blur-xl"></div>
                 <div className="relative h-[400px] w-full rounded-xl overflow-hidden border shadow-xl">
-                  <img
-                    src="https://images.unsplash.com/photo-1551836022-d5d88e9218df?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2000&q=80"
+                  <Image
+                    src="https://images.unsplash.com/photo-1573164713988-8665fc963095?q=80&w=2069&auto=format&fit=crop"
                     alt="Ethical Metrics Dashboard"
-                    className="object-cover w-full h-full"
+                    className="object-cover"
+                    fill
+                    sizes="(max-width: 768px) 100vw, 50vw"
                   />
                 </div>
               </div>
@@ -54,38 +57,38 @@ export default function EthicalMetricsPage() {
         </section>
 
         {/* Stats Section */}
-        <section className="py-12 bg-muted/30">
+        <section className="py-16 bg-white">
           <div className="container">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-              <div className="bg-background rounded-xl p-6 shadow-md border text-center">
-                <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                  <Users className="h-6 w-6 text-primary" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8">
+              <div className="bg-white rounded-xl p-6 shadow-lg border border-slate-100 text-center transform transition-all duration-300 hover:scale-105 hover:shadow-xl">
+                <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                  <Users className="h-7 w-7 text-primary" />
                 </div>
-                <p className="text-3xl font-bold text-primary">100%</p>
+                <p className="text-4xl font-bold text-primary">100%</p>
                 <p className="text-sm text-muted-foreground mt-1">DEI Compliance</p>
               </div>
 
-              <div className="bg-background rounded-xl p-6 shadow-md border text-center">
-                <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                  <Scale className="h-6 w-6 text-primary" />
+              <div className="bg-white rounded-xl p-6 shadow-lg border border-slate-100 text-center transform transition-all duration-300 hover:scale-105 hover:shadow-xl">
+                <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                  <Scale className="h-7 w-7 text-primary" />
                 </div>
-                <p className="text-3xl font-bold text-primary">98%</p>
+                <p className="text-4xl font-bold text-primary">98%</p>
                 <p className="text-sm text-muted-foreground mt-1">Pay Equity</p>
               </div>
 
-              <div className="bg-background rounded-xl p-6 shadow-md border text-center">
-                <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                  <BarChart3 className="h-6 w-6 text-primary" />
+              <div className="bg-white rounded-xl p-6 shadow-lg border border-slate-100 text-center transform transition-all duration-300 hover:scale-105 hover:shadow-xl">
+                <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                  <BarChart2 className="h-7 w-7 text-primary" />
                 </div>
-                <p className="text-3xl font-bold text-primary">45%</p>
+                <p className="text-4xl font-bold text-primary">45%</p>
                 <p className="text-sm text-muted-foreground mt-1">Reduced Bias</p>
               </div>
 
-              <div className="bg-background rounded-xl p-6 shadow-md border text-center">
-                <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                  <LineChart className="h-6 w-6 text-primary" />
+              <div className="bg-white rounded-xl p-6 shadow-lg border border-slate-100 text-center transform transition-all duration-300 hover:scale-105 hover:shadow-xl">
+                <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                  <LineChart className="h-7 w-7 text-primary" />
                 </div>
-                <p className="text-3xl font-bold text-primary">30%</p>
+                <p className="text-4xl font-bold text-primary">30%</p>
                 <p className="text-sm text-muted-foreground mt-1">Better Retention</p>
               </div>
             </div>
@@ -93,7 +96,7 @@ export default function EthicalMetricsPage() {
         </section>
 
         {/* Features Section - Modern Card Design */}
-        <section id="features" className="py-24">
+        <section id="features" className="py-24 bg-gradient-to-br from-slate-50 to-slate-100">
           <div className="container">
             <div className="text-center mb-16">
               <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-sm text-primary mb-4">
@@ -107,7 +110,7 @@ export default function EthicalMetricsPage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <div className="group bg-background rounded-xl p-8 shadow-md border hover:shadow-xl transition-all duration-300 hover:-translate-y-1 overflow-hidden">
+              <div className="group bg-white rounded-xl p-8 shadow-lg border border-slate-100 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 overflow-hidden">
                 <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center mb-6 group-hover:bg-primary/20 transition-colors">
                   <BarChart2 className="h-7 w-7 text-primary" />
                 </div>
@@ -115,16 +118,18 @@ export default function EthicalMetricsPage() {
                 <p className="text-muted-foreground mb-6">
                   Comprehensive diversity, equity, and inclusion metrics with actionable insights for improvement.
                 </p>
-                <div className="mt-6 pt-6 border-t">
-                  <img
-                    src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80"
+                <div className="mt-6 pt-6 border-t relative h-48">
+                  <Image
+                    src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=1171&auto=format&fit=crop"
                     alt="DEI Analytics"
-                    className="rounded-lg w-full h-40 object-cover transform group-hover:scale-105 transition-transform duration-500"
+                    className="rounded-lg object-cover transform group-hover:scale-105 transition-transform duration-500"
+                    fill
+                    sizes="(max-width: 768px) 100vw, 33vw"
                   />
                 </div>
               </div>
 
-              <div className="group bg-background rounded-xl p-8 shadow-md border hover:shadow-xl transition-all duration-300 hover:-translate-y-1 overflow-hidden">
+              <div className="group bg-white rounded-xl p-8 shadow-lg border border-slate-100 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 overflow-hidden">
                 <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center mb-6 group-hover:bg-primary/20 transition-colors">
                   <Scale className="h-7 w-7 text-primary" />
                 </div>
@@ -132,16 +137,18 @@ export default function EthicalMetricsPage() {
                 <p className="text-muted-foreground mb-6">
                   Identify and address compensation disparities across gender, ethnicity, and other dimensions.
                 </p>
-                <div className="mt-6 pt-6 border-t">
-                  <img
-                    src="https://images.unsplash.com/photo-1551836022-aadb801c60ae?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80"
+                <div className="mt-6 pt-6 border-t relative h-48">
+                  <Image
+                    src="https://images.unsplash.com/photo-1434626881859-194d67b2b86f?q=80&w=1174&auto=format&fit=crop"
                     alt="Pay Equity Monitoring"
-                    className="rounded-lg w-full h-40 object-cover transform group-hover:scale-105 transition-transform duration-500"
+                    className="rounded-lg object-cover transform group-hover:scale-105 transition-transform duration-500"
+                    fill
+                    sizes="(max-width: 768px) 100vw, 33vw"
                   />
                 </div>
               </div>
 
-              <div className="group bg-background rounded-xl p-8 shadow-md border hover:shadow-xl transition-all duration-300 hover:-translate-y-1 overflow-hidden">
+              <div className="group bg-white rounded-xl p-8 shadow-lg border border-slate-100 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 overflow-hidden">
                 <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center mb-6 group-hover:bg-primary/20 transition-colors">
                   <PieChart className="h-7 w-7 text-primary" />
                 </div>
@@ -149,11 +156,13 @@ export default function EthicalMetricsPage() {
                 <p className="text-muted-foreground mb-6">
                   Ensure equitable distribution of work and opportunities across all team members.
                 </p>
-                <div className="mt-6 pt-6 border-t">
-                  <img
-                    src="https://images.unsplash.com/photo-1600880292203-757bb62b4baf?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80"
+                <div className="mt-6 pt-6 border-t relative h-48">
+                  <Image
+                    src="https://images.unsplash.com/photo-1600880292203-757bb62b4baf?q=80&w=1170&auto=format&fit=crop"
                     alt="Workload Fairness"
-                    className="rounded-lg w-full h-40 object-cover transform group-hover:scale-105 transition-transform duration-500"
+                    className="rounded-lg object-cover transform group-hover:scale-105 transition-transform duration-500"
+                    fill
+                    sizes="(max-width: 768px) 100vw, 33vw"
                   />
                 </div>
               </div>
@@ -162,7 +171,7 @@ export default function EthicalMetricsPage() {
         </section>
 
         {/* Benefits Section - Modern Split Design */}
-        <section className="py-24 bg-muted/30">
+        <section className="py-24 bg-white">
           <div className="container">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
               <div className="flex flex-col gap-8">
@@ -178,12 +187,12 @@ export default function EthicalMetricsPage() {
                 </div>
 
                 <div className="space-y-6">
-                  <div className="flex items-start gap-4 p-4 bg-background rounded-xl shadow-sm border">
-                    <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center shrink-0">
-                      <Check className="h-5 w-5 text-green-600" />
+                  <div className="flex items-start gap-4 p-6 bg-white rounded-xl shadow-lg border border-slate-100 transform transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
+                    <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center shrink-0">
+                      <Check className="h-6 w-6 text-green-600" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold mb-1">Attract Top Talent</h3>
+                      <h3 className="text-lg font-semibold mb-2">Attract Top Talent</h3>
                       <p className="text-muted-foreground">
                         Organizations with strong ethical practices attract and retain the best candidates in the
                         market.
@@ -191,12 +200,12 @@ export default function EthicalMetricsPage() {
                     </div>
                   </div>
 
-                  <div className="flex items-start gap-4 p-4 bg-background rounded-xl shadow-sm border">
-                    <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center shrink-0">
-                      <Check className="h-5 w-5 text-green-600" />
+                  <div className="flex items-start gap-4 p-6 bg-white rounded-xl shadow-lg border border-slate-100 transform transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
+                    <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center shrink-0">
+                      <Check className="h-6 w-6 text-green-600" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold mb-1">Improve Team Performance</h3>
+                      <h3 className="text-lg font-semibold mb-2">Improve Team Performance</h3>
                       <p className="text-muted-foreground">
                         Fair and inclusive teams demonstrate higher levels of innovation, collaboration, and
                         productivity.
@@ -204,12 +213,12 @@ export default function EthicalMetricsPage() {
                     </div>
                   </div>
 
-                  <div className="flex items-start gap-4 p-4 bg-background rounded-xl shadow-sm border">
-                    <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center shrink-0">
-                      <Check className="h-5 w-5 text-green-600" />
+                  <div className="flex items-start gap-4 p-6 bg-white rounded-xl shadow-lg border border-slate-100 transform transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
+                    <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center shrink-0">
+                      <Check className="h-6 w-6 text-green-600" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold mb-1">Reduce Legal Risk</h3>
+                      <h3 className="text-lg font-semibold mb-2">Reduce Legal Risk</h3>
                       <p className="text-muted-foreground">
                         Proactively identify and address potential compliance issues before they become problems.
                       </p>
@@ -221,10 +230,12 @@ export default function EthicalMetricsPage() {
               <div className="relative">
                 <div className="absolute -inset-0.5 rounded-xl bg-gradient-to-r from-primary to-purple-600 opacity-30 blur-xl"></div>
                 <div className="relative h-[500px] w-full rounded-xl overflow-hidden border shadow-xl">
-                  <img
-                    src="https://images.unsplash.com/photo-1600880292089-90a7e086ee0c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2000&q=80"
+                  <Image
+                    src="https://images.unsplash.com/photo-1552664730-d307ca884978?q=80&w=1170&auto=format&fit=crop"
                     alt="Ethical Metrics Benefits"
-                    className="object-cover w-full h-full"
+                    className="object-cover"
+                    fill
+                    sizes="(max-width: 768px) 100vw, 50vw"
                   />
                 </div>
               </div>
@@ -233,7 +244,7 @@ export default function EthicalMetricsPage() {
         </section>
 
         {/* Testimonials Section - Modern Card Design */}
-        <section className="py-24">
+        <section className="py-24 bg-gradient-to-br from-slate-50 to-slate-100">
           <div className="container">
             <div className="text-center mb-16">
               <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-sm text-primary mb-4">
@@ -247,14 +258,16 @@ export default function EthicalMetricsPage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <div className="bg-background rounded-xl overflow-hidden shadow-md border relative">
+              <div className="bg-white rounded-xl overflow-hidden shadow-lg border border-slate-100 relative transform transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
                 <div className="h-32 bg-gradient-to-r from-primary/20 to-purple-600/20"></div>
                 <div className="p-8 -mt-16">
-                  <div className="h-16 w-16 rounded-full bg-white p-1 shadow-lg mb-4">
-                    <img
-                      src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=200&q=80"
+                  <div className="h-16 w-16 rounded-full bg-white p-1 shadow-lg mb-4 relative">
+                    <Image
+                      src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=1976&auto=format&fit=crop"
                       alt="Olivia Martinez"
-                      className="h-full w-full object-cover rounded-full"
+                      className="rounded-full object-cover"
+                      fill
+                      sizes="64px"
                     />
                   </div>
                   <p className="italic text-muted-foreground mb-6">
@@ -268,14 +281,16 @@ export default function EthicalMetricsPage() {
                 </div>
               </div>
 
-              <div className="bg-background rounded-xl overflow-hidden shadow-md border relative">
+              <div className="bg-white rounded-xl overflow-hidden shadow-lg border border-slate-100 relative transform transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
                 <div className="h-32 bg-gradient-to-r from-primary/20 to-purple-600/20"></div>
                 <div className="p-8 -mt-16">
-                  <div className="h-16 w-16 rounded-full bg-white p-1 shadow-lg mb-4">
-                    <img
-                      src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=200&q=80"
+                  <div className="h-16 w-16 rounded-full bg-white p-1 shadow-lg mb-4 relative">
+                    <Image
+                      src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=1974&auto=format&fit=crop"
                       alt="Robert Kim"
-                      className="h-full w-full object-cover rounded-full"
+                      className="rounded-full object-cover"
+                      fill
+                      sizes="64px"
                     />
                   </div>
                   <p className="italic text-muted-foreground mb-6">
@@ -289,14 +304,16 @@ export default function EthicalMetricsPage() {
                 </div>
               </div>
 
-              <div className="bg-background rounded-xl overflow-hidden shadow-md border relative">
+              <div className="bg-white rounded-xl overflow-hidden shadow-lg border border-slate-100 relative transform transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
                 <div className="h-32 bg-gradient-to-r from-primary/20 to-purple-600/20"></div>
                 <div className="p-8 -mt-16">
-                  <div className="h-16 w-16 rounded-full bg-white p-1 shadow-lg mb-4">
-                    <img
-                      src="https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=200&q=80"
+                  <div className="h-16 w-16 rounded-full bg-white p-1 shadow-lg mb-4 relative">
+                    <Image
+                      src="https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?q=80&w=1974&auto=format&fit=crop"
                       alt="Amara Johnson"
-                      className="h-full w-full object-cover rounded-full"
+                      className="rounded-full object-cover"
+                      fill
+                      sizes="64px"
                     />
                   </div>
                   <p className="italic text-muted-foreground mb-6">
@@ -317,7 +334,7 @@ export default function EthicalMetricsPage() {
         <section className="py-24 relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-primary/90 to-purple-700/90"></div>
           <div className="absolute inset-0 bg-grid-white/10 bg-[length:20px_20px] [mask-image:radial-gradient(white,transparent_85%)]"></div>
-          <div className="container relative">
+          <div className="container relative z-10">
             <div className="max-w-3xl mx-auto text-center text-white">
               <h2 className="text-3xl md:text-5xl font-bold mb-6">Ready to Build a More Ethical Organization?</h2>
               <p className="text-xl mb-8 text-white/80">

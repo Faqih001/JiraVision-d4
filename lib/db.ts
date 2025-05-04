@@ -27,8 +27,13 @@ export const passwordResetTokens = pgTable("password_reset_tokens", {
 })
 
 // Initialize database connection
+// Use the pooled connection for most operations
 const sqlClient = neon(process.env.DATABASE_URL!)
 export const db = drizzle(sqlClient)
+
+// For operations that shouldn't use connection pooling
+export const unpooledSqlClient = neon(process.env.DATABASE_URL_UNPOOLED!)
+export const unpooledDb = drizzle(unpooledSqlClient)
 
 // Import and initialize database tables
 import { initializeDatabase } from "./db-init"

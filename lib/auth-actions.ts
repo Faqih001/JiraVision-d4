@@ -21,13 +21,23 @@ import { initializeDatabase } from "./db-init"
 const resend = new Resend(process.env.JIRAVISION_RESEND_API)
 
 // Session management
+// Update the getSession function to handle errors better
 export async function getSession() {
-  const sessionId = cookies().get("session_id")?.value
-  if (!sessionId) return null
-
   try {
-    const userId = Number.parseInt(cookies().get("user_id")?.value || "0")
-    if (!userId) return null
+    const sessionId = cookies().get("session_id")?.value
+    if (!sessionId) return null
+
+    const userIdCookie = cookies().get("user_id")?.value
+    if (!userIdCookie) return null
+
+    // Parse the user ID safely
+    let userId: number
+    try {
+      userId = Number.parseInt(userIdCookie)
+      if (isNaN(userId) || userId <= 0) return null
+    } catch {
+      return null
+    }
 
     const user = await getUserById(userId)
     if (!user) return null

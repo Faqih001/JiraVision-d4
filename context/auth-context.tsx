@@ -44,14 +44,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     async function loadUser() {
       try {
+        setIsLoading(true)
         const response = await fetch("/api/auth/session")
+
+        // If the response is not ok, just set user to null and continue
+        if (!response.ok) {
+          console.error("Session API error:", response.status)
+          setUser(null)
+          setIsLoading(false)
+          return
+        }
+
         const data = await response.json()
 
         if (data.user) {
           setUser(data.user)
+        } else {
+          setUser(null)
         }
       } catch (error) {
         console.error("Failed to load user session:", error)
+        setUser(null)
       } finally {
         setIsLoading(false)
       }
