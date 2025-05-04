@@ -175,7 +175,8 @@ export default function CaseStudiesPage() {
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">Sort by:</span>
-                <select className="bg-white border border-slate-200 rounded-md px-3 py-1 text-sm">
+                <label htmlFor="sort-options" className="sr-only">Sort Options</label>
+                <select id="sort-options" className="bg-white border border-slate-200 rounded-md px-3 py-1 text-sm">
                   <option>Most Recent</option>
                   <option>Most Popular</option>
                   <option>Company Size</option>
