@@ -4,7 +4,7 @@ import 'dotenv/config';
 export default defineConfig({
   schema: "./drizzle/schema.ts",
   out: "./drizzle",
-  driver: "pg",
+  driver: "postgresql",
   dbCredentials: {
     connectionString: process.env.DATABASE_URL!,
   },
