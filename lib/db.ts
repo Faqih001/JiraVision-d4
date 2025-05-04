@@ -5,8 +5,8 @@ import { pgTable, serial, text, varchar, timestamp, boolean } from "drizzle-orm/
 
 // Configure Neon for better connection handling
 neonConfig.fetchConnectionCache = true
-// Setting reasonable timeouts (in ms)
-neonConfig.fetchOptions = {
+// Define fetch options to be used when creating the SQL client
+const fetchOptions = {
   keepalive: true,
   timeout: 30000, // 30 seconds timeout
 }
@@ -38,7 +38,7 @@ const RETRY_DELAY = 1000 // 1 second
 
 async function createDbConnection(url: string, retries = MAX_RETRIES) {
   try {
-    const sqlClient = neon(url)
+    const sqlClient = neon(url, { fetchOptions })
     return drizzle(sqlClient)
   } catch (error) {
     if (retries > 0) {
@@ -57,13 +57,13 @@ let unpooledDb: ReturnType<typeof drizzle>
 
 try {
   // Initialize connections
-  const sqlClient = neon(process.env.DATABASE_URL!)
+  const sqlClient = neon(process.env.DATABASE_URL!, { fetchOptions })
   db = drizzle(sqlClient)
 
   // For operations that shouldn't use connection pooling
   const unpooledSqlClient = process.env.DATABASE_URL_UNPOOLED 
-    ? neon(process.env.DATABASE_URL_UNPOOLED)
-    : neon(process.env.DATABASE_URL!) // Fallback to main URL
+    ? neon(process.env.DATABASE_URL_UNPOOLED, { fetchOptions })
+    : neon(process.env.DATABASE_URL!, { fetchOptions }) // Fallback to main URL
   unpooledDb = drizzle(unpooledSqlClient)
 } catch (error) {
   console.error("Error initializing database connections:", error)
