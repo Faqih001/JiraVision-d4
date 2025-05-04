@@ -38,11 +38,11 @@ export default function SignupPage() {
     setIsLoading(true)
 
     try {
-      const success = await signup(name, email, password)
-      if (success) {
+      const result = await signup(name, email, password, confirmPassword)
+      if (result.success) {
         router.push("/dashboard")
       } else {
-        setError("Email already in use")
+        setError(result.message || "Failed to create account")
       }
     } catch (err) {
       setError("An error occurred. Please try again.")

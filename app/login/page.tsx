@@ -30,12 +30,12 @@ export default function LoginPage() {
     setIsSubmitting(true)
 
     try {
-      const success = await login(email, password)
+      const result = await login(email, password)
 
-      if (success) {
+      if (result.success) {
         router.push("/dashboard")
       } else {
-        setError("Invalid email or password")
+        setError(result.message || "Invalid email or password")
       }
     } catch (err) {
       setError("An unexpected error occurred. Please try again.")
@@ -142,18 +142,6 @@ export default function LoginPage() {
                   {isSubmitting ? "Signing in..." : "Sign in"}
                 </Button>
               </form>
-
-              <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-                <p className="text-sm text-gray-600 mb-1">Demo credentials:</p>
-                <div className="text-xs space-y-1">
-                  <p>
-                    Email: <span className="font-mono">demo@example.com</span>
-                  </p>
-                  <p>
-                    Password: <span className="font-mono">password</span>
-                  </p>
-                </div>
-              </div>
             </div>
           </div>
         </div>

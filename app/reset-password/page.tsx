@@ -40,10 +40,10 @@ export default function ResetPasswordPage() {
       }
 
       try {
-        const isValid = await verifyResetToken(token)
-        setIsTokenValid(isValid)
-        if (!isValid) {
-          setTokenError("Invalid or expired reset token. Please request a new password reset link.")
+        const result = await verifyResetToken(token)
+        setIsTokenValid(result.valid)
+        if (!result.valid) {
+          setTokenError(result.message || "Invalid or expired reset token. Please request a new password reset link.")
         }
       } catch (err) {
         setTokenError("An error occurred while verifying your reset token. Please try again.")
@@ -72,11 +72,11 @@ export default function ResetPasswordPage() {
     setIsSubmitting(true)
 
     try {
-      const success = await resetPassword(token, password)
-      if (success) {
+      const result = await resetPassword(token, password, confirmPassword)
+      if (result.success) {
         setIsSubmitted(true)
       } else {
-        setError("Failed to reset password. Please try again.")
+        setError(result.message || "Failed to reset password. Please try again.")
       }
     } catch (err) {
       setError("An unexpected error occurred. Please try again.")

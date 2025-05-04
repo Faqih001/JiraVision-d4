@@ -1,259 +1,204 @@
-"use client"
-
-import type React from "react"
-
-import { useState } from "react"
 import { MainNavbar } from "@/components/main-navbar"
 import { MainFooter } from "@/components/main-footer"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Label } from "@/components/ui/label"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Mail, Phone, MapPin, Clock, Send, CheckCircle } from "lucide-react"
-import GoogleMap from "@/components/google-map"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Phone, Mail, MapPin, Clock, ArrowRight } from "lucide-react"
+import { GoogleMap } from "@/components/google-map"
 
 export default function ContactPage() {
-  const [name, setName] = useState("")
-  const [email, setEmail] = useState("")
-  const [subject, setSubject] = useState("")
-  const [message, setMessage] = useState("")
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isSubmitted, setIsSubmitted] = useState(false)
-  const [error, setError] = useState("")
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError("")
-    setIsSubmitting(true)
-
-    try {
-      const response = await fetch("/api/send-contact-email", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name,
-          email,
-          subject,
-          message,
-        }),
-      })
-
-      const data = await response.json()
-
-      if (response.ok) {
-        setIsSubmitted(true)
-        setName("")
-        setEmail("")
-        setSubject("")
-        setMessage("")
-      } else {
-        setError(data.error || "Failed to send message. Please try again.")
-      }
-    } catch (err) {
-      setError("An unexpected error occurred. Please try again.")
-      console.error(err)
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex min-h-screen flex-col">
       <MainNavbar />
 
       <main className="flex-1">
         {/* Hero Section */}
-        <section className="py-20 bg-muted/50">
-          <div className="container text-center">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">Contact Us</h1>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Have questions or need assistance? We're here to help. Reach out to our team.
-            </p>
+        <section className="py-24 md:py-32 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-primary/10"></div>
+          <div className="absolute inset-0 bg-grid-white/10 bg-[length:20px_20px] [mask-image:radial-gradient(white,transparent_85%)]"></div>
+          <div className="container relative">
+            <div className="max-w-3xl mx-auto text-center">
+              <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-6">
+                Get in <span className="text-primary">Touch</span>
+              </h1>
+              <p className="text-xl text-muted-foreground mb-8">
+                Have questions about our products or services? Our team is here to help you.
+              </p>
+            </div>
           </div>
         </section>
 
-        {/* Contact Section */}
-        <section className="py-12 container">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-            {/* Contact Form */}
-            <div>
-              <h2 className="text-2xl font-bold mb-6">Get in Touch</h2>
-
-              {isSubmitted ? (
-                <div className="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
-                  <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
-                  <h3 className="text-xl font-bold mb-2">Message Sent!</h3>
-                  <p className="text-muted-foreground mb-4">
-                    Thank you for reaching out. We'll get back to you as soon as possible.
-                  </p>
-                  <Button onClick={() => setIsSubmitted(false)}>Send Another Message</Button>
-                </div>
-              ) : (
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  {error && (
-                    <Alert variant="destructive">
-                      <AlertDescription>{error}</AlertDescription>
-                    </Alert>
-                  )}
-
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Your Name</Label>
-                    <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email Address</Label>
-                    <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="subject">Subject</Label>
-                    <Input id="subject" value={subject} onChange={(e) => setSubject(e.target.value)} required />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="message">Message</Label>
-                    <Textarea
-                      id="message"
-                      rows={5}
-                      value={message}
-                      onChange={(e) => setMessage(e.target.value)}
-                      required
-                    />
-                  </div>
-
-                  <Button type="submit" className="w-full" disabled={isSubmitting}>
-                    {isSubmitting ? (
-                      <>Sending...</>
-                    ) : (
-                      <>
-                        <Send className="mr-2 h-4 w-4" />
-                        Send Message
-                      </>
-                    )}
-                  </Button>
-                </form>
-              )}
-            </div>
-
-            {/* Contact Information */}
-            <div>
-              <h2 className="text-2xl font-bold mb-6">Contact Information</h2>
-
-              <div className="space-y-8">
-                <div className="flex items-start gap-4">
-                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                    <MapPin className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-lg">Our Location</h3>
-                    <p className="text-muted-foreground">
-                      Kabarak, Nakuru
-                      <br />
-                      Kenya
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-4">
-                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                    <Phone className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-lg">Phone Number</h3>
-                    <p className="text-muted-foreground">
-                      <a href="tel:+254741140250" className="hover:text-primary">
-                        +254 741 140 250
-                      </a>
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-4">
-                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                    <Mail className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-lg">Email Address</h3>
-                    <p className="text-muted-foreground">
-                      <a href="mailto:fakiiahmad@gmail.com" className="hover:text-primary">
-                        fakiiahmad@gmail.com
-                      </a>
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-4">
-                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                    <Clock className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-lg">Business Hours</h3>
-                    <div className="text-muted-foreground">
-                      <p>Monday - Friday: 9:00 AM - 5:00 PM</p>
-                      <p>Saturday: 10:00 AM - 2:00 PM</p>
-                      <p>Sunday: Closed</p>
+        {/* Contact Form Section */}
+        <section className="py-16">
+          <div className="container">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
+              {/* Contact Form */}
+              <div>
+                <div className="bg-background rounded-xl p-8 shadow-lg border">
+                  <h2 className="text-2xl md:text-3xl font-bold mb-6">Send Us a Message</h2>
+                  <form className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label htmlFor="firstName" className="text-sm font-medium">
+                          First Name
+                        </label>
+                        <Input id="firstName" placeholder="Enter your first name" />
+                      </div>
+                      <div className="space-y-2">
+                        <label htmlFor="lastName" className="text-sm font-medium">
+                          Last Name
+                        </label>
+                        <Input id="lastName" placeholder="Enter your last name" />
+                      </div>
                     </div>
+
+                    <div className="space-y-2">
+                      <label htmlFor="email" className="text-sm font-medium">
+                        Email
+                      </label>
+                      <Input id="email" type="email" placeholder="Enter your email" />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label htmlFor="company" className="text-sm font-medium">
+                        Company
+                      </label>
+                      <Input id="company" placeholder="Enter your company name" />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label htmlFor="subject" className="text-sm font-medium">
+                        Subject
+                      </label>
+                      <Select>
+                        <SelectTrigger id="subject">
+                          <SelectValue placeholder="Select a subject" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="general">General Inquiry</SelectItem>
+                          <SelectItem value="sales">Sales Question</SelectItem>
+                          <SelectItem value="support">Technical Support</SelectItem>
+                          <SelectItem value="partnership">Partnership Opportunity</SelectItem>
+                          <SelectItem value="other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label htmlFor="message" className="text-sm font-medium">
+                        Message
+                      </label>
+                      <Textarea id="message" placeholder="Enter your message" rows={5} />
+                    </div>
+
+                    <Button type="submit" className="w-full rounded-full">
+                      Send Message
+                    </Button>
+                  </form>
+                </div>
+              </div>
+
+              {/* Contact Information */}
+              <div className="space-y-8">
+                <div>
+                  <h2 className="text-2xl md:text-3xl font-bold mb-6">Contact Information</h2>
+                  <p className="text-muted-foreground mb-8">
+                    Our team is available to answer your questions and help you get the most out of JiraVision.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="bg-background rounded-xl p-6 shadow-md border">
+                    <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                      <Phone className="h-6 w-6 text-primary" />
+                    </div>
+                    <h3 className="text-lg font-semibold mb-2">Phone</h3>
+                    <p className="text-muted-foreground">+254 741 140 250</p>
+                    <p className="text-muted-foreground">support@jiravision.com</p>
+                  </div>
+
+                  <div className="bg-background rounded-xl p-6 shadow-md border">
+                    <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                      <Mail className="h-6 w-6 text-primary" />
+                    </div>
+                    <h3 className="text-lg font-semibold mb-2">Email</h3>
+                    <p className="text-muted-foreground">info@jiravision.com</p>
+                    <p className="text-muted-foreground">sales@jiravision.com</p>
+                  </div>
+
+                  <div className="bg-background rounded-xl p-6 shadow-md border">
+                    <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                      <MapPin className="h-6 w-6 text-primary" />
+                    </div>
+                    <h3 className="text-lg font-semibold mb-2">Address</h3>
+                    <p className="text-muted-foreground">123 Innovation Way</p>
+                    <p className="text-muted-foreground">San Francisco, CA 94107</p>
+                  </div>
+
+                  <div className="bg-background rounded-xl p-6 shadow-md border">
+                    <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                      <Clock className="h-6 w-6 text-primary" />
+                    </div>
+                    <h3 className="text-lg font-semibold mb-2">Hours</h3>
+                    <p className="text-muted-foreground">Monday - Friday</p>
+                    <p className="text-muted-foreground">9:00 AM - 6:00 PM PST</p>
+                  </div>
+                </div>
+
+                <div className="mt-8">
+                  <h3 className="text-lg font-semibold mb-4">Our Location</h3>
+                  <div className="h-[300px] rounded-xl overflow-hidden border">
+                    <GoogleMap />
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Map Section */}
-        <section className="py-12">
-          <div className="container">
-            <h2 className="text-2xl font-bold mb-6">Find Us</h2>
-            <div className="h-[400px] rounded-lg overflow-hidden border">
-              <GoogleMap
-                apiKey="AIzaSyDPgttFbKx3V_mzD-UMAV0fWHDyU-QBk3c"
-                center={{ lat: -0.1673, lng: 35.9382 }} // Approximate coordinates for Kabarak, Nakuru
-                zoom={15}
-              />
             </div>
           </div>
         </section>
 
         {/* FAQ Section */}
-        <section className="py-12 bg-muted/50">
+        <section className="py-16 bg-muted/30">
           <div className="container">
-            <h2 className="text-2xl font-bold mb-6 text-center">Frequently Asked Questions</h2>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-              <div className="bg-background p-6 rounded-lg">
-                <h3 className="font-bold mb-2">What are your support hours?</h3>
-                <p className="text-muted-foreground">
-                  Our support team is available Monday through Friday from 9:00 AM to 5:00 PM EAT. For urgent issues, we
-                  also offer limited weekend support.
-                </p>
+            <div className="max-w-3xl mx-auto">
+              <div className="text-center mb-12">
+                <h2 className="text-2xl md:text-3xl font-bold mb-4">Frequently Asked Questions</h2>
+                <p className="text-muted-foreground">Find quick answers to common questions about contacting us.</p>
               </div>
 
-              <div className="bg-background p-6 rounded-lg">
-                <h3 className="font-bold mb-2">How quickly will I receive a response?</h3>
-                <p className="text-muted-foreground">
-                  We aim to respond to all inquiries within 24 hours during business days. For urgent matters, please
-                  indicate in your message.
-                </p>
+              <div className="space-y-6">
+                <div className="bg-background rounded-xl p-6 shadow-sm border">
+                  <h3 className="font-semibold mb-2">What's the typical response time?</h3>
+                  <p className="text-muted-foreground">
+                    We aim to respond to all inquiries within 24 hours during business days. For urgent matters, please
+                    call our support line.
+                  </p>
+                </div>
+
+                <div className="bg-background rounded-xl p-6 shadow-sm border">
+                  <h3 className="font-semibold mb-2">Do you offer technical support by phone?</h3>
+                  <p className="text-muted-foreground">
+                    Yes, technical support is available by phone for customers on Business and Enterprise plans. Other
+                    customers can reach our support team via email or chat.
+                  </p>
+                </div>
+
+                <div className="bg-background rounded-xl p-6 shadow-sm border">
+                  <h3 className="font-semibold mb-2">How can I schedule a demo?</h3>
+                  <p className="text-muted-foreground">
+                    You can schedule a demo by filling out the contact form above and selecting "Sales Question" as the
+                    subject. One of our representatives will reach out to arrange a time.
+                  </p>
+                </div>
               </div>
 
-              <div className="bg-background p-6 rounded-lg">
-                <h3 className="font-bold mb-2">Do you offer on-site consultations?</h3>
-                <p className="text-muted-foreground">
-                  Yes, we offer on-site consultations for enterprise clients. Please contact our sales team to schedule
-                  a visit.
+              <div className="text-center mt-12">
+                <p className="text-muted-foreground mb-4">
+                  Can't find what you're looking for? Check our comprehensive FAQ section.
                 </p>
-              </div>
-
-              <div className="bg-background p-6 rounded-lg">
-                <h3 className="font-bold mb-2">How can I request a product demo?</h3>
-                <p className="text-muted-foreground">
-                  You can request a product demo by filling out the contact form above or by emailing us directly at
-                  fakiiahmad@gmail.com.
-                </p>
+                <Button variant="outline" className="rounded-full gap-2">
+                  View All FAQs <ArrowRight className="h-4 w-4" />
+                </Button>
               </div>
             </div>
           </div>
