@@ -11,32 +11,46 @@ import { useIsMobile } from "@/hooks/use-mobile"
 interface Author {
   name: string
   role: string
-  avatar: string
+  avatar?: string // Make avatar optional
 }
 
 interface BlogPostTemplateProps {
   title: string
   excerpt: string
   content: React.ReactNode
-  author: Author
+  author?: Author // Make author optional
   publishDate: string
   readTime: string
-  coverImage: string
-  tags: string[]
+  coverImage?: string // Make coverImage optional
+  tags?: string[] // Make tags optional
+}
+
+// Default author object to use if none is provided
+const DEFAULT_AUTHOR: Author = {
+  name: "JiraVision Team",
+  role: "Editorial Team",
+  avatar: "/placeholder.svg?height=200&width=200",
 }
 
 export default function BlogPostTemplate({
   title,
   excerpt,
   content,
-  author,
+  author = DEFAULT_AUTHOR, // Provide default author
   publishDate,
   readTime,
-  coverImage,
-  tags = [], // Provide default empty array to prevent mapping errors
+  coverImage = "/placeholder.svg?height=1200&width=2000", // Provide default cover image
+  tags = [], // Provide default empty array for tags
 }: BlogPostTemplateProps) {
   const isMobile = useIsMobile()
   const [isSubscribed, setIsSubscribed] = useState(false)
+
+  // Ensure author has all required properties with defaults
+  const safeAuthor = {
+    name: author?.name || DEFAULT_AUTHOR.name,
+    role: author?.role || DEFAULT_AUTHOR.role,
+    avatar: author?.avatar || DEFAULT_AUTHOR.avatar,
+  }
 
   const handleSubscribe = (e: React.FormEvent) => {
     e.preventDefault()
@@ -59,7 +73,19 @@ export default function BlogPostTemplate({
 
       {/* Cover image */}
       <div className="relative h-[300px] md:h-[500px] w-full">
-        <Image src={coverImage || "/placeholder.svg"} alt={title} fill className="object-cover" priority />
+        {/* Use next/image with proper error handling */}
+        <Image
+          src={coverImage || "/placeholder.svg"}
+          alt={title}
+          fill
+          className="object-cover"
+          priority
+          onError={(e) => {
+            // Fallback to placeholder if image fails to load
+            const imgElement = e.currentTarget as HTMLImageElement
+            imgElement.src = "/placeholder.svg?height=1200&width=2000"
+          }}
+        />
         <div className="absolute inset-0 bg-black/40" />
       </div>
 
@@ -73,12 +99,22 @@ export default function BlogPostTemplate({
             <div className="flex flex-wrap items-center justify-center gap-4 text-sm text-gray-600">
               <div className="flex items-center">
                 <div className="relative mr-2 h-8 w-8 overflow-hidden rounded-full">
-                  <Image src={author.avatar || "/placeholder.svg"} alt={author.name} fill className="object-cover" />
+                  <Image
+                    src={safeAuthor.avatar || "/placeholder.svg"}
+                    alt={safeAuthor.name}
+                    fill
+                    className="object-cover"
+                    onError={(e) => {
+                      // Fallback to placeholder if avatar fails to load
+                      const imgElement = e.currentTarget as HTMLImageElement
+                      imgElement.src = "/placeholder.svg?height=200&width=200"
+                    }}
+                  />
                 </div>
                 <div>
-                  <span className="font-medium text-gray-900">{author.name}</span>
+                  <span className="font-medium text-gray-900">{safeAuthor.name}</span>
                   {!isMobile && <span className="mx-1">•</span>}
-                  <span className="block md:inline">{author.role}</span>
+                  <span className="block md:inline">{safeAuthor.role}</span>
                 </div>
               </div>
               <div className="flex items-center">
@@ -109,11 +145,21 @@ export default function BlogPostTemplate({
           <div className="mt-12 rounded-lg bg-gray-50 p-6">
             <div className="flex items-center">
               <div className="relative mr-4 h-16 w-16 overflow-hidden rounded-full">
-                <Image src={author.avatar || "/placeholder.svg"} alt={author.name} fill className="object-cover" />
+                <Image
+                  src={safeAuthor.avatar || "/placeholder.svg"}
+                  alt={safeAuthor.name}
+                  fill
+                  className="object-cover"
+                  onError={(e) => {
+                    // Fallback to placeholder if avatar fails to load
+                    const imgElement = e.currentTarget as HTMLImageElement
+                    imgElement.src = "/placeholder.svg?height=200&width=200"
+                  }}
+                />
               </div>
               <div>
-                <h3 className="text-lg font-medium text-gray-900">About {author.name}</h3>
-                <p className="text-gray-600">{author.role} at JiraVision</p>
+                <h3 className="text-lg font-medium text-gray-900">About {safeAuthor.name}</h3>
+                <p className="text-gray-600">{safeAuthor.role} at JiraVision</p>
               </div>
             </div>
             <p className="mt-4 text-gray-600">
