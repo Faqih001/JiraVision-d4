@@ -15,8 +15,8 @@ declare global {
   }
 }
 
-// Default API key
-const DEFAULT_API_KEY = "AIzaSyDPgttFbKx3V_mzD-UMAV0fWHDyU-QBk3c"
+// Use environment variable for API key with fallback for development
+const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ""
 
 interface GoogleMapProps {
   apiKey?: string
@@ -27,7 +27,7 @@ interface GoogleMapProps {
   zoom?: number
 }
 
-export function GoogleMap({ apiKey = DEFAULT_API_KEY, center, zoom = 15 }: GoogleMapProps) {
+export function GoogleMap({ apiKey = GOOGLE_MAPS_API_KEY, center, zoom = 15 }: GoogleMapProps) {
   const mapRef = useRef<HTMLDivElement>(null)
   const [isLoaded, setIsLoaded] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)

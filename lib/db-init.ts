@@ -2,12 +2,22 @@ import { db } from "./db"
 import { sql } from "drizzle-orm"
 import { seedDatabase } from "./seed-data"
 
+// A helper function to execute SQL with timeout
+async function executeSqlWithTimeout(sqlStatement: ReturnType<typeof sql>, timeoutMs = 15000) {
+  return Promise.race([
+    db.execute(sqlStatement),
+    new Promise((_, reject) => 
+      setTimeout(() => reject(new Error(`Database query timed out after ${timeoutMs}ms`)), timeoutMs)
+    )
+  ])
+}
+
 export async function initializeDatabase() {
   try {
     console.log("Initializing database tables...")
 
-    // Execute each CREATE TABLE statement separately
-    await db.execute(sql`
+    // Execute each CREATE TABLE statement separately with timeout protection
+    await executeSqlWithTimeout(sql`
       CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
         name TEXT NOT NULL,
@@ -21,7 +31,7 @@ export async function initializeDatabase() {
       )
     `)
 
-    await db.execute(sql`
+    await executeSqlWithTimeout(sql`
       CREATE TABLE IF NOT EXISTS password_reset_tokens (
         id SERIAL PRIMARY KEY,
         user_id INTEGER REFERENCES users(id),
@@ -31,7 +41,7 @@ export async function initializeDatabase() {
       )
     `)
 
-    await db.execute(sql`
+    await executeSqlWithTimeout(sql`
       CREATE TABLE IF NOT EXISTS sprints (
         id SERIAL PRIMARY KEY,
         name TEXT NOT NULL,
@@ -46,7 +56,7 @@ export async function initializeDatabase() {
       )
     `)
 
-    await db.execute(sql`
+    await executeSqlWithTimeout(sql`
       CREATE TABLE IF NOT EXISTS tasks (
         id SERIAL PRIMARY KEY,
         title TEXT NOT NULL,
@@ -63,7 +73,7 @@ export async function initializeDatabase() {
       )
     `)
 
-    await db.execute(sql`
+    await executeSqlWithTimeout(sql`
       CREATE TABLE IF NOT EXISTS wellbeing_metrics (
         id SERIAL PRIMARY KEY,
         user_id INTEGER REFERENCES users(id) NOT NULL,
@@ -77,7 +87,7 @@ export async function initializeDatabase() {
       )
     `)
 
-    await db.execute(sql`
+    await executeSqlWithTimeout(sql`
       CREATE TABLE IF NOT EXISTS gamification (
         id SERIAL PRIMARY KEY,
         user_id INTEGER REFERENCES users(id) NOT NULL,
@@ -91,7 +101,7 @@ export async function initializeDatabase() {
       )
     `)
 
-    await db.execute(sql`
+    await executeSqlWithTimeout(sql`
       CREATE TABLE IF NOT EXISTS ethical_metrics (
         id SERIAL PRIMARY KEY,
         date DATE NOT NULL,
@@ -103,7 +113,7 @@ export async function initializeDatabase() {
       )
     `)
 
-    await db.execute(sql`
+    await executeSqlWithTimeout(sql`
       CREATE TABLE IF NOT EXISTS sprint_analytics (
         id SERIAL PRIMARY KEY,
         sprint_id INTEGER REFERENCES sprints(id) NOT NULL,
@@ -115,7 +125,7 @@ export async function initializeDatabase() {
       )
     `)
 
-    await db.execute(sql`
+    await executeSqlWithTimeout(sql`
       CREATE TABLE IF NOT EXISTS ai_insights (
         id SERIAL PRIMARY KEY,
         type VARCHAR(50) NOT NULL,
@@ -129,12 +139,26 @@ export async function initializeDatabase() {
 
     console.log("Database tables initialized successfully")
 
-    // Seed the database with initial data
-    await seedDatabase()
+    try {
+      // Seed the database with initial data but don't fail initialization if seeding fails
+      await seedDatabase()
+    } catch (seedError) {
+      console.warn("Warning: Database seeding failed but tables were created:", seedError)
+    }
 
     return true
   } catch (error) {
     console.error("Error initializing database:", error)
+    
+    // Handle specific error types that might indicate network issues
+    if (error instanceof Error) {
+      if (error.message.includes('ETIMEDOUT') || 
+          error.message.includes('timed out') || 
+          error.message.includes('fetch failed')) {
+        console.error('Database connection timed out. Please check your network connection and database URL')
+      }
+    }
+    
     throw error // Rethrow to ensure the error is properly handled
   }
 }

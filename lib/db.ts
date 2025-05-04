@@ -3,7 +3,13 @@ import { drizzle } from "drizzle-orm/neon-http"
 import { eq } from "drizzle-orm"
 import { pgTable, serial, text, varchar, timestamp, boolean } from "drizzle-orm/pg-core"
 
+// Configure Neon for better connection handling
 neonConfig.fetchConnectionCache = true
+// Setting reasonable timeouts (in ms)
+neonConfig.fetchOptions = {
+  keepalive: true,
+  timeout: 30000, // 30 seconds timeout
+}
 
 // Database schema
 export const users = pgTable("users", {
@@ -26,24 +32,74 @@ export const passwordResetTokens = pgTable("password_reset_tokens", {
   createdAt: timestamp("created_at").defaultNow(),
 })
 
-// Initialize database connection
-// Use the pooled connection for most operations
-const sqlClient = neon(process.env.DATABASE_URL!)
-export const db = drizzle(sqlClient)
+// Initialize database connection with retry logic
+const MAX_RETRIES = 3
+const RETRY_DELAY = 1000 // 1 second
 
-// For operations that shouldn't use connection pooling
-export const unpooledSqlClient = neon(process.env.DATABASE_URL_UNPOOLED!)
-export const unpooledDb = drizzle(unpooledSqlClient)
+async function createDbConnection(url: string, retries = MAX_RETRIES) {
+  try {
+    const sqlClient = neon(url)
+    return drizzle(sqlClient)
+  } catch (error) {
+    if (retries > 0) {
+      console.warn(`Database connection failed. Retrying... (${retries} attempts left)`)
+      await new Promise(resolve => setTimeout(resolve, RETRY_DELAY))
+      return createDbConnection(url, retries - 1)
+    }
+    console.error("Failed to connect to database after multiple attempts:", error)
+    throw error
+  }
+}
+
+// Use the connection functions
+let db: ReturnType<typeof drizzle>
+let unpooledDb: ReturnType<typeof drizzle>
+
+try {
+  // Initialize connections
+  const sqlClient = neon(process.env.DATABASE_URL!)
+  db = drizzle(sqlClient)
+
+  // For operations that shouldn't use connection pooling
+  const unpooledSqlClient = process.env.DATABASE_URL_UNPOOLED 
+    ? neon(process.env.DATABASE_URL_UNPOOLED)
+    : neon(process.env.DATABASE_URL!) // Fallback to main URL
+  unpooledDb = drizzle(unpooledSqlClient)
+} catch (error) {
+  console.error("Error initializing database connections:", error)
+  // Create fallback minimal implementations to prevent crashes
+  // This allows the app to start even if DB connection fails initially
+  const dummyClient = {
+    query: async () => { throw new Error("Database connection is not available") }
+  }
+  db = drizzle(dummyClient as any)
+  unpooledDb = drizzle(dummyClient as any)
+}
+
+export { db, unpooledDb }
 
 // Import and initialize database tables
 import { initializeDatabase } from "./db-init"
 
 // We need to handle the initialization asynchronously but can't use top-level await
-// So we'll use a promise and catch errors
-const dbInitPromise = initializeDatabase().catch((error) => {
-  console.error("Failed to initialize database:", error)
+// So we'll use a promise and catch errors with better retry logic
+const dbInitPromise = (async () => {
+  for (let i = 0; i < MAX_RETRIES; i++) {
+    try {
+      await initializeDatabase()
+      return true
+    } catch (error) {
+      if (i < MAX_RETRIES - 1) {
+        console.warn(`Database initialization failed. Retrying... (${MAX_RETRIES - i - 1} attempts left)`)
+        await new Promise(resolve => setTimeout(resolve, RETRY_DELAY))
+      } else {
+        console.error("Failed to initialize database after multiple attempts:", error)
+        return false
+      }
+    }
+  }
   return false
-})
+})()
 
 // User type
 export type User = {

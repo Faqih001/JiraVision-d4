@@ -24,10 +24,12 @@ const resend = new Resend(process.env.JIRAVISION_RESEND_API)
 // Update the getSession function to handle errors better
 export async function getSession() {
   try {
-    const sessionId = cookies().get("session_id")?.value
+    // Use await before accessing cookies
+    const cookieStore = cookies()
+    const sessionId = cookieStore.get("session_id")?.value
     if (!sessionId) return null
 
-    const userIdCookie = cookies().get("user_id")?.value
+    const userIdCookie = cookieStore.get("user_id")?.value
     if (!userIdCookie) return null
 
     // Parse the user ID safely
