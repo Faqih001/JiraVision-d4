@@ -3,6 +3,18 @@
 import { useEffect, useRef, useState } from "react"
 import { Loader2 } from "lucide-react"
 
+// Type declarations for Google Maps API
+declare global {
+  interface Window {
+    google: {
+      maps: {
+        Map: new (element: HTMLElement, options: any) => any;
+        Marker: new (options: any) => any;
+      }
+    }
+  }
+}
+
 // Default API key
 const DEFAULT_API_KEY = "AIzaSyDPgttFbKx3V_mzD-UMAV0fWHDyU-QBk3c"
 
@@ -21,6 +33,31 @@ export function GoogleMap({ apiKey = DEFAULT_API_KEY, center, zoom = 15 }: Googl
   const [loadError, setLoadError] = useState<string | null>(null)
 
   useEffect(() => {
+    const initializeMap = () => {
+      if (!mapRef.current) return
+
+      try {
+        const map = new window.google.maps.Map(mapRef.current, {
+          center,
+          zoom,
+          mapTypeControl: true,
+          streetViewControl: true,
+          fullscreenControl: true,
+          zoomControl: true,
+        })
+
+        // Add a marker
+        new window.google.maps.Marker({
+          position: center,
+          map,
+          title: "JiraVision",
+        })
+      } catch (error) {
+        console.error("Error initializing map:", error)
+        setLoadError("Error initializing map")
+      }
+    }
+
     // Check if Google Maps API is already loaded
     if (window.google && window.google.maps) {
       initializeMap()
@@ -48,31 +85,6 @@ export function GoogleMap({ apiKey = DEFAULT_API_KEY, center, zoom = 15 }: Googl
       }
     }
   }, [apiKey, center, zoom])
-
-  const initializeMap = () => {
-    if (!mapRef.current) return
-
-    try {
-      const map = new window.google.maps.Map(mapRef.current, {
-        center,
-        zoom,
-        mapTypeControl: true,
-        streetViewControl: true,
-        fullscreenControl: true,
-        zoomControl: true,
-      })
-
-      // Add a marker
-      new window.google.maps.Marker({
-        position: center,
-        map,
-        title: "JiraVision",
-      })
-    } catch (error) {
-      console.error("Error initializing map:", error)
-      setLoadError("Error initializing map")
-    }
-  }
 
   if (loadError) {
     return (
