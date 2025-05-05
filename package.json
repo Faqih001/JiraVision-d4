@@ -67,6 +67,7 @@
     "drizzle-orm": "latest",
     "embla-carousel-react": "8.5.1",
     "expo-sqlite": "latest",
+    "framer-motion": "latest",
     "gel": "latest",
     "input-otp": "1.4.1",
     "knex": "latest",
