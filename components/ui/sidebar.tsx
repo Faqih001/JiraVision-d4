@@ -155,13 +155,7 @@ const Sidebar = React.forwardRef<
         <SheetContent
           data-sidebar="sidebar"
           data-mobile="true"
-          className="w-[--sidebar-width] bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden"
-          style={
-            {
-              "--sidebar-width": SIDEBAR_WIDTH_MOBILE,
-            } as React.CSSProperties
-          }
-          side={side}
+          className="sidebar-mobile w-[--sidebar-width] bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden"
         >
           <div className="flex h-full w-full flex-col">{children}</div>
         </SheetContent>
@@ -544,7 +538,7 @@ const SidebarMenuSkeleton = React.forwardRef<
     >
       {showIcon && <Skeleton className="size-4 rounded-md" data-sidebar="menu-skeleton-icon" />}
       <Skeleton
-        className="h-4 flex-1 max-w-[--skeleton-width]"
+        className="h-4 flex-1 max-w-[--skeleton-width] sidebar-menu-skeleton-text"
         data-sidebar="menu-skeleton-text"
         style={
           {

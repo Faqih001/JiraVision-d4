@@ -191,7 +191,7 @@ const ChartTooltipContent = React.forwardRef<
                           } ${nestLabel && indicator === "dashed" ? "my-0.5" : ""} shrink-0 rounded-[2px] border-[--color-border] bg-[--color-bg]`}
                           style={{
                             "--indicator-color": indicatorColor
-                          }}
+                          } as React.CSSProperties}
                         />
                       )
                     )}
