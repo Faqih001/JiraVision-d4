@@ -4,7 +4,7 @@ import { seedDatabase } from "./seed-data"
 import { drizzle } from "drizzle-orm/libsql"
 
 // Check if we're using SQLite
-const USE_SQLITE = process.env.USE_SQLITE === 'true'
+const USE_SQLITE = process.env.USE_SQLITE === 'true' && process.env.FORCE_POSTGRESQL !== 'true'
 
 // A helper function to execute SQL with timeout
 async function executeSqlWithTimeout(sqlStatement: ReturnType<typeof sql>, timeoutMs = 15000) {

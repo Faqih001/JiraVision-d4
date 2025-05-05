@@ -41,7 +41,7 @@ const MAX_RETRIES = 3
 const RETRY_DELAY = 1000 // 1 second
 
 // Check if we should use SQLite or PostgreSQL
-const USE_SQLITE = process.env.USE_SQLITE === 'true'
+const USE_SQLITE = process.env.USE_SQLITE === 'true' && process.env.FORCE_POSTGRESQL !== 'true'
 
 async function createDbConnection(url: string, retries = MAX_RETRIES) {
   if (USE_SQLITE) {
