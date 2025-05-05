@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Import component-specific styles */
+@import "../styles/components/dashboard.css";
+@import "../styles/components/charts.css";
+@import "../styles/components/sidebar.css";
+
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -24,6 +29,12 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 262 83% 58%;
     --radius: 0.5rem;
+    
+    /* Color variables for charts */
+    --blue-500: rgb(59, 130, 246);
+    --blue-600: rgb(37, 99, 235);
+    --purple-500: rgb(139, 92, 246);
+    --purple-600: rgb(124, 58, 237);
   }
 
   .dark {

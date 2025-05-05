@@ -1,0 +1,29 @@
+/* Chart tooltip styles */
+.chart-indicator {
+  --color-bg: var(--indicator-color, currentColor);
+  --color-border: var(--indicator-color, currentColor);
+}
+
+.chart-indicator-dot {
+  height: 2.5px;
+  width: 2.5px;
+  border-radius: 2px;
+}
+
+.chart-indicator-line {
+  width: 1px;
+}
+
+.chart-indicator-dashed {
+  width: 0;
+  border: 1.5px;
+  border-style: dashed;
+  background-color: transparent;
+}
+
+/* Chart legend styles */
+.chart-legend-item {
+  height: 2px;
+  width: 2px;
+  border-radius: 2px;
+}

@@ -1,0 +1,48 @@
+/* Dashboard chart styles */
+.bar-chart-column {
+  width: 3px;
+  border-radius: top;
+}
+
+.bar-chart-column-blue {
+  background-color: var(--blue-500);
+}
+
+.bar-chart-column-blue-dark {
+  background-color: var(--blue-600);
+}
+
+.bar-chart-column-purple {
+  background-color: var(--purple-500);
+}
+
+.bar-chart-column-purple-dark {
+  background-color: var(--purple-600);
+}
+
+/* Daily task chart bars */
+.task-chart-bar {
+  width: 100%;
+  border-radius: top;
+}
+
+.task-chart-bar-blue {
+  background-color: rgba(59, 130, 246, 0.8);
+}
+
+.task-chart-bar-blue-dark {
+  background-color: rgba(37, 99, 235, 0.8);
+}
+
+/* Dynamic height classes */
+.height-70 { height: 70px; }
+.height-120 { height: 120px; }
+.height-90 { height: 90px; }
+.height-180 { height: 180px; }
+.height-110 { height: 110px; }
+.height-60 { height: 60px; }
+.height-130 { height: 130px; }
+
+/* Opacity classes */
+.opacity-100 { opacity: 1; }
+.opacity-70 { opacity: 0.7; }

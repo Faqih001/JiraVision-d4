@@ -453,12 +453,10 @@ export default function Dashboard() {
                   <div key={i} className="flex flex-col items-center gap-2">
                     <div className="w-full flex items-end gap-1">
                       <div
-                        className="w-3 bg-blue-500 dark:bg-blue-600 rounded-t"
-                        style={{ height: `${Math.floor(Math.random() * 100) + 50}px` }}
+                        className={`bar-chart-column bar-chart-column-blue h-[${Math.floor(Math.random() * 100) + 50}px]`}
                       ></div>
                       <div
-                        className="w-3 bg-purple-500 dark:bg-purple-600 rounded-t"
-                        style={{ height: `${Math.floor(Math.random() * 100) + 30}px` }}
+                        className={`bar-chart-column bar-chart-column-purple h-[${Math.floor(Math.random() * 100) + 30}px]`}
                       ></div>
                     </div>
                     <span className="text-xs text-muted-foreground">
@@ -628,11 +626,15 @@ export default function Dashboard() {
                 {["2hr", "4hr", "6hr", "8hr", "10hr", "12hr", "14hr"].map((hour, i) => (
                   <div key={i} className="flex flex-col items-center gap-2 flex-1">
                     <div
-                      className="w-full bg-blue-500/80 dark:bg-blue-600/80 rounded-t"
-                      style={{
-                        height: `${[70, 120, 90, 180, 110, 60, 130][i]}px`,
-                        opacity: i === 2 ? 1 : 0.7,
-                      }}
+                      className={`task-chart-bar task-chart-bar-blue ${i === 2 ? 'opacity-100' : 'opacity-70'} ${
+                        i === 0 ? 'height-70' : 
+                        i === 1 ? 'height-120' : 
+                        i === 2 ? 'height-90' : 
+                        i === 3 ? 'height-180' : 
+                        i === 4 ? 'height-110' : 
+                        i === 5 ? 'height-60' : 
+                        'height-130'
+                      } rounded-t`}
                     ></div>
                     <span className="text-xs text-muted-foreground">{hour}</span>
                   </div>

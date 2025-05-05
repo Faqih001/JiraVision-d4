@@ -1,0 +1,14 @@
+/* Sidebar styles */
+.sidebar-wrapper {
+  --sidebar-width: 16rem;
+  --sidebar-width-icon: 3rem;
+}
+
+.sidebar-mobile {
+  --sidebar-width: 18rem;
+}
+
+/* Menu skeleton width variable */
+.sidebar-menu-skeleton-text {
+  --skeleton-width: 80%;
+}
