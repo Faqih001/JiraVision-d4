@@ -8,8 +8,8 @@ const USE_SQLITE = process.env.USE_SQLITE === 'true' || process.env.DATABASE_URL
 // A helper function to execute SQL with timeout
 async function executeSqlWithTimeout(sqlStatement: ReturnType<typeof sql>, timeoutMs = 15000) {
   if (USE_SQLITE) {
-    // For SQLite, just execute directly without timeout
-    return db.execute(sqlStatement)
+    // For SQLite, use run() instead of execute()
+    return db.run(sqlStatement)
   }
   
   return Promise.race([
@@ -30,7 +30,8 @@ export async function initializeDatabase() {
       // This way we avoid SQL syntax differences between PostgreSQL and SQLite
       
       // Just run a simple test query to verify connection
-      await db.execute(sql`SELECT 1`)
+      // Use the run method for libsql client instead of execute
+      await db.run(sql`SELECT 1`)
       console.log("Database tables initialized successfully")
       
       try {
