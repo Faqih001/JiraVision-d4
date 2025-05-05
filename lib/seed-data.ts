@@ -13,7 +13,7 @@ import { sql } from "drizzle-orm"
 import bcrypt from "bcryptjs"
 
 // Check if we're using SQLite
-const USE_SQLITE = process.env.USE_SQLITE === 'true' || process.env.DATABASE_URL === undefined
+const USE_SQLITE = process.env.USE_SQLITE === 'true'
 
 export async function seedDatabase() {
   try {
