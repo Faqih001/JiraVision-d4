@@ -41,7 +41,7 @@ const MAX_RETRIES = 3
 const RETRY_DELAY = 1000 // 1 second
 
 // Check if we should use SQLite or PostgreSQL
-const USE_SQLITE = process.env.USE_SQLITE === 'true' && process.env.FORCE_POSTGRESQL !== 'true'
+const USE_SQLITE = false // Override any environment variable setting to force PostgreSQL
 
 async function createDbConnection(url: string, retries = MAX_RETRIES) {
   if (USE_SQLITE) {
@@ -93,6 +93,7 @@ try {
       ? neon(process.env.DATABASE_URL_UNPOOLED, { fetchOptions })
       : neon(process.env.DATABASE_URL!, { fetchOptions }) // Fallback to main URL
     unpooledDb = drizzle(unpooledSqlClient)
+    console.log("USING POSTGRESQL DATABASE with connection:", process.env.DATABASE_URL?.substring(0, 40) + "...")
   }
 } catch (error) {
   console.error("Error initializing database connections:", error)
