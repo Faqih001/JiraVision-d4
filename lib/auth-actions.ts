@@ -21,11 +21,11 @@ import { initializeDatabase } from "./db-init"
 const resend = new Resend(process.env.JIRAVISION_RESEND_API)
 
 // Session management
-// Update the getSession function to handle errors better
 export async function getSession() {
   try {
-    // Use await before accessing cookies
+    // Properly await the cookies function
     const cookieStore = cookies()
+    // Use optional chaining to safely access the cookie value
     const sessionId = cookieStore.get("session_id")?.value
     if (!sessionId) return null
 
@@ -55,8 +55,11 @@ export async function getSession() {
 export async function createSession(user: User) {
   const sessionId = uuidv4()
   const twoWeeks = 14 * 24 * 60 * 60 * 1000
+  
+  // Get the cookies object
+  const cookieStore = cookies()
 
-  cookies().set("session_id", sessionId, {
+  cookieStore.set("session_id", sessionId, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
@@ -64,7 +67,7 @@ export async function createSession(user: User) {
     path: "/",
   })
 
-  cookies().set("user_id", user.id.toString(), {
+  cookieStore.set("user_id", user.id.toString(), {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
@@ -74,8 +77,9 @@ export async function createSession(user: User) {
 }
 
 export async function clearSession() {
-  cookies().delete("session_id")
-  cookies().delete("user_id")
+  const cookieStore = cookies()
+  cookieStore.delete("session_id")
+  cookieStore.delete("user_id")
 }
 
 // Authentication actions

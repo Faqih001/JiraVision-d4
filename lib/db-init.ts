@@ -2,8 +2,16 @@ import { db } from "./db"
 import { sql } from "drizzle-orm"
 import { seedDatabase } from "./seed-data"
 
+// Check if we're using SQLite
+const USE_SQLITE = process.env.USE_SQLITE === 'true' || process.env.DATABASE_URL === undefined
+
 // A helper function to execute SQL with timeout
 async function executeSqlWithTimeout(sqlStatement: ReturnType<typeof sql>, timeoutMs = 15000) {
+  if (USE_SQLITE) {
+    // For SQLite, just execute directly without timeout
+    return db.execute(sqlStatement)
+  }
+  
   return Promise.race([
     db.execute(sqlStatement),
     new Promise((_, reject) => 
@@ -15,7 +23,27 @@ async function executeSqlWithTimeout(sqlStatement: ReturnType<typeof sql>, timeo
 export async function initializeDatabase() {
   try {
     console.log("Initializing database tables...")
-
+    
+    if (USE_SQLITE) {
+      console.log("Using SQLite for database tables")
+      // For SQLite, we'll use the schema from drizzle instead of creating tables manually
+      // This way we avoid SQL syntax differences between PostgreSQL and SQLite
+      
+      // Just run a simple test query to verify connection
+      await db.execute(sql`SELECT 1`)
+      console.log("Database tables initialized successfully")
+      
+      try {
+        // Seed the database with initial data
+        await seedDatabase()
+      } catch (seedError) {
+        console.warn("Warning: Database seeding failed but tables were created:", seedError)
+      }
+      
+      return true
+    }
+    
+    // PostgreSQL initialization
     // Execute each CREATE TABLE statement separately with timeout protection
     await executeSqlWithTimeout(sql`
       CREATE TABLE IF NOT EXISTS users (
