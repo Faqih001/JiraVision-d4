@@ -24,8 +24,8 @@ const resend = new Resend(process.env.JIRAVISION_RESEND_API)
 export async function getSession() {
   try {
     console.log("getSession: Starting session retrieval");
-    // In Next.js 15, cookies() is synchronous despite the warning
-    const cookieStore = cookies();
+    // In Next.js 15, cookies() returns a Promise that must be awaited
+    const cookieStore = await cookies();
     console.log("getSession: Got cookie store");
     
     // Use optional chaining to safely access the cookie value
@@ -68,8 +68,8 @@ export async function createSession(user: User) {
   const twoWeeks = 14 * 24 * 60 * 60 * 1000
   
   try {
-    // Get the cookies object
-    const cookieStore = cookies()
+    // Get the cookies object - must await it in Next.js 15
+    const cookieStore = await cookies();
     console.log("createSession: Got cookie store");
 
     console.log(`createSession: Setting session_id cookie: ${sessionId.substring(0, 6)}...`);
@@ -98,10 +98,10 @@ export async function createSession(user: User) {
 export async function clearSession() {
   console.log("clearSession: Clearing user session cookies");
   try {
-    const cookieStore = cookies()
+    const cookieStore = await cookies();
     console.log("clearSession: Got cookie store");
-    cookieStore.delete("session_id")
-    cookieStore.delete("user_id")
+    cookieStore.delete("session_id");
+    cookieStore.delete("user_id");
     console.log("clearSession: Session cookies deleted successfully");
   } catch (error) {
     console.error("clearSession error:", error);
