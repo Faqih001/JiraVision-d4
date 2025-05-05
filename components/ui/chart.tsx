@@ -184,14 +184,12 @@ const ChartTooltipContent = React.forwardRef<
                     ) : (
                       !hideIndicator && (
                         <div
+                          data-indicator-color={indicatorColor}
                           className={`chart-indicator chart-indicator-${indicator} ${
                             indicator === "dot" ? "chart-indicator-dot" : ""
                           } ${indicator === "line" ? "chart-indicator-line" : ""} ${
                             indicator === "dashed" ? "chart-indicator-dashed" : ""
                           } ${nestLabel && indicator === "dashed" ? "my-0.5" : ""} shrink-0 rounded-[2px] border-[--color-border] bg-[--color-bg]`}
-                          style={{
-                            "--indicator-color": indicatorColor
-                          } as React.CSSProperties}
                         />
                       )
                     )}
@@ -257,10 +255,8 @@ const ChartLegendContent = React.forwardRef<
               <itemConfig.icon />
             ) : (
               <div
+                data-color={item.color}
                 className="chart-legend-item shrink-0 rounded-[2px]"
-                style={{
-                  backgroundColor: item.color,
-                }}
               />
             )}
             {itemConfig?.label}
