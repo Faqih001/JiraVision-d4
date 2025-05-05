@@ -133,6 +133,7 @@ export default function SettingsPage() {
                     <Label htmlFor="language">Language</Label>
                     <select
                       id="language"
+                      aria-label="Select language"
                       className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                       defaultValue="en-US"
                     >
@@ -148,6 +149,7 @@ export default function SettingsPage() {
                     <Label htmlFor="timezone">Timezone</Label>
                     <select
                       id="timezone"
+                      aria-label="Select timezone"
                       className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                       defaultValue="America/Los_Angeles"
                     >
@@ -477,18 +479,36 @@ export default function SettingsPage() {
                   <Switch id="twoFactor" />
                 </div>
                 <div className="border rounded-md p-4 bg-muted/30">
-                  <h4 className="font-medium mb-2">Available Methods</h4>
-                  <div className="space-y-2">
+                  <h4 className="font-medium mb-2" id="2fa-methods-heading">Available Methods</h4>
+                  <div className="space-y-2" role="radiogroup" aria-labelledby="2fa-methods-heading">
                     <div className="flex items-center gap-2">
-                      <input type="radio" id="authenticator" name="2faMethod" className="h-4 w-4" />
+                      <input 
+                        type="radio" 
+                        id="authenticator" 
+                        name="2faMethod" 
+                        className="h-4 w-4" 
+                        aria-label="Use Authenticator App for two-factor authentication"
+                      />
                       <Label htmlFor="authenticator">Authenticator App</Label>
                     </div>
                     <div className="flex items-center gap-2">
-                      <input type="radio" id="sms" name="2faMethod" className="h-4 w-4" />
+                      <input 
+                        type="radio" 
+                        id="sms" 
+                        name="2faMethod" 
+                        className="h-4 w-4" 
+                        aria-label="Use SMS for two-factor authentication"
+                      />
                       <Label htmlFor="sms">SMS</Label>
                     </div>
                     <div className="flex items-center gap-2">
-                      <input type="radio" id="email" name="2faMethod" className="h-4 w-4" />
+                      <input 
+                        type="radio" 
+                        id="email" 
+                        name="2faMethod" 
+                        className="h-4 w-4" 
+                        aria-label="Use Email for two-factor authentication"
+                      />
                       <Label htmlFor="email">Email</Label>
                     </div>
                   </div>

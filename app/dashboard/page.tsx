@@ -628,10 +628,9 @@ export default function Dashboard() {
                 {["2hr", "4hr", "6hr", "8hr", "10hr", "12hr", "14hr"].map((hour, i) => (
                   <div key={i} className="flex flex-col items-center gap-2 flex-1">
                     <div
-                      className="w-full bg-blue-500/80 dark:bg-blue-600/80 rounded-t"
+                      className={`bar ${i === 2 ? "opacity-100" : "opacity-70"}`}
                       style={{
                         height: `${[70, 120, 90, 180, 110, 60, 130][i]}px`,
-                        opacity: i === 2 ? 1 : 0.7,
                       }}
                     ></div>
                     <span className="text-xs text-muted-foreground">{hour}</span>
