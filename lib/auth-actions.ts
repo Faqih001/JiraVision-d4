@@ -23,63 +23,89 @@ const resend = new Resend(process.env.JIRAVISION_RESEND_API)
 // Session management
 export async function getSession() {
   try {
-    // Properly await the cookies function
-    const cookieStore = cookies()
+    console.log("getSession: Starting session retrieval");
+    // In Next.js 15, cookies() is synchronous despite the warning
+    const cookieStore = cookies();
+    console.log("getSession: Got cookie store");
+    
     // Use optional chaining to safely access the cookie value
-    const sessionId = cookieStore.get("session_id")?.value
-    if (!sessionId) return null
+    const sessionId = cookieStore.get("session_id")?.value;
+    console.log(`getSession: Session ID found: ${sessionId ? 'yes' : 'no'}`);
+    if (!sessionId) return null;
 
-    const userIdCookie = cookieStore.get("user_id")?.value
-    if (!userIdCookie) return null
+    const userIdCookie = cookieStore.get("user_id")?.value;
+    console.log(`getSession: User ID found: ${userIdCookie ? 'yes' : 'no'}`);
+    if (!userIdCookie) return null;
 
     // Parse the user ID safely
-    let userId: number
+    let userId: number;
     try {
-      userId = Number.parseInt(userIdCookie)
-      if (isNaN(userId) || userId <= 0) return null
+      userId = Number.parseInt(userIdCookie);
+      console.log(`getSession: Parsed user ID: ${userId}`);
+      if (isNaN(userId) || userId <= 0) return null;
     } catch {
-      return null
+      console.log("getSession: Failed to parse user ID");
+      return null;
     }
 
-    const user = await getUserById(userId)
-    if (!user) return null
+    console.log(`getSession: Looking up user with ID: ${userId}`);
+    const user = await getUserById(userId);
+    console.log(`getSession: User found: ${user ? 'yes' : 'no'}`);
+    if (!user) return null;
 
-    const { passwordHash, ...userWithoutPassword } = user
-    return userWithoutPassword as User
+    const { passwordHash, ...userWithoutPassword } = user;
+    console.log("getSession: Returning user session");
+    return userWithoutPassword as User;
   } catch (error) {
-    console.error("Session error:", error)
-    return null
+    console.error("Session error:", error);
+    return null;
   }
 }
 
 export async function createSession(user: User) {
+  console.log(`createSession: Creating session for user ID ${user.id}`);
   const sessionId = uuidv4()
   const twoWeeks = 14 * 24 * 60 * 60 * 1000
   
-  // Get the cookies object
-  const cookieStore = cookies()
+  try {
+    // Get the cookies object
+    const cookieStore = cookies()
+    console.log("createSession: Got cookie store");
 
-  cookieStore.set("session_id", sessionId, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    expires: new Date(Date.now() + twoWeeks),
-    path: "/",
-  })
+    console.log(`createSession: Setting session_id cookie: ${sessionId.substring(0, 6)}...`);
+    cookieStore.set("session_id", sessionId, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      expires: new Date(Date.now() + twoWeeks),
+      path: "/",
+    })
 
-  cookieStore.set("user_id", user.id.toString(), {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    expires: new Date(Date.now() + twoWeeks),
-    path: "/",
-  })
+    console.log(`createSession: Setting user_id cookie: ${user.id}`);
+    cookieStore.set("user_id", user.id.toString(), {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      expires: new Date(Date.now() + twoWeeks),
+      path: "/",
+    })
+    console.log("createSession: Session cookies set successfully");
+  } catch (error) {
+    console.error("createSession error:", error);
+  }
 }
 
 export async function clearSession() {
-  const cookieStore = cookies()
-  cookieStore.delete("session_id")
-  cookieStore.delete("user_id")
+  console.log("clearSession: Clearing user session cookies");
+  try {
+    const cookieStore = cookies()
+    console.log("clearSession: Got cookie store");
+    cookieStore.delete("session_id")
+    cookieStore.delete("user_id")
+    console.log("clearSession: Session cookies deleted successfully");
+  } catch (error) {
+    console.error("clearSession error:", error);
+  }
 }
 
 // Authentication actions
