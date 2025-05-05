@@ -12,6 +12,9 @@ import {
 import { sql } from "drizzle-orm"
 import bcrypt from "bcryptjs"
 
+// Check if we're using SQLite
+const USE_SQLITE = process.env.USE_SQLITE === 'true' || process.env.DATABASE_URL === undefined
+
 export async function seedDatabase() {
   try {
     console.log("Checking if database needs seeding...")
@@ -28,27 +31,53 @@ export async function seedDatabase() {
 
     // Create admin user
     const hashedPassword = await bcrypt.hash("admin123", 10)
-    const [adminUser] = await db
-      .insert(users)
-      .values({
-        name: "Admin User",
-        email: "admin@jiravision.com",
-        passwordHash: hashedPassword,
-        role: "admin",
-        emailVerified: true,
-      })
-      .returning()
+    
+    // For SQLite, we need to handle the insertion differently
+    let adminUser;
+    if (USE_SQLITE) {
+      const result = await db
+        .insert(users)
+        .values({
+          name: "Admin User",
+          email: "admin@jiravision.com",
+          passwordHash: hashedPassword,
+          role: "admin",
+          emailVerified: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+      
+      // For SQLite, fetch the user after insertion
+      const users_result = await db.select().from(users).where(sql`email = 'admin@jiravision.com'`);
+      adminUser = users_result[0];
+    } else {
+      [adminUser] = await db
+        .insert(users)
+        .values({
+          name: "Admin User",
+          email: "admin@jiravision.com",
+          passwordHash: hashedPassword,
+          role: "admin",
+          emailVerified: true,
+        })
+        .returning();
+    }
 
     // Create demo users
-    const demoUsers = await db
-      .insert(users)
-      .values([
+    let demoUsers;
+    if (USE_SQLITE) {
+      // For SQLite, insert one by one and collect results
+      demoUsers = [];
+      
+      const demoUserData = [
         {
           name: "John Developer",
           email: "john@example.com",
           passwordHash: await bcrypt.hash("password123", 10),
           role: "user",
           emailVerified: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
         },
         {
           name: "Sarah Designer",
@@ -56,6 +85,8 @@ export async function seedDatabase() {
           passwordHash: await bcrypt.hash("password123", 10),
           role: "user",
           emailVerified: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
         },
         {
           name: "Mike Manager",
@@ -63,9 +94,44 @@ export async function seedDatabase() {
           passwordHash: await bcrypt.hash("password123", 10),
           role: "manager",
           emailVerified: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
         },
-      ])
-      .returning()
+      ];
+      
+      for (const userData of demoUserData) {
+        await db.insert(users).values(userData);
+        const result = await db.select().from(users).where(sql`email = ${userData.email}`);
+        demoUsers.push(result[0]);
+      }
+    } else {
+      demoUsers = await db
+        .insert(users)
+        .values([
+          {
+            name: "John Developer",
+            email: "john@example.com",
+            passwordHash: await bcrypt.hash("password123", 10),
+            role: "user",
+            emailVerified: true,
+          },
+          {
+            name: "Sarah Designer",
+            email: "sarah@example.com",
+            passwordHash: await bcrypt.hash("password123", 10),
+            role: "user",
+            emailVerified: true,
+          },
+          {
+            name: "Mike Manager",
+            email: "mike@example.com",
+            passwordHash: await bcrypt.hash("password123", 10),
+            role: "manager",
+            emailVerified: true,
+          },
+        ])
+        .returning();
+    }
 
     // Create sprints
     const currentDate = new Date()
@@ -78,9 +144,11 @@ export async function seedDatabase() {
     const pastSprintStart = new Date(pastSprintEnd)
     pastSprintStart.setDate(pastSprintEnd.getDate() - 14)
 
-    const demoSprints = await db
-      .insert(sprints)
-      .values([
+    let demoSprints;
+    if (USE_SQLITE) {
+      demoSprints = [];
+      
+      const sprintData = [
         {
           name: "Sprint 1",
           description: "First sprint of the project",
@@ -89,6 +157,8 @@ export async function seedDatabase() {
           status: "completed",
           capacity: 40,
           completed: 35,
+          createdAt: new Date(),
+          updatedAt: new Date(),
         },
         {
           name: "Sprint 2",
@@ -98,12 +168,44 @@ export async function seedDatabase() {
           status: "active",
           capacity: 45,
           completed: 10,
+          createdAt: new Date(),
+          updatedAt: new Date(),
         },
-      ])
-      .returning()
+      ];
+      
+      for (const sprint of sprintData) {
+        await db.insert(sprints).values(sprint);
+        const result = await db.select().from(sprints).where(sql`name = ${sprint.name}`);
+        demoSprints.push(result[0]);
+      }
+    } else {
+      demoSprints = await db
+        .insert(sprints)
+        .values([
+          {
+            name: "Sprint 1",
+            description: "First sprint of the project",
+            startDate: pastSprintStart,
+            endDate: pastSprintEnd,
+            status: "completed",
+            capacity: 40,
+            completed: 35,
+          },
+          {
+            name: "Sprint 2",
+            description: "Current active sprint",
+            startDate: currentDate,
+            endDate: twoWeeksFromNow,
+            status: "active",
+            capacity: 45,
+            completed: 10,
+          },
+        ])
+        .returning();
+    }
 
     // Create tasks
-    await db.insert(tasks).values([
+    const tasksData = [
       {
         title: "Implement user authentication",
         description: "Set up user authentication system with login and registration",
@@ -112,6 +214,8 @@ export async function seedDatabase() {
         storyPoints: 8,
         assigneeId: demoUsers[0].id,
         sprintId: demoSprints[0].id,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
       {
         title: "Design dashboard UI",
@@ -121,6 +225,8 @@ export async function seedDatabase() {
         storyPoints: 5,
         assigneeId: demoUsers[1].id,
         sprintId: demoSprints[0].id,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
       {
         title: "Implement dashboard frontend",
@@ -130,6 +236,8 @@ export async function seedDatabase() {
         storyPoints: 13,
         assigneeId: demoUsers[0].id,
         sprintId: demoSprints[1].id,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
       {
         title: "Create API endpoints",
@@ -139,6 +247,8 @@ export async function seedDatabase() {
         storyPoints: 8,
         assigneeId: demoUsers[0].id,
         sprintId: demoSprints[1].id,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
       {
         title: "Design system documentation",
@@ -148,8 +258,11 @@ export async function seedDatabase() {
         storyPoints: 3,
         assigneeId: demoUsers[1].id,
         sprintId: demoSprints[1].id,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
-    ])
+    ];
+    await db.insert(tasks).values(tasksData);
 
     // Create wellbeing metrics
     const today = new Date()
@@ -166,6 +279,7 @@ export async function seedDatabase() {
           workload: ["low", "balanced", "high"][Math.floor(Math.random() * 3)],
           stressLevel: Math.floor(Math.random() * 30) + 20, // 20-50
           overtimeHours: Math.random() * 2, // 0-2 hours
+          createdAt: new Date(),
         },
         {
           userId: user.id,
@@ -175,6 +289,7 @@ export async function seedDatabase() {
           workload: ["low", "balanced", "high"][Math.floor(Math.random() * 3)],
           stressLevel: Math.floor(Math.random() * 30) + 20, // 20-50
           overtimeHours: Math.random() * 2, // 0-2 hours
+          createdAt: new Date(),
         },
       ])
 
@@ -207,6 +322,7 @@ export async function seedDatabase() {
           { id: 1, name: "Coffee Voucher", description: "Free coffee voucher", redeemedAt: null },
           { id: 2, name: "Extra Break", description: "30 minute extra break", redeemedAt: new Date().toISOString() },
         ]),
+        updatedAt: new Date(),
       })
     }
 
@@ -218,6 +334,7 @@ export async function seedDatabase() {
         workloadBalanceScore: 78,
         deiTaskDistributionScore: 82,
         overtimeCompliance: 95,
+        createdAt: new Date(),
       },
       {
         date: today,
@@ -225,6 +342,7 @@ export async function seedDatabase() {
         workloadBalanceScore: 80,
         deiTaskDistributionScore: 84,
         overtimeCompliance: 96,
+        createdAt: new Date(),
       },
     ])
 
@@ -236,6 +354,7 @@ export async function seedDatabase() {
         completionRate: sprint.status === "completed" ? 88 : 22,
         qualityScore: sprint.status === "completed" ? 92 : 85,
         teamSentiment: sprint.status === "completed" ? "positive" : "neutral",
+        createdAt: new Date(),
       })
     }
 
@@ -247,6 +366,7 @@ export async function seedDatabase() {
         description:
           "Based on the last 3 sprints, the team consistently completes 10% less than the planned capacity. Consider reducing the next sprint capacity by 10% for more realistic planning.",
         status: "active",
+        createdAt: new Date(),
       },
       {
         type: "risk_alert",
@@ -254,6 +374,7 @@ export async function seedDatabase() {
         description:
           "John has 5 high-priority tasks assigned for the current sprint, which is 50% more than other team members. This might create a bottleneck.",
         status: "active",
+        createdAt: new Date(),
       },
       {
         type: "team_insight",
@@ -261,6 +382,7 @@ export async function seedDatabase() {
         description:
           "The team's velocity has increased by 15% over the last 3 sprints. Great job on the continuous improvement!",
         status: "active",
+        createdAt: new Date(),
       },
     ])
 

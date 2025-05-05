@@ -182,8 +182,22 @@ export async function createUser(data: {
 }) {
   try {
     await dbInitPromise
-    const result = await db.insert(users).values(data).returning()
-    return result[0]
+    
+    // Check if we're using SQLite
+    if (USE_SQLITE) {
+      // For SQLite, we need to explicitly set date fields
+      const dataWithDates = {
+        ...data,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }
+      const result = await db.insert(users).values(dataWithDates).returning()
+      return result[0]
+    } else {
+      // For PostgreSQL, the default values will handle dates
+      const result = await db.insert(users).values(data).returning()
+      return result[0]
+    }
   } catch (error) {
     console.error("Error creating user:", error)
     throw error
