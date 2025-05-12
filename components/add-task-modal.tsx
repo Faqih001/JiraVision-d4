@@ -8,19 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
-
-type Task = {
-  id?: number
-  title: string
-  description: string
-  status: string
-  priority: string
-  storyPoints: number
-  assigneeId?: number
-  sprintId?: number
-  dueDate?: string
-  tags: string[]
-}
+import { Task } from "@/types/task"
 
 type AddTaskModalProps = {
   isOpen: boolean
