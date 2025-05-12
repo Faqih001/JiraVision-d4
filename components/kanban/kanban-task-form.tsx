@@ -90,7 +90,7 @@ export default function KanbanTaskForm({
     }
   }, [isOpen, user])
 
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     
     const formData = {
@@ -116,7 +116,7 @@ export default function KanbanTaskForm({
     }
   }
 
-  const removeTag = (tag) => {
+  const removeTag = (tag: string) => {
     setSelectedTags(selectedTags.filter(t => t !== tag))
   }
 

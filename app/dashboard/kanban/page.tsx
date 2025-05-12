@@ -246,7 +246,7 @@ export default function KanbanPage() {
     fetchKanbanData()
   }, [user, toast])
 
-  const handleDragEnd = async (result) => {
+  const handleDragEnd = async (result: any) => {
     const { destination, source, draggableId } = result
 
     // Dropped outside the list
@@ -363,7 +363,7 @@ export default function KanbanPage() {
     setShowTaskForm(true)
   }
 
-  const handleTaskFormSubmit = async (taskData) => {
+  const handleTaskFormSubmit = async (taskData: any) => {
     if (!selectedColumn) return
     
     try {
@@ -535,7 +535,7 @@ export default function KanbanPage() {
         </div>
       ) : (
         <div className="flex-1 overflow-x-auto">
-          <div className="flex h-full gap-4 pb-4" style={{ minWidth: columns.length * 320 + 'px' }}>
+          <div className="flex h-full gap-4 pb-4" style={{ minWidth: `${columns.length * 320}px` }}>
             <DragDropContext onDragEnd={handleDragEnd}>
               {filteredColumns.map((column) => (
                 <KanbanColumn 
