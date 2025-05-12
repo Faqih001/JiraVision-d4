@@ -16,13 +16,14 @@ export async function GET(request: Request) {
     const today = new Date()
     
     // Get active sprint
+    const todayStr = today.toISOString().split('T')[0] // Convert to YYYY-MM-DD format
     const activeSprintResult = await db
       .select()
       .from(sprints)
       .where(
         and(
-          gte(sprints.endDate, today),
-          lte(sprints.startDate, today)
+          gte(sprints.endDate, todayStr),
+          lte(sprints.startDate, todayStr)
         )
       )
       .orderBy(desc(sprints.startDate))
@@ -83,7 +84,7 @@ export async function GET(request: Request) {
     const aiInsightsResult = await db
       .select()
       .from(aiInsights)
-      .where(eq(aiInsights.active, true))
+      .where(eq(aiInsights.status, "active"))
       .orderBy(desc(aiInsights.createdAt))
       .limit(1)
     
@@ -99,19 +100,19 @@ export async function GET(request: Request) {
     // Format wellbeing data
     const wellbeingData = {
       teamHappiness: Math.round(Number(teamHappiness)),
-      teamMembers: teamMembers.map(member => ({
+      teamMembers: teamMembers.map((member: { id: number, name: string, avatar: string | null }) => ({
         id: member.id,
         name: member.name,
         avatar: member.avatar || "",
         // Get most recent mood or default to "Neutral"
-        mood: wellbeingResult.find(w => w.userId === member.id)?.mood || "Neutral"
+        mood: wellbeingResult.find((w: { userId: number }) => w.userId === member.id)?.mood || "Neutral"
       }))
     }
     
     // Format ethical metrics
     const ethicalData = ethicalMetricsResult[0] ? {
-      workloadBalance: ethicalMetricsResult[0].workloadBalance,
-      deiTaskDistribution: ethicalMetricsResult[0].deiScore,
+      workloadBalance: ethicalMetricsResult[0].workloadBalanceScore,
+      deiTaskDistribution: ethicalMetricsResult[0].deiTaskDistributionScore,
       payEquityCompliance: ethicalMetricsResult[0].payEquityScore,
     } : {
       workloadBalance: 85,
@@ -122,10 +123,10 @@ export async function GET(request: Request) {
     // Format AI insights
     const aiInsightData = aiInsightsResult[0] ? {
       id: aiInsightsResult[0].id,
-      type: aiInsightsResult[0].insightType,
+      type: aiInsightsResult[0].type,
       title: aiInsightsResult[0].title,
       description: aiInsightsResult[0].description,
-      status: aiInsightsResult[0].active ? "active" : "inactive",
+      status: aiInsightsResult[0].status,
     } : null
     
     // Create simulated transactions

@@ -16,6 +16,10 @@ import {
   Users,
   Wallet,
   ChevronDown,
+  CheckCircle,
+  XCircle,
+  Edit,
+  Trash2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -25,6 +29,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/context/auth-context"
 import { cn } from "@/lib/utils"
+import AddTaskModal from "@/components/add-task-modal"
 
 // Define types for our data
 type Sprint = {
@@ -113,6 +118,10 @@ export default function Dashboard() {
     open: 38,
     responseTime: "2h 15m",
   })
+  const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false)
+  const [isTaskDetailModalOpen, setIsTaskDetailModalOpen] = useState(false)
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null)
+  const [aiRecommendations, setAIRecommendations] = useState<any[]>([])
 
   // Fetch data
   useEffect(() => {
@@ -326,58 +335,29 @@ export default function Dashboard() {
     }
   }
 
-  const handleAddTask = async () => {
-    try {
-      // Open modal or navigate to task creation page
-      if (!activeSprint) {
-        toast({
-          title: "No Active Sprint",
-          description: "Please create or start a sprint first.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Create a new task using our API
-      const response = await fetch('/api/dashboard/tasks', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          title: "New Task",
-          description: "Task description",
-          status: "todo",
-          priority: "medium",
-          storyPoints: 3,
-          sprintId: activeSprint.id,
-          dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          tags: ["New"]
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to create task');
-      }
-
-      const data = await response.json();
-      
-      // Add new task to state
-      setTasks([...tasks, data.task]);
-      
+  const handleAddTask = () => {
+    // Open the add task modal
+    if (!activeSprint) {
       toast({
-        title: "Task Created",
-        description: "New task has been created successfully.",
-      });
-    } catch (error) {
-      console.error("Error creating task:", error);
-      toast({
-        title: "Error",
-        description: "Failed to create task.",
+        title: "No Active Sprint",
+        description: "Please create or start a sprint first.",
         variant: "destructive",
       });
+      return;
     }
+    
+    setIsAddTaskModalOpen(true);
+  }
+  
+  const handleAddTaskComplete = (newTask: Task) => {
+    // Add new task to state
+    setTasks([...tasks, newTask]);
+    
+    toast({
+      title: "Task Created",
+      description: "New task has been created successfully.",
+    });
+  }
   }
 
   const handleTaskAction = async (action: string, taskId: number) => {
