@@ -27,6 +27,7 @@ import {
   Globe,
   Heart,
   LayoutDashboard,
+  Layers,
   LogOut,
   Mail,
   Menu,
@@ -112,6 +113,13 @@ export default function DashboardLayout({
           icon: <LayoutDashboard className="h-5 w-5" />,
           href: "/dashboard",
           active: pathname === "/dashboard",
+          dot: "bg-blue-500",
+        },
+        {
+          title: "Kanban Board",
+          icon: <Layers className="h-5 w-5" />,
+          href: "/dashboard/kanban",
+          active: pathname === "/dashboard/kanban",
           dot: "bg-blue-500",
         },
         {

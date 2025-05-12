@@ -6,6 +6,7 @@
 @import "../styles/components/dashboard.css";
 @import "../styles/components/charts.css";
 @import "../styles/components/sidebar.css";
+@import "../styles/components/kanban.css";
 
 @layer base {
   :root {

@@ -116,3 +116,55 @@ export const aiInsights = pgTable("ai_insights", {
   createdAt: timestamp("created_at").defaultNow(),
   expiresAt: timestamp("expires_at"),
 })
+
+// Kanban Columns table
+export const kanbanColumns = pgTable("kanban_columns", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  color: text("color").notNull().default("bg-slate-400"),
+  order: integer("order").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+})
+
+// Kanban Tasks table
+export const kanbanTasks = pgTable("kanban_tasks", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  description: text("description"),
+  priority: varchar("priority", { length: 20 }).notNull().default("medium"),
+  status: varchar("status", { length: 50 }).notNull().default("backlog"),
+  columnId: integer("column_id").references(() => kanbanColumns.id).notNull(),
+  assigneeId: integer("assignee_id").references(() => users.id),
+  sprintId: integer("sprint_id").references(() => sprints.id),
+  dueDate: date("due_date"),
+  order: integer("order").notNull(),
+  tags: text("tags").array(),
+  attachments: integer("attachments").default(0),
+  comments: integer("comments").default(0),
+  subtasks: jsonb("subtasks"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+})
+
+// Kanban Task Comments table
+export const kanbanTaskComments = pgTable("kanban_task_comments", {
+  id: serial("id").primaryKey(),
+  taskId: integer("task_id").references(() => kanbanTasks.id).notNull(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+})
+
+// Kanban Task Attachments table
+export const kanbanTaskAttachments = pgTable("kanban_task_attachments", {
+  id: serial("id").primaryKey(),
+  taskId: integer("task_id").references(() => kanbanTasks.id).notNull(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  filename: text("filename").notNull(),
+  fileUrl: text("file_url").notNull(),
+  fileSize: integer("file_size").notNull(),
+  fileType: varchar("file_type", { length: 100 }).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+})

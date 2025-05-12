@@ -1,0 +1,39 @@
+/* Kanban styles */
+
+/* Task chart bars */
+.task-chart-bar {
+  width: 100%;
+  transition: height 0.3s ease, opacity 0.3s ease;
+}
+
+.task-chart-bar-blue {
+  background: linear-gradient(to top, #4f46e5, #818cf8);
+}
+
+/* Heights for chart bars */
+.height-60 { height: 60px; }
+.height-70 { height: 70px; }
+.height-90 { height: 90px; }
+.height-110 { height: 110px; }
+.height-120 { height: 120px; }
+.height-130 { height: 130px; }
+.height-180 { height: 180px; }
+
+/* Column chart */
+.bar-chart-column {
+  width: 16px;
+  border-radius: 4px;
+}
+
+.bar-chart-column-blue {
+  background: linear-gradient(to top, #4f46e5, #818cf8);
+}
+
+.bar-chart-column-purple {
+  background: linear-gradient(to top, #8b5cf6, #c4b5fd);
+}
+
+/* Smooth dragging animation */
+.react-beautiful-dnd-dragging {
+  transition: transform 0.2s;
+}
