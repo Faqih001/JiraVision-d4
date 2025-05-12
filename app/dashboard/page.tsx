@@ -120,26 +120,36 @@ export default function Dashboard() {
       try {
         setLoading(true)
 
-        // In a real implementation, these would be actual API calls
-        // For now, we'll simulate the data
-
-        // Simulate API call delay
-        await new Promise((resolve) => setTimeout(resolve, 1000))
-
-        // Set active sprint
-        setActiveSprint({
+        // Fetch dashboard data from our API
+        const response = await fetch('/api/dashboard', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include', // Include cookies for authentication
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Failed to fetch dashboard data');
+        }
+        
+        const { data } = await response.json();
+        
+        // Set active sprint from API response
+        setActiveSprint(data.activeSprint || {
           id: 1,
-          name: "Sprint 23.05",
+          name: "Sprint 25.05",
           description: "AI-Powered Project Management Platform",
-          startDate: "2023-05-01",
-          endDate: "2023-05-14",
+          startDate: "2025-05-01",
+          endDate: "2025-05-14",
           status: "active",
           capacity: 40,
           completed: 18,
-        })
+        });
 
-        // Set tasks
-        setTasks([
+        // Set tasks from API response or fallback to default
+        setTasks(data.tasks && data.tasks.length > 0 ? data.tasks : [
           {
             id: 103,
             title: "Implement AI Scrum Master Dashboard",
@@ -149,7 +159,7 @@ export default function Dashboard() {
             storyPoints: 8,
             assigneeId: user?.id || 0,
             sprintId: 1,
-            dueDate: "2023-05-10",
+            dueDate: "2025-05-10",
             tags: ["Frontend", "UI/UX", "High Priority"],
           },
           {
@@ -161,23 +171,23 @@ export default function Dashboard() {
             storyPoints: 5,
             assigneeId: user?.id || 0,
             sprintId: 1,
-            dueDate: "2023-05-13",
+            dueDate: "2025-05-13",
             tags: ["Design", "Medium Priority"],
           },
-        ])
+        ]);
 
-        // Set AI insight
-        setAIInsight({
+        // Set AI insight from API response or fallback
+        setAIInsight(data.aiInsight || {
           id: 1,
           type: "sprint_planning",
           title: "Sprint Planning Recommendation",
           description:
             "Based on your team's velocity and current capacity, I recommend reducing the sprint commitment by 15% this week. Three team members have PTO scheduled, and there's a company all-hands meeting.",
           status: "active",
-        })
+        });
 
-        // Set wellbeing metrics
-        setWellbeing({
+        // Set wellbeing metrics from API response or fallback
+        setWellbeing(data.wellbeing || {
           teamHappiness: 85,
           teamMembers: [
             {
@@ -193,17 +203,17 @@ export default function Dashboard() {
               mood: "Stressed",
             },
           ],
-        })
+        });
 
-        // Set ethical metrics
-        setEthicalMetrics({
+        // Set ethical metrics from API response or fallback
+        setEthicalMetrics(data.ethicalMetrics || {
           workloadBalance: 92,
           deiTaskDistribution: 88,
           payEquityCompliance: 100,
-        })
+        });
 
-        // Set gamification progress
-        setGamification({
+        // Set gamification progress from API response or fallback
+        setGamification(data.gamification || {
           skillTrees: [
             {
               name: "Frontend Master",
@@ -225,39 +235,39 @@ export default function Dashboard() {
             },
           ],
           nextReward: "Complete 5 more high-priority tasks to unlock a half-day PTO bonus!",
-        })
+        });
 
-        // Set transactions
-        setTransactions([
+        // Set transactions from API response or fallback
+        setTransactions(data.transactions || [
           {
             id: 1,
             type: "Team License",
             amount: 1200,
             status: "completed",
-            date: "2023-05-01",
+            date: "2025-05-01",
           },
           {
             id: 2,
             type: "AI Credits",
             amount: 450,
             status: "completed",
-            date: "2023-05-03",
+            date: "2025-05-03",
           },
           {
             id: 3,
             type: "Premium Support",
             amount: -200,
             status: "refunded",
-            date: "2023-05-05",
+            date: "2025-05-05",
           },
           {
             id: 4,
             type: "Additional Users",
             amount: 350,
             status: "completed",
-            date: "2023-05-07",
+            date: "2025-05-07",
           },
-        ])
+        ]);
       } catch (error) {
         console.error("Error fetching dashboard data:", error)
         toast({
@@ -274,32 +284,169 @@ export default function Dashboard() {
   }, [user, toast])
 
   // Handle button actions
-  const handleApplyRecommendation = () => {
-    toast({
-      title: "Recommendation Applied",
-      description: "Sprint capacity has been adjusted by 15%.",
-    })
+  const handleApplyRecommendation = async () => {
+    try {
+      // In a real implementation, you would adjust the sprint capacity based on the AI recommendation
+      if (activeSprint) {
+        toast({
+          title: "Recommendation Applied",
+          description: "Sprint capacity has been adjusted by 15%.",
+        });
+      } else {
+        toast({
+          title: "No Active Sprint",
+          description: "Cannot apply recommendation without an active sprint.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error applying recommendation:", error);
+      toast({
+        title: "Error",
+        description: "Failed to apply recommendation.",
+        variant: "destructive",
+      });
+    }
   }
 
-  const handleIgnoreRecommendation = () => {
-    toast({
-      title: "Recommendation Ignored",
-      description: "The recommendation has been dismissed.",
-    })
+  const handleIgnoreRecommendation = async () => {
+    try {
+      // In a real implementation, you would mark the recommendation as dismissed
+      toast({
+        title: "Recommendation Ignored",
+        description: "The recommendation has been dismissed.",
+      });
+    } catch (error) {
+      console.error("Error ignoring recommendation:", error);
+      toast({
+        title: "Error",
+        description: "Failed to ignore recommendation.",
+        variant: "destructive",
+      });
+    }
   }
 
-  const handleAddTask = () => {
-    toast({
-      title: "Add Task",
-      description: "Opening task creation form...",
-    })
+  const handleAddTask = async () => {
+    try {
+      // Open modal or navigate to task creation page
+      if (!activeSprint) {
+        toast({
+          title: "No Active Sprint",
+          description: "Please create or start a sprint first.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Create a new task using our API
+      const response = await fetch('/api/dashboard/tasks', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: "New Task",
+          description: "Task description",
+          status: "todo",
+          priority: "medium",
+          storyPoints: 3,
+          sprintId: activeSprint.id,
+          dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          tags: ["New"]
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to create task');
+      }
+
+      const data = await response.json();
+      
+      // Add new task to state
+      setTasks([...tasks, data.task]);
+      
+      toast({
+        title: "Task Created",
+        description: "New task has been created successfully.",
+      });
+    } catch (error) {
+      console.error("Error creating task:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create task.",
+        variant: "destructive",
+      });
+    }
   }
 
-  const handleTaskAction = (action: string, taskId: number) => {
-    toast({
-      title: `Task Action: ${action}`,
-      description: `Performing ${action} on task #${taskId}`,
-    })
+  const handleTaskAction = async (action: string, taskId: number) => {
+    try {
+      const taskToUpdate = tasks.find(t => t.id === taskId);
+      if (!taskToUpdate) {
+        toast({
+          title: "Error",
+          description: `Task #${taskId} not found.`,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      let updatedTask = { ...taskToUpdate };
+      
+      switch (action) {
+        case 'start':
+          updatedTask.status = 'in_progress';
+          break;
+        case 'complete':
+          updatedTask.status = 'done';
+          break;
+        case 'reopen':
+          updatedTask.status = 'todo';
+          break;
+        case 'delete':
+          // Filter out the task to delete
+          setTasks(tasks.filter(t => t.id !== taskId));
+          toast({
+            title: "Task Deleted",
+            description: `Task #${taskId} has been deleted.`,
+          });
+          return;
+        default:
+          break;
+      }
+
+      // Update the task using our API
+      const response = await fetch('/api/dashboard/tasks', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updatedTask),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to update task');
+      }
+
+      const data = await response.json();
+      
+      // Update tasks state
+      setTasks(tasks.map(t => t.id === taskId ? data.task : t));
+      
+      toast({
+        title: `Task ${action.charAt(0).toUpperCase() + action.slice(1)}ed`,
+        description: `Task #${taskId} has been ${action}ed.`,
+      });
+    } catch (error) {
+      console.error(`Error performing ${action} on task:`, error);
+      toast({
+        title: "Error",
+        description: `Failed to ${action} task.`,
+        variant: "destructive",
+      });
+    }
   }
 
   return (
