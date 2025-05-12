@@ -69,9 +69,13 @@ export default function AddTaskModal({ isOpen, onClose, onAddTask, sprintId }: A
       }
 
       // Format tags properly if needed
-      const formattedTask = {
+      const tagsList = Array.isArray(task.tags) 
+        ? task.tags 
+        : [];
+        
+      const formattedTask: Task = {
         ...task,
-        tags: Array.isArray(task.tags) ? task.tags : task.tags ? task.tags.split(',').map(tag => tag.trim()) : []
+        tags: tagsList
       }
 
       // Call the API to create a new task

@@ -30,6 +30,7 @@ import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/context/auth-context"
 import { cn } from "@/lib/utils"
 import AddTaskModal from "@/components/add-task-modal"
+import { Task } from "@/types/task"
 
 // Define types for our data
 type Sprint = {
@@ -41,19 +42,6 @@ type Sprint = {
   status: string
   capacity: number
   completed: number
-}
-
-type Task = {
-  id: number
-  title: string
-  description: string
-  status: string
-  priority: string
-  storyPoints: number
-  assigneeId: number
-  sprintId: number
-  dueDate: string
-  tags: string[]
 }
 
 type AIInsight = {
