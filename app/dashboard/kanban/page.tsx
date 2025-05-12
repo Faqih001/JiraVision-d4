@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { DragDropContext, Droppable } from "@hello-pangea/dnd"
 import { 
   CirclePlus, 
@@ -39,7 +39,7 @@ export type KanbanTask = {
   priority: 'low' | 'medium' | 'high'
   dueDate?: string
   assignee?: {
-    id: string
+    id: string | number
     name: string
     avatar?: string
   }
@@ -535,7 +535,15 @@ export default function KanbanPage() {
         </div>
       ) : (
         <div className="flex-1 overflow-x-auto">
-          <div className="flex h-full gap-4 pb-4" style={{ minWidth: `${columns.length * 320}px` }}>
+          <div 
+            className={cn("flex h-full gap-4 pb-4", {
+              "min-w-[640px]": columns.length <= 2,
+              "min-w-[960px]": columns.length > 2 && columns.length <= 3,
+              "min-w-[1280px]": columns.length > 3 && columns.length <= 4,
+              "min-w-[1600px]": columns.length > 4 && columns.length <= 5,
+              "min-w-[1920px]": columns.length > 5,
+            })}
+          >
             <DragDropContext onDragEnd={handleDragEnd}>
               {filteredColumns.map((column) => (
                 <KanbanColumn 
