@@ -60,13 +60,7 @@ let unpooledDb: any
 try {
   // Initialize connections with SSL enabled and increased timeout
   const sqlClient = neon(process.env.DATABASE_URL!, { 
-    fetchOptions: {
-      ...fetchOptions,
-      headers: {
-        'Content-Type': 'application/json',
-        'User-Agent': 'JiraVision App',
-      }
-    }
+    fetchOptions
   })
   db = drizzle(sqlClient)
 
