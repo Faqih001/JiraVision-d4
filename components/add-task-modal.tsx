@@ -75,13 +75,24 @@ export default function AddTaskModal({ isOpen, onClose, onAddTask, sprintId }: A
     setLoading(true)
 
     try {
+      // Validate required fields
+      if (!task.title) {
+        throw new Error("Task title is required")
+      }
+
+      // Format tags properly if needed
+      const formattedTask = {
+        ...task,
+        tags: Array.isArray(task.tags) ? task.tags : task.tags ? task.tags.split(',').map(tag => tag.trim()) : []
+      }
+
       // Call the API to create a new task
       const response = await fetch("/api/dashboard/tasks", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(task),
+        body: JSON.stringify(formattedTask),
       })
 
       if (!response.ok) {

@@ -358,7 +358,6 @@ export default function Dashboard() {
       description: "New task has been created successfully.",
     });
   }
-  }
 
   const handleTaskAction = async (action: string, taskId: number) => {
     try {
@@ -374,6 +373,31 @@ export default function Dashboard() {
 
       let updatedTask = { ...taskToUpdate };
       
+      if (action === 'delete') {
+        // Handle task deletion with DELETE endpoint
+        const response = await fetch(`/api/dashboard/tasks?id=${taskId}`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Failed to delete task');
+        }
+
+        // Remove from local state
+        setTasks(tasks.filter(t => t.id !== taskId));
+        
+        toast({
+          title: "Task Deleted",
+          description: `Task #${taskId} has been deleted.`,
+        });
+        return;
+      }
+      
+      // Handle status updates
       switch (action) {
         case 'start':
           updatedTask.status = 'in_progress';
@@ -384,14 +408,6 @@ export default function Dashboard() {
         case 'reopen':
           updatedTask.status = 'todo';
           break;
-        case 'delete':
-          // Filter out the task to delete
-          setTasks(tasks.filter(t => t.id !== taskId));
-          toast({
-            title: "Task Deleted",
-            description: `Task #${taskId} has been deleted.`,
-          });
-          return;
         default:
           break;
       }
@@ -417,13 +433,13 @@ export default function Dashboard() {
       
       toast({
         title: `Task ${action.charAt(0).toUpperCase() + action.slice(1)}ed`,
-        description: `Task #${taskId} has been ${action}ed.`,
+        description: `Task #${taskId} has been ${action}ed successfully.`,
       });
     } catch (error) {
       console.error(`Error performing ${action} on task:`, error);
       toast({
         title: "Error",
-        description: `Failed to ${action} task.`,
+        description: `Failed to ${action} task. Please try again.`,
         variant: "destructive",
       });
     }
@@ -824,6 +840,14 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Task Modals */}
+      <AddTaskModal
+        isOpen={isAddTaskModalOpen}
+        onClose={() => setIsAddTaskModalOpen(false)}
+        onAddTask={handleAddTaskComplete}
+        sprintId={activeSprint?.id}
+      />
     </>
   )
 }

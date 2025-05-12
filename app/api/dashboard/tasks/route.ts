@@ -1,8 +1,51 @@
 import { NextResponse } from "next/server"
 import { getSession } from "@/lib/auth-actions"
 import { db } from "@/lib/db"
-import { tasks } from "@/drizzle/schema"
-import { eq } from "drizzle-orm"
+import { tasks, sprints } from "@/drizzle/schema"
+import { eq, and, desc, gte, lte } from "drizzle-orm"
+
+export async function GET(request: Request) {
+  try {
+    // Check authentication
+    const session = await getSession()
+    if (!session) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
+    }
+
+    // Get URL parameters
+    const { searchParams } = new URL(request.url)
+    const sprintId = searchParams.get("sprintId")
+    const status = searchParams.get("status")
+    
+    // Build query
+    let query = db.select().from(tasks)
+
+    // Add filters
+    if (sprintId) {
+      query = query.where(eq(tasks.sprintId, parseInt(sprintId)))
+    }
+    
+    if (status) {
+      query = query.where(eq(tasks.status, status))
+    }
+    
+    const results = await query
+    
+    return NextResponse.json({
+      success: true,
+      data: results
+    })
+  } catch (error) {
+    console.error("Tasks fetch error:", error)
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Failed to fetch tasks"
+      },
+      { status: 500 }
+    )
+  }
+}
 
 export async function POST(request: Request) {
   try {
@@ -88,6 +131,46 @@ export async function PUT(request: Request) {
       {
         success: false,
         message: "Failed to update task",
+      },
+      { status: 500 }
+    )
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    // Check authentication
+    const session = await getSession()
+    if (!session) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
+    }
+
+    // Get task ID
+    const { searchParams } = new URL(request.url)
+    const taskId = searchParams.get("id")
+    
+    if (!taskId) {
+      return NextResponse.json({ 
+        success: false, 
+        message: "Task ID is required" 
+      }, { status: 400 })
+    }
+    
+    // Delete the task
+    await db
+      .delete(tasks)
+      .where(eq(tasks.id, parseInt(taskId)))
+    
+    return NextResponse.json({
+      success: true,
+      message: "Task deleted successfully"
+    })
+  } catch (error) {
+    console.error("Task deletion error:", error)
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Failed to delete task",
       },
       { status: 500 }
     )
