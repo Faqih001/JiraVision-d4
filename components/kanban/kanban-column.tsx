@@ -10,7 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import KanbanTask from "./kanban-task"
+import KanbanTask from "@/components/kanban/kanban-task"
 import { cn } from "@/lib/utils"
 import type { KanbanTask as KanbanTaskType } from "@/app/dashboard/kanban/page"
 

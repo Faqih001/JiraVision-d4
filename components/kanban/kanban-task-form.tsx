@@ -302,6 +302,7 @@ export default function KanbanTaskForm({
                       type="button"
                       onClick={() => removeTag(tag)}
                       className="ml-1 rounded-full"
+                      aria-label={`Remove ${tag} tag`}
                     >
                       <X className="h-3 w-3" />
                     </button>
