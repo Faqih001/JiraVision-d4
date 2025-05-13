@@ -51,11 +51,11 @@ export function PulseLoader({ count = 3, className, ...props }: PulseLoaderProps
       {[...Array(count)].map((_, i) => (
         <div 
           key={i}
-          className="h-2 w-2 bg-primary rounded-full animate-pulse"
-          style={{ 
-            animationDelay: `${i * 150}ms`,
-            opacity: 1 - (i * 0.2)
-          }}
+          className={cn(
+            "h-2 w-2 bg-primary rounded-full animate-pulse",
+            i === 0 ? "opacity-100" : i === 1 ? "opacity-80" : "opacity-60",
+            i === 0 ? "delay-0" : i === 1 ? "delay-150" : "delay-300"
+          )}
         />
       ))}
     </div>
@@ -93,11 +93,11 @@ export function SkeletonCard({
         {[...Array(lines)].map((_, i) => (
           <div 
             key={i}
-            className="h-4 bg-muted rounded-md animate-pulse"
-            style={{ 
-              width: `${Math.max(50, 100 - (i * 15))}%`,
-              animationDelay: `${i * 100}ms`
-            }}
+            className={cn(
+              "h-4 bg-muted rounded-md animate-pulse",
+              i === 0 ? "w-full" : i === 1 ? "w-[85%]" : "w-[70%]",
+              i === 0 ? "delay-0" : i === 1 ? "delay-100" : "delay-200"
+            )}
           />
         ))}
       </div>
@@ -125,7 +125,12 @@ export function DashboardLoader({ className, columns = 2 }: DashboardLoaderProps
         <div className="h-4 w-1/3 bg-muted/70 rounded-md animate-pulse" />
       </div>
       
-      <div className={`grid grid-cols-1 md:grid-cols-${columns} gap-6`}>
+      <div className={cn(
+        "grid gap-6",
+        columns === 1 ? "grid-cols-1" : 
+        columns === 2 ? "grid-cols-1 md:grid-cols-2" :
+        "grid-cols-1 md:grid-cols-3"
+      )}>
         {[...Array(columns * 2)].map((_, i) => (
           <SkeletonCard 
             key={i}

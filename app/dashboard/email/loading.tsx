@@ -1,5 +1,5 @@
 import { Skeleton } from "@/components/ui/skeleton"
-import { Loader, PulseLoader, SkeletonCard } from "@/components/ui/loader"
+import { Loader, PulseLoader } from "@/components/ui/loader"
 
 export default function EmailLoading() {
   return (
