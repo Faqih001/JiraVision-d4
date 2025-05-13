@@ -569,7 +569,7 @@ export default function SettingsPage() {
                   <Avatar className="h-24 w-24 mb-4">
                     {profileData.avatar ? (
                       <img 
-                        src={profileData.avatar} 
+                        src={profileData.avatar + '?t=' + new Date().getTime()} // Add timestamp to prevent caching
                         alt={profileData.name || "User avatar"}
                         className="h-full w-full object-cover"
                         onError={(e) => {
@@ -583,6 +583,15 @@ export default function SettingsPage() {
                             description: 'Failed to load profile image. Try uploading a new one.',
                             variant: 'destructive',
                           });
+                          
+                          // Auto-clear the broken avatar URL
+                          if (profileData.avatar && profileData.avatar.startsWith('/uploads/')) {
+                            // For local uploads, automatically clear the broken link
+                            setProfileData(prev => ({
+                              ...prev,
+                              avatar: ''
+                            }));
+                          }
                         }}
                       />
                     ) : null}
@@ -633,6 +642,10 @@ export default function SettingsPage() {
                   {profileData.avatar && (
                     <p className="text-xs text-muted-foreground mt-2 text-center">
                       Current avatar: {profileData.avatar.split('/').pop()}
+                      <br />
+                      <span className="text-xs text-primary">
+                        {profileData.avatar.includes('webp') ? '(Optimized WebP format)' : ''}
+                      </span>
                     </p>
                   )}
                 </CardContent>

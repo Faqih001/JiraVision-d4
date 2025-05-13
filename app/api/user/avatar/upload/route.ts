@@ -61,17 +61,12 @@ export async function POST(request: Request) {
     const uploadsDir = join(process.cwd(), 'public', 'uploads')
     
     try {
-      // Check if directory exists, create if it doesn't
+      // Ensure directory exists
       try {
-        await access(uploadsDir, constants.F_OK).catch(async (dirError) => {
+        await access(uploadsDir, constants.F_OK).catch(async () => {
           // Directory doesn't exist, create it
           console.log("Creating uploads directory...")
-          try {
-            await mkdir(uploadsDir, { recursive: true })
-          } catch (mkdirError) {
-            console.error("Failed to create uploads directory:", mkdirError)
-            throw new Error(`Failed to create uploads directory: ${mkdirError instanceof Error ? mkdirError.message : "Unknown error"}`)
-          }
+          await mkdir(uploadsDir, { recursive: true })
         })
       } catch (dirError) {
         console.error("Failed to check/create uploads directory:", dirError)
@@ -79,55 +74,27 @@ export async function POST(request: Request) {
       }
       
       // Convert file to buffer
-      const buffer = await file.arrayBuffer().catch(err => {
-        console.error("Error reading file buffer:", err)
-        throw new Error("Could not read uploaded file")
-      })
+      const buffer = await file.arrayBuffer()
       
       // Process and optimize the image with Sharp
       const filePath = join(uploadsDir, fileName)
       
       try {
-        // Create a Sharp instance from the buffer
-        const sharpInstance = sharp(new Uint8Array(buffer));
+        // Get file as buffer
+        const imageBuffer = Buffer.from(buffer)
         
-        // Get metadata to preserve aspect ratio
-        const metadata = await sharpInstance.metadata();
-        
-        // Determine output format based on original file or convert to webp for best optimization
-        const outputFormat = formData.get("useWebp") === "true" ? "webp" : 
-                           (fileExtension === 'png' ? 'png' : 
-                           (fileExtension === 'webp' ? 'webp' : 'jpeg'));
-        
-        // Resize to reasonable dimensions for a profile picture (max 300x300px)
-        // While preserving aspect ratio
-        await sharpInstance
-          .resize({
-            width: Math.min(metadata.width || 300, 300),
-            height: Math.min(metadata.height || 300, 300),
-            fit: 'cover',
-            position: 'center',
+        // Process image with Sharp
+        await sharp(imageBuffer)
+          .resize(300, 300, {
+            fit: 'inside',
             withoutEnlargement: true
           })
-          // Apply basic enhancements
-          .normalise()
-          // Remove metadata for privacy and smaller file size
-          .withMetadata(false)
-          // Optimize based on file type
-          .toFormat(outputFormat, {
-            quality: outputFormat === 'webp' ? 85 : 80,
-            progressive: true,
-            effort: 6, // Higher compression effort
-            optimizeScans: true
-          })
-          // Write directly to file
-          .toFile(filePath);
+          .toFile(filePath)
           
       } catch (sharpError) {
-        console.error("Error optimizing image with Sharp:", sharpError);
+        console.error("Error optimizing image with Sharp:", sharpError)
         // Fallback to original file if optimization fails
-        console.log("Falling back to original file without optimization");
-        await writeFile(filePath, new Uint8Array(buffer));
+        await writeFile(filePath, Buffer.from(buffer))
       }
       
       // Update user profile with avatar URL
@@ -150,7 +117,7 @@ export async function POST(request: Request) {
     } catch (error) {
       console.error("Error writing file or updating profile:", error)
       // Try to get more specific error information
-      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      const errorMessage = error instanceof Error ? error.message : "Unknown error"
       return NextResponse.json(
         { error: `Failed to upload profile picture: ${errorMessage}` },
         { status: 500 }
@@ -158,7 +125,7 @@ export async function POST(request: Request) {
     }
   } catch (error) {
     // Handle top-level errors
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    const errorMessage = error instanceof Error ? error.message : "Unknown error"
     console.error("Failed to process avatar upload:", error)
     return NextResponse.json(
       { error: `Failed to process avatar upload: ${errorMessage}` },
