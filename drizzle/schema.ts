@@ -9,6 +9,15 @@ export const users = pgTable("users", {
   role: varchar("role", { length: 50 }).notNull().default("user"),
   avatar: text("avatar"),
   emailVerified: boolean("email_verified").default(false),
+  // Additional user profile fields
+  jobTitle: varchar("job_title", { length: 255 }),
+  department: varchar("department", { length: 255 }),
+  location: varchar("location", { length: 255 }),
+  bio: text("bio"),
+  language: varchar("language", { length: 10 }).default("en-US"),
+  timezone: varchar("timezone", { length: 50 }).default("Africa/Nairobi"),
+  preferences: jsonb("preferences").default({}),
+  // Timestamps
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 })

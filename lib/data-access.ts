@@ -11,6 +11,58 @@ import {
   aiInsights,
 } from "../drizzle/schema"
 
+// User functions
+export async function getUserProfile(userId: number) {
+  try {
+    const result = await db.select({
+      id: users.id,
+      name: users.name,
+      email: users.email,
+      role: users.role,
+      avatar: users.avatar,
+      jobTitle: users.jobTitle,
+      department: users.department,
+      location: users.location,
+      bio: users.bio,
+      language: users.language,
+      timezone: users.timezone,
+      emailVerified: users.emailVerified,
+      createdAt: users.createdAt,
+      updatedAt: users.updatedAt,
+      preferences: users.preferences,
+    }).from(users).where(eq(users.id, userId)).limit(1)
+    
+    return result[0] || null
+  } catch (error) {
+    console.error(`Error getting user profile ${userId}:`, error)
+    return null
+  }
+}
+
+export async function updateUserProfile(userId: number, profileData: Partial<typeof users.$inferSelect>) {
+  try {
+    // Filter out sensitive fields that shouldn't be updated directly
+    const { id, passwordHash, emailVerified, createdAt, role, email, ...safeUpdateData } = profileData
+    
+    // Log the data being saved for debugging
+    console.log('Updating user profile with data:', safeUpdateData)
+    
+    await db.update(users)
+      .set({
+        ...safeUpdateData,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, userId))
+    
+    // Get the updated profile to return
+    const updatedProfile = await getUserProfile(userId)
+    return updatedProfile !== null
+  } catch (error) {
+    console.error(`Error updating user profile ${userId}:`, error)
+    return false
+  }
+}
+
 // Sprint functions
 export async function getActiveSprint() {
   try {
@@ -137,7 +189,7 @@ export async function getTeamLeaderboard(limit = 4) {
       .orderBy(desc(gamification.xp))
       .limit(limit)
 
-    return result.map((row) => ({
+    return result.map((row: any) => ({
       id: row.users.id,
       name: row.users.name,
       avatar: row.users.avatar,

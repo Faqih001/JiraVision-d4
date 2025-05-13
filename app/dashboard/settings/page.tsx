@@ -2,9 +2,10 @@
 
 import { Badge } from "@/components/ui/badge"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useTheme } from "next-themes"
-import { Bell, Globe, Lock, Moon, Save, Shield, Sun, User, Camera, Brush } from "lucide-react"
+import { Bell, Globe, Lock, Moon, Save, Shield, Sun, User, Camera, Brush, Loader2, X, Upload } from "lucide-react"
+import { allTimezones, languages } from "@/lib/timezones"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -13,14 +14,281 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useMobile } from "@/hooks/use-mobile"
+import { useToast } from "@/hooks/use-toast"
+import { DashboardLoader } from "@/components/ui/loader"
+import { useAuth } from "@/context/auth-context"
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme()
+  const { toast } = useToast()
+  const { user } = useAuth()
   const isMobile = useMobile()
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [emailNotifications, setEmailNotifications] = useState(true)
   const [slackNotifications, setSlackNotifications] = useState(true)
   const [browserNotifications, setBrowserNotifications] = useState(false)
   const [viewportWidth, setViewportWidth] = useState(0)
+  
+  // Profile state
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
+  const [profileData, setProfileData] = useState({
+    name: '',
+    email: '',
+    avatar: '',
+    jobTitle: '',
+    department: '',
+    location: '',
+    bio: '',
+    language: 'en-US',
+    timezone: 'Africa/Nairobi'
+  })
+  
+  // Fetch user profile data
+  useEffect(() => {
+    async function fetchUserProfile() {
+      try {
+        setIsLoading(true)
+        const response = await fetch('/api/user/profile')
+        
+        if (!response.ok) {
+          const errorData = await response.json()
+          throw new Error(errorData.error || 'Failed to fetch profile')
+        }
+        
+        const data = await response.json()
+        
+        if (data.success && data.profile) {
+          setProfileData({
+            name: data.profile.name || '',
+            email: data.profile.email || '',
+            avatar: data.profile.avatar || '',
+            jobTitle: data.profile.jobTitle || '',
+            department: data.profile.department || '',
+            location: data.profile.location || '',
+            bio: data.profile.bio || '',
+            language: data.profile.language || 'en-US',
+            timezone: data.profile.timezone || 'Africa/Nairobi'
+          })
+        }
+      } catch (error) {
+        console.error('Error fetching profile:', error)
+        toast({
+          title: 'Error',
+          description: 'Failed to load profile data',
+          variant: 'destructive'
+        })
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    
+    if (user) {
+      fetchUserProfile()
+    }
+  }, [user, toast])
+  
+  // Handle profile update
+  const handleProfileUpdate = async () => {
+    try {
+      if (!profileData.name || profileData.name.trim() === "") {
+        toast({
+          title: 'Error',
+          description: 'Name is required',
+          variant: 'destructive'
+        })
+        return
+      }
+      
+      setIsSaving(true)
+      
+      const response = await fetch('/api/user/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: profileData.name,
+          avatar: profileData.avatar,
+          jobTitle: profileData.jobTitle,
+          department: profileData.department,
+          location: profileData.location,
+          bio: profileData.bio,
+          language: profileData.language,
+          timezone: profileData.timezone
+        }),
+      })
+      
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to update profile')
+      }
+      
+      const data = await response.json()
+      
+      if (data.success) {
+        toast({
+          title: 'Success',
+          description: 'Profile updated successfully',
+          variant: 'default'
+        })
+        
+        // Refresh the profile data to show updated information
+        const fetchResponse = await fetch('/api/user/profile')
+        if (fetchResponse.ok) {
+          const refreshedData = await fetchResponse.json()
+          if (refreshedData.success && refreshedData.profile) {
+            setProfileData({
+              name: refreshedData.profile.name || '',
+              email: refreshedData.profile.email || '',
+              avatar: refreshedData.profile.avatar || '',
+              jobTitle: refreshedData.profile.jobTitle || '',
+              department: refreshedData.profile.department || '',
+              location: refreshedData.profile.location || '',
+              bio: refreshedData.profile.bio || '',
+              language: refreshedData.profile.language || 'en-US',
+              timezone: refreshedData.profile.timezone || 'Africa/Nairobi'
+            })
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error updating profile:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to update profile data',
+        variant: 'destructive'
+      })
+    } finally {
+      setIsSaving(false)
+    }
+  }
+  
+  // Handle form field changes
+  const handleInputChange = (field: string, value: string) => {
+    setProfileData(prev => ({
+      ...prev,
+      [field]: value
+    }))
+  }
+  
+  // Handle avatar upload
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    
+    try {
+      setIsUploading(true)
+      
+      // Validate file type
+      const validTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"]
+      if (!validTypes.includes(file.type)) {
+        toast({
+          title: 'Error',
+          description: 'Please select a valid image file (JPG, PNG, GIF, WEBP)',
+          variant: 'destructive'
+        })
+        return
+      }
+      
+      // Validate file size (max 2MB)
+      const maxSize = 2 * 1024 * 1024 // 2MB
+      if (file.size > maxSize) {
+        toast({
+          title: 'Error',
+          description: 'Image file size should be less than 2MB',
+          variant: 'destructive'
+        })
+        return
+      }
+      
+      // Create form data
+      const formData = new FormData()
+      formData.append('avatar', file)
+      
+      // Send to server
+      const response = await fetch('/api/user/avatar/upload', {
+        method: 'POST',
+        body: formData
+      })
+      
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to upload avatar')
+      }
+      
+      const data = await response.json()
+      
+      if (data.success) {
+        setProfileData(prev => ({
+          ...prev,
+          avatar: data.avatar
+        }))
+        
+        toast({
+          title: 'Success',
+          description: 'Profile picture updated successfully',
+          variant: 'default'
+        })
+      }
+    } catch (error) {
+      console.error('Error uploading avatar:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to upload profile picture',
+        variant: 'destructive'
+      })
+    } finally {
+      setIsUploading(false)
+      // Reset the file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+    }
+  }
+  
+  // Handle avatar removal
+  const handleRemoveAvatar = async () => {
+    if (!profileData.avatar) return
+    
+    try {
+      setIsUploading(true)
+      
+      const response = await fetch('/api/user/avatar/remove', {
+        method: 'DELETE'
+      })
+      
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to remove avatar')
+      }
+      
+      const data = await response.json()
+      
+      if (data.success) {
+        setProfileData(prev => ({
+          ...prev,
+          avatar: ''
+        }))
+        
+        toast({
+          title: 'Success',
+          description: 'Profile picture removed successfully',
+          variant: 'default'
+        })
+      }
+    } catch (error) {
+      console.error('Error removing avatar:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to remove profile picture',
+        variant: 'destructive'
+      })
+    } finally {
+      setIsUploading(false)
+    }
+  }
   
   useEffect(() => {
     // Set initial viewport width
@@ -66,6 +334,14 @@ export default function SettingsPage() {
 
         {/* Profile Tab */}
         <TabsContent value="profile">
+          {isLoading ? (
+            <div className="min-h-[400px] flex items-center justify-center">
+              <div className="flex flex-col items-center gap-2">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className="text-sm text-muted-foreground">Loading profile data...</p>
+              </div>
+            </div>
+          ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <Card className="md:col-span-2">
               <CardHeader>
@@ -73,31 +349,60 @@ export default function SettingsPage() {
                 <CardDescription>Update your personal information</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="firstName">First Name</Label>
-                    <Input id="firstName" defaultValue="John" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="lastName">Last Name</Label>
-                    <Input id="lastName" defaultValue="Doe" />
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="name">Full Name</Label>
+                  <Input 
+                    id="name" 
+                    value={profileData.name}
+                    onChange={(e) => handleInputChange('name', e.target.value)} 
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" defaultValue="john.doe@jiravision.com" />
+                  <Input 
+                    id="email" 
+                    type="email" 
+                    value={profileData.email}
+                    disabled
+                    title="Email cannot be changed"
+                  />
+                  <p className="text-xs text-muted-foreground">Email address cannot be changed</p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="avatar">Avatar URL</Label>
+                  <Input 
+                    id="avatar" 
+                    value={profileData.avatar || ''}
+                    onChange={(e) => handleInputChange('avatar', e.target.value)}
+                    placeholder="https://example.com/avatar.jpg" 
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="jobTitle">Job Title</Label>
-                  <Input id="jobTitle" defaultValue="Frontend Developer" />
+                  <Input 
+                    id="jobTitle" 
+                    value={profileData.jobTitle}
+                    onChange={(e) => handleInputChange('jobTitle', e.target.value)}
+                    placeholder="e.g. Frontend Developer" 
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="department">Department</Label>
-                  <Input id="department" defaultValue="Engineering" />
+                  <Input 
+                    id="department" 
+                    value={profileData.department}
+                    onChange={(e) => handleInputChange('department', e.target.value)}
+                    placeholder="e.g. Engineering" 
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="location">Location</Label>
-                  <Input id="location" defaultValue="San Francisco, CA" />
+                  <Input 
+                    id="location" 
+                    value={profileData.location}
+                    onChange={(e) => handleInputChange('location', e.target.value)}
+                    placeholder="e.g. San Francisco, CA" 
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="bio">Bio</Label>
@@ -105,14 +410,28 @@ export default function SettingsPage() {
                     id="bio"
                     className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                     placeholder="Write a short bio about yourself"
-                    defaultValue="Frontend developer with 5 years of experience specializing in React and TypeScript."
+                    value={profileData.bio || ''}
+                    onChange={(e) => handleInputChange('bio', e.target.value)}
                   />
                 </div>
               </CardContent>
               <CardFooter>
-                <Button className="gap-1">
-                  <Save className="h-4 w-4" />
-                  <span className="hidden sm:inline">Save Changes</span>
+                <Button 
+                  onClick={handleProfileUpdate} 
+                  disabled={isSaving}
+                  className="ml-auto"
+                >
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="mr-2 h-4 w-4" />
+                      Save Changes
+                    </>
+                  )}
                 </Button>
               </CardFooter>
             </Card>
@@ -125,17 +444,66 @@ export default function SettingsPage() {
                 </CardHeader>
                 <CardContent className="flex flex-col items-center">
                   <Avatar className="h-24 w-24 mb-4">
-                    <AvatarFallback className="text-2xl">JD</AvatarFallback>
-                  </Avatar>                    <div className="flex gap-2">
-                    <Button variant="outline" size="sm" className="gap-1">
-                      <Camera className="h-3 w-3" />
-                      <span className="hidden sm:inline">Upload</span>
+                    {profileData.avatar ? (
+                      <img 
+                        src={profileData.avatar} 
+                        alt={profileData.name || "User avatar"}
+                        className="h-full w-full object-cover"
+                        onError={(e) => {
+                          // If avatar image fails to load, show fallback
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                    ) : null}
+                    <AvatarFallback className="text-2xl">
+                      {profileData.name ? profileData.name.substring(0, 2).toUpperCase() : 'JV'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex gap-2">
+                    <input 
+                      type="file" 
+                      id="avatar-upload" 
+                      className="hidden" 
+                      accept="image/png,image/jpeg,image/gif,image/webp"
+                      onChange={handleAvatarUpload}
+                      ref={fileInputRef}
+                      aria-label="Upload profile picture"
+                    />
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="gap-1" 
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isUploading}
+                    >
+                      {isUploading ? (
+                        <>
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                          <span className="hidden sm:inline">Uploading...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Camera className="h-3 w-3" />
+                          <span className="hidden sm:inline">Upload</span>
+                        </>
+                      )}
                     </Button>
-                    <Button variant="outline" size="sm" className="gap-1">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="gap-1"
+                      onClick={handleRemoveAvatar}
+                      disabled={!profileData.avatar || isUploading}
+                    >
+                      <X className="h-3 w-3" />
                       <span className="hidden sm:inline">Remove</span>
-                      <span className="inline sm:hidden">×</span>
                     </Button>
                   </div>
+                  {profileData.avatar && (
+                    <p className="text-xs text-muted-foreground mt-2 text-center">
+                      Current avatar: {profileData.avatar.split('/').pop()}
+                    </p>
+                  )}
                 </CardContent>
               </Card>
 
@@ -151,14 +519,14 @@ export default function SettingsPage() {
                       id="language"
                       aria-label="Select language"
                       className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                      defaultValue="en-US"
+                      value={profileData.language}
+                      onChange={(e) => handleInputChange('language', e.target.value)}
                     >
-                      <option value="en-US">English (US)</option>
-                      <option value="en-GB">English (UK)</option>
-                      <option value="es">Spanish</option>
-                      <option value="fr">French</option>
-                      <option value="de">German</option>
-                      <option value="ja">Japanese</option>
+                      {languages.map((lang) => (
+                        <option key={lang.value} value={lang.value}>
+                          {lang.label}
+                        </option>
+                      ))}
                     </select>
                   </div>
                   <div className="space-y-2">
@@ -167,25 +535,45 @@ export default function SettingsPage() {
                       id="timezone"
                       aria-label="Select timezone"
                       className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                      defaultValue="America/Los_Angeles"
+                      value={profileData.timezone}
+                      onChange={(e) => handleInputChange('timezone', e.target.value)}
                     >
-                      <option value="America/Los_Angeles">Pacific Time (US & Canada)</option>
-                      <option value="America/New_York">Eastern Time (US & Canada)</option>
-                      <option value="Europe/London">London</option>
-                      <option value="Europe/Paris">Paris</option>
-                      <option value="Asia/Tokyo">Tokyo</option>
+                      {allTimezones.map((group) => (
+                        <optgroup key={group.label} label={group.label}>
+                          {group.options.map((tz) => (
+                            <option key={tz.value} value={tz.value}>
+                              {tz.label}
+                            </option>
+                          ))}
+                        </optgroup>
+                      ))}
                     </select>
                   </div>
                 </CardContent>
                 <CardFooter>
-                  <Button variant="outline" className="w-full gap-1">
-                    <Globe className="h-4 w-4" />
-                    <span className="hidden sm:inline">Update Preferences</span>
+                  <Button 
+                    variant="outline" 
+                    className="w-full gap-1"
+                    onClick={handleProfileUpdate}
+                    disabled={isSaving}
+                  >
+                    {isSaving ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span>Updating...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Globe className="h-4 w-4" />
+                        <span className="hidden sm:inline">Update Preferences</span>
+                      </>
+                    )}
                   </Button>
                 </CardFooter>
               </Card>
             </div>
           </div>
+          )}
         </TabsContent>
 
         {/* Appearance Tab */}
@@ -224,7 +612,7 @@ export default function SettingsPage() {
                       variant={theme === "system" ? "default" : "outline"}
                       size="sm"
                       onClick={() => setTheme("system")}
-                      className="gap-1 flex items-center"
+                      className="gap-1"
                     >
                       <div className="h-4 w-4 rounded-full bg-gradient-to-r from-slate-100 to-slate-900" />
                       <span className="hidden sm:inline ml-1">System</span>
