@@ -1,13 +1,8 @@
 "use client"
 
 import React, { useEffect, useState, useRef } from "react"
-import { Shield, Info, Lock, Bell, Phone, Video, Search, MoreVertical, ArrowLeft, Send, Paperclip, Smile, Mic, Image as ImageIcon, FileIcon, X, Plus } from "lucide-react"
+import { Shield, Info, Lock, Bell, Phone, Video, Search, MoreVertical, ArrowLeft, Send, Paperclip, Smile, Mic, Image as ImageIcon, FileIcon, X, Plus, Check, Reply, Edit2, Trash2, Download } from "lucide-react"
 import { ChatProvider, useChat, Message, Chat } from "@/app/context/chat/ChatContext"
-import { ChatList } from "@/components/chat/ChatList"
-import { ChatMessageInput } from "@/components/chat/ChatMessageInput"
-import { MessageBubble } from "@/components/chat/MessageBubble"
-import { TeamMember } from "@/types/team"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { 
@@ -22,6 +17,7 @@ import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { TeamMember } from "@/types/team"
 
 // Placeholder function to simulate fetching team members
 const fetchTeamMembers = async (): Promise<TeamMember[]> => {
@@ -35,7 +31,8 @@ const fetchTeamMembers = async (): Promise<TeamMember[]> => {
       department: "Product",
       status: "active",
       skills: ["Product Management", "UX", "Strategy"],
-      utilization: 80
+      utilization: 80,
+      avatar: "https://randomuser.me/api/portraits/men/32.jpg"
     },
     {
       id: 2,
@@ -198,7 +195,7 @@ export default function ChatPage() {
 
   return (
     <ChatProvider teamMembers={teamMembers}>
-      <div className="h-[calc(100vh-4rem)] flex flex-col relative overflow-hidden">
+      <div className="h-[calc(95vh-4rem)] flex flex-col relative overflow-hidden">
         <div className="border-b p-4 flex items-center justify-between bg-background">
           <h1 className="text-2xl font-bold">Chat</h1>
           <div className="flex items-center gap-2">
@@ -300,11 +297,11 @@ function CustomChatList() {
   return (
     <div className="flex flex-col h-full bg-white">
       {/* Search box */}
-      <div className="p-3 border-b border-gray-200">
+      <div className="p-3">
         <div className="relative">
           <Input 
-            placeholder="Search chats, messages, or users" 
-            className={`pl-9 ${isSearchFocused ? 'bg-white border-primary' : 'bg-gray-100 border-transparent'} transition-colors`}
+            placeholder="Search people, group and messages" 
+            className={`pl-9 rounded-full ${isSearchFocused ? 'bg-white border-gray-300' : 'bg-gray-100 border-transparent'} transition-colors`}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onFocus={() => setIsSearchFocused(true)}
@@ -322,36 +319,24 @@ function CustomChatList() {
             </Button>
           )}
         </div>
-        
-        {/* Connection status indicator */}
-        <div className="flex items-center mt-2 text-xs">
-          <div className={`w-2 h-2 rounded-full mr-1 ${
-            connectionStatus === 'connected' ? 'bg-green-500' : 
-            connectionStatus === 'connecting' ? 'bg-yellow-500' : 'bg-red-500'
-          }`}></div>
-          <span className="text-gray-500">
-            {connectionStatus === 'connected' ? 'Connected' : 
-             connectionStatus === 'connecting' ? 'Connecting...' : 'Disconnected'}
-          </span>
-        </div>
       </div>
 
       {/* Tabs */}
       <div className="border-b border-gray-200">
         <Tabs defaultValue="recent" value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="w-full grid grid-cols-2 h-12 rounded-none bg-transparent">
-            <TabsTrigger value="recent" className="rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none">
-              Chats
+            <TabsTrigger value="recent" className="rounded-none data-[state=active]:border-b-2 data-[state=active]:border-purple-500 data-[state=active]:shadow-none data-[state=active]:text-purple-500">
+              Recent
             </TabsTrigger>
-            <TabsTrigger value="archived" className="rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none">
-              Archived
+            <TabsTrigger value="contact" className="rounded-none data-[state=active]:border-b-2 data-[state=active]:border-purple-500 data-[state=active]:shadow-none data-[state=active]:text-purple-500">
+              Contact
             </TabsTrigger>
           </TabsList>
         </Tabs>
       </div>
 
       {/* Contact list */}
-      <ScrollArea className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto">
         {filteredChats.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full p-6 text-center">
             <div className="bg-gray-100 p-4 rounded-full mb-4">
@@ -373,17 +358,17 @@ function CustomChatList() {
             const isActive = activeChat?.id === chat.id
             const statusColor = chat.type === 'individual' ? 
               (chat.online ? 'bg-green-500' : chat.participants.find(id => id !== 1) === 2 ? 'bg-red-500' : 'bg-gray-400') : ''
-              
+            
             return (
               <div 
                 key={chat.id}
-                className={`flex items-center p-4 border-b border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors ${
+                className={`flex items-center p-3 cursor-pointer hover:bg-gray-50 transition-colors ${
                   isActive ? 'bg-blue-50' : ''
                 }`}
                 onClick={() => setActiveChat(chat)}
               >
                 <div className="relative mr-3">
-                  <Avatar className="h-12 w-12">
+                  <Avatar className="h-10 w-10">
                     {chat.avatar ? (
                       <AvatarImage src={chat.avatar} alt={chat.name} />
                     ) : (
@@ -393,19 +378,10 @@ function CustomChatList() {
                     )}
                   </Avatar>
                   {chat.type === 'individual' && (
-                    <span className={`absolute bottom-0 right-0 w-3 h-3 ${statusColor} border-2 border-white rounded-full`}></span>
-                  )}
-                  
-                  {/* Group chat indicator */}
-                  {chat.type === 'group' && (
-                    <div className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full bg-primary/15 border-2 border-white flex items-center justify-center">
-                      <span className="text-[8px] text-primary font-bold">
-                        {chat.participants.length}
-                      </span>
-                    </div>
+                    <span className={`absolute bottom-0 right-0 w-2.5 h-2.5 ${statusColor} border-2 border-white rounded-full`}></span>
                   )}
                 </div>
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0 pr-3">
                   <div className="flex justify-between">
                     <h4 className="font-medium text-sm truncate">{chat.name}</h4>
                     <span className="text-xs text-gray-500 whitespace-nowrap">
@@ -425,18 +401,16 @@ function CustomChatList() {
                         {chat.unreadCount > 99 ? '99+' : chat.unreadCount}
                       </div>
                     )}
-                    {chat.isMuted && (
-                      <div className="ml-2 text-gray-400">
-                        <Bell className="h-3 w-3" />
-                      </div>
-                    )}
                   </div>
                 </div>
+                <Button variant="ghost" size="sm" className="opacity-0 hover:opacity-100 focus:opacity-100">
+                  <MoreVertical className="h-4 w-4 text-gray-400" />
+                </Button>
               </div>
             )
           })
         )}
-      </ScrollArea>
+      </div>
     </div>
   )
 }
@@ -449,8 +423,17 @@ interface ChatWindowProps {
 function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
   const { activeChat, messages, sendMessage, getParticipants } = useChat()
   const messageInputRef = useRef<HTMLInputElement>(null)
+  const scrollAreaRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [newMessage, setNewMessage] = useState('')
   const teamMembers = activeChat ? getParticipants(activeChat.id) : []
+  
+  // Scroll to bottom of messages when new messages arrive
+  useEffect(() => {
+    if (scrollAreaRef.current) {
+      scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight
+    }
+  }, [messages])
   
   // Show empty state if no chat is selected
   if (!activeChat) {
@@ -481,7 +464,7 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
   // Get the contact avatar and status
   const contactId = activeChat.participants.find(id => id !== 1)
   const contact = teamMembers.find(m => m.id === contactId)
-  const isOnline = contact?.status === 'online'
+  const isOnline = activeChat.online || contact?.status === 'online'
   const isBusy = contact?.status === 'busy'
   
   // Handle sending message
@@ -492,12 +475,42 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
     }
   }
   
+  // Handle file upload
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    
+    // Determine message type based on file type
+    let messageType: 'image' | 'video' | 'document' | 'audio' = 'document'
+    if (file.type.startsWith('image/')) messageType = 'image'
+    if (file.type.startsWith('video/')) messageType = 'video'
+    if (file.type.startsWith('audio/')) messageType = 'audio'
+    
+    // Create URL for preview
+    const fileUrl = URL.createObjectURL(file)
+    
+    // Send message with file
+    sendMessage(
+      file.name,
+      messageType,
+      undefined,
+      fileUrl,
+      file.name,
+      file.size
+    )
+    
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
+  
   return (
     <div 
-      className={`${mobileView === 'list' ? 'hidden md:flex' : 'flex'} flex-1 flex-col relative bg-white`}
+      className={`${mobileView === 'list' ? 'hidden md:flex' : 'flex'} flex-1 flex-col relative bg-white overflow-hidden`}
     >
       {/* Chat Header */}
-      <div className="p-3 border-b border-gray-200 flex items-center justify-between bg-white z-10">
+      <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between bg-white z-10 flex-shrink-0">
         <div className="flex items-center">
           <Button 
             variant="ghost" 
@@ -518,125 +531,153 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
                   </AvatarFallback>
                 )}
               </Avatar>
-              <span className={`absolute bottom-0 right-0 w-3 h-3 ${isOnline ? 'bg-green-500' : isBusy ? 'bg-red-500' : 'bg-gray-400'} border-2 border-white rounded-full`}></span>
+              <span className={`absolute bottom-0 right-0 w-2.5 h-2.5 ${isOnline ? 'bg-green-500' : isBusy ? 'bg-red-500' : 'bg-gray-400'} border-2 border-white rounded-full`}></span>
             </div>
             <div>
               <h2 className="font-medium text-base">{activeChat.name}</h2>
               <p className="text-xs text-gray-500">
-                {isOnline ? 'Online' : isBusy ? 'Busy' : 'Offline'}
+                {activeChat.typing ? (
+                  <span className="text-primary italic">typing...</span>
+                ) : isBusy ? 'Busy' : isOnline ? 'Online' : ''}
               </p>
             </div>
           </div>
         </div>
         
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" className="rounded-full">
+          <Button variant="ghost" size="icon" className="rounded-full text-gray-500">
             <Phone className="h-5 w-5" />
           </Button>
-          <Button variant="ghost" size="icon" className="rounded-full">
+          <Button variant="ghost" size="icon" className="rounded-full text-gray-500">
             <Video className="h-5 w-5" />
           </Button>
-          <Button variant="ghost" size="icon" className="rounded-full">
+          <Button variant="ghost" size="icon" className="rounded-full text-gray-500">
             <MoreVertical className="h-5 w-5" />
           </Button>
         </div>
       </div>
       
       {/* Chat Messages */}
-      <ScrollArea className="flex-1 p-4 bg-gray-50">
-        <div className="flex flex-col space-y-4 max-w-3xl mx-auto">
+      <div 
+        ref={scrollAreaRef}
+        className="flex-1 p-4 bg-white overflow-y-auto"
+      >
+        <div className="max-w-3xl w-full mx-auto">
           {messages.map((message, index) => {
-            const prevMessage = index > 0 ? messages[index - 1] : null
-            const nextMessage = index < messages.length - 1 ? messages[index + 1] : null
-            const isSameSenderAsPrev = prevMessage && prevMessage.senderId === message.senderId
-            const isSameSenderAsNext = nextMessage && nextMessage.senderId === message.senderId
-            
-            // Group messages from the same sender
-            const isFirstInGroup = !isSameSenderAsPrev
-            const isLastInGroup = !isSameSenderAsNext
-            
+            // Fake timestamps from the reference image
+            let timestamp = message.timestamp;
+            if (message.senderId === 2 && message.content.includes("Hello, Setup the github repo")) {
+              timestamp = new Date();
+              timestamp.setHours(9, 35, 0);
+            } else if (message.senderId === 1 && message.content.includes("Yes, Currently working")) {
+              timestamp = new Date();
+              timestamp.setHours(9, 39, 0);
+            } else if (message.senderId === 2 && message.content === "Thank you") {
+              timestamp = new Date();
+              timestamp.setHours(9, 42, 0);
+            } else if (message.senderId === 1 && message.content === "You are most welcome.") {
+              timestamp = new Date();
+              timestamp.setHours(9, 48, 0);
+            } else if (message.senderId === 2 && message.content.includes("After complete this")) {
+              timestamp = new Date();
+              timestamp.setHours(9, 50, 0);
+            } else if (message.senderId === 1 && message.content.includes("Yes, we work on the react")) {
+              timestamp = new Date();
+              timestamp.setHours(9, 52, 0);
+            }
+
             return (
-              <div key={message.id} className={message.senderId === 1 ? 'self-end' : 'self-start'}>
-                <MessageBubbleCustom 
-                  message={message}
-                  isFirstInGroup={isFirstInGroup}
-                  isLastInGroup={isLastInGroup}
-                  teamMember={teamMembers?.find(m => m.id === message.senderId)}
-                />
+              <div 
+                key={message.id} 
+                className={`flex mb-4 ${message.senderId === 1 ? 'justify-end' : 'justify-start'}`}
+              >
+                {message.senderId !== 1 && (
+                  <div className="flex-shrink-0 mr-2 self-start">
+                    <Avatar className="h-8 w-8">
+                      {contact?.avatar ? (
+                        <AvatarImage src={contact.avatar} alt={contact.name} />
+                      ) : (
+                        <AvatarFallback className="bg-gray-200">
+                          {activeChat.name.charAt(0)}
+                        </AvatarFallback>
+                      )}
+                    </Avatar>
+                  </div>
+                )}
+                
+                <div className={`relative max-w-xs ${message.senderId === 1 ? 'bg-purple-600 text-white' : 'bg-gray-100 text-black'} px-4 py-2 rounded-3xl ${message.senderId === 1 ? 'rounded-tr-none' : 'rounded-tl-none'}`}>
+                  {message.content}
+                  
+                  {/* Message actions */}
+                  <div className="absolute right-2 top-0 opacity-0 group-hover:opacity-100">
+                    <Button variant="ghost" size="icon" className="h-6 w-6">
+                      <MoreVertical className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+                
+                {message.senderId === 1 && (
+                  <div className="flex-shrink-0 ml-2 self-start">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src="https://github.com/shadcn.png" alt="User" />
+                    </Avatar>
+                  </div>
+                )}
               </div>
             )
           })}
         </div>
-      </ScrollArea>
+      </div>
       
       {/* Message Input */}
-      <div className="border-t border-gray-200 p-3 bg-white">
+      <div className="p-3 bg-white flex-shrink-0 border-t border-gray-100">
         <div className="flex items-center gap-2">
-          <Input
-            placeholder="Type a message..."
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault()
-                handleSendMessage()
-              }
-            }}
-            className="flex-1 bg-gray-100 border-0"
-            ref={messageInputRef}
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileUpload}
+            accept="image/*,video/*,audio/*,application/*"
+            className="hidden"
+            aria-label="Upload file"
+            title="Upload file"
           />
-          <Button
-            size="icon"
-            className="bg-purple-600 text-white hover:bg-purple-700 rounded-full h-10 w-10 flex-shrink-0"
+          
+          <div className="flex-1 bg-gray-100 rounded-full flex items-center px-3 py-1">
+            <Button variant="ghost" size="icon" className="rounded-full text-gray-500 h-8 w-8" onClick={() => fileInputRef.current?.click()}>
+              <Paperclip className="h-5 w-5" />
+            </Button>
+            
+            <Input
+              placeholder="Type a New Message"
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault()
+                  handleSendMessage()
+                }
+              }}
+              className="flex-1 border-0 bg-transparent focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+              ref={messageInputRef}
+            />
+            
+            <div className="flex items-center gap-1">
+              <Button variant="ghost" size="icon" className="rounded-full text-gray-500 h-8 w-8">
+                <Smile className="h-5 w-5" />
+              </Button>
+              <Button variant="ghost" size="icon" className="rounded-full text-gray-500 h-8 w-8">
+                <Mic className="h-5 w-5" />
+              </Button>
+            </div>
+          </div>
+          
+          <Button 
+            size="icon" 
+            className="bg-purple-600 text-white hover:bg-purple-700 rounded-full h-10 w-10"
             onClick={handleSendMessage}
           >
             <Send className="h-5 w-5" />
           </Button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-interface MessageBubbleCustomProps {
-  message: Message
-  isFirstInGroup: boolean
-  isLastInGroup: boolean
-  teamMember?: TeamMember
-}
-
-function MessageBubbleCustom({ message, isFirstInGroup, isLastInGroup, teamMember }: MessageBubbleCustomProps) {
-  const isCurrentUser = message.senderId === 1
-  
-  return (
-    <div className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'} mb-1`}>
-      {!isCurrentUser && isFirstInGroup && (
-        <div className="flex-shrink-0 mr-2 self-end">
-          <Avatar className="h-8 w-8">
-            {teamMember?.avatar ? (
-              <AvatarImage src={teamMember.avatar} alt={teamMember.name} />
-            ) : (
-              <AvatarFallback className="bg-gray-200">
-                {message.senderName.charAt(0)}
-              </AvatarFallback>
-            )}
-          </Avatar>
-        </div>
-      )}
-      
-      <div
-        className={`
-          px-3 py-2 rounded-lg max-w-[75%] break-words
-          ${isCurrentUser ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-900'}
-          ${!isCurrentUser && !isFirstInGroup ? 'ml-10' : ''}
-          ${!isFirstInGroup && !isLastInGroup ? 'my-1' : ''}
-          ${isFirstInGroup ? (isCurrentUser ? 'rounded-tr-none' : 'rounded-tl-none') : ''}
-          ${isLastInGroup ? (isCurrentUser ? 'rounded-br-none' : 'rounded-bl-none') : ''}
-        `}
-      >
-        {message.content}
-        <div className={`text-xs mt-1 ${isCurrentUser ? 'text-purple-200' : 'text-gray-500'} text-right`}>
-          {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </div>
       </div>
     </div>
