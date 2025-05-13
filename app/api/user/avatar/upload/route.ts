@@ -83,11 +83,36 @@ export async function POST(request: Request) {
         // Get file as buffer
         const imageBuffer = Buffer.from(buffer)
         
+        // Check if we should convert to WebP format
+        const useWebP = formData.get("useWebp") === "true"
+        const outputFormat = useWebP ? "webp" : fileExtension.toLowerCase()
+        
+        // Create a sharp processor with automatic orientation from EXIF data
+        const processor = sharp(imageBuffer, { 
+          failOn: 'none', // Don't fail on invalid images, try to process them
+          unlimited: true // Remove size limitation
+        })
+        
+        // Get metadata to make intelligent decisions
+        const metadata = await processor.metadata()
+        
         // Process image with Sharp
-        await sharp(imageBuffer)
-          .resize(300, 300, {
-            fit: 'inside',
+        await processor
+          // Remove EXIF and other metadata for privacy
+          .rotate() // Auto-rotate based on EXIF orientation
+          // Resize maintaining aspect ratio with reasonable dimensions
+          .resize({
+            width: 300, 
+            height: 300,
+            fit: 'cover',
+            position: 'centre',
             withoutEnlargement: true
+          })
+          // Optional quality adjustments based on format
+          .toFormat(outputFormat === 'webp' ? 'webp' : 
+                   (outputFormat === 'png' ? 'png' : 'jpeg'), {
+            quality: outputFormat === 'webp' ? 85 : 80,
+            progressive: true
           })
           .toFile(filePath)
           

@@ -212,10 +212,42 @@ export default function SettingsPage() {
   
   // Handle form field changes
   const handleInputChange = (field: string, value: string) => {
+    // Special validation for certain fields
+    if (field === 'timezone' || field === 'language') {
+      // These will be validated server-side, but we can provide immediate feedback
+      if (!value) {
+        toast({
+          title: 'Validation Error',
+          description: `${field.charAt(0).toUpperCase() + field.slice(1)} cannot be empty`,
+          variant: 'destructive'
+        });
+        return;
+      }
+    }
+    
     setProfileData(prev => ({
       ...prev,
       [field]: value
     }))
+  }
+  
+  // Helper function to validate avatar URL
+  const validateAvatarUrl = (url: string | null): boolean => {
+    if (!url) return false;
+    
+    // Local uploads should start with /uploads/
+    if (url.startsWith('/uploads/')) return true;
+    
+    // External URLs should be valid image URLs
+    const validImageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'];
+    return validImageExtensions.some(ext => url.toLowerCase().endsWith(ext)) &&
+           (url.startsWith('http://') || url.startsWith('https://'));
+  }
+  
+  // Add a timestamp to prevent browser caching for avatar images
+  const getImageUrl = (url: string): string => {
+    if (!url) return '';
+    return `${url}?t=${new Date().getTime()}`;
   }
   
   // Handle avatar upload
@@ -569,7 +601,7 @@ export default function SettingsPage() {
                   <Avatar className="h-24 w-24 mb-4">
                     {profileData.avatar ? (
                       <img 
-                        src={profileData.avatar + '?t=' + new Date().getTime()} // Add timestamp to prevent caching
+                        src={getImageUrl(profileData.avatar)} // Add timestamp to prevent caching
                         alt={profileData.name || "User avatar"}
                         className="h-full w-full object-cover"
                         onError={(e) => {
