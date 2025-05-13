@@ -219,13 +219,15 @@ export default function ChatPage() {
         </div>
         
         <div className="flex flex-1 overflow-hidden">
-          {(mobileView === 'list' || window.innerWidth >= 768) && (
+          {/* Chat list - always show on desktop, conditionally on mobile */}
+          <div className={`${mobileView === 'list' ? 'block' : 'hidden'} md:block h-full border-r w-full md:w-80 lg:w-96 flex-shrink-0`}>
             <CustomChatList />
-          )}
+          </div>
           
-          {(mobileView === 'chat' || window.innerWidth >= 768) && (
+          {/* Chat window - always show on desktop, conditionally on mobile */}
+          <div className={`${mobileView === 'chat' ? 'block' : 'hidden'} md:block h-full flex-1 flex`}>
             <ChatWindow mobileView={mobileView} setMobileView={setMobileView} />
-          )}
+          </div>
         </div>
       </div>
     </ChatProvider>
@@ -304,7 +306,7 @@ function CustomChatList() {
   }
 
   return (
-    <div className="w-full md:w-80 lg:w-96 border-r flex flex-col h-full bg-white relative">
+    <div className="flex flex-col h-full w-full bg-white">
       {/* Search and new chat */}
       <div className="p-4 border-b sticky top-0 bg-white z-10">
         <div className="flex items-center gap-3 mb-4">
@@ -345,104 +347,108 @@ function CustomChatList() {
       </div>
       
       {/* Chat tabs */}
-      <Tabs 
-        defaultValue="recent" 
-        className="w-full"
-        onValueChange={(value) => setActiveTab(value as 'recent' | 'contacts')}
-      >
-        <TabsList className="w-full rounded-none border-b grid grid-cols-2">
-          <TabsTrigger value="recent" className="rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none">Recent</TabsTrigger>
-          <TabsTrigger value="contacts" className="rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none">Archived</TabsTrigger>
-        </TabsList>
-        
-        {/* Chat list */}
-        <div className="flex-1 overflow-y-auto">
-          {displayChats.length === 0 ? (
-            <div className="p-6 text-center text-muted-foreground flex flex-col items-center justify-center min-h-[200px]">
-              {searchQuery ? (
-                <>
-                  <Search className="h-8 w-8 mb-2 text-muted-foreground/50" />
-                  <p>No chats found for "{searchQuery}"</p>
-                </>
-              ) : activeTab === 'recent' ? (
-                <>
-                  <MessageSquare className="h-8 w-8 mb-2 text-muted-foreground/50" />
-                  <p>No recent chats</p>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="mt-2"
-                    onClick={() => setShowNewChatModal(true)}
+      <div className="flex flex-col h-[calc(100%-98px)]">
+        <Tabs 
+          defaultValue="recent" 
+          className="flex flex-col h-full"
+          onValueChange={(value) => setActiveTab(value as 'recent' | 'contacts')}
+        >
+          <TabsList className="w-full rounded-none border-b grid grid-cols-2">
+            <TabsTrigger value="recent" className="rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none">Recent</TabsTrigger>
+            <TabsTrigger value="contacts" className="rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none">Archived</TabsTrigger>
+          </TabsList>
+          
+          {/* Chat list - make it scrollable */}
+          <div className="flex-1 overflow-y-auto">
+            {displayChats.length === 0 ? (
+              <div className="p-6 text-center text-muted-foreground flex flex-col items-center justify-center min-h-[200px]">
+                {searchQuery ? (
+                  <>
+                    <Search className="h-8 w-8 mb-2 text-muted-foreground/50" />
+                    <p>No chats found for "{searchQuery}"</p>
+                  </>
+                ) : activeTab === 'recent' ? (
+                  <>
+                    <MessageSquare className="h-8 w-8 mb-2 text-muted-foreground/50" />
+                    <p>No recent chats</p>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="mt-2"
+                      onClick={() => setShowNewChatModal(true)}
+                    >
+                      Start a new chat
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Archive className="h-8 w-8 mb-2 text-muted-foreground/50" />
+                    <p>No archived chats</p>
+                  </>
+                )}
+              </div>
+            ) : (
+              <div className="overflow-y-auto max-h-full">
+                {displayChats.map(chat => (
+                  <div
+                    key={chat.id}
+                    className={`flex items-center px-4 py-3 cursor-pointer transition-colors hover:bg-muted/30 ${
+                      activeChat?.id === chat.id ? 'bg-muted/40' : ''
+                    }`}
+                    onClick={() => setActiveChat(chat)}
                   >
-                    Start a new chat
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Archive className="h-8 w-8 mb-2 text-muted-foreground/50" />
-                  <p>No archived chats</p>
-                </>
-              )}
-            </div>
-          ) : (
-            displayChats.map(chat => (
-              <div
-                key={chat.id}
-                className={`flex items-center px-4 py-3 cursor-pointer transition-colors hover:bg-muted/30 ${
-                  activeChat?.id === chat.id ? 'bg-muted/40' : ''
-                }`}
-                onClick={() => setActiveChat(chat)}
-              >
-                <div className="relative mr-3 flex-shrink-0">
-                  <Avatar className="h-12 w-12 border bg-background">
-                    <AvatarImage src={chat.avatar} />
-                    <AvatarFallback className="font-medium">
-                      {chat.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
-                    </AvatarFallback>
-                  </Avatar>
-                  {(chat as EnhancedChat).online && (
-                    <div className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 border-2 border-white"></div>
-                  )}
-                </div>
-                <div className="flex-1 min-w-0 space-y-1">
-                  <div className="flex justify-between items-baseline">
-                    <h3 className="font-medium truncate text-sm">{chat.name}</h3>
-                    <span className="text-xs text-muted-foreground flex-shrink-0 ml-2">
-                      {(chat as EnhancedChat).lastMessageTime || formatTime(chat.lastMessage?.timestamp)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <p className="text-xs text-muted-foreground truncate max-w-[calc(100%-40px)]">
-                      {getChatPreview(chat)}
-                    </p>
-                    <div className="flex items-center gap-1">
-                      {chat.unreadCount > 0 && (
-                        <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center text-xs text-white">
-                          {chat.unreadCount}
-                        </div>
+                    <div className="relative mr-3 flex-shrink-0">
+                      <Avatar className="h-12 w-12 border bg-background">
+                        <AvatarImage src={chat.avatar} />
+                        <AvatarFallback className="font-medium">
+                          {chat.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                        </AvatarFallback>
+                      </Avatar>
+                      {(chat as EnhancedChat).online && (
+                        <div className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 border-2 border-white"></div>
                       )}
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                          <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 focus:opacity-100">
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem>Pin</DropdownMenuItem>
-                          <DropdownMenuItem>{chat.isMuted ? 'Unmute' : 'Mute'}</DropdownMenuItem>
-                          <DropdownMenuItem>{chat.isArchived ? 'Unarchive' : 'Archive'}</DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-destructive">Clear chat</DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                    </div>
+                    <div className="flex-1 min-w-0 space-y-1">
+                      <div className="flex justify-between items-baseline">
+                        <h3 className="font-medium truncate text-sm">{chat.name}</h3>
+                        <span className="text-xs text-muted-foreground flex-shrink-0 ml-2">
+                          {(chat as EnhancedChat).lastMessageTime || formatTime(chat.lastMessage?.timestamp)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <p className="text-xs text-muted-foreground truncate max-w-[calc(100%-40px)]">
+                          {getChatPreview(chat)}
+                        </p>
+                        <div className="flex items-center gap-1">
+                          {chat.unreadCount > 0 && (
+                            <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center text-xs text-white">
+                              {chat.unreadCount}
+                            </div>
+                          )}
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                              <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 focus:opacity-100">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem>Pin</DropdownMenuItem>
+                              <DropdownMenuItem>{chat.isMuted ? 'Unmute' : 'Mute'}</DropdownMenuItem>
+                              <DropdownMenuItem>{chat.isArchived ? 'Unarchive' : 'Archive'}</DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem className="text-destructive">Clear chat</DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
+                ))}
               </div>
-            ))
-          )}
-        </div>
-      </Tabs>
+            )}
+          </div>
+        </Tabs>
+      </div>
       
       {/* New Chat Modal */}
       {showNewChatModal && (
@@ -608,13 +614,13 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
   // If no active chat, show placeholder
   if (!activeChat) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center bg-white p-4">
-        <div className="text-center max-w-md mx-auto">
+      <div className="flex-1 flex flex-col items-center justify-center bg-white p-4 h-full w-full">
+        <div className="text-center max-w-md mx-auto flex flex-col items-center justify-center h-full">
           <div className="bg-muted/30 rounded-full p-6 mx-auto mb-6 w-24 h-24 flex items-center justify-center">
             <MessageSquare className="h-12 w-12 text-muted-foreground" />
           </div>
           <h2 className="text-2xl font-bold mb-3">No chat selected</h2>
-          <p className="text-muted-foreground mb-6">
+          <p className="text-muted-foreground mb-6 max-w-xs">
             Select a chat from the list or start a new conversation to connect with your team
           </p>
           <Button 
@@ -631,7 +637,7 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
   }
   
   return (
-    <div className="flex-1 flex flex-col bg-white h-full">
+    <div className="flex flex-col h-full w-full">
       {/* Chat header */}
       <div className="border-b py-2 px-4 flex items-center justify-between sticky top-0 bg-white z-10">
         {mobileView === 'chat' && (
@@ -737,66 +743,68 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
             </p>
           </div>
 
-          {messages.map((message, index) => {
-            // Fake timestamps from the reference image
-            let timestamp = message.timestamp;
-            if (message.senderId === 2 && message.content.includes("Hello, Setup the github repo")) {
-              timestamp = new Date();
-              timestamp.setHours(9, 35, 0);
-            } else if (message.senderId === 1 && message.content.includes("Yes, Currently working")) {
-              timestamp = new Date();
-              timestamp.setHours(9, 39, 0);
-            } else if (message.senderId === 2 && message.content === "Thank you") {
-              timestamp = new Date();
-              timestamp.setHours(9, 42, 0);
-            } else if (message.senderId === 1 && message.content === "You are most welcome.") {
-              timestamp = new Date();
-              timestamp.setHours(9, 48, 0);
-            } else if (message.senderId === 2 && message.content.includes("After complete this")) {
-              timestamp = new Date();
-              timestamp.setHours(9, 50, 0);
-            } else if (message.senderId === 1 && message.content.includes("Yes, we work on the react")) {
-              timestamp = new Date();
-              timestamp.setHours(9, 52, 0);
-            }
-            
-            // Group messages by sender and time (within 2 minutes)
-            const isFirstInGroup = index === 0 || 
-              messages[index - 1].senderId !== message.senderId || 
-              (timestamp.getTime() - new Date(messages[index - 1].timestamp).getTime() > 2 * 60 * 1000);
-            
-            const isLastInGroup = index === messages.length - 1 || 
-              messages[index + 1].senderId !== message.senderId || 
-              (new Date(messages[index + 1].timestamp).getTime() - timestamp.getTime() > 2 * 60 * 1000);
-            
-            // Show date separator if needed (first message or new day)
-            const showDateSeparator = index === 0 || 
-              new Date(timestamp).toDateString() !== new Date(messages[index - 1].timestamp).toDateString();
-            
-            return (
-              <React.Fragment key={message.id}>
-                {showDateSeparator && (
-                  <div className="flex justify-center my-4">
-                    <div className="bg-muted/20 text-xs text-muted-foreground px-3 py-1 rounded-full">
-                      {formatDateHeader(timestamp)}
-                    </div>
-                  </div>
-                )}
+          {messages.length > 0 && (
+            <div className="space-y-4">
+              {messages.map((message, index) => {
+                // Fake timestamps from the reference image
+                let timestamp = message.timestamp;
+                if (message.senderId === 2 && message.content.includes("Hello, Setup the github repo")) {
+                  timestamp = new Date();
+                  timestamp.setHours(9, 35, 0);
+                } else if (message.senderId === 1 && message.content.includes("Yes, Currently working")) {
+                  timestamp = new Date();
+                  timestamp.setHours(9, 39, 0);
+                } else if (message.senderId === 2 && message.content === "Thank you") {
+                  timestamp = new Date();
+                  timestamp.setHours(9, 42, 0);
+                } else if (message.senderId === 1 && message.content === "You are most welcome.") {
+                  timestamp = new Date();
+                  timestamp.setHours(9, 48, 0);
+                } else if (message.senderId === 2 && message.content.includes("After complete this")) {
+                  timestamp = new Date();
+                  timestamp.setHours(9, 50, 0);
+                } else if (message.senderId === 1 && message.content.includes("Yes, we work on the react")) {
+                  timestamp = new Date();
+                  timestamp.setHours(9, 52, 0);
+                }
                 
-                <div 
-                  className={`mb-1 ${message.senderId === 1 ? 'ml-auto' : ''}`}
-                >
-                  <MessageBubbleCustom 
-                    message={message} 
-                    isOwnMessage={message.senderId === 1}
-                    timestamp={timestamp}
-                    showAvatar={isLastInGroup}
-                    showTimestamp={isLastInGroup}
-                  />
-                </div>
-              </React.Fragment>
-            )
-          })}
+                // Group messages by sender and time (within 2 minutes)
+                const isFirstInGroup = index === 0 || 
+                  messages[index - 1].senderId !== message.senderId || 
+                  (timestamp.getTime() - new Date(messages[index - 1].timestamp).getTime() > 2 * 60 * 1000);
+                
+                const isLastInGroup = index === messages.length - 1 || 
+                  messages[index + 1].senderId !== message.senderId || 
+                  (new Date(messages[index + 1].timestamp).getTime() - timestamp.getTime() > 2 * 60 * 1000);
+                
+                // Show date separator if needed (first message or new day)
+                const showDateSeparator = index === 0 || 
+                  new Date(timestamp).toDateString() !== new Date(messages[index - 1].timestamp).toDateString();
+                
+                return (
+                  <React.Fragment key={message.id}>
+                    {showDateSeparator && (
+                      <div className="flex justify-center my-4">
+                        <div className="bg-muted/20 text-xs text-muted-foreground px-3 py-1 rounded-full">
+                          {formatDateHeader(timestamp)}
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div className={`${isLastInGroup ? 'mb-4' : 'mb-1'}`}>
+                      <MessageBubbleCustom 
+                        message={message} 
+                        isOwnMessage={message.senderId === 1}
+                        timestamp={timestamp}
+                        showAvatar={isLastInGroup}
+                        showTimestamp={isLastInGroup}
+                      />
+                    </div>
+                  </React.Fragment>
+                )
+              })}
+            </div>
+          )}
           
           {/* End of messages ref for scrolling */}
           <div ref={messageEndRef} />
@@ -1017,9 +1025,58 @@ interface MessageBubbleProps {
 
 function MessageBubbleCustom({ message, isOwnMessage, timestamp, showAvatar = true, showTimestamp = true }: MessageBubbleProps) {
   const [showOptions, setShowOptions] = useState(false)
+  const [optionsTimeout, setOptionsTimeout] = useState<NodeJS.Timeout | null>(null)
   const { editMessage, deleteMessage, replyToMessage, setActiveReply } = useChat()
   const [isEditing, setIsEditing] = useState(false)
   const [editContent, setEditContent] = useState(message.content)
+  const optionsRef = useRef<HTMLDivElement>(null)
+  
+  // Handle mouse enter to show options
+  const handleMouseEnter = () => {
+    if (optionsTimeout) {
+      clearTimeout(optionsTimeout)
+      setOptionsTimeout(null)
+    }
+    setShowOptions(true)
+  }
+  
+  // Handle mouse leave with delay
+  const handleMouseLeave = () => {
+    const timeout = setTimeout(() => {
+      setShowOptions(false)
+    }, 1000) // 1 second delay before hiding options
+    
+    setOptionsTimeout(timeout as unknown as NodeJS.Timeout)
+  }
+  
+  // Clear timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (optionsTimeout) {
+        clearTimeout(optionsTimeout)
+      }
+    }
+  }, [optionsTimeout])
+  
+  // Get avatar URL based on sender name
+  const getAvatarUrl = (senderName: string) => {
+    // This would normally come from your user database
+    const avatarMap: Record<string, string> = {
+      "Herbert Strayhorn": "https://randomuser.me/api/portraits/men/32.jpg",
+      "Jitu Chauhan": "https://randomuser.me/api/portraits/men/44.jpg",
+      "Denise Reece": "https://randomuser.me/api/portraits/women/65.jpg",
+      "Kevin White": "https://randomuser.me/api/portraits/men/22.jpg",
+      "Mary Newton": "https://randomuser.me/api/portraits/women/45.jpg",
+      "Richard Sousa": "https://randomuser.me/api/portraits/men/46.jpg",
+      "Melissa Westbrook": "https://randomuser.me/api/portraits/women/28.jpg",
+      "Christy Obrien": "https://randomuser.me/api/portraits/women/36.jpg",
+      "Joe Lindahl": "https://randomuser.me/api/portraits/men/53.jpg",
+      // Current user's avatar (You)
+      "You": "https://randomuser.me/api/portraits/men/32.jpg"
+    };
+    
+    return avatarMap[senderName] || undefined;
+  };
   
   // Format message time
   const formatMessageTime = (date: Date) => {
@@ -1156,25 +1213,34 @@ function MessageBubbleCustom({ message, isOwnMessage, timestamp, showAvatar = tr
   
   return (
     <div 
-      className={`flex items-end gap-2 group ${isOwnMessage ? 'ml-auto' : ''} ${isOwnMessage ? 'max-w-[80%] sm:max-w-[70%]' : 'max-w-[80%] sm:max-w-[70%]'}`}
-      onMouseEnter={() => setShowOptions(true)}
-      onMouseLeave={() => setShowOptions(false)}
+      className={`flex items-end gap-2 group ${isOwnMessage ? 'justify-end' : 'justify-start'}`}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
-      {!isOwnMessage && showAvatar ? (
+      {/* Receiver avatar - show on the left for received messages */}
+      {!isOwnMessage && (
         <Avatar className="h-8 w-8 mb-1 flex-shrink-0">
-          <AvatarFallback>{message.senderName.charAt(0)}</AvatarFallback>
+          <AvatarImage src={getAvatarUrl(message.senderName)} />
+          <AvatarFallback className="text-xs font-medium">
+            {message.senderName.split(' ').map(n => n[0]).join('').slice(0, 2)}
+          </AvatarFallback>
         </Avatar>
-      ) : !isOwnMessage ? (
-        <div className="w-8 flex-shrink-0" />
-      ) : null}
+      )}
       
       <div 
-        className={`relative p-3 rounded-xl ${
+        className={`relative p-3 rounded-xl max-w-[85%] sm:max-w-[70%] ${
           isOwnMessage 
             ? 'bg-primary text-primary-foreground rounded-br-none' 
             : 'bg-muted/50 border border-muted/30 rounded-bl-none'
         }`}
       >
+        {/* Sender name for group chats - only show for first message in a group */}
+        {!isOwnMessage && showAvatar && (
+          <div className="text-xs font-medium text-muted-foreground mb-1">
+            {message.senderName}
+          </div>
+        )}
+        
         {/* Reply info */}
         {message.replyTo && (
           <div className={`p-2 mb-2 text-sm rounded border-l-2 ${
@@ -1222,9 +1288,23 @@ function MessageBubbleCustom({ message, isOwnMessage, timestamp, showAvatar = tr
           </div>
         )}
         
+        {/* Always visible options button */}
+        <button 
+          className={`absolute -top-3 ${isOwnMessage ? 'right-0' : 'left-0'} bg-background text-muted-foreground/70 hover:text-foreground h-6 w-6 rounded-full border flex items-center justify-center transition-opacity duration-200 ${showOptions ? 'opacity-100' : 'opacity-0 hover:opacity-60'}`}
+          onClick={handleMouseEnter}
+          aria-label="Message options"
+        >
+          <MoreVertical className="h-3 w-3" />
+        </button>
+        
         {/* Message options */}
         {showOptions && !message.deleted && (
-          <div className={`absolute -top-10 ${isOwnMessage ? 'right-0' : 'left-0'} bg-background shadow-md rounded-lg border flex`}>
+          <div 
+            ref={optionsRef}
+            className={`absolute -top-12 ${isOwnMessage ? 'right-0' : 'left-0'} bg-background shadow-md rounded-lg border flex z-50 transition-opacity duration-300 opacity-100`}
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
+          >
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -1317,6 +1397,14 @@ function MessageBubbleCustom({ message, isOwnMessage, timestamp, showAvatar = tr
           </div>
         )}
       </div>
+      
+      {/* Sender avatar - show on the right for own messages */}
+      {isOwnMessage && (
+        <Avatar className="h-8 w-8 mb-1 flex-shrink-0">
+          <AvatarImage src={getAvatarUrl("You")} />
+          <AvatarFallback className="text-xs font-medium">You</AvatarFallback>
+        </Avatar>
+      )}
     </div>
   )
 }
