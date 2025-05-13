@@ -109,52 +109,59 @@ export default function GamificationPage() {
       <Dialog open={showAddSkillModal} onOpenChange={setShowAddSkillModal}>
         <DialogContent className="w-[95vw] max-w-[500px] p-4 md:p-6 rounded-lg">
           <DialogHeader className="space-y-2">
-            <DialogTitle className="text-xl md:text-2xl">Add New Skill</DialogTitle>
+            <DialogTitle className="text-xl md:text-2xl font-bold">Add New Skill</DialogTitle>
             <DialogDescription className="text-sm md:text-base">
               Create a new skill for your team members to work towards.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-3 md:py-4 max-h-[60vh] md:max-h-[70vh] overflow-y-auto">
-            <div className="grid grid-cols-1 md:grid-cols-4 items-start md:items-center gap-2 md:gap-4">
-              <Label htmlFor="skill-name" className="md:text-right">
-                Name
-              </Label>
-              <Input id="skill-name" placeholder="Frontend Master" className="col-span-1 md:col-span-3" />
+            <div className="grid grid-cols-1 gap-2">
+              <Label htmlFor="skill-name" className="text-sm font-medium">Name</Label>
+              <Input 
+                id="skill-name" 
+                placeholder="Frontend Master" 
+                className="w-full"
+                aria-label="Skill name" 
+              />
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-4 items-start md:items-center gap-2 md:gap-4">
-              <Label htmlFor="skill-category" className="md:text-right">
-                Category
-              </Label>
-              <Input id="skill-category" placeholder="Technical, Soft Skills, etc." className="col-span-1 md:col-span-3" />
+            <div className="grid grid-cols-1 gap-2">
+              <Label htmlFor="skill-category" className="text-sm font-medium">Category</Label>
+              <Input 
+                id="skill-category" 
+                placeholder="Technical, Soft Skills, etc." 
+                className="w-full"
+                aria-label="Skill category" 
+              />
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-4 items-start md:items-center gap-2 md:gap-4">
-              <Label htmlFor="skill-description" className="md:text-right">
-                Description
-              </Label>
-              <Textarea id="skill-description" placeholder="Describe what this skill involves..." className="col-span-1 md:col-span-3" />
+            <div className="grid grid-cols-1 gap-2">
+              <Label htmlFor="skill-description" className="text-sm font-medium">Description</Label>
+              <Textarea 
+                id="skill-description" 
+                placeholder="Describe what this skill involves..." 
+                className="w-full min-h-[100px]"
+                aria-label="Skill description" 
+              />
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-4 items-start md:items-center gap-2 md:gap-4">
-              <Label htmlFor="skill-xp" className="md:text-right">
-                XP Value
-              </Label>
+            <div className="grid grid-cols-1 gap-2">
+              <Label htmlFor="skill-xp" className="text-sm font-medium">XP Value</Label>
               <Input 
                 id="skill-xp" 
                 type="number" 
                 placeholder="500" 
-                className="col-span-1 md:col-span-3"
+                className="w-full"
                 aria-label="XP Value" 
               />
             </div>
           </div>
-          <DialogFooter className="flex-col sm:flex-row gap-2">
-            <Button variant="outline" onClick={() => setShowAddSkillModal(false)} className="sm:order-1">Cancel</Button>
+          <DialogFooter className="flex flex-col sm:flex-row gap-2 pt-2">
+            <Button variant="outline" onClick={() => setShowAddSkillModal(false)} className="w-full sm:w-auto sm:order-1">Cancel</Button>
             <Button onClick={() => {
               toast({
                 title: "Skill Added",
                 description: "New skill has been created successfully",
               });
               setShowAddSkillModal(false);
-            }} className="sm:order-2">Create Skill</Button>
+            }} className="w-full sm:w-auto sm:order-2">Create Skill</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -616,61 +623,64 @@ export default function GamificationPage() {
       <Dialog open={showConfigureModal} onOpenChange={setShowConfigureModal}>
         <DialogContent className="w-[95vw] max-w-[700px] p-4 md:p-6 rounded-lg">
           <DialogHeader className="space-y-2">
-            <DialogTitle className="text-xl md:text-2xl">Gamification Settings</DialogTitle>
+            <DialogTitle className="text-xl md:text-2xl font-bold">Gamification Settings</DialogTitle>
             <DialogDescription className="text-sm md:text-base">
               Customize how gamification works in your team
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 md:space-y-6 py-3 md:py-4 max-h-[60vh] md:max-h-[70vh] overflow-y-auto">
-            <div className="space-y-2 md:space-y-3">
+          <div className="space-y-5 py-3 md:py-4 max-h-[60vh] md:max-h-[70vh] overflow-y-auto">
+            <div className="bg-muted/30 rounded-lg p-3 md:p-4 space-y-3">
               <h3 className="text-base md:text-lg font-medium">General Settings</h3>
-              <div className="grid gap-3 md:gap-4">
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-0">
+              <div className="grid gap-3">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
                   <div>
-                    <Label>Enable Gamification</Label>
-                    <p className="text-xs md:text-sm text-muted-foreground">Turn gamification features on or off</p>
+                    <Label htmlFor="enable-gamification" className="font-medium text-sm">Enable Gamification</Label>
+                    <p className="text-xs text-muted-foreground">Turn gamification features on or off</p>
                   </div>
                   <div className="flex items-center">
                     <input 
                       type="checkbox" 
                       id="enable-gamification" 
                       defaultChecked 
-                      className="mr-2" 
+                      className="mr-2 h-4 w-4" 
                       aria-label="Enable gamification"
+                      title="Enable gamification"
                     />
                     <Label htmlFor="enable-gamification" className="text-sm">Enabled</Label>
                   </div>
                 </div>
 
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-0">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
                   <div>
-                    <Label>Public Leaderboard</Label>
-                    <p className="text-xs md:text-sm text-muted-foreground">Show the leaderboard to all team members</p>
+                    <Label htmlFor="public-leaderboard" className="font-medium text-sm">Public Leaderboard</Label>
+                    <p className="text-xs text-muted-foreground">Show the leaderboard to all team members</p>
                   </div>
                   <div className="flex items-center">
                     <input 
                       type="checkbox" 
                       id="public-leaderboard" 
                       defaultChecked 
-                      className="mr-2"
+                      className="mr-2 h-4 w-4"
                       aria-label="Make leaderboard public" 
+                      title="Make leaderboard public"
                     />
                     <Label htmlFor="public-leaderboard" className="text-sm">Public</Label>
                   </div>
                 </div>
 
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-0">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
                   <div>
-                    <Label>Notifications</Label>
-                    <p className="text-xs md:text-sm text-muted-foreground">Send notifications for achievements</p>
+                    <Label htmlFor="notifications" className="font-medium text-sm">Notifications</Label>
+                    <p className="text-xs text-muted-foreground">Send notifications for achievements</p>
                   </div>
                   <div className="flex items-center">
                     <input 
                       type="checkbox" 
                       id="notifications" 
                       defaultChecked 
-                      className="mr-2"
+                      className="mr-2 h-4 w-4"
                       aria-label="Enable notifications" 
+                      title="Enable notifications"
                     />
                     <Label htmlFor="notifications" className="text-sm">Enabled</Label>
                   </div>
@@ -678,46 +688,46 @@ export default function GamificationPage() {
               </div>
             </div>
 
-            <div className="space-y-2 md:space-y-3">
+            <div className="bg-muted/30 rounded-lg p-3 md:p-4 space-y-3">
               <h3 className="text-base md:text-lg font-medium">XP & Levels</h3>
-              <div className="grid gap-3 md:gap-4">
-                <div className="grid grid-cols-1 md:grid-cols-4 items-start md:items-center gap-2 md:gap-4">
-                  <Label htmlFor="base-xp" className="md:text-right">
+              <div className="grid gap-3">
+                <div className="grid grid-cols-1 gap-2">
+                  <Label htmlFor="base-xp" className="text-sm font-medium">
                     Base XP per Task
                   </Label>
                   <Input 
                     id="base-xp" 
                     type="number" 
                     defaultValue="100" 
-                    className="col-span-1 md:col-span-3"
+                    className="w-full"
                     aria-label="Base XP per Task" 
                     placeholder="Enter base XP amount"
                   />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-4 items-start md:items-center gap-2 md:gap-4">
-                  <Label htmlFor="level-threshold" className="md:text-right">
+                <div className="grid grid-cols-1 gap-2">
+                  <Label htmlFor="level-threshold" className="text-sm font-medium">
                     XP for Level Up
                   </Label>
                   <Input 
                     id="level-threshold" 
                     type="number" 
                     defaultValue="1000" 
-                    className="col-span-1 md:col-span-3"
+                    className="w-full"
                     aria-label="XP for Level Up" 
                     placeholder="Enter XP required for level up"
                   />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-4 items-start md:items-center gap-2 md:gap-4">
-                  <Label htmlFor="max-level" className="md:text-right">
+                <div className="grid grid-cols-1 gap-2">
+                  <Label htmlFor="max-level" className="text-sm font-medium">
                     Maximum Level
                   </Label>
                   <Input 
                     id="max-level" 
                     type="number" 
                     defaultValue="20" 
-                    className="col-span-1 md:col-span-3"
+                    className="w-full"
                     aria-label="Maximum Level" 
                     placeholder="Enter maximum level"
                   />
@@ -725,30 +735,30 @@ export default function GamificationPage() {
               </div>
             </div>
 
-            <div className="space-y-2 md:space-y-3">
+            <div className="bg-muted/30 rounded-lg p-3 md:p-4 space-y-3">
               <h3 className="text-base md:text-lg font-medium">Skill Trees</h3>
-              <div className="grid gap-3 md:gap-4">
-                <div className="grid grid-cols-1 md:grid-cols-4 items-start md:items-center gap-2 md:gap-4">
-                  <Label htmlFor="max-skill-trees" className="md:text-right">
+              <div className="grid gap-3">
+                <div className="grid grid-cols-1 gap-2">
+                  <Label htmlFor="max-skill-trees" className="text-sm font-medium">
                     Max Active Trees
                   </Label>
                   <Input 
                     id="max-skill-trees" 
                     type="number" 
                     defaultValue="3" 
-                    className="col-span-1 md:col-span-3"
+                    className="w-full"
                     aria-label="Maximum Active Skill Trees" 
                     placeholder="Enter maximum number of active skill trees"
                   />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-4 items-start md:items-center gap-2 md:gap-4">
-                  <Label htmlFor="skill-difficulty" className="md:text-right">
+                <div className="grid grid-cols-1 gap-2">
+                  <Label htmlFor="skill-difficulty" className="text-sm font-medium">
                     Skill Difficulty
                   </Label>
                   <select 
                     id="skill-difficulty" 
-                    className="col-span-1 md:col-span-3 h-10 w-full rounded-md border border-input bg-background px-3 py-2"
+                    className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
                     aria-label="Skill Difficulty"
                     defaultValue="medium"
                   >
@@ -760,15 +770,15 @@ export default function GamificationPage() {
               </div>
             </div>
           </div>
-          <DialogFooter className="flex-col sm:flex-row gap-2">
-            <Button variant="outline" onClick={() => setShowConfigureModal(false)} className="sm:order-1">Cancel</Button>
+          <DialogFooter className="flex flex-col sm:flex-row gap-2 pt-2">
+            <Button variant="outline" onClick={() => setShowConfigureModal(false)} className="w-full sm:w-auto sm:order-1">Cancel</Button>
             <Button onClick={() => {
               toast({
                 title: "Settings Saved",
                 description: "Gamification settings have been updated",
               });
               setShowConfigureModal(false);
-            }} className="sm:order-2">Save Changes</Button>
+            }} className="w-full sm:w-auto sm:order-2">Save Changes</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
