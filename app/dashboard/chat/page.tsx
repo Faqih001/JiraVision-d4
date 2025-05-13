@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useEffect, useState, useRef } from "react"
-import { Shield, Info, Lock, Bell, Phone, Video, Search, MoreVertical, ArrowLeft, Send } from "lucide-react"
+import { Shield, Info, Lock, Bell, Phone, Video, Search, MoreVertical, ArrowLeft, Send, Paperclip, Smile, Mic, Image as ImageIcon, FileIcon, X, Plus } from "lucide-react"
 import { ChatProvider, useChat, Message, Chat } from "@/app/context/chat/ChatContext"
 import { ChatList } from "@/components/chat/ChatList"
 import { ChatMessageInput } from "@/components/chat/ChatMessageInput"
@@ -21,6 +21,7 @@ import { useToast } from "@/hooks/use-toast"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 
 // Placeholder function to simulate fetching team members
 const fetchTeamMembers = async (): Promise<TeamMember[]> => {
@@ -197,7 +198,7 @@ export default function ChatPage() {
 
   return (
     <ChatProvider teamMembers={teamMembers}>
-      <div className="h-[calc(100vh-4rem)] flex flex-col relative">
+      <div className="h-[calc(100vh-4rem)] flex flex-col relative overflow-hidden">
         <div className="border-b p-4 flex items-center justify-between bg-background">
           <h1 className="text-2xl font-bold">Chat</h1>
           <div className="flex items-center gap-2">
@@ -216,7 +217,7 @@ export default function ChatPage() {
           <div 
             className={`${
               mobileView === 'chat' ? 'hidden md:block' : 'w-full'
-            } md:w-80 lg:w-96 border-r border-gray-200`}
+            } md:w-80 lg:w-96 border-r border-gray-200 flex-shrink-0 overflow-hidden`}
           >
             <CustomChatList />
           </div>
@@ -233,21 +234,67 @@ export default function ChatPage() {
 }
 
 function CustomChatList() {
-  const { chats, activeChat, setActiveChat, connectionStatus } = useChat()
+  const { chats, activeChat, setActiveChat, connectionStatus, searchChats } = useChat()
   const [searchQuery, setSearchQuery] = useState('')
   const [activeTab, setActiveTab] = useState('recent')
+  const [isSearchFocused, setIsSearchFocused] = useState(false)
 
-  // Filter chats based on search query
-  const filteredChats = chats.filter(chat => 
-    chat.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (chat.lastMessage && chat.lastMessage.content.toLowerCase().includes(searchQuery.toLowerCase()))
-  )
+  // Filter chats based on search query and active tab
+  const filteredChats = searchQuery.trim() ? 
+    searchChats(searchQuery) : 
+    chats.filter(chat => activeTab === 'recent' ? !chat.isArchived : chat.isArchived)
 
   // Format timestamp for display
   const formatTime = (timestamp: Date | undefined) => {
     if (!timestamp) return ''
     
-    return timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    const now = new Date()
+    const messageDate = new Date(timestamp)
+    const diffDays = Math.floor((now.getTime() - messageDate.getTime()) / (1000 * 60 * 60 * 24))
+    
+    if (diffDays === 0) {
+      // Today: Show time
+      return messageDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    } else if (diffDays === 1) {
+      // Yesterday
+      return 'Yesterday'
+    } else if (diffDays < 7) {
+      // This week: Show day name
+      return messageDate.toLocaleDateString([], { weekday: 'short' })
+    } else {
+      // Older: Show date
+      return messageDate.toLocaleDateString([], { month: 'numeric', day: 'numeric' })
+    }
+  }
+
+  // Get chat preview text
+  const getChatPreview = (chat: Chat) => {
+    if (chat.typing) {
+      return <span className="italic text-primary">typing...</span>
+    }
+    
+    if (chat.lastMessage) {
+      if (chat.lastMessage.deleted) {
+        return <span className="italic">This message was deleted</span>
+      }
+      
+      switch (chat.lastMessage.type) {
+        case 'image':
+          return <span>📷 Photo</span>
+        case 'video':
+          return <span>🎥 Video</span>
+        case 'audio':
+          return <span>🎵 Audio</span>
+        case 'voice':
+          return <span>🎤 Voice message</span>
+        case 'document':
+          return <span>📄 Document</span>
+        default:
+          return chat.lastMessage.content
+      }
+    }
+    
+    return chat.preview || ''
   }
 
   return (
@@ -256,12 +303,24 @@ function CustomChatList() {
       <div className="p-3 border-b border-gray-200">
         <div className="relative">
           <Input 
-            placeholder="Search people, group and messages" 
-            className="pl-9 bg-gray-100 border-0"
+            placeholder="Search chats, messages, or users" 
+            className={`pl-9 ${isSearchFocused ? 'bg-white border-primary' : 'bg-gray-100 border-transparent'} transition-colors`}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            onFocus={() => setIsSearchFocused(true)}
+            onBlur={() => setIsSearchFocused(false)}
           />
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
+          {searchQuery && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute right-2 top-1/2 transform -translate-y-1/2 h-5 w-5"
+              onClick={() => setSearchQuery('')}
+            >
+              <X className="h-3 w-3" />
+            </Button>
+          )}
         </div>
         
         {/* Connection status indicator */}
@@ -282,58 +341,101 @@ function CustomChatList() {
         <Tabs defaultValue="recent" value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="w-full grid grid-cols-2 h-12 rounded-none bg-transparent">
             <TabsTrigger value="recent" className="rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none">
-              Recent
+              Chats
             </TabsTrigger>
-            <TabsTrigger value="contact" className="rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none">
-              Contact
+            <TabsTrigger value="archived" className="rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none">
+              Archived
             </TabsTrigger>
           </TabsList>
         </Tabs>
       </div>
 
       {/* Contact list */}
-      <ScrollArea className="flex-1">
-        {filteredChats.map((chat) => {
-          const isActive = activeChat?.id === chat.id
-          const statusColor = chat.type === 'individual' ? 
-            (chat.online ? 'bg-green-500' : chat.participants.find(id => id !== 1) === 2 ? 'bg-red-500' : 'bg-gray-400') : ''
-            
-          return (
-            <div 
-              key={chat.id}
-              className={`flex items-center p-4 border-b border-gray-200 cursor-pointer hover:bg-gray-50 ${
-                isActive ? 'bg-blue-50' : ''
-              }`}
-              onClick={() => setActiveChat(chat)}
-            >
-              <div className="relative mr-3">
-                <Avatar className="h-10 w-10">
-                  {chat.avatar ? (
-                    <AvatarImage src={chat.avatar} alt={chat.name} />
-                  ) : (
-                    <AvatarFallback className="bg-gray-200">
-                      {chat.name.charAt(0)}
-                    </AvatarFallback>
-                  )}
-                </Avatar>
-                {chat.type === 'individual' && (
-                  <span className={`absolute bottom-0 right-0 w-3 h-3 ${statusColor} border-2 border-white rounded-full`}></span>
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex justify-between">
-                  <h4 className="font-medium text-sm truncate">{chat.name}</h4>
-                  <span className="text-xs text-gray-500">
-                    {chat.lastMessage ? formatTime(chat.lastMessage.timestamp) : ''}
-                  </span>
-                </div>
-                <p className="text-sm text-gray-500 truncate">
-                  {chat.lastMessage ? chat.lastMessage.content : chat.description || ''}
-                </p>
-              </div>
+      <ScrollArea className="flex-1 overflow-y-auto">
+        {filteredChats.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full p-6 text-center">
+            <div className="bg-gray-100 p-4 rounded-full mb-4">
+              <Search className="h-6 w-6 text-gray-400" />
             </div>
-          )
-        })}
+            <h3 className="font-medium text-base">No conversations found</h3>
+            <p className="text-sm text-gray-500 mt-1">
+              {searchQuery ? 'Try a different search term' : 'Start a new chat to begin messaging'}
+            </p>
+            {!searchQuery && (
+              <Button className="mt-4" size="sm">
+                <Plus className="h-4 w-4 mr-2" />
+                New Chat
+              </Button>
+            )}
+          </div>
+        ) : (
+          filteredChats.map((chat) => {
+            const isActive = activeChat?.id === chat.id
+            const statusColor = chat.type === 'individual' ? 
+              (chat.online ? 'bg-green-500' : chat.participants.find(id => id !== 1) === 2 ? 'bg-red-500' : 'bg-gray-400') : ''
+              
+            return (
+              <div 
+                key={chat.id}
+                className={`flex items-center p-4 border-b border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors ${
+                  isActive ? 'bg-blue-50' : ''
+                }`}
+                onClick={() => setActiveChat(chat)}
+              >
+                <div className="relative mr-3">
+                  <Avatar className="h-12 w-12">
+                    {chat.avatar ? (
+                      <AvatarImage src={chat.avatar} alt={chat.name} />
+                    ) : (
+                      <AvatarFallback className="bg-gray-200">
+                        {chat.name.charAt(0)}
+                      </AvatarFallback>
+                    )}
+                  </Avatar>
+                  {chat.type === 'individual' && (
+                    <span className={`absolute bottom-0 right-0 w-3 h-3 ${statusColor} border-2 border-white rounded-full`}></span>
+                  )}
+                  
+                  {/* Group chat indicator */}
+                  {chat.type === 'group' && (
+                    <div className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full bg-primary/15 border-2 border-white flex items-center justify-center">
+                      <span className="text-[8px] text-primary font-bold">
+                        {chat.participants.length}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex justify-between">
+                    <h4 className="font-medium text-sm truncate">{chat.name}</h4>
+                    <span className="text-xs text-gray-500 whitespace-nowrap">
+                      {chat.lastMessageTime || (chat.lastMessage ? formatTime(chat.lastMessage.timestamp) : '')}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between mt-1">
+                    <p className="text-sm text-gray-500 truncate flex-1">
+                      {chat.typing ? (
+                        <span className="italic text-primary">typing...</span>
+                      ) : (
+                        getChatPreview(chat)
+                      )}
+                    </p>
+                    {chat.unreadCount > 0 && (
+                      <div className="ml-2 bg-primary text-white text-xs rounded-full h-5 min-w-5 flex items-center justify-center px-1.5">
+                        {chat.unreadCount > 99 ? '99+' : chat.unreadCount}
+                      </div>
+                    )}
+                    {chat.isMuted && (
+                      <div className="ml-2 text-gray-400">
+                        <Bell className="h-3 w-3" />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )
+          })
+        )}
       </ScrollArea>
     </div>
   )
