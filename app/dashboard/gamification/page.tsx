@@ -107,161 +107,133 @@ export default function GamificationPage() {
     <div className="p-4 md:p-6 space-y-6">
       {/* Add Skill Modal */}
       <Dialog open={showAddSkillModal} onOpenChange={setShowAddSkillModal}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Add New Skill</DialogTitle>
-            <DialogDescription>
+        <DialogContent className="w-[95vw] max-w-[500px] p-4 md:p-6 rounded-lg">
+          <DialogHeader className="space-y-2">
+            <DialogTitle className="text-xl md:text-2xl">Add New Skill</DialogTitle>
+            <DialogDescription className="text-sm md:text-base">
               Create a new skill for your team members to work towards.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="skill-name" className="text-right">
+          <div className="grid gap-4 py-3 md:py-4 max-h-[60vh] md:max-h-[70vh] overflow-y-auto">
+            <div className="grid grid-cols-1 md:grid-cols-4 items-start md:items-center gap-2 md:gap-4">
+              <Label htmlFor="skill-name" className="md:text-right">
                 Name
               </Label>
-              <Input id="skill-name" placeholder="Frontend Master" className="col-span-3" />
+              <Input id="skill-name" placeholder="Frontend Master" className="col-span-1 md:col-span-3" />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="skill-category" className="text-right">
+            <div className="grid grid-cols-1 md:grid-cols-4 items-start md:items-center gap-2 md:gap-4">
+              <Label htmlFor="skill-category" className="md:text-right">
                 Category
               </Label>
-              <Input id="skill-category" placeholder="Technical, Soft Skills, etc." className="col-span-3" />
+              <Input id="skill-category" placeholder="Technical, Soft Skills, etc." className="col-span-1 md:col-span-3" />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="skill-description" className="text-right">
+            <div className="grid grid-cols-1 md:grid-cols-4 items-start md:items-center gap-2 md:gap-4">
+              <Label htmlFor="skill-description" className="md:text-right">
                 Description
               </Label>
-              <Textarea id="skill-description" placeholder="Describe what this skill involves..." className="col-span-3" />
+              <Textarea id="skill-description" placeholder="Describe what this skill involves..." className="col-span-1 md:col-span-3" />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="skill-xp" className="text-right">
+            <div className="grid grid-cols-1 md:grid-cols-4 items-start md:items-center gap-2 md:gap-4">
+              <Label htmlFor="skill-xp" className="md:text-right">
                 XP Value
               </Label>
-              <Input id="skill-xp" type="number" placeholder="500" className="col-span-3" />
+              <Input 
+                id="skill-xp" 
+                type="number" 
+                placeholder="500" 
+                className="col-span-1 md:col-span-3"
+                aria-label="XP Value" 
+              />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddSkillModal(false)}>Cancel</Button>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={() => setShowAddSkillModal(false)} className="sm:order-1">Cancel</Button>
             <Button onClick={() => {
               toast({
                 title: "Skill Added",
                 description: "New skill has been created successfully",
               });
               setShowAddSkillModal(false);
-            }}>Create Skill</Button>
+            }} className="sm:order-2">Create Skill</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Leaderboard Modal */}
       <Dialog open={showLeaderboardModal} onOpenChange={setShowLeaderboardModal}>
-        <DialogContent className="sm:max-w-[700px]">
-          <DialogHeader>
-            <DialogTitle>Team Leaderboard</DialogTitle>
-            <DialogDescription>
+        <DialogContent className="w-[95vw] max-w-[700px] p-4 md:p-6 rounded-lg">
+          <DialogHeader className="space-y-2">
+            <DialogTitle className="text-xl md:text-2xl">Team Leaderboard</DialogTitle>
+            <DialogDescription className="text-sm md:text-base">
               See who's leading in performance this sprint
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
-            <div className="flex items-center gap-4 p-2 bg-muted/20 rounded-md">
-              <div className="h-8 w-8 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
-                <div className="font-bold text-amber-600">1</div>
+          <div className="space-y-3 md:space-y-4 py-3 md:py-4 max-h-[50vh] md:max-h-[60vh] overflow-y-auto">
+            <div className="flex items-center gap-3 md:gap-4 p-2 md:p-3 bg-muted/20 rounded-md">
+              <div className="h-6 w-6 md:h-8 md:w-8 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+                <div className="font-bold text-amber-600 text-xs md:text-sm">1</div>
               </div>
-              <Avatar className="h-10 w-10">
+              <Avatar className="h-8 w-8 md:h-10 md:w-10">
                 <AvatarFallback>RJ</AvatarFallback>
               </Avatar>
-              <div className="flex-1">
-                <div className="font-medium">Robert Johnson</div>
-                <div className="text-sm text-muted-foreground">Backend Developer</div>
+              <div className="flex-1 min-w-0">
+                <div className="font-medium text-sm md:text-base truncate">Robert Johnson</div>
+                <div className="text-xs md:text-sm text-muted-foreground truncate">Backend Developer</div>
               </div>
-              <Badge variant="secondary" className="gap-1">
+              <Badge variant="secondary" className="gap-1 ml-2 shrink-0">
                 <Star className="h-3 w-3 text-amber-500" />
-                <span>4,250 XP</span>
+                <span className="text-xs">4,250</span>
               </Badge>
             </div>
 
-            <div className="flex items-center gap-4 p-2 bg-muted/20 rounded-md">
-              <div className="h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0">
-                <div className="font-bold text-slate-600">2</div>
+            <div className="flex items-center gap-3 md:gap-4 p-2 md:p-3 bg-muted/20 rounded-md">
+              <div className="h-6 w-6 md:h-8 md:w-8 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0">
+                <div className="font-bold text-slate-600 text-xs md:text-sm">2</div>
               </div>
-              <Avatar className="h-10 w-10">
+              <Avatar className="h-8 w-8 md:h-10 md:w-10">
                 <AvatarFallback>JD</AvatarFallback>
               </Avatar>
-              <div className="flex-1">
-                <div className="font-medium">John Doe</div>
-                <div className="text-sm text-muted-foreground">Frontend Developer</div>
+              <div className="flex-1 min-w-0">
+                <div className="font-medium text-sm md:text-base truncate">John Doe</div>
+                <div className="text-xs md:text-sm text-muted-foreground truncate">Frontend Developer</div>
               </div>
-              <Badge variant="secondary" className="gap-1">
+              <Badge variant="secondary" className="gap-1 ml-2 shrink-0">
                 <Star className="h-3 w-3 text-amber-500" />
-                <span>3,250 XP</span>
+                <span className="text-xs">3,250</span>
               </Badge>
             </div>
 
-            <div className="flex items-center gap-4 p-2 bg-muted/20 rounded-md">
-              <div className="h-8 w-8 rounded-full bg-amber-50 flex items-center justify-center flex-shrink-0">
-                <div className="font-bold text-amber-600">3</div>
+            <div className="flex items-center gap-3 md:gap-4 p-2 md:p-3 bg-muted/20 rounded-md">
+              <div className="h-6 w-6 md:h-8 md:w-8 rounded-full bg-amber-50 flex items-center justify-center flex-shrink-0">
+                <div className="font-bold text-amber-600 text-xs md:text-sm">3</div>
               </div>
-              <Avatar className="h-10 w-10">
+              <Avatar className="h-8 w-8 md:h-10 md:w-10">
                 <AvatarFallback>EW</AvatarFallback>
               </Avatar>
-              <div className="flex-1">
-                <div className="font-medium">Emily Wilson</div>
-                <div className="text-sm text-muted-foreground">Project Manager</div>
+              <div className="flex-1 min-w-0">
+                <div className="font-medium text-sm md:text-base truncate">Emily Wilson</div>
+                <div className="text-xs md:text-sm text-muted-foreground truncate">Project Manager</div>
               </div>
-              <Badge variant="secondary" className="gap-1">
+              <Badge variant="secondary" className="gap-1 ml-2 shrink-0">
                 <Star className="h-3 w-3 text-amber-500" />
-                <span>2,980 XP</span>
+                <span className="text-xs">2,980</span>
               </Badge>
             </div>
 
-            <div className="flex items-center gap-4 p-2 bg-muted/20 rounded-md">
-              <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                <div className="font-medium text-muted-foreground">4</div>
+            <div className="flex items-center gap-3 md:gap-4 p-2 md:p-3 bg-muted/20 rounded-md">
+              <div className="h-6 w-6 md:h-8 md:w-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                <div className="font-medium text-muted-foreground text-xs md:text-sm">4</div>
               </div>
-              <Avatar className="h-10 w-10">
+              <Avatar className="h-8 w-8 md:h-10 md:w-10">
                 <AvatarFallback>AS</AvatarFallback>
               </Avatar>
-              <div className="flex-1">
-                <div className="font-medium">Alice Smith</div>
-                <div className="text-sm text-muted-foreground">UX Designer</div>
+              <div className="flex-1 min-w-0">
+                <div className="font-medium text-sm md:text-base truncate">Alice Smith</div>
+                <div className="text-xs md:text-sm text-muted-foreground truncate">UX Designer</div>
               </div>
-              <Badge variant="secondary" className="gap-1">
+              <Badge variant="secondary" className="gap-1 ml-2 shrink-0">
                 <Star className="h-3 w-3 text-amber-500" />
-                <span>2,450 XP</span>
-              </Badge>
-            </div>
-
-            <div className="flex items-center gap-4 p-2 bg-muted/20 rounded-md">
-              <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                <div className="font-medium text-muted-foreground">5</div>
-              </div>
-              <Avatar className="h-10 w-10">
-                <AvatarFallback>ML</AvatarFallback>
-              </Avatar>
-              <div className="flex-1">
-                <div className="font-medium">Michael Lee</div>
-                <div className="text-sm text-muted-foreground">DevOps Engineer</div>
-              </div>
-              <Badge variant="secondary" className="gap-1">
-                <Star className="h-3 w-3 text-amber-500" />
-                <span>2,120 XP</span>
-              </Badge>
-            </div>
-
-            <div className="flex items-center gap-4 p-2 bg-muted/20 rounded-md">
-              <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                <div className="font-medium text-muted-foreground">6</div>
-              </div>
-              <Avatar className="h-10 w-10">
-                <AvatarFallback>SJ</AvatarFallback>
-              </Avatar>
-              <div className="flex-1">
-                <div className="font-medium">Sarah Johnson</div>
-                <div className="text-sm text-muted-foreground">QA Engineer</div>
-              </div>
-              <Badge variant="secondary" className="gap-1">
-                <Star className="h-3 w-3 text-amber-500" />
-                <span>1,980 XP</span>
+                <span className="text-xs">2,450</span>
               </Badge>
             </div>
           </div>
@@ -273,107 +245,107 @@ export default function GamificationPage() {
 
       {/* Achievements Modal */}
       <Dialog open={showAchievementsModal} onOpenChange={setShowAchievementsModal}>
-        <DialogContent className="sm:max-w-[700px]">
-          <DialogHeader>
-            <DialogTitle>All Achievements</DialogTitle>
-            <DialogDescription>
+        <DialogContent className="w-[95vw] max-w-[700px] p-4 md:p-6 rounded-lg">
+          <DialogHeader className="space-y-2">
+            <DialogTitle className="text-xl md:text-2xl">All Achievements</DialogTitle>
+            <DialogDescription className="text-sm md:text-base">
               Track your progress and see what achievements you can earn
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
-            <div className="bg-muted/20 p-4 rounded-lg">
-              <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
-                  <Award className="h-6 w-6 text-amber-600" />
+          <div className="space-y-3 md:space-y-4 py-3 md:py-4 max-h-[50vh] md:max-h-[60vh] overflow-y-auto">
+            <div className="bg-muted/20 p-3 md:p-4 rounded-lg">
+              <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
+                <div className="h-10 w-10 md:h-12 md:w-12 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+                  <Award className="h-5 w-5 md:h-6 md:w-6 text-amber-600" />
                 </div>
-                <div className="flex-1">
-                  <div className="font-medium flex items-center gap-2">
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-sm md:text-base flex items-center flex-wrap gap-2">
                     Sprint Champion
-                    <Badge variant="success" className="ml-2">Completed</Badge>
+                    <Badge variant="secondary" className="ml-0 md:ml-2 text-xs">Completed</Badge>
                   </div>
-                  <div className="text-sm text-muted-foreground">Completed all assigned tasks in Sprint 22.04</div>
+                  <div className="text-xs md:text-sm text-muted-foreground">Completed all assigned tasks in Sprint 22.04</div>
                 </div>
-                <Badge>+250 XP</Badge>
+                <Badge className="self-start md:self-center mt-2 md:mt-0 shrink-0">+250 XP</Badge>
               </div>
             </div>
 
-            <div className="bg-muted/20 p-4 rounded-lg">
-              <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
-                  <Zap className="h-6 w-6 text-green-600" />
+            <div className="bg-muted/20 p-3 md:p-4 rounded-lg">
+              <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
+                <div className="h-10 w-10 md:h-12 md:w-12 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                  <Zap className="h-5 w-5 md:h-6 md:w-6 text-green-600" />
                 </div>
-                <div className="flex-1">
-                  <div className="font-medium flex items-center gap-2">
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-sm md:text-base flex items-center flex-wrap gap-2">
                     Code Quality Guardian
-                    <Badge variant="success" className="ml-2">Completed</Badge>
+                    <Badge variant="secondary" className="ml-0 md:ml-2 text-xs">Completed</Badge>
                   </div>
-                  <div className="text-sm text-muted-foreground">Maintained 95% code coverage for 3 consecutive sprints</div>
+                  <div className="text-xs md:text-sm text-muted-foreground">Maintained 95% code coverage for 3 consecutive sprints</div>
                 </div>
-                <Badge>+300 XP</Badge>
+                <Badge className="self-start md:self-center mt-2 md:mt-0 shrink-0">+300 XP</Badge>
               </div>
             </div>
 
-            <div className="bg-muted/20 p-4 rounded-lg">
-              <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                  <Users className="h-6 w-6 text-blue-600" />
+            <div className="bg-muted/20 p-3 md:p-4 rounded-lg">
+              <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
+                <div className="h-10 w-10 md:h-12 md:w-12 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                  <Users className="h-5 w-5 md:h-6 md:w-6 text-blue-600" />
                 </div>
-                <div className="flex-1">
-                  <div className="font-medium flex items-center gap-2">
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-sm md:text-base flex items-center flex-wrap gap-2">
                     Team Player
-                    <Badge variant="success" className="ml-2">Completed</Badge>
+                    <Badge variant="secondary" className="ml-0 md:ml-2 text-xs">Completed</Badge>
                   </div>
-                  <div className="text-sm text-muted-foreground">Helped 3 team members complete their tasks on time</div>
+                  <div className="text-xs md:text-sm text-muted-foreground">Helped 3 team members complete their tasks on time</div>
                 </div>
-                <Badge>+150 XP</Badge>
+                <Badge className="self-start md:self-center mt-2 md:mt-0 shrink-0">+150 XP</Badge>
               </div>
             </div>
 
-            <div className="bg-muted/20 p-4 rounded-lg">
-              <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
-                  <Trophy className="h-6 w-6 text-purple-600" />
+            <div className="bg-muted/20 p-3 md:p-4 rounded-lg">
+              <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
+                <div className="h-10 w-10 md:h-12 md:w-12 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
+                  <Trophy className="h-5 w-5 md:h-6 md:w-6 text-purple-600" />
                 </div>
-                <div className="flex-1">
-                  <div className="font-medium flex items-center gap-2">
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-sm md:text-base flex items-center flex-wrap gap-2">
                     First Milestone
-                    <Badge variant="success" className="ml-2">Completed</Badge>
+                    <Badge variant="secondary" className="ml-0 md:ml-2 text-xs">Completed</Badge>
                   </div>
-                  <div className="text-sm text-muted-foreground">Successfully delivered the AI Scrum Master MVP</div>
+                  <div className="text-xs md:text-sm text-muted-foreground">Successfully delivered the AI Scrum Master MVP</div>
                 </div>
-                <Badge>+500 XP</Badge>
+                <Badge className="self-start md:self-center mt-2 md:mt-0 shrink-0">+500 XP</Badge>
               </div>
             </div>
 
-            <div className="bg-muted/20 p-4 rounded-lg">
-              <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                  <RefreshCw className="h-6 w-6 text-muted-foreground" />
+            <div className="bg-muted/20 p-3 md:p-4 rounded-lg">
+              <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
+                <div className="h-10 w-10 md:h-12 md:w-12 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                  <RefreshCw className="h-5 w-5 md:h-6 md:w-6 text-muted-foreground" />
                 </div>
-                <div className="flex-1">
-                  <div className="font-medium flex items-center gap-2">
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-sm md:text-base flex items-center flex-wrap gap-2">
                     Continuous Improver
-                    <Badge variant="outline" className="ml-2">In Progress (2/5)</Badge>
+                    <Badge variant="outline" className="ml-0 md:ml-2 text-xs">In Progress (2/5)</Badge>
                   </div>
-                  <div className="text-sm text-muted-foreground">Submit 5 process improvement suggestions</div>
+                  <div className="text-xs md:text-sm text-muted-foreground">Submit 5 process improvement suggestions</div>
                 </div>
-                <Badge variant="outline">+200 XP</Badge>
+                <Badge className="self-start md:self-center mt-2 md:mt-0 shrink-0">+200 XP</Badge>
               </div>
             </div>
 
-            <div className="bg-muted/20 p-4 rounded-lg">
-              <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                  <Award className="h-6 w-6 text-muted-foreground" />
+            <div className="bg-muted/20 p-3 md:p-4 rounded-lg">
+              <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
+                <div className="h-10 w-10 md:h-12 md:w-12 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                  <Award className="h-5 w-5 md:h-6 md:w-6 text-muted-foreground" />
                 </div>
-                <div className="flex-1">
-                  <div className="font-medium flex items-center gap-2">
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-sm md:text-base flex items-center flex-wrap gap-2">
                     Perfect Attendance
-                    <Badge variant="outline" className="ml-2">In Progress (4/5)</Badge>
+                    <Badge variant="outline" className="ml-0 md:ml-2 text-xs">In Progress (4/5)</Badge>
                   </div>
-                  <div className="text-sm text-muted-foreground">Attend 5 consecutive sprint planning meetings</div>
+                  <div className="text-xs md:text-sm text-muted-foreground">Attend 5 consecutive sprint planning meetings</div>
                 </div>
-                <Badge variant="outline">+100 XP</Badge>
+                <Badge className="self-start md:self-center mt-2 md:mt-0 shrink-0">+100 XP</Badge>
               </div>
             </div>
           </div>
@@ -385,100 +357,100 @@ export default function GamificationPage() {
 
       {/* Rewards Modal */}
       <Dialog open={showRewardsModal} onOpenChange={setShowRewardsModal}>
-        <DialogContent className="sm:max-w-[700px]">
-          <DialogHeader>
-            <DialogTitle>Rewards Catalog</DialogTitle>
-            <DialogDescription>
+        <DialogContent className="w-[95vw] max-w-[700px] p-4 md:p-6 rounded-lg">
+          <DialogHeader className="space-y-2">
+            <DialogTitle className="text-xl md:text-2xl">Rewards Catalog</DialogTitle>
+            <DialogDescription className="text-sm md:text-base">
               Redeem your XP for rewards and benefits
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
-            <div className="bg-muted/20 p-4 rounded-lg">
-              <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                  <Gift className="h-6 w-6 text-primary" />
+          <div className="space-y-3 md:space-y-4 py-3 md:py-4 max-h-[50vh] md:max-h-[60vh] overflow-y-auto">
+            <div className="bg-muted/20 p-3 md:p-4 rounded-lg">
+              <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
+                <div className="h-10 w-10 md:h-12 md:w-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <Gift className="h-5 w-5 md:h-6 md:w-6 text-primary" />
                 </div>
-                <div className="flex-1">
-                  <div className="font-medium">Half-Day PTO</div>
-                  <div className="text-sm text-muted-foreground">Take a half-day off work</div>
-                  <div className="text-sm font-medium text-primary mt-1">1,500 XP</div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-sm md:text-base">Half-Day PTO</div>
+                  <div className="text-xs md:text-sm text-muted-foreground">Take a half-day off work</div>
+                  <div className="text-xs md:text-sm font-medium text-primary mt-1">1,500 XP</div>
                 </div>
-                <Button size="sm" onClick={() => handleClaimReward("Half-Day PTO")}>Claim</Button>
+                <Button size="sm" onClick={() => handleClaimReward("Half-Day PTO")} className="self-start md:self-center mt-2 md:mt-0">Claim</Button>
               </div>
             </div>
 
-            <div className="bg-muted/20 p-4 rounded-lg">
-              <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                  <Gift className="h-6 w-6 text-primary" />
+            <div className="bg-muted/20 p-3 md:p-4 rounded-lg">
+              <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
+                <div className="h-10 w-10 md:h-12 md:w-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <Gift className="h-5 w-5 md:h-6 md:w-6 text-primary" />
                 </div>
-                <div className="flex-1">
-                  <div className="font-medium">Charity Donation</div>
-                  <div className="text-sm text-muted-foreground">$50 donation to charity of your choice</div>
-                  <div className="text-sm font-medium text-primary mt-1">2,000 XP</div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-sm md:text-base">Charity Donation</div>
+                  <div className="text-xs md:text-sm text-muted-foreground">$50 donation to charity of your choice</div>
+                  <div className="text-xs md:text-sm font-medium text-primary mt-1">2,000 XP</div>
                 </div>
-                <Button size="sm" onClick={() => handleClaimReward("Charity Donation")}>Claim</Button>
+                <Button size="sm" onClick={() => handleClaimReward("Charity Donation")} className="self-start md:self-center mt-2 md:mt-0">Claim</Button>
               </div>
             </div>
 
-            <div className="bg-muted/20 p-4 rounded-lg">
-              <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                  <Gift className="h-6 w-6 text-primary" />
+            <div className="bg-muted/20 p-3 md:p-4 rounded-lg">
+              <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
+                <div className="h-10 w-10 md:h-12 md:w-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <Gift className="h-5 w-5 md:h-6 md:w-6 text-primary" />
                 </div>
-                <div className="flex-1">
-                  <div className="font-medium">Premium Headphones</div>
-                  <div className="text-sm text-muted-foreground">Noise-cancelling headphones for focus</div>
-                  <div className="text-sm font-medium text-primary mt-1">3,500 XP</div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-sm md:text-base">Premium Headphones</div>
+                  <div className="text-xs md:text-sm text-muted-foreground">Noise-cancelling headphones for focus</div>
+                  <div className="text-xs md:text-sm font-medium text-primary mt-1">3,500 XP</div>
                 </div>
-                <Button size="sm" onClick={() => handleClaimReward("Premium Headphones")}>Claim</Button>
+                <Button size="sm" onClick={() => handleClaimReward("Premium Headphones")} className="self-start md:self-center mt-2 md:mt-0">Claim</Button>
               </div>
             </div>
 
-            <div className="bg-muted/20 p-4 rounded-lg">
-              <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                  <Gift className="h-6 w-6 text-muted-foreground" />
+            <div className="bg-muted/20 p-3 md:p-4 rounded-lg">
+              <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
+                <div className="h-10 w-10 md:h-12 md:w-12 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                  <Gift className="h-5 w-5 md:h-6 md:w-6 text-muted-foreground" />
                 </div>
-                <div className="flex-1">
-                  <div className="font-medium text-muted-foreground">Team Lunch</div>
-                  <div className="text-sm text-muted-foreground">Lunch for the entire team</div>
-                  <div className="text-sm font-medium text-muted-foreground mt-1">5,000 XP</div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-sm md:text-base">Team Lunch</div>
+                  <div className="text-xs md:text-sm text-muted-foreground">Lunch for the entire team</div>
+                  <div className="text-xs md:text-sm font-medium text-muted-foreground mt-1">5,000 XP</div>
                 </div>
-                <Button size="sm" disabled>
-                  Claim
+                <Button size="sm" disabled className="self-start md:self-center mt-2 md:mt-0">
+                  5000 XP
                 </Button>
               </div>
             </div>
 
-            <div className="bg-muted/20 p-4 rounded-lg">
-              <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                  <Gift className="h-6 w-6 text-muted-foreground" />
+            <div className="bg-muted/20 p-3 md:p-4 rounded-lg">
+              <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
+                <div className="h-10 w-10 md:h-12 md:w-12 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                  <Gift className="h-5 w-5 md:h-6 md:w-6 text-muted-foreground" />
                 </div>
-                <div className="flex-1">
-                  <div className="font-medium text-muted-foreground">Conference Ticket</div>
-                  <div className="text-sm text-muted-foreground">Ticket to a tech conference of your choice</div>
-                  <div className="text-sm font-medium text-muted-foreground mt-1">10,000 XP</div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-sm md:text-base">Conference Ticket</div>
+                  <div className="text-xs md:text-sm text-muted-foreground">Ticket to a tech conference of your choice</div>
+                  <div className="text-xs md:text-sm font-medium text-muted-foreground mt-1">10,000 XP</div>
                 </div>
-                <Button size="sm" disabled>
-                  Claim
+                <Button size="sm" disabled className="self-start md:self-center mt-2 md:mt-0">
+                  10000 XP
                 </Button>
               </div>
             </div>
 
-            <div className="bg-muted/20 p-4 rounded-lg">
-              <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                  <Gift className="h-6 w-6 text-muted-foreground" />
+            <div className="bg-muted/20 p-3 md:p-4 rounded-lg">
+              <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
+                <div className="h-10 w-10 md:h-12 md:w-12 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                  <Gift className="h-5 w-5 md:h-6 md:w-6 text-muted-foreground" />
                 </div>
-                <div className="flex-1">
-                  <div className="font-medium text-muted-foreground">Full Day PTO</div>
-                  <div className="text-sm text-muted-foreground">Take a full day off work</div>
-                  <div className="text-sm font-medium text-muted-foreground mt-1">3,000 XP</div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-sm md:text-base">Full Day PTO</div>
+                  <div className="text-xs md:text-sm text-muted-foreground">Take a full day off work</div>
+                  <div className="text-xs md:text-sm font-medium text-muted-foreground mt-1">3,000 XP</div>
                 </div>
-                <Button size="sm" disabled>
-                  Claim
+                <Button size="sm" disabled className="self-start md:self-center mt-2 md:mt-0">
+                  3000 XP
                 </Button>
               </div>
             </div>
@@ -491,15 +463,15 @@ export default function GamificationPage() {
 
       {/* Skill Tree Modal */}
       <Dialog open={showSkillTreeModal} onOpenChange={setShowSkillTreeModal}>
-        <DialogContent className="sm:max-w-[800px]">
-          <DialogHeader>
-            <DialogTitle>{selectedSkillTree}</DialogTitle>
-            <DialogDescription>
+        <DialogContent className="w-[95vw] max-w-[800px] p-4 md:p-6 rounded-lg">
+          <DialogHeader className="space-y-2">
+            <DialogTitle className="text-xl md:text-2xl">{selectedSkillTree}</DialogTitle>
+            <DialogDescription className="text-sm md:text-base">
               Detailed view of your progress in this skill tree
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4 max-h-[70vh] overflow-y-auto">
-            <div className="space-y-6">
+          <div className="py-3 md:py-4 max-h-[60vh] md:max-h-[70vh] overflow-y-auto">
+            <div className="space-y-4 md:space-y-6">
               <div className="flex flex-col gap-2">
                 <div className="flex justify-between mb-1 text-sm">
                   <span>Overall Progress</span>
@@ -519,7 +491,7 @@ export default function GamificationPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                 <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-lg">Level 1</CardTitle>
@@ -642,92 +614,110 @@ export default function GamificationPage() {
 
       {/* Configure Modal */}
       <Dialog open={showConfigureModal} onOpenChange={setShowConfigureModal}>
-        <DialogContent className="sm:max-w-[700px]">
-          <DialogHeader>
-            <DialogTitle>Gamification Settings</DialogTitle>
-            <DialogDescription>
+        <DialogContent className="w-[95vw] max-w-[700px] p-4 md:p-6 rounded-lg">
+          <DialogHeader className="space-y-2">
+            <DialogTitle className="text-xl md:text-2xl">Gamification Settings</DialogTitle>
+            <DialogDescription className="text-sm md:text-base">
               Customize how gamification works in your team
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-6 py-4">
-            <div className="space-y-2">
-              <h3 className="text-lg font-medium">General Settings</h3>
-              <div className="grid gap-4">
-                <div className="flex items-center justify-between">
+          <div className="space-y-4 md:space-y-6 py-3 md:py-4 max-h-[60vh] md:max-h-[70vh] overflow-y-auto">
+            <div className="space-y-2 md:space-y-3">
+              <h3 className="text-base md:text-lg font-medium">General Settings</h3>
+              <div className="grid gap-3 md:gap-4">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-0">
                   <div>
                     <Label>Enable Gamification</Label>
-                    <p className="text-sm text-muted-foreground">Turn gamification features on or off</p>
+                    <p className="text-xs md:text-sm text-muted-foreground">Turn gamification features on or off</p>
                   </div>
                   <div className="flex items-center">
-                    <input type="checkbox" id="enable-gamification" defaultChecked className="mr-2" />
-                    <Label htmlFor="enable-gamification">Enabled</Label>
+                    <input 
+                      type="checkbox" 
+                      id="enable-gamification" 
+                      defaultChecked 
+                      className="mr-2" 
+                      aria-label="Enable gamification"
+                    />
+                    <Label htmlFor="enable-gamification" className="text-sm">Enabled</Label>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-0">
                   <div>
                     <Label>Public Leaderboard</Label>
-                    <p className="text-sm text-muted-foreground">Show the leaderboard to all team members</p>
+                    <p className="text-xs md:text-sm text-muted-foreground">Show the leaderboard to all team members</p>
                   </div>
                   <div className="flex items-center">
-                    <input type="checkbox" id="public-leaderboard" defaultChecked className="mr-2" />
-                    <Label htmlFor="public-leaderboard">Public</Label>
+                    <input 
+                      type="checkbox" 
+                      id="public-leaderboard" 
+                      defaultChecked 
+                      className="mr-2"
+                      aria-label="Make leaderboard public" 
+                    />
+                    <Label htmlFor="public-leaderboard" className="text-sm">Public</Label>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-0">
                   <div>
                     <Label>Notifications</Label>
-                    <p className="text-sm text-muted-foreground">Send notifications for achievements</p>
+                    <p className="text-xs md:text-sm text-muted-foreground">Send notifications for achievements</p>
                   </div>
                   <div className="flex items-center">
-                    <input type="checkbox" id="notifications" defaultChecked className="mr-2" />
-                    <Label htmlFor="notifications">Enabled</Label>
+                    <input 
+                      type="checkbox" 
+                      id="notifications" 
+                      defaultChecked 
+                      className="mr-2"
+                      aria-label="Enable notifications" 
+                    />
+                    <Label htmlFor="notifications" className="text-sm">Enabled</Label>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="space-y-2">
-              <h3 className="text-lg font-medium">XP & Levels</h3>
-              <div className="grid gap-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="base-xp" className="text-right">
+            <div className="space-y-2 md:space-y-3">
+              <h3 className="text-base md:text-lg font-medium">XP & Levels</h3>
+              <div className="grid gap-3 md:gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 items-start md:items-center gap-2 md:gap-4">
+                  <Label htmlFor="base-xp" className="md:text-right">
                     Base XP per Task
                   </Label>
                   <Input 
                     id="base-xp" 
                     type="number" 
                     defaultValue="100" 
-                    className="col-span-3"
+                    className="col-span-1 md:col-span-3"
                     aria-label="Base XP per Task" 
                     placeholder="Enter base XP amount"
                   />
                 </div>
 
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="level-threshold" className="text-right">
+                <div className="grid grid-cols-1 md:grid-cols-4 items-start md:items-center gap-2 md:gap-4">
+                  <Label htmlFor="level-threshold" className="md:text-right">
                     XP for Level Up
                   </Label>
                   <Input 
                     id="level-threshold" 
                     type="number" 
                     defaultValue="1000" 
-                    className="col-span-3"
+                    className="col-span-1 md:col-span-3"
                     aria-label="XP for Level Up" 
                     placeholder="Enter XP required for level up"
                   />
                 </div>
 
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="max-level" className="text-right">
+                <div className="grid grid-cols-1 md:grid-cols-4 items-start md:items-center gap-2 md:gap-4">
+                  <Label htmlFor="max-level" className="md:text-right">
                     Maximum Level
                   </Label>
                   <Input 
                     id="max-level" 
                     type="number" 
                     defaultValue="20" 
-                    className="col-span-3"
+                    className="col-span-1 md:col-span-3"
                     aria-label="Maximum Level" 
                     placeholder="Enter maximum level"
                   />
@@ -735,23 +725,30 @@ export default function GamificationPage() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <h3 className="text-lg font-medium">Skill Trees</h3>
-              <div className="grid gap-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="max-skill-trees" className="text-right">
+            <div className="space-y-2 md:space-y-3">
+              <h3 className="text-base md:text-lg font-medium">Skill Trees</h3>
+              <div className="grid gap-3 md:gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 items-start md:items-center gap-2 md:gap-4">
+                  <Label htmlFor="max-skill-trees" className="md:text-right">
                     Max Active Trees
                   </Label>
-                  <Input id="max-skill-trees" type="number" defaultValue="3" className="col-span-3" />
+                  <Input 
+                    id="max-skill-trees" 
+                    type="number" 
+                    defaultValue="3" 
+                    className="col-span-1 md:col-span-3"
+                    aria-label="Maximum Active Skill Trees" 
+                    placeholder="Enter maximum number of active skill trees"
+                  />
                 </div>
 
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="skill-difficulty" className="text-right">
+                <div className="grid grid-cols-1 md:grid-cols-4 items-start md:items-center gap-2 md:gap-4">
+                  <Label htmlFor="skill-difficulty" className="md:text-right">
                     Skill Difficulty
                   </Label>
                   <select 
                     id="skill-difficulty" 
-                    className="col-span-3 h-10 w-full rounded-md border border-input bg-background px-3 py-2"
+                    className="col-span-1 md:col-span-3 h-10 w-full rounded-md border border-input bg-background px-3 py-2"
                     aria-label="Skill Difficulty"
                     defaultValue="medium"
                   >
@@ -763,15 +760,15 @@ export default function GamificationPage() {
               </div>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowConfigureModal(false)}>Cancel</Button>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={() => setShowConfigureModal(false)} className="sm:order-1">Cancel</Button>
             <Button onClick={() => {
               toast({
                 title: "Settings Saved",
                 description: "Gamification settings have been updated",
               });
               setShowConfigureModal(false);
-            }}>Save Changes</Button>
+            }} className="sm:order-2">Save Changes</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -781,14 +778,14 @@ export default function GamificationPage() {
           <h1 className="text-3xl font-bold">Gamification</h1>
           <p className="text-muted-foreground">Level up your productivity with game-like experiences</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 mt-2 md:mt-0">
           <Button variant="outline" size="sm" className="gap-1" onClick={handleViewLeaderboard}>
             <Users className="h-4 w-4" />
-            <span>Leaderboard</span>
+            <span className="sr-only md:not-sr-only">Leaderboard</span>
           </Button>
           <Button size="sm" className="gap-1" onClick={handleConfigureGamification}>
             <Settings className="h-4 w-4" />
-            <span>Configure</span>
+            <span className="sr-only md:not-sr-only">Configure</span>
           </Button>
         </div>
       </div>
@@ -800,50 +797,50 @@ export default function GamificationPage() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="flex items-center gap-4">
                 <div className="relative">
-                  <Avatar className="h-16 w-16 border-2 border-primary">
-                    <AvatarFallback className="text-xl">JD</AvatarFallback>
+                  <Avatar className="h-14 w-14 md:h-16 md:w-16 border-2 border-primary">
+                    <AvatarFallback className="text-lg md:text-xl">JD</AvatarFallback>
                   </Avatar>
-                  <div className="absolute -bottom-1 -right-1 bg-primary text-primary-foreground text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center">
+                  <div className="absolute -bottom-1 -right-1 bg-primary text-primary-foreground text-xs font-bold rounded-full h-5 w-5 md:h-6 md:w-6 flex items-center justify-center">
                     12
                   </div>
                 </div>
                 <div>
-                  <CardTitle className="text-xl">John Doe</CardTitle>
+                  <CardTitle className="text-lg md:text-xl">John Doe</CardTitle>
                   <CardDescription>Frontend Developer</CardDescription>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Badge variant="secondary" className="gap-1">
+                  <div className="flex flex-wrap items-center gap-2 mt-1">
+                    <Badge variant="secondary" className="gap-1 text-xs md:text-sm">
                       <Star className="h-3 w-3 text-amber-500" />
                       <span>3,250 XP</span>
                     </Badge>
-                    <Badge variant="outline" className="gap-1">
+                    <Badge variant="outline" className="gap-1 text-xs md:text-sm">
                       <Trophy className="h-3 w-3 text-primary" />
                       <span>Level 12</span>
                     </Badge>
                   </div>
                 </div>
               </div>
-              <div className="flex flex-col gap-2">
-                <div className="text-sm text-muted-foreground">Next Level: 750 XP needed</div>
-                <Progress value={70} className="h-2 w-[200px]" />
+              <div className="flex flex-col gap-2 mt-3 md:mt-0">
+                <div className="text-xs md:text-sm text-muted-foreground">Next Level: 750 XP needed</div>
+                <Progress value={70} className="h-2 w-full md:w-[200px]" />
               </div>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-              <div className="bg-muted/40 rounded-md p-3 text-center">
-                <div className="text-2xl font-bold">24</div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4 mt-4">
+              <div className="bg-muted/40 rounded-md p-2 md:p-3 text-center">
+                <div className="text-xl md:text-2xl font-bold">24</div>
                 <div className="text-xs text-muted-foreground">Tasks Completed</div>
               </div>
-              <div className="bg-muted/40 rounded-md p-3 text-center">
-                <div className="text-2xl font-bold">8</div>
+              <div className="bg-muted/40 rounded-md p-2 md:p-3 text-center">
+                <div className="text-xl md:text-2xl font-bold">8</div>
                 <div className="text-xs text-muted-foreground">Achievements</div>
               </div>
-              <div className="bg-muted/40 rounded-md p-3 text-center">
-                <div className="text-2xl font-bold">3</div>
+              <div className="bg-muted/40 rounded-md p-2 md:p-3 text-center">
+                <div className="text-xl md:text-2xl font-bold">3</div>
                 <div className="text-xs text-muted-foreground">Skill Trees</div>
               </div>
-              <div className="bg-muted/40 rounded-md p-3 text-center">
-                <div className="text-2xl font-bold">2</div>
+              <div className="bg-muted/40 rounded-md p-2 md:p-3 text-center">
+                <div className="text-xl md:text-2xl font-bold">2</div>
                 <div className="text-xs text-muted-foreground">Rewards Claimed</div>
               </div>
             </div>
@@ -853,15 +850,15 @@ export default function GamificationPage() {
 
       {/* Skill Trees */}
       <section>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-2xl font-bold">Skill Trees</h2>
-          <Button variant="outline" size="sm" className="gap-1" onClick={handleAddNewSkill}>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+          <h2 className="text-xl md:text-2xl font-bold">Skill Trees</h2>
+          <Button variant="outline" size="sm" className="gap-1 w-full sm:w-auto" onClick={handleAddNewSkill}>
             <Plus className="h-4 w-4" />
             <span>New Skill</span>
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
           {/* Frontend Master Skill Tree */}
           <Card>
             <CardHeader>
@@ -1076,11 +1073,11 @@ export default function GamificationPage() {
 
       {/* Achievements & Rewards */}
       <section>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
           {/* Achievements */}
           <div>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl font-bold">Recent Achievements</h2>
+            <div className="flex items-center justify-between mb-3 md:mb-4">
+              <h2 className="text-xl md:text-2xl font-bold">Recent Achievements</h2>
               <Button variant="ghost" size="sm" onClick={handleViewAllAchievements}>
                 View All
               </Button>
@@ -1089,54 +1086,54 @@ export default function GamificationPage() {
             <Card>
               <CardContent className="p-0">
                 <div className="divide-y">
-                  <div className="flex items-center gap-4 p-4">
-                    <div className="h-12 w-12 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
-                      <Award className="h-6 w-6 text-amber-600" />
+                  <div className="flex items-start md:items-center gap-3 md:gap-4 p-3 md:p-4">
+                    <div className="h-10 w-10 md:h-12 md:w-12 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+                      <Award className="h-5 w-5 md:h-6 md:w-6 text-amber-600" />
                     </div>
-                    <div className="flex-1">
-                      <div className="font-medium">Sprint Champion</div>
-                      <div className="text-sm text-muted-foreground">Completed all assigned tasks in Sprint 22.04</div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-sm md:text-base">Sprint Champion</div>
+                      <div className="text-xs md:text-sm text-muted-foreground">Completed all assigned tasks in Sprint 22.04</div>
                     </div>
-                    <Badge>+250 XP</Badge>
+                    <Badge className="mt-1 text-xs">+250 XP</Badge>
                   </div>
 
-                  <div className="flex items-center gap-4 p-4">
-                    <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
-                      <Zap className="h-6 w-6 text-green-600" />
+                  <div className="flex items-start md:items-center gap-3 md:gap-4 p-3 md:p-4">
+                    <div className="h-10 w-10 md:h-12 md:w-12 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                      <Zap className="h-5 w-5 md:h-6 md:w-6 text-green-600" />
                     </div>
-                    <div className="flex-1">
-                      <div className="font-medium">Code Quality Guardian</div>
-                      <div className="text-sm text-muted-foreground">
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-sm md:text-base">Code Quality Guardian</div>
+                      <div className="text-xs md:text-sm text-muted-foreground">
                         Maintained 95% code coverage for 3 consecutive sprints
                       </div>
                     </div>
-                    <Badge>+300 XP</Badge>
+                    <Badge className="mt-1 text-xs">+300 XP</Badge>
                   </div>
 
-                  <div className="flex items-center gap-4 p-4">
-                    <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                      <Users className="h-6 w-6 text-blue-600" />
+                  <div className="flex items-start md:items-center gap-3 md:gap-4 p-3 md:p-4">
+                    <div className="h-10 w-10 md:h-12 md:w-12 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                      <Users className="h-5 w-5 md:h-6 md:w-6 text-blue-600" />
                     </div>
-                    <div className="flex-1">
-                      <div className="font-medium">Team Player</div>
-                      <div className="text-sm text-muted-foreground">
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-sm md:text-base">Team Player</div>
+                      <div className="text-xs md:text-sm text-muted-foreground">
                         Helped 3 team members complete their tasks on time
                       </div>
                     </div>
-                    <Badge>+150 XP</Badge>
+                    <Badge className="mt-1 text-xs">+150 XP</Badge>
                   </div>
 
-                  <div className="flex items-center gap-4 p-4">
-                    <div className="h-12 w-12 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
-                      <Trophy className="h-6 w-6 text-purple-600" />
+                  <div className="flex items-start md:items-center gap-3 md:gap-4 p-3 md:p-4">
+                    <div className="h-10 w-10 md:h-12 md:w-12 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
+                      <Trophy className="h-5 w-5 md:h-6 md:w-6 text-purple-600" />
                     </div>
-                    <div className="flex-1">
-                      <div className="font-medium">First Milestone</div>
-                      <div className="text-sm text-muted-foreground">
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-sm md:text-base">First Milestone</div>
+                      <div className="text-xs md:text-sm text-muted-foreground">
                         Successfully delivered the AI Scrum Master MVP
                       </div>
                     </div>
-                    <Badge>+500 XP</Badge>
+                    <Badge className="mt-1 text-xs">+500 XP</Badge>
                   </div>
                 </div>
               </CardContent>
@@ -1145,8 +1142,8 @@ export default function GamificationPage() {
 
           {/* Rewards */}
           <div>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl font-bold">Available Rewards</h2>
+            <div className="flex items-center justify-between mt-5 md:mt-0 mb-3 md:mb-4">
+              <h2 className="text-xl md:text-2xl font-bold">Available Rewards</h2>
               <Button variant="ghost" size="sm" onClick={handleViewAllRewards}>
                 View All
               </Button>
@@ -1155,50 +1152,50 @@ export default function GamificationPage() {
             <Card>
               <CardContent className="p-0">
                 <div className="divide-y">
-                  <div className="flex items-center gap-4 p-4">
-                    <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                      <Gift className="h-6 w-6 text-primary" />
+                  <div className="flex items-start md:items-center gap-3 md:gap-4 p-3 md:p-4">
+                    <div className="h-10 w-10 md:h-12 md:w-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      <Gift className="h-5 w-5 md:h-6 md:w-6 text-primary" />
                     </div>
-                    <div className="flex-1">
-                      <div className="font-medium">Half-Day PTO</div>
-                      <div className="text-sm text-muted-foreground">Take a half-day off work</div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-sm md:text-base">Half-Day PTO</div>
+                      <div className="text-xs md:text-sm text-muted-foreground">Take a half-day off work</div>
                     </div>
-                    <Button size="sm" onClick={() => handleClaimReward("Half-Day PTO")}>Claim</Button>
+                    <Button size="sm" className="text-xs" onClick={() => handleClaimReward("Half-Day PTO")}>Claim</Button>
                   </div>
 
-                  <div className="flex items-center gap-4 p-4">
-                    <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                      <Gift className="h-6 w-6 text-primary" />
+                  <div className="flex items-start md:items-center gap-3 md:gap-4 p-3 md:p-4">
+                    <div className="h-10 w-10 md:h-12 md:w-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      <Gift className="h-5 w-5 md:h-6 md:w-6 text-primary" />
                     </div>
-                    <div className="flex-1">
-                      <div className="font-medium">Charity Donation</div>
-                      <div className="text-sm text-muted-foreground">$50 donation to charity of your choice</div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-sm md:text-base">Charity Donation</div>
+                      <div className="text-xs md:text-sm text-muted-foreground">$50 donation to charity of your choice</div>
                     </div>
-                    <Button size="sm" onClick={() => handleClaimReward("Charity Donation")}>Claim</Button>
+                    <Button size="sm" className="text-xs" onClick={() => handleClaimReward("Charity Donation")}>Claim</Button>
                   </div>
 
-                  <div className="flex items-center gap-4 p-4">
-                    <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                      <Gift className="h-6 w-6 text-muted-foreground" />
+                  <div className="flex items-start md:items-center gap-3 md:gap-4 p-3 md:p-4">
+                    <div className="h-10 w-10 md:h-12 md:w-12 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                      <Gift className="h-5 w-5 md:h-6 md:w-6 text-muted-foreground" />
                     </div>
-                    <div className="flex-1">
-                      <div className="font-medium text-muted-foreground">Team Lunch</div>
-                      <div className="text-sm text-muted-foreground">Lunch for the entire team</div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-sm md:text-base text-muted-foreground">Team Lunch</div>
+                      <div className="text-xs md:text-sm text-muted-foreground">Lunch for the entire team</div>
                     </div>
-                    <Button size="sm" disabled>
+                    <Button size="sm" className="text-xs" disabled>
                       5000 XP
                     </Button>
                   </div>
 
-                  <div className="flex items-center gap-4 p-4">
-                    <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                      <Gift className="h-6 w-6 text-muted-foreground" />
+                  <div className="flex items-start md:items-center gap-3 md:gap-4 p-3 md:p-4">
+                    <div className="h-10 w-10 md:h-12 md:w-12 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                      <Gift className="h-5 w-5 md:h-6 md:w-6 text-muted-foreground" />
                     </div>
-                    <div className="flex-1">
-                      <div className="font-medium text-muted-foreground">Conference Ticket</div>
-                      <div className="text-sm text-muted-foreground">Ticket to a tech conference of your choice</div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-sm md:text-base text-muted-foreground">Conference Ticket</div>
+                      <div className="text-xs md:text-sm text-muted-foreground">Ticket to a tech conference of your choice</div>
                     </div>
-                    <Button size="sm" disabled>
+                    <Button size="sm" className="text-xs" disabled>
                       10000 XP
                     </Button>
                   </div>
@@ -1211,85 +1208,85 @@ export default function GamificationPage() {
 
       {/* Team Leaderboard */}
       <section>
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-lg font-bold">Team Leaderboard</h2>
+        <div className="flex justify-between items-center mt-5 md:mt-6 mb-3 md:mb-6">
+          <h2 className="text-lg md:text-xl font-bold">Team Leaderboard</h2>
           <Button variant="ghost" size="sm" onClick={handleViewFullLeaderboard}>
-            View Full Leaderboard
+            View Full
           </Button>
         </div>
 
         <Card>
-          <CardHeader>
-            <CardTitle>Top Performers This Sprint</CardTitle>
-            <CardDescription>May 1 - May 14</CardDescription>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base md:text-lg">Top Performers This Sprint</CardTitle>
+            <CardDescription className="text-xs md:text-sm">May 1 - May 14</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center gap-4">
-                <div className="h-8 w-8 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
-                  <div className="font-bold text-amber-600">1</div>
+            <div className="space-y-3 md:space-y-4">
+              <div className="flex items-center gap-2 md:gap-4">
+                <div className="h-6 w-6 md:h-8 md:w-8 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+                  <div className="font-bold text-amber-600 text-xs md:text-sm">1</div>
                 </div>
-                <Avatar className="h-10 w-10">
+                <Avatar className="h-8 w-8 md:h-10 md:w-10">
                   <AvatarFallback>RJ</AvatarFallback>
                 </Avatar>
                 <div className="flex-1">
-                  <div className="font-medium">Robert Johnson</div>
-                  <div className="text-sm text-muted-foreground">Backend Developer</div>
+                  <div className="font-medium text-sm md:text-base truncate">Robert Johnson</div>
+                  <div className="text-xs text-muted-foreground truncate">Backend Developer</div>
                 </div>
-                <Badge variant="secondary" className="gap-1">
+                <Badge variant="secondary" className="gap-1 shrink-0">
                   <Star className="h-3 w-3 text-amber-500" />
-                  <span>4,250 XP</span>
+                  <span className="text-xs">4,250</span>
                 </Badge>
               </div>
 
-              <div className="flex items-center gap-4">
-                <div className="h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0">
-                  <div className="font-bold text-slate-600">2</div>
+              <div className="flex items-center gap-2 md:gap-4">
+                <div className="h-6 w-6 md:h-8 md:w-8 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0">
+                  <div className="font-bold text-slate-600 text-xs md:text-sm">2</div>
                 </div>
-                <Avatar className="h-10 w-10">
+                <Avatar className="h-8 w-8 md:h-10 md:w-10">
                   <AvatarFallback>JD</AvatarFallback>
                 </Avatar>
                 <div className="flex-1">
-                  <div className="font-medium">John Doe</div>
-                  <div className="text-sm text-muted-foreground">Frontend Developer</div>
+                  <div className="font-medium text-sm md:text-base truncate">John Doe</div>
+                  <div className="text-xs text-muted-foreground truncate">Frontend Developer</div>
                 </div>
-                <Badge variant="secondary" className="gap-1">
+                <Badge variant="secondary" className="gap-1 shrink-0">
                   <Star className="h-3 w-3 text-amber-500" />
-                  <span>3,250 XP</span>
+                  <span className="text-xs">3,250</span>
                 </Badge>
               </div>
 
-              <div className="flex items-center gap-4">
-                <div className="h-8 w-8 rounded-full bg-amber-50 flex items-center justify-center flex-shrink-0">
-                  <div className="font-bold text-amber-600">3</div>
+              <div className="flex items-center gap-2 md:gap-4">
+                <div className="h-6 w-6 md:h-8 md:w-8 rounded-full bg-amber-50 flex items-center justify-center flex-shrink-0">
+                  <div className="font-bold text-amber-600 text-xs md:text-sm">3</div>
                 </div>
-                <Avatar className="h-10 w-10">
+                <Avatar className="h-8 w-8 md:h-10 md:w-10">
                   <AvatarFallback>EW</AvatarFallback>
                 </Avatar>
                 <div className="flex-1">
-                  <div className="font-medium">Emily Wilson</div>
-                  <div className="text-sm text-muted-foreground">Project Manager</div>
+                  <div className="font-medium text-sm md:text-base truncate">Emily Wilson</div>
+                  <div className="text-xs text-muted-foreground truncate">Project Manager</div>
                 </div>
-                <Badge variant="secondary" className="gap-1">
+                <Badge variant="secondary" className="gap-1 shrink-0">
                   <Star className="h-3 w-3 text-amber-500" />
-                  <span>2,980 XP</span>
+                  <span className="text-xs">2,980</span>
                 </Badge>
               </div>
 
-              <div className="flex items-center gap-4">
-                <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                  <div className="font-medium text-muted-foreground">4</div>
+              <div className="flex items-center gap-2 md:gap-4">
+                <div className="h-6 w-6 md:h-8 md:w-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                  <div className="font-medium text-muted-foreground text-xs md:text-sm">4</div>
                 </div>
-                <Avatar className="h-10 w-10">
+                <Avatar className="h-8 w-8 md:h-10 md:w-10">
                   <AvatarFallback>AS</AvatarFallback>
                 </Avatar>
                 <div className="flex-1">
-                  <div className="font-medium">Alice Smith</div>
-                  <div className="text-sm text-muted-foreground">UX Designer</div>
+                  <div className="font-medium text-sm md:text-base truncate">Alice Smith</div>
+                  <div className="text-xs text-muted-foreground truncate">UX Designer</div>
                 </div>
-                <Badge variant="secondary" className="gap-1">
+                <Badge variant="secondary" className="gap-1 shrink-0">
                   <Star className="h-3 w-3 text-amber-500" />
-                  <span>2,450 XP</span>
+                  <span className="text-xs">2,450</span>
                 </Badge>
               </div>
             </div>
@@ -1301,7 +1298,7 @@ export default function GamificationPage() {
 }
 
 // Define the missing icon components
-function CheckIcon(props) {
+function CheckIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg
       {...props}
@@ -1320,7 +1317,7 @@ function CheckIcon(props) {
   )
 }
 
-function LightbulbIcon(props) {
+function LightbulbIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg
       {...props}
@@ -1341,7 +1338,7 @@ function LightbulbIcon(props) {
   )
 }
 
-function LockIcon(props) {
+function LockIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg
       {...props}
