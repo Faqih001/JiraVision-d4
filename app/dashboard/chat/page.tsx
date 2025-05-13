@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useEffect, useState, useRef } from "react"
-import { Shield, Info, Lock, Bell, Phone, Video, Search, MoreVertical, ArrowLeft, Send, Paperclip, Smile, Mic, Image as ImageIcon, FileIcon, X, Plus, Check, Reply, Edit2, Trash2, Download, MessageSquare, Archive, Forward, Copy, Save, ThumbsUp } from "lucide-react"
+import { Shield, Info, Lock, Bell, Phone, Video, Search, MoreVertical, ArrowLeft, Send, Paperclip, Mic, Image as ImageIcon, FileIcon, X, Plus, Check, Reply, Edit2, Trash2, Download, MessageSquare, Archive, Forward, Copy, Save, ThumbsUp } from "lucide-react"
 import { ChatProvider, useChat, Message, Chat, ChatContextType } from "@/app/context/chat/ChatContext"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -18,6 +18,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { TeamMember } from "@/types/team"
+import { Switch } from "@/components/ui/switch"
+import { cn } from "@/lib/utils"
 
 // Add missing properties to Chat type
 interface EnhancedChat extends Chat {
@@ -147,92 +149,182 @@ const fetchTeamMembers = async (): Promise<TeamMember[]> => {
   ]
 }
 
-export default function ChatPage() {
-  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([])
-  const [loading, setLoading] = useState(true)
-  const [mobileView, setMobileView] = useState<'list' | 'chat'>('list')
-  const { toast } = useToast()
-
-  useEffect(() => {
-    const loadTeamMembers = async () => {
-      try {
-        const members = await fetchTeamMembers()
-        setTeamMembers(members)
-        setLoading(false)
-      } catch (error) {
-        console.error("Error loading team members:", error)
-        toast({
-          title: "Error",
-          description: "Failed to load team members. Please try again.",
-          variant: "destructive",
-        })
-      }
-    }
-
-    loadTeamMembers()
-  }, [toast])
-
-  // Check window size for responsive behavior
-  useEffect(() => {
-    const handleResize = () => {
-      if (typeof window !== 'undefined') {
-        setMobileView(window.innerWidth < 768 ? 'list' : 'chat')
-      }
-    }
-
-    // Initialize
-    handleResize()
-
-    // Add event listener
-    window.addEventListener('resize', handleResize)
-
-    // Cleanup
-    return () => window.removeEventListener('resize', handleResize)
-  }, [])
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="flex flex-col items-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-          <p className="mt-4 text-muted-foreground">Loading chat...</p>
-        </div>
-      </div>
-    )
-  }
-
+export default function Page() {
+  const [mobileView, setMobileView] = useState<'list' | 'chat'>('list');
+  const [showSecurityModal, setShowSecurityModal] = useState(false);
+  const [showNotificationModal, setShowNotificationModal] = useState(false);
+  const [showDeletedChatsModal, setShowDeletedChatsModal] = useState(false);
+  const [notificationSettings, setNotificationSettings] = useState({
+    all: true,
+    messages: true,
+    mentions: true,
+    groups: true,
+    sound: true
+  });
+  const { toast } = useToast();
+  
   return (
-    <ChatProvider teamMembers={teamMembers}>
-      <div className="h-[calc(95vh-4rem)] flex flex-col relative overflow-hidden">
-        <div className="border-b p-4 flex items-center justify-between bg-background">
-          <h1 className="text-2xl font-bold">Chat</h1>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon">
-              <Shield className="h-4 w-4" />
-            </Button>
-            <Button variant="outline" size="icon">
-              <Bell className="h-4 w-4" />
-            </Button>
-            <Button variant="outline" size="icon">
-              <MoreVertical className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-        
-        <div className="flex flex-1 overflow-hidden">
-          {/* Chat list - always show on desktop, conditionally on mobile */}
-          <div className={`${mobileView === 'list' ? 'block' : 'hidden'} md:block h-full border-r w-full md:w-80 lg:w-96 flex-shrink-0`}>
-            <CustomChatList mobileView={mobileView} setMobileView={setMobileView} />
-          </div>
+    <div className="flex h-screen flex-col">
+      <div className="border-b p-4 flex items-center justify-between bg-background">
+        <h1 className="text-2xl font-bold">Chat</h1>
+        <div className="flex items-center gap-2">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" size="icon" onClick={() => setShowSecurityModal(true)}>
+                  <Shield className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Chat Security</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
           
-          {/* Chat window - always show on desktop, conditionally on mobile */}
-          <div className={`${mobileView === 'chat' ? 'block' : 'hidden'} md:block h-full flex-1 flex`}>
-            <ChatWindow mobileView={mobileView} setMobileView={setMobileView} />
-          </div>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" size="icon" onClick={() => setShowNotificationModal(true)}>
+                  <Bell className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Notification Settings</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" size="icon" onClick={() => setShowDeletedChatsModal(true)}>
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>More Options</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       </div>
-    </ChatProvider>
-  )
+      
+      <main className="flex-1 flex w-full overflow-hidden">
+        <div
+          className={cn(
+            "h-full flex-col border-r md:flex md:w-80",
+            mobileView === "list" ? "flex" : "hidden"
+          )}
+        >
+          <CustomChatList mobileView={mobileView} setMobileView={setMobileView} />
+        </div>
+        <div
+          className={cn(
+            "flex-1 flex-col h-full overflow-hidden md:flex",
+            mobileView === "chat" ? "flex" : "hidden"
+          )}
+        >
+          <ChatWindow mobileView={mobileView} setMobileView={setMobileView} />
+        </div>
+      </main>
+      
+      {/* Notification Settings Modal */}
+      {showNotificationModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-background rounded-lg w-full max-w-md p-4">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <Bell className="h-5 w-5 text-primary" />
+                Notification Settings
+              </h2>
+              <Button variant="ghost" size="icon" onClick={() => setShowNotificationModal(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="flex items-center justify-between py-3 border-b">
+                <div>
+                  <h3 className="font-medium">All Notifications</h3>
+                  <p className="text-sm text-muted-foreground">Enable or disable all chat notifications</p>
+                </div>
+                <Switch id="all-notifications" checked={notificationSettings.all} onCheckedChange={(checked) => {
+                  setNotificationSettings(prev => ({...prev, all: checked}));
+                }} />
+              </div>
+              
+              <div className="flex items-center justify-between py-3 border-b">
+                <div>
+                  <h3 className="font-medium">Message Notifications</h3>
+                  <p className="text-sm text-muted-foreground">Get notified when you receive new messages</p>
+                </div>
+                <Switch id="message-notifications" 
+                  checked={notificationSettings.messages}
+                  disabled={!notificationSettings.all}
+                  onCheckedChange={(checked) => {
+                    setNotificationSettings(prev => ({...prev, messages: checked}));
+                  }} />
+              </div>
+              
+              <div className="flex items-center justify-between py-3 border-b">
+                <div>
+                  <h3 className="font-medium">Mentions</h3>
+                  <p className="text-sm text-muted-foreground">Get notified when someone mentions you</p>
+                </div>
+                <Switch id="mention-notifications" 
+                  checked={notificationSettings.mentions}
+                  disabled={!notificationSettings.all}
+                  onCheckedChange={(checked) => {
+                    setNotificationSettings(prev => ({...prev, mentions: checked}));
+                  }} />
+              </div>
+              
+              <div className="flex items-center justify-between py-3 border-b">
+                <div>
+                  <h3 className="font-medium">Group Chats</h3>
+                  <p className="text-sm text-muted-foreground">Get notified about new messages in group chats</p>
+                </div>
+                <Switch id="group-notifications" 
+                  checked={notificationSettings.groups}
+                  disabled={!notificationSettings.all}
+                  onCheckedChange={(checked) => {
+                    setNotificationSettings(prev => ({...prev, groups: checked}));
+                  }} />
+              </div>
+              
+              <div className="flex items-center justify-between py-3">
+                <div>
+                  <h3 className="font-medium">Sound</h3>
+                  <p className="text-sm text-muted-foreground">Play sound for new messages</p>
+                </div>
+                <Switch id="sound-notifications" 
+                  checked={notificationSettings.sound}
+                  disabled={!notificationSettings.all}
+                  onCheckedChange={(checked) => {
+                    setNotificationSettings(prev => ({...prev, sound: checked}));
+                  }} />
+              </div>
+            </div>
+            
+            <div className="mt-6 flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setShowNotificationModal(false)}>
+                Cancel
+              </Button>
+              <Button onClick={() => {
+                toast({
+                  title: "Settings saved",
+                  description: "Your notification preferences have been updated."
+                });
+                setShowNotificationModal(false);
+              }}>
+                Save Changes
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 interface ChatListProps {
@@ -257,6 +349,14 @@ function CustomChatList({ mobileView, setMobileView }: ChatListProps) {
   } | null>(null)
   const [showSecurityModal, setShowSecurityModal] = useState(false)
   const [showDeletedChatsModal, setShowDeletedChatsModal] = useState(false)
+  const [showNotificationModal, setShowNotificationModal] = useState(false)
+  const [notificationSettings, setNotificationSettings] = useState({
+    all: true,
+    messages: true,
+    mentions: true,
+    groups: true,
+    sound: true
+  })
   const [deletedChats, setDeletedChats] = useState<Chat[]>([])
   const { toast } = useToast()
   
@@ -639,7 +739,7 @@ function CustomChatList({ mobileView, setMobileView }: ChatListProps) {
     return 'Start a conversation'
   }
 
-  // Render the New Chat Modal
+  // Render the New Chat Modal with fixed functionality
   const renderNewChatModal = () => (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-background rounded-lg w-full max-w-md p-4">
@@ -663,6 +763,7 @@ function CustomChatList({ mobileView, setMobileView }: ChatListProps) {
         <Tabs 
           defaultValue="individual" 
           className="mb-4"
+          value={modalActiveTab}
           onValueChange={(value) => setModalActiveTab(value as 'individual' | 'group')}
         >
           <TabsList className="w-full">
@@ -733,8 +834,8 @@ function CustomChatList({ mobileView, setMobileView }: ChatListProps) {
                       id={`select-member-${member.id}`}
                       className="mr-3 h-4 w-4 rounded border-muted-foreground"
                       checked={selectedMembers.includes(member.id)}
-                      onChange={() => {}} // Controlled component
-                      onClick={(e) => e.stopPropagation()}
+                      onChange={() => toggleMemberSelection(member.id)} // Use the toggle function here
+                      onClick={(e) => e.stopPropagation()} // Prevent double triggering
                     />
                     <Avatar className="h-8 w-8 mr-3">
                       <AvatarImage src={member.avatar} />
@@ -749,8 +850,15 @@ function CustomChatList({ mobileView, setMobileView }: ChatListProps) {
               </div>
               
               <div className="flex items-center justify-between text-sm mb-3">
-                <span className="text-muted-foreground">Selected: <span className="font-medium">{selectedMembers.length}</span> members</span>
-                <Button variant="ghost" size="sm" className="h-7 px-2" onClick={handleSelectAll}>
+                <span className="text-muted-foreground">
+                  Selected: <span className="font-medium">{selectedMembers.length}</span> members
+                </span>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-7 px-2" 
+                  onClick={handleSelectAll}
+                >
                   {selectedMembers.length === teamMembers.length ? 'Deselect All' : 'Select All'}
                 </Button>
               </div>
@@ -759,9 +867,11 @@ function CustomChatList({ mobileView, setMobileView }: ChatListProps) {
         </Tabs>
         
         <div className="flex justify-end gap-2 mt-4">
-          <Button variant="outline" onClick={() => setShowNewChatModal(false)}>Cancel</Button>
+          <Button variant="outline" onClick={() => setShowNewChatModal(false)}>
+            Cancel
+          </Button>
           <Button 
-            onClick={modalActiveTab === 'group' ? handleCreateGroupChat : () => {}}
+            onClick={() => modalActiveTab === 'group' ? handleCreateGroupChat() : {}}
             disabled={modalActiveTab === 'group' && (selectedMembers.length === 0 || !groupChatName.trim())}
           >
             Create Chat
@@ -807,6 +917,10 @@ function CustomChatList({ mobileView, setMobileView }: ChatListProps) {
         {/* Top tools section */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
+            <Avatar className="h-7 w-7 mr-1">
+              <AvatarImage src={teamMembers.find(m => m.id === 1)?.avatar} />
+              <AvatarFallback>Me</AvatarFallback>
+            </Avatar>
             <div className={`h-2 w-2 rounded-full ${
               connectionStatus === 'connected' ? 'bg-green-500' : 
               connectionStatus === 'connecting' ? 'bg-amber-500' : 'bg-red-500'
@@ -817,47 +931,6 @@ function CustomChatList({ mobileView, setMobileView }: ChatListProps) {
                 connectionStatus === 'connecting' ? 'Connecting...' : 'Disconnected'
               }
             </p>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon" onClick={() => setShowSecurityModal(true)}>
-                    <Shield className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Chat Security</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon">
-                    <Bell className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Notification Settings</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon" onClick={() => setShowDeletedChatsModal(true)}>
-                    <MoreVertical className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>More Options</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
           </div>
         </div>
       </div>
@@ -1171,7 +1244,7 @@ function CustomChatList({ mobileView, setMobileView }: ChatListProps) {
         </div>
       )}
       
-      {/* Use the enhanced New Chat Modal */}
+      {/* Use the fixed New Chat Modal */}
       {showNewChatModal && renderNewChatModal()}
     </div>
   )
@@ -1197,6 +1270,20 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
   const participants = activeChat ? getParticipants(activeChat.id) : []
   const timerRef = useRef<NodeJS.Timeout | null>(null)
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([])
+  const [selectedMembers, setSelectedMembers] = useState<number[]>([])
+  const [groupChatName, setGroupChatName] = useState('')
+  const [modalActiveTab, setModalActiveTab] = useState<'individual' | 'group'>('individual')
+  const [showSecurityModal, setShowSecurityModal] = useState(false)
+  const [showDeletedChatsModal, setShowDeletedChatsModal] = useState(false)
+  const [showNotificationModal, setShowNotificationModal] = useState(false)
+  const [notificationSettings, setNotificationSettings] = useState({
+    all: true,
+    messages: true,
+    mentions: true,
+    groups: true,
+    sound: true
+  })
+  const { toast } = useToast()
   
   // Handle emoji picker - moved outside the conditional rendering
   const [emojiCategory, setEmojiCategory] = useState<'recent' | 'smileys' | 'people' | 'nature' | 'food' | 'activities' | 'objects' | 'symbols' | 'flags'>('smileys')
@@ -1207,8 +1294,8 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
     smileys: ['😀', '😁', '😂', '🤣', '😃', '😄', '😅', '😆', '😉', '😊', '😋', '😎', '🥰', '😍', '😘', '😗', '😙', '😚', '🙂', '🤗', '🤔', '🤨', '😐', '😑'],
     people: ['👶', '👧', '🧒', '👦', '👩', '🧑', '👨', '👵', '🧓', '👴', '👲', '👳‍♀️', '👳‍♂️', '🧕', '🧔', '👱‍♀️', '👱‍♂️', '👨‍🦰', '👩‍🦰', '👨‍🦱', '👩‍🦱', '👨‍🦲', '👩‍🦲', '👨‍🦳'],
     nature: ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🙈', '🙉', '🙊', '🐒', '🦍', '🦓', '🦒', '🦘', '🦬'],
-    food: ['🍏', '🍎', '🍐', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🫐', '🍈', '🍒', '🍑', '🥭', '🍍', '🥥', '🥝', '🍅', '🍆', '🥑', '🥦', '🥬', '🥒', '🌶'],
-    activities: ['⚽', '🏀', '🏈', '⚾', '🥎', '🎾', '🏐', '🏉', '🥏', '🎱', '🪀', '🏓', '🏸', '🏒', '🏑', '🥍', '🏏', '🪃', '🥅', '⛳', '🪁', '🏹', '🎣', '🤿'],
+    food: ['🍏', '🍎', '🍐', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🍈', '🍒', '🍑', '🥭', '🍍', '🥥', '🥝', '🍅', '🍆', '🥑', '🥦', '🥬', '🥒', '🌶'],
+    activities: ['⚽', '🏀', '🏈', '⚾', '🥎', '🎾', '🏐', '🏉', '🥏', '🎱', '🪀', '🏓', '🏸', '🏒', '🏑', '🥍', '🏏', '🥅', '⛳', '🪁', '🏹', '🎣', '🤿'],
     objects: ['⌚', '📱', '📲', '💻', '⌨️', '🖥', '🖨', '🖱', '🖲', '🕹', '🗜', '💽', '💾', '💿', '📀', '📼', '📷', '📸', '📹', '🎥', '📽', '🎞', '📞', '☎️'],
     symbols: ['❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟', '☮️', '✝️', '☪️', '🕉', '☸️'],
     flags: ['🏳️', '🏴', '🏁', '🚩', '🏳️‍🌈', '🏳️‍⚧️', '🇺🇳', '🇦🇫', '🇦🇽', '🇦🇱', '🇩🇿', '🇦🇸', '🇦🇩', '🇦🇴', '🇦🇮', '🇦🇶', '🇦🇬', '🇦🇷', '🇦🇲', '🇦🇼']
@@ -1222,6 +1309,133 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
     }
     loadTeamMembers()
   }, [])
+  
+  // Reset modal state when opening/closing
+  useEffect(() => {
+    if (!showNewChatModal) {
+      setSelectedMembers([])
+      setGroupChatName('')
+      setModalActiveTab('individual')
+      setSearchQuery('')
+    }
+  }, [showNewChatModal])
+  
+  // Handle member selection for group chat
+  const toggleMemberSelection = (memberId: number) => {
+    setSelectedMembers(prev => {
+      if (prev.includes(memberId)) {
+        return prev.filter(id => id !== memberId)
+      } else {
+        return [...prev, memberId]
+      }
+    })
+  }
+  
+  // Handle select all for group chat
+  const handleSelectAll = () => {
+    if (selectedMembers.length === teamMembers.length) {
+      // If all are selected, deselect all
+      setSelectedMembers([])
+    } else {
+      // Otherwise select all
+      setSelectedMembers(teamMembers.map(member => member.id))
+    }
+  }
+  
+  // Generate avatar for group chat
+  const generateGroupAvatar = () => {
+    // Placeholder implementation - in real app would create an avatar with overlapping images
+    return "/placeholder-group-avatar.jpg"
+  }
+  
+  // Create new group chat
+  const handleCreateGroupChat = () => {
+    if (selectedMembers.length === 0) {
+      toast({
+        title: "No members selected",
+        description: "Please select at least one team member for the group chat.",
+        variant: "destructive"
+      })
+      return
+    }
+    
+    if (!groupChatName.trim()) {
+      toast({
+        title: "Missing group name",
+        description: "Please enter a name for the group chat.",
+        variant: "destructive"
+      })
+      return
+    }
+    
+    // In a real app, you would call an API to create the group chat
+    const newGroupChat: Chat = {
+      id: `group-${Date.now()}`,
+      type: 'group',
+      name: groupChatName,
+      avatar: generateGroupAvatar(),
+      participants: [...selectedMembers, 1], // Add current user (ID 1)
+      createdAt: new Date(),
+      unreadCount: 0,
+      isGroupAdmin: true, // Current user is admin
+      isMuted: false,     // Add missing properties
+      isArchived: false   // Add missing properties
+    }
+    
+    // Set as active chat
+    setActiveChat(newGroupChat)
+    
+    // Close modal
+    setShowNewChatModal(false)
+    
+    toast({
+      title: "Group chat created",
+      description: `You've created "${groupChatName}" with ${selectedMembers.length} members.`
+    })
+  }
+  
+  // Create new individual chat or open existing
+  const handleCreateIndividualChat = (member: TeamMember) => {
+    // Check if a chat with this member already exists
+    const existingChat = chats.find(chat => 
+      chat.type === 'individual' && 
+      chat.participants.includes(member.id) && 
+      chat.participants.length === 2
+    );
+    
+    if (existingChat) {
+      // Open existing chat
+      setActiveChat(existingChat);
+      setShowNewChatModal(false);
+    } else {
+      // Create new chat
+      const newChat: Chat = {
+        id: `chat-${Date.now()}`,
+        type: 'individual',
+        name: member.name,
+        avatar: member.avatar,
+        participants: [member.id, 1], // Member and current user (ID 1)
+        createdAt: new Date(),
+        unreadCount: 0,
+        isMuted: false,     // Add missing properties
+        isArchived: false   // Add missing properties
+      }
+      
+      // Set as active chat
+      setActiveChat(newChat)
+      
+      // Close modal
+      setShowNewChatModal(false)
+      
+      // Ensure chat view is shown (for mobile)
+      setMobileView('chat')
+      
+      toast({
+        title: "Chat started",
+        description: `You've started a conversation with ${member.name}.`
+      })
+    }
+  }
   
   useEffect(() => {
     // Scroll to bottom on new messages
@@ -1415,7 +1629,7 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
     </div>
   );
   
-  // If no active chat, show placeholder
+  // If no active chat, show placeholder with improved modal
   if (!activeChat) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center bg-white p-4 h-full w-full">
@@ -1437,7 +1651,7 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
           </Button>
         </div>
         
-        {/* New Chat Modal */}
+        {/* Improved New Chat Modal */}
         {showNewChatModal && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <div className="bg-background rounded-lg w-full max-w-md p-4">
@@ -1453,11 +1667,17 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
                 <Input
                   placeholder="Search contacts..."
                   className="pl-9"
+                  value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
               
-              <Tabs defaultValue="individual" className="mb-4">
+              <Tabs 
+                defaultValue="individual" 
+                value={modalActiveTab}
+                className="mb-4"
+                onValueChange={(value) => setModalActiveTab(value as 'individual' | 'group')}
+              >
                 <TabsList className="w-full">
                   <TabsTrigger value="individual" className="flex-1">Individual</TabsTrigger>
                   <TabsTrigger value="group" className="flex-1">New Group</TabsTrigger>
@@ -1476,32 +1696,7 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
                       <div 
                         key={member.id}
                         className="flex items-center p-3 hover:bg-muted/30 rounded-md cursor-pointer"
-                        onClick={() => {
-                          // Check if a chat with this member already exists
-                          const existingChat = chats.find(chat => 
-                            chat.type === 'individual' && 
-                            chat.participants.includes(member.id) && 
-                            chat.participants.length === 2
-                          );
-                          
-                          if (existingChat) {
-                            // Open existing chat
-                            setActiveChat(existingChat);
-                            setMobileView('chat');
-                          } else {
-                            // In a real app, you would create a new chat here
-                            // For demo, we'll just simulate it with a placeholder alert
-                            alert(`Starting new chat with ${member.name}`);
-                            
-                            // In real implementation, you would:
-                            // 1. Call an API to create a new chat
-                            // 2. Get the chat data from response
-                            // 3. Add it to the chats list
-                            // 4. Set it as active chat
-                          }
-                          
-                          setShowNewChatModal(false);
-                        }}
+                        onClick={() => handleCreateIndividualChat(member)}
                       >
                         <Avatar className="h-10 w-10 mr-3">
                           <AvatarImage src={member.avatar} />
@@ -1524,7 +1719,12 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
                 <TabsContent value="group" className="mt-4">
                   <div className="mb-4">
                     <label className="text-sm font-medium mb-2 block">Group Name</label>
-                    <Input placeholder="Enter group name" className="mb-3" />
+                    <Input 
+                      placeholder="Enter group name" 
+                      className="mb-3"
+                      value={groupChatName}
+                      onChange={(e) => setGroupChatName(e.target.value)}
+                    />
                     
                     <label className="text-sm font-medium mb-2 block">Select Members</label>
                     <div className="max-h-[40vh] overflow-y-auto border rounded-md p-2 mb-3">
@@ -1539,18 +1739,21 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
                         <div 
                           key={member.id}
                           className="flex items-center p-2 hover:bg-muted/30 rounded-md cursor-pointer mb-1"
+                          onClick={() => toggleMemberSelection(member.id)}
                         >
                           <input
                             type="checkbox"
-                            id={`select-member-${member.id}`}
+                            id={`member-${member.id}`}
                             className="mr-3 h-4 w-4 rounded border-muted-foreground"
+                            checked={selectedMembers.includes(member.id)}
+                            onChange={() => toggleMemberSelection(member.id)}
                             onClick={(e) => e.stopPropagation()}
                           />
                           <Avatar className="h-8 w-8 mr-3">
                             <AvatarImage src={member.avatar} />
                             <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
                           </Avatar>
-                          <label htmlFor={`select-member-${member.id}`} className="flex-1 cursor-pointer">
+                          <label htmlFor={`member-${member.id}`} className="flex-1 cursor-pointer">
                             <div className="font-medium text-sm">{member.name}</div>
                             <div className="text-xs text-muted-foreground">{member.role}</div>
                           </label>
@@ -1559,16 +1762,35 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
                     </div>
                     
                     <div className="flex items-center justify-between text-sm mb-3">
-                      <span className="text-muted-foreground">Selected: <span className="font-medium">0</span> members</span>
-                      <Button variant="ghost" size="sm" className="h-7 px-2">Select All</Button>
+                      <span className="text-muted-foreground">
+                        Selected: <span className="font-medium">{selectedMembers.length}</span> members
+                      </span>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-7 px-2"
+                        onClick={handleSelectAll}
+                      >
+                        {selectedMembers.length === teamMembers.length ? 'Deselect All' : 'Select All'}
+                      </Button>
                     </div>
                   </div>
                 </TabsContent>
               </Tabs>
               
               <div className="flex justify-end gap-2 mt-4">
-                <Button variant="outline" onClick={() => setShowNewChatModal(false)}>Cancel</Button>
-                <Button>Create Chat</Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowNewChatModal(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => modalActiveTab === 'group' ? handleCreateGroupChat() : {}}
+                  disabled={modalActiveTab === 'group' && (selectedMembers.length === 0 || !groupChatName.trim())}
+                >
+                  Create Chat
+                </Button>
               </div>
             </div>
           </div>
