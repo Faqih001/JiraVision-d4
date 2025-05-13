@@ -112,7 +112,9 @@ export async function POST(request: Request) {
           .toFormat(outputFormat === 'webp' ? 'webp' : 
                    (outputFormat === 'png' ? 'png' : 'jpeg'), {
             quality: outputFormat === 'webp' ? 85 : 80,
-            progressive: true
+            progressive: true,
+            mozjpeg: outputFormat === 'jpeg', // Use mozjpeg for better compression if JPEG
+            chromaSubsampling: outputFormat === 'jpeg' ? '4:2:0' : '4:4:4' // Better for JPEGs
           })
           .toFile(filePath)
           
