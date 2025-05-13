@@ -437,7 +437,7 @@ Sophia`,
                         disabled={isRefreshing}
                       >
                         {isRefreshing ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <Loader2 className="h-4 w-4 animate-spin text-primary" />
                         ) : (
                           <RefreshCw className="h-4 w-4" />
                         )}
