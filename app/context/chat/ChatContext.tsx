@@ -63,6 +63,7 @@ export type Chat = {
   lastMessageTime?: string
   preview?: string
   online?: boolean
+  isPinned?: boolean
 }
 
 // Context type

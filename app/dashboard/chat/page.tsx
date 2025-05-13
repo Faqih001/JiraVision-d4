@@ -251,6 +251,7 @@ function CustomChatList({ mobileView, setMobileView }: ChatListProps) {
     y: number;
     chatId: string | null;
   } | null>(null)
+  const { toast } = useToast()
   
   useEffect(() => {
     // Fetch team members when component mounts
@@ -279,10 +280,99 @@ function CustomChatList({ mobileView, setMobileView }: ChatListProps) {
         isArchived: !chatsCopy[chatIndex].isArchived
       };
       
-      // In a real app, you would update the state through your state management system
-      // This is just a simulation
-      const updatedChats = [...chatsCopy];
-      // Update context or state here
+      // Show success toast
+      toast({
+        title: chatsCopy[chatIndex].isArchived ? "Chat archived" : "Chat unarchived",
+        description: `"${chatsCopy[chatIndex].name}" has been ${chatsCopy[chatIndex].isArchived ? "archived" : "unarchived"}.`,
+      });
+    }
+    
+    setContextMenu(null);
+  };
+  
+  // Handle pin/unpin chat
+  const handlePinChat = (chatId: string) => {
+    // In a real app, this would call an API to pin/unpin the chat
+    const chatsCopy = [...chats];
+    const chatIndex = chatsCopy.findIndex(c => c.id === chatId);
+    
+    if (chatIndex !== -1) {
+      chatsCopy[chatIndex] = {
+        ...chatsCopy[chatIndex],
+        isPinned: !chatsCopy[chatIndex].isPinned
+      };
+      
+      // Show success toast
+      toast({
+        title: chatsCopy[chatIndex].isPinned ? "Chat pinned" : "Chat unpinned",
+        description: `"${chatsCopy[chatIndex].name}" has been ${chatsCopy[chatIndex].isPinned ? "pinned to" : "unpinned from"} the top.`,
+      });
+    }
+    
+    setContextMenu(null);
+  };
+  
+  // Handle mute/unmute chat
+  const handleMuteChat = (chatId: string) => {
+    // In a real app, this would call an API to mute/unmute the chat
+    const chatsCopy = [...chats];
+    const chatIndex = chatsCopy.findIndex(c => c.id === chatId);
+    
+    if (chatIndex !== -1) {
+      chatsCopy[chatIndex] = {
+        ...chatsCopy[chatIndex],
+        isMuted: !chatsCopy[chatIndex].isMuted
+      };
+      
+      // Show success toast
+      toast({
+        title: chatsCopy[chatIndex].isMuted ? "Chat muted" : "Chat unmuted",
+        description: `Notifications for "${chatsCopy[chatIndex].name}" have been ${chatsCopy[chatIndex].isMuted ? "muted" : "unmuted"}.`,
+      });
+    }
+    
+    setContextMenu(null);
+  };
+  
+  // Handle mark as read
+  const handleMarkAsRead = (chatId: string) => {
+    // In a real app, this would call an API to mark chat as read
+    const chatsCopy = [...chats];
+    const chatIndex = chatsCopy.findIndex(c => c.id === chatId);
+    
+    if (chatIndex !== -1) {
+      chatsCopy[chatIndex] = {
+        ...chatsCopy[chatIndex],
+        unreadCount: 0
+      };
+      
+      // Show success toast
+      toast({
+        title: "Marked as read",
+        description: `All messages in "${chatsCopy[chatIndex].name}" have been marked as read.`,
+      });
+    }
+    
+    setContextMenu(null);
+  };
+  
+  // Handle delete chat
+  const handleDeleteChat = (chatId: string) => {
+    // In a real app, this would call an API to delete the chat
+    const chatToDelete = chats.find(c => c.id === chatId);
+    
+    if (chatToDelete) {
+      // Show success toast
+      toast({
+        title: "Chat deleted",
+        description: `"${chatToDelete.name}" has been deleted.`,
+        variant: "destructive"
+      });
+      
+      // If active chat is being deleted, set activeChat to null
+      if (activeChat?.id === chatId) {
+        setActiveChat(null);
+      }
     }
     
     setContextMenu(null);
@@ -298,8 +388,13 @@ function CustomChatList({ mobileView, setMobileView }: ChatListProps) {
     : chats
 
   // Show only archived chats when on "contacts" tab
+  // Sort chats to put pinned ones at the top
   const displayChats = activeTab === 'recent' 
-    ? filteredChats.filter(chat => !chat.isArchived)
+    ? filteredChats.filter(chat => !chat.isArchived).sort((a, b) => {
+        if (a.isPinned && !b.isPinned) return -1;
+        if (!a.isPinned && b.isPinned) return 1;
+        return 0;
+      })
     : filteredChats.filter(chat => chat.isArchived)
 
   // Format time for display
@@ -356,9 +451,9 @@ function CustomChatList({ mobileView, setMobileView }: ChatListProps) {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
                 <Button 
                   size="icon" 
                   variant="outline" 
@@ -366,13 +461,13 @@ function CustomChatList({ mobileView, setMobileView }: ChatListProps) {
                   onClick={() => setShowNewChatModal(true)}
                 >
                   <Plus className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
                 <p>Create New Chat</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
         </div>
         
         {/* Connection status */}
@@ -440,7 +535,7 @@ function CustomChatList({ mobileView, setMobileView }: ChatListProps) {
                     key={chat.id}
                     className={`flex items-center px-4 py-3 cursor-pointer transition-colors hover:bg-muted/30 ${
                       activeChat?.id === chat.id ? 'bg-muted/40' : ''
-                    }`}
+                    } ${chat.isPinned ? 'border-l-4 border-primary' : ''}`}
                     onClick={() => setActiveChat(chat)}
                     onContextMenu={(e) => {
                       e.preventDefault();
@@ -464,13 +559,17 @@ function CustomChatList({ mobileView, setMobileView }: ChatListProps) {
                     </div>
                     <div className="flex-1 min-w-0 space-y-1">
                       <div className="flex justify-between items-baseline">
-                        <h3 className="font-medium truncate text-sm">{chat.name}</h3>
+                        <h3 className="font-medium truncate text-sm flex items-center">
+                          {chat.isPinned && <span className="mr-1 text-primary">📌</span>}
+                          {chat.name}
+                        </h3>
                         <span className="text-xs text-muted-foreground flex-shrink-0 ml-2">
                           {(chat as EnhancedChat).lastMessageTime || formatTime(chat.lastMessage?.timestamp)}
                         </span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <p className="text-xs text-muted-foreground truncate max-w-[calc(100%-40px)]">
+                        <p className={`text-xs truncate max-w-[calc(100%-40px)] ${chat.isMuted ? 'text-muted-foreground/50' : 'text-muted-foreground'}`}>
+                          {chat.isMuted && <span className="mr-1">🔇</span>}
                           {getChatPreview(chat)}
                         </p>
                         <div className="flex items-center gap-1">
@@ -479,26 +578,47 @@ function CustomChatList({ mobileView, setMobileView }: ChatListProps) {
                               {chat.unreadCount}
                             </div>
                           )}
-                          <DropdownMenu>
+            <DropdownMenu>
                             <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                               <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 focus:opacity-100">
                                 <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem>Pin</DropdownMenuItem>
-                              <DropdownMenuItem>{chat.isMuted ? 'Unmute' : 'Mute'}</DropdownMenuItem>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={(e) => {
+                                e.stopPropagation();
+                                handlePinChat(chat.id);
+                              }}>
+                                {chat.isPinned ? 'Unpin' : 'Pin'}
+                </DropdownMenuItem>
+                              <DropdownMenuItem onClick={(e) => {
+                                e.stopPropagation();
+                                handleMuteChat(chat.id);
+                              }}>
+                                {chat.isMuted ? 'Unmute' : 'Mute'}
+                              </DropdownMenuItem>
                               <DropdownMenuItem onClick={(e) => {
                                 e.stopPropagation();
                                 handleArchiveChat(chat.id);
                               }}>
                                 {chat.isArchived ? 'Unarchive' : 'Archive'}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={(e) => {
+                                e.stopPropagation();
+                                handleMarkAsRead(chat.id);
+                              }}>
+                                Mark as read
                               </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem className="text-destructive">Clear chat</DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
+                              <DropdownMenuItem className="text-destructive" onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteChat(chat.id);
+                              }}>
+                                Clear chat
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
                       </div>
                     </div>
                   </div>
@@ -507,8 +627,8 @@ function CustomChatList({ mobileView, setMobileView }: ChatListProps) {
             )}
           </div>
         </Tabs>
-      </div>
-      
+        </div>
+        
       {/* Context Menu */}
       {contextMenu && (
         <div
@@ -527,20 +647,40 @@ function CustomChatList({ mobileView, setMobileView }: ChatListProps) {
           >
             {activeTab === 'recent' ? 'Archive Chat' : 'Unarchive Chat'}
           </button>
-          <button className="w-full text-left px-3 py-2 text-sm hover:bg-muted/50">
+          <button 
+            className="w-full text-left px-3 py-2 text-sm hover:bg-muted/50"
+            onClick={() => {
+              if (contextMenu.chatId) handleMarkAsRead(contextMenu.chatId);
+            }}
+          >
             Mark as Read
           </button>
-          <button className="w-full text-left px-3 py-2 text-sm hover:bg-muted/50">
+          <button 
+            className="w-full text-left px-3 py-2 text-sm hover:bg-muted/50"
+            onClick={() => {
+              if (contextMenu.chatId) handlePinChat(contextMenu.chatId);
+            }}
+          >
             Pin Chat
           </button>
-          <button className="w-full text-left px-3 py-2 text-sm hover:bg-muted/50">
+          <button 
+            className="w-full text-left px-3 py-2 text-sm hover:bg-muted/50"
+            onClick={() => {
+              if (contextMenu.chatId) handleMuteChat(contextMenu.chatId);
+            }}
+          >
             Mute Notifications
           </button>
           <div className="border-t my-1"></div>
-          <button className="w-full text-left px-3 py-2 text-sm text-red-500 hover:bg-muted/50">
+          <button 
+            className="w-full text-left px-3 py-2 text-sm text-red-500 hover:bg-muted/50"
+            onClick={() => {
+              if (contextMenu.chatId) handleDeleteChat(contextMenu.chatId);
+            }}
+          >
             Delete Chat
           </button>
-        </div>
+          </div>
       )}
         
       {/* New Chat Modal */}
@@ -560,8 +700,8 @@ function CustomChatList({ mobileView, setMobileView }: ChatListProps) {
                 placeholder="Search contacts..."
                 className="pl-9"
                 onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
+          />
+        </div>
             
             <Tabs defaultValue="individual" className="mb-4">
               <TabsList className="w-full">
@@ -616,7 +756,7 @@ function CustomChatList({ mobileView, setMobileView }: ChatListProps) {
                       <div>
                         <h3 className="font-medium">{member.name}</h3>
                         <p className="text-sm text-muted-foreground">{member.role}</p>
-                      </div>
+      </div>
                       <div className="ml-auto">
                         {(member as any).online && (
                           <div className="h-2.5 w-2.5 rounded-full bg-green-500 border border-white"></div>
@@ -703,6 +843,22 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
   const participants = activeChat ? getParticipants(activeChat.id) : []
   const timerRef = useRef<NodeJS.Timeout | null>(null)
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([])
+  
+  // Handle emoji picker - moved outside the conditional rendering
+  const [emojiCategory, setEmojiCategory] = useState<'recent' | 'smileys' | 'people' | 'nature' | 'food' | 'activities' | 'objects' | 'symbols' | 'flags'>('smileys')
+  
+  // Emoji data by category - moved outside the conditional rendering
+  const emojiData = {
+    recent: ['😀', '😂', '👍', '❤️', '🔥', '✅', '🙏', '👏'],
+    smileys: ['😀', '😁', '😂', '🤣', '😃', '😄', '😅', '😆', '😉', '😊', '😋', '😎', '🥰', '😍', '😘', '😗', '😙', '😚', '🙂', '🤗', '🤔', '🤨', '😐', '😑'],
+    people: ['👶', '👧', '🧒', '👦', '👩', '🧑', '👨', '👵', '🧓', '👴', '👲', '👳‍♀️', '👳‍♂️', '🧕', '🧔', '👱‍♀️', '👱‍♂️', '👨‍🦰', '👩‍🦰', '👨‍🦱', '👩‍🦱', '👨‍🦲', '👩‍🦲', '👨‍🦳'],
+    nature: ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🙈', '🙉', '🙊', '🐒', '🦍', '🦓', '🦒', '🦘', '🦬'],
+    food: ['🍏', '🍎', '🍐', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🫐', '🍈', '🍒', '🍑', '🥭', '🍍', '🥥', '🥝', '🍅', '🍆', '🥑', '🥦', '🥬', '🥒', '🌶'],
+    activities: ['⚽', '🏀', '🏈', '⚾', '🥎', '🎾', '🏐', '🏉', '🥏', '🎱', '🪀', '🏓', '🏸', '🏒', '🏑', '🥍', '🏏', '🪃', '🥅', '⛳', '🪁', '🏹', '🎣', '🤿'],
+    objects: ['⌚', '📱', '📲', '💻', '⌨️', '🖥', '🖨', '🖱', '🖲', '🕹', '🗜', '💽', '💾', '💿', '📀', '📼', '📷', '📸', '📹', '🎥', '📽', '🎞', '📞', '☎️'],
+    symbols: ['❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟', '☮️', '✝️', '☪️', '🕉', '☸️'],
+    flags: ['🏳️', '🏴', '🏁', '🚩', '🏳️‍🌈', '🏳️‍⚧️', '🇺🇳', '🇦🇫', '🇦🇽', '🇦🇱', '🇩🇿', '🇦🇸', '🇦🇩', '🇦🇴', '🇦🇮', '🇦🇶', '🇦🇬', '🇦🇷', '🇦🇲', '🇦🇼']
+  };
   
   // Fetch team members when component mounts
   useEffect(() => {
@@ -802,6 +958,109 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
   }
   
+  // Render enhanced emoji picker - moved outside conditional rendering
+  const renderEmojiPicker = () => (
+    <div className="p-2">
+      <div className="flex items-center justify-between mb-2 border-b pb-2">
+        <div className="text-sm font-medium">Emojis</div>
+        <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => setEmojiPickerOpen(false)}>
+          <X className="h-3 w-3" />
+        </Button>
+      </div>
+      
+      <div className="flex gap-1 mb-2 overflow-x-auto pb-1 scrollbar-thin">
+        <Button 
+          variant={emojiCategory === 'recent' ? 'default' : 'ghost'} 
+          size="sm" 
+          className="h-7 w-7 p-0 rounded-full"
+          onClick={() => setEmojiCategory('recent')}
+        >
+          <span className="text-xs">🕒</span>
+        </Button>
+        <Button 
+          variant={emojiCategory === 'smileys' ? 'default' : 'ghost'} 
+          size="sm" 
+          className="h-7 w-7 p-0 rounded-full"
+          onClick={() => setEmojiCategory('smileys')}
+        >
+          <span className="text-xs">😊</span>
+        </Button>
+        <Button 
+          variant={emojiCategory === 'people' ? 'default' : 'ghost'} 
+          size="sm" 
+          className="h-7 w-7 p-0 rounded-full"
+          onClick={() => setEmojiCategory('people')}
+        >
+          <span className="text-xs">👪</span>
+        </Button>
+        <Button 
+          variant={emojiCategory === 'nature' ? 'default' : 'ghost'} 
+          size="sm" 
+          className="h-7 w-7 p-0 rounded-full"
+          onClick={() => setEmojiCategory('nature')}
+        >
+          <span className="text-xs">🐶</span>
+        </Button>
+        <Button 
+          variant={emojiCategory === 'food' ? 'default' : 'ghost'} 
+          size="sm" 
+          className="h-7 w-7 p-0 rounded-full"
+          onClick={() => setEmojiCategory('food')}
+        >
+          <span className="text-xs">🍔</span>
+        </Button>
+        <Button 
+          variant={emojiCategory === 'activities' ? 'default' : 'ghost'} 
+          size="sm" 
+          className="h-7 w-7 p-0 rounded-full"
+          onClick={() => setEmojiCategory('activities')}
+        >
+          <span className="text-xs">⚽</span>
+        </Button>
+        <Button 
+          variant={emojiCategory === 'objects' ? 'default' : 'ghost'} 
+          size="sm" 
+          className="h-7 w-7 p-0 rounded-full"
+          onClick={() => setEmojiCategory('objects')}
+        >
+          <span className="text-xs">💻</span>
+        </Button>
+        <Button 
+          variant={emojiCategory === 'symbols' ? 'default' : 'ghost'} 
+          size="sm" 
+          className="h-7 w-7 p-0 rounded-full"
+          onClick={() => setEmojiCategory('symbols')}
+        >
+          <span className="text-xs">❤️</span>
+        </Button>
+        <Button 
+          variant={emojiCategory === 'flags' ? 'default' : 'ghost'} 
+          size="sm" 
+          className="h-7 w-7 p-0 rounded-full"
+          onClick={() => setEmojiCategory('flags')}
+        >
+          <span className="text-xs">🏳️</span>
+        </Button>
+      </div>
+      
+      <div className="grid grid-cols-7 gap-1 max-h-[200px] overflow-y-auto">
+        {emojiData[emojiCategory].map((emoji: string, index: number) => (
+          <Button 
+            key={`${emoji}-${index}`}
+            variant="ghost" 
+            className="h-8 w-8 p-0" 
+            onClick={() => {
+              setMessageInput((prev: string) => prev + emoji)
+              // Don't close the picker so they can add multiple emojis
+            }}
+          >
+            {emoji}
+          </Button>
+        ))}
+      </div>
+    </div>
+  );
+  
   // If no active chat, show placeholder
   if (!activeChat) {
     return (
@@ -814,7 +1073,7 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
           <p className="text-muted-foreground mb-6 max-w-xs">
             Select a chat from the list or start a new conversation to connect with your team
           </p>
-          <Button 
+          <Button
             onClick={() => setShowNewChatModal(true)}
             className="mx-auto"
             size="lg"
@@ -833,7 +1092,7 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
                 <Button variant="ghost" size="icon" onClick={() => setShowNewChatModal(false)}>
                   <X className="h-4 w-4" />
                 </Button>
-              </div>
+      </div>
               
               <div className="relative mb-4">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -964,125 +1223,6 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
     )
   }
   
-  // Handle emoji picker
-  const [emojiCategory, setEmojiCategory] = useState<'recent' | 'smileys' | 'people' | 'nature' | 'food' | 'activities' | 'objects' | 'symbols' | 'flags'>('smileys')
-  
-  // Emoji data by category
-  const emojiData = {
-    recent: ['😀', '😂', '👍', '❤️', '🔥', '✅', '🙏', '👏'],
-    smileys: ['😀', '😁', '😂', '🤣', '😃', '😄', '😅', '😆', '😉', '😊', '😋', '😎', '🥰', '😍', '😘', '😗', '😙', '😚', '🙂', '🤗', '🤔', '🤨', '😐', '😑'],
-    people: ['👶', '👧', '🧒', '👦', '👩', '🧑', '👨', '👵', '🧓', '👴', '👲', '👳‍♀️', '👳‍♂️', '🧕', '🧔', '👱‍♀️', '👱‍♂️', '👨‍🦰', '👩‍🦰', '👨‍🦱', '👩‍🦱', '👨‍🦲', '👩‍🦲', '👨‍🦳'],
-    nature: ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🙈', '🙉', '🙊', '🐒', '🦍', '🦓', '🦒', '🦘', '🦬'],
-    food: ['🍏', '🍎', '🍐', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🫐', '🍈', '🍒', '🍑', '🥭', '🍍', '🥥', '🥝', '🍅', '🍆', '🥑', '🥦', '🥬', '🥒', '🌶'],
-    activities: ['⚽', '🏀', '🏈', '⚾', '🥎', '🎾', '🏐', '🏉', '🥏', '🎱', '🪀', '🏓', '🏸', '🏒', '🏑', '🥍', '🏏', '🪃', '🥅', '⛳', '🪁', '🏹', '🎣', '🤿'],
-    objects: ['⌚', '📱', '📲', '💻', '⌨️', '🖥', '🖨', '🖱', '🖲', '🕹', '🗜', '💽', '💾', '💿', '📀', '📼', '📷', '📸', '📹', '🎥', '📽', '🎞', '📞', '☎️'],
-    symbols: ['❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟', '☮️', '✝️', '☪️', '🕉', '☸️'],
-    flags: ['🏳️', '🏴', '🏁', '🚩', '🏳️‍🌈', '🏳️‍⚧️', '🇺🇳', '🇦🇫', '🇦🇽', '🇦🇱', '🇩🇿', '🇦🇸', '🇦🇩', '🇦🇴', '🇦🇮', '🇦🇶', '🇦🇬', '🇦🇷', '🇦🇲', '🇦🇼']
-  };
-  
-  // Render enhanced emoji picker
-  const renderEmojiPicker = () => (
-    <div className="p-2">
-      <div className="flex items-center justify-between mb-2 border-b pb-2">
-        <div className="text-sm font-medium">Emojis</div>
-        <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => setEmojiPickerOpen(false)}>
-          <X className="h-3 w-3" />
-        </Button>
-      </div>
-      
-      <div className="flex gap-1 mb-2 overflow-x-auto pb-1 scrollbar-thin">
-        <Button 
-          variant={emojiCategory === 'recent' ? 'default' : 'ghost'} 
-          size="sm" 
-          className="h-7 w-7 p-0 rounded-full"
-          onClick={() => setEmojiCategory('recent')}
-        >
-          <span className="text-xs">🕒</span>
-        </Button>
-        <Button 
-          variant={emojiCategory === 'smileys' ? 'default' : 'ghost'} 
-          size="sm" 
-          className="h-7 w-7 p-0 rounded-full"
-          onClick={() => setEmojiCategory('smileys')}
-        >
-          <span className="text-xs">😊</span>
-        </Button>
-        <Button 
-          variant={emojiCategory === 'people' ? 'default' : 'ghost'} 
-          size="sm" 
-          className="h-7 w-7 p-0 rounded-full"
-          onClick={() => setEmojiCategory('people')}
-        >
-          <span className="text-xs">👪</span>
-        </Button>
-        <Button 
-          variant={emojiCategory === 'nature' ? 'default' : 'ghost'} 
-          size="sm" 
-          className="h-7 w-7 p-0 rounded-full"
-          onClick={() => setEmojiCategory('nature')}
-        >
-          <span className="text-xs">🐶</span>
-        </Button>
-        <Button 
-          variant={emojiCategory === 'food' ? 'default' : 'ghost'} 
-          size="sm" 
-          className="h-7 w-7 p-0 rounded-full"
-          onClick={() => setEmojiCategory('food')}
-        >
-          <span className="text-xs">🍔</span>
-        </Button>
-        <Button 
-          variant={emojiCategory === 'activities' ? 'default' : 'ghost'} 
-          size="sm" 
-          className="h-7 w-7 p-0 rounded-full"
-          onClick={() => setEmojiCategory('activities')}
-        >
-          <span className="text-xs">⚽</span>
-        </Button>
-        <Button 
-          variant={emojiCategory === 'objects' ? 'default' : 'ghost'} 
-          size="sm" 
-          className="h-7 w-7 p-0 rounded-full"
-          onClick={() => setEmojiCategory('objects')}
-        >
-          <span className="text-xs">💻</span>
-        </Button>
-        <Button 
-          variant={emojiCategory === 'symbols' ? 'default' : 'ghost'} 
-          size="sm" 
-          className="h-7 w-7 p-0 rounded-full"
-          onClick={() => setEmojiCategory('symbols')}
-        >
-          <span className="text-xs">❤️</span>
-        </Button>
-        <Button 
-          variant={emojiCategory === 'flags' ? 'default' : 'ghost'} 
-          size="sm" 
-          className="h-7 w-7 p-0 rounded-full"
-          onClick={() => setEmojiCategory('flags')}
-        >
-          <span className="text-xs">🏳️</span>
-        </Button>
-      </div>
-      
-      <div className="grid grid-cols-7 gap-1 max-h-[200px] overflow-y-auto">
-        {emojiData[emojiCategory].map((emoji: string, index: number) => (
-          <Button 
-            key={`${emoji}-${index}`}
-            variant="ghost" 
-            className="h-8 w-8 p-0" 
-            onClick={() => {
-              setMessageInput((prev: string) => prev + emoji)
-              // Don't close the picker so they can add multiple emojis
-            }}
-          >
-            {emoji}
-          </Button>
-        ))}
-      </div>
-    </div>
-  );
-  
   return (
     <div className="flex flex-col h-full w-full">
       {/* Chat header */}
@@ -1112,7 +1252,7 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
                 <div className="ml-2 flex items-center text-xs text-green-500">
                   <div className="h-1.5 w-1.5 rounded-full bg-green-500 mr-1"></div>
                   Online
-                </div>
+            </div>
               )}
             </div>
             {activeChat.type === 'group' && (
@@ -1165,25 +1305,25 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
           </TooltipProvider>
           
           {activeChat.type === 'group' && activeChat.isGroupAdmin && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon">
                   <MoreVertical className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
                 <DropdownMenuItem>
                   <Plus className="h-4 w-4 mr-2" /> Add Members
-                </DropdownMenuItem>
+              </DropdownMenuItem>
                 <DropdownMenuItem>
                   <Edit2 className="h-4 w-4 mr-2" /> Edit Group
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
                 <DropdownMenuItem className="text-destructive">
                   <Trash2 className="h-4 w-4 mr-2" /> Delete Group
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           )}
         </div>
       </div>
@@ -1211,7 +1351,7 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
               Chat started on {formatDate(activeChat.createdAt)}
             </p>
           </div>
-
+          
           {messages.length > 0 && (
             <div className="space-y-4">
               {messages.map((message, index) => {
@@ -1249,8 +1389,8 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
                 // Show date separator if needed (first message or new day)
                 const showDateSeparator = index === 0 || 
                   new Date(timestamp).toDateString() !== new Date(messages[index - 1].timestamp).toDateString();
-                
-                return (
+            
+            return (
                   <React.Fragment key={message.id}>
                     {showDateSeparator && (
                       <div className="flex justify-center my-4">
@@ -1262,7 +1402,7 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
                     
                     <div className={`${isLastInGroup ? 'mb-4' : 'mb-1'}`}>
                       <MessageBubbleCustom 
-                        message={message} 
+                message={message}
                         isOwnMessage={message.senderId === 1}
                         timestamp={timestamp}
                         showAvatar={isLastInGroup}
@@ -1277,8 +1417,8 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
           
           {/* End of messages ref for scrolling */}
           <div ref={messageEndRef} />
-        </div>
-      </div>
+            </div>
+          </div>
       
       {/* Active reply display */}
       {activeReply && (
@@ -1288,7 +1428,7 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
             <div>
               <p className="text-xs text-muted-foreground">Replying to {activeReply.sender}</p>
               <p className="text-sm truncate max-w-[200px]">{activeReply.content}</p>
-            </div>
+        </div>
           </div>
           <Button variant="ghost" size="icon" onClick={() => setActiveReply(null)}>
             <X className="h-4 w-4" />
@@ -1336,7 +1476,7 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
                   </PopoverTrigger>
                   <PopoverContent className="w-56" align="start" alignOffset={-40} forceMount>
                     <div className="grid grid-cols-2 gap-2">
-                      <Button 
+              <Button 
                         variant="outline" 
                         className="flex flex-col h-auto py-2"
                         onClick={() => {
@@ -1439,7 +1579,7 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
                 <Mic className="h-4 w-4" />
               </Button>
             )}
-          </div>
+            </div>
         )}
       </div>
     </div>
@@ -1587,8 +1727,8 @@ function MessageBubbleCustom({ message, isOwnMessage, timestamp, showAvatar = tr
             <Button size="sm" onClick={handleSaveEdit}>
               Save
             </Button>
-          </div>
-        </div>
+                </div>
+              </div>
       )
     }
     
@@ -1606,12 +1746,12 @@ function MessageBubbleCustom({ message, isOwnMessage, timestamp, showAvatar = tr
               onClick={() => window.open(message.mediaUrl, '_blank')}
             />
             <div className="mt-1 text-xs text-muted-foreground">{message.fileName}</div>
-          </div>
+                      </div>
         )
         
       case 'video':
         return (
-          <div>
+                      <div>
             <video 
               controls
               className="rounded-md max-w-[240px] max-h-[320px]"
@@ -1620,7 +1760,7 @@ function MessageBubbleCustom({ message, isOwnMessage, timestamp, showAvatar = tr
               Your browser does not support the video tag.
             </video>
             <div className="mt-1 text-xs text-muted-foreground">{message.fileName}</div>
-          </div>
+                      </div>
         )
         
       case 'audio':
@@ -1631,7 +1771,7 @@ function MessageBubbleCustom({ message, isOwnMessage, timestamp, showAvatar = tr
               Your browser does not support the audio tag.
             </audio>
             <div className="mt-1 text-xs text-muted-foreground">{message.fileName}</div>
-          </div>
+                    </div>
         )
         
       case 'voice':
@@ -1642,7 +1782,7 @@ function MessageBubbleCustom({ message, isOwnMessage, timestamp, showAvatar = tr
               Your browser does not support the audio tag.
             </audio>
             <div className="text-xs text-muted-foreground">0:19</div>
-          </div>
+                </div>
         )
         
       case 'document':
@@ -1693,7 +1833,7 @@ function MessageBubbleCustom({ message, isOwnMessage, timestamp, showAvatar = tr
         {!isOwnMessage && showAvatar && (
           <div className="text-xs font-medium text-muted-foreground mb-1">
             {message.senderName}
-          </div>
+        </div>
         )}
         
         {/* Reply info */}
