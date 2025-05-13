@@ -30,6 +30,7 @@ import KanbanTaskForm from "@/components/kanban/kanban-task-form"
 import { useAuth } from "@/context/auth-context"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
+import { useRouter } from "next/navigation"
 
 // Define types
 export type KanbanTask = {
@@ -62,6 +63,7 @@ type KanbanColumn = {
 export default function KanbanPage() {
   const { user } = useAuth()
   const { toast } = useToast()
+  const router = useRouter()
   const [columns, setColumns] = useState<KanbanColumn[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [showTaskForm, setShowTaskForm] = useState(false)
@@ -441,6 +443,29 @@ export default function KanbanPage() {
     }
   }
 
+  const handleAnalytics = () => {
+    toast({
+      title: "Kanban Analytics",
+      description: "Generating analytics dashboard for your kanban board...",
+    });
+    
+    // This would typically open a modal or navigate to an analytics page
+  };
+
+  const handleConfigure = () => {
+    toast({
+      title: "Configure Kanban Board",
+      description: "Opening board configuration options...",
+    });
+    
+    // This would typically open a configuration modal
+  };
+
+  const handleCalendarView = () => {
+    // Redirect to calendar page with task view
+    router.push('/dashboard/calendar?view=tasks');
+  };
+
   const filteredColumns = columns.map(column => ({
     ...column,
     tasks: column.tasks.filter(task => 
@@ -463,15 +488,15 @@ export default function KanbanPage() {
         </div>
         <div className="flex items-center gap-3 flex-wrap">
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" className="gap-1">
+            <Button variant="outline" size="sm" className="gap-1" onClick={handleAnalytics}>
               <BarChart3 className="h-4 w-4" />
               <span className="hidden sm:inline">Analytics</span>
             </Button>
-            <Button variant="outline" size="sm" className="gap-1">
+            <Button variant="outline" size="sm" className="gap-1" onClick={handleConfigure}>
               <Settings className="h-4 w-4" />
               <span className="hidden sm:inline">Configure</span>
             </Button>
-            <Button variant="outline" size="sm" className="gap-1">
+            <Button variant="outline" size="sm" className="gap-1" onClick={handleCalendarView}>
               <CalendarDays className="h-4 w-4" />
               <span className="hidden sm:inline">Calendar</span>
             </Button>

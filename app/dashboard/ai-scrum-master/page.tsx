@@ -159,31 +159,111 @@ export default function AIScrumMasterPage() {
   // Handle button actions
   const handleConfigure = () => {
     toast({
-      title: "Configure",
+      title: "AI Configuration",
       description: "Opening AI Scrum Master configuration settings...",
-    })
-  }
+    });
+  };
 
   const handleChatWithAI = () => {
+    // Typically this would open an AI chat interface
     toast({
-      title: "Chat with AI",
-      description: "Opening AI chat interface...",
-    })
-  }
+      title: "AI Chat",
+      description: "Opening AI Scrum Master chat interface...",
+    });
+  };
 
-  const handleDismiss = () => {
-    toast({
-      title: "Dismissed",
-      description: "AI insight has been dismissed.",
-    })
-  }
+  const handleDismiss = async () => {
+    try {
+      toast({
+        title: "Dismissing Insight",
+        description: "Removing the current AI insight from your dashboard...",
+      });
+      
+      // This would typically call an API to mark the insight as dismissed
+      const insightId = 1; // Replace with actual ID from state
+      
+      const response = await fetch(`/api/dashboard/ai-insights/dismiss`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ insightId }),
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to dismiss insight');
+      }
+      
+      toast({
+        title: "Insight Dismissed",
+        description: "The AI insight has been removed from your dashboard.",
+      });
+    } catch (error) {
+      console.error("Error dismissing insight:", error);
+      toast({
+        title: "Error",
+        description: "Failed to dismiss insight. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
-  const handleTakeAction = () => {
+  const handleTakeAction = async () => {
+    try {
+      // First, get recommendations from the AI
+      toast({
+        title: "Taking Action",
+        description: "Generating AI recommendations for the current insight...",
+      });
+      
+      const response = await fetch('/api/dashboard/ai-recommendation', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sprintId: 1, // Replace with actual sprint ID from state
+          type: 'sprint_planning'
+        }),
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to generate AI recommendations');
+      }
+      
+      const { recommendation } = await response.json();
+      
+      toast({
+        title: "Action Plan Generated",
+        description: recommendation.title,
+      });
+    } catch (error) {
+      console.error("Error taking action:", error);
+      toast({
+        title: "Error",
+        description: "Failed to generate action plan. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleJoinSprintPlanning = () => {
+    // This would typically start a video call or open a planning tool
     toast({
-      title: "Take Action",
-      description: "Opening action menu for AI recommendation...",
-    })
-  }
+      title: "Sprint Planning",
+      description: "Joining sprint planning meeting...",
+    });
+  };
+
+  const handleStartStandupMeeting = () => {
+    // This would typically start a standup meeting session
+    toast({
+      title: "Daily Standup",
+      description: "Starting daily standup meeting...",
+    });
+  };
 
   const handleViewFullReport = (reportId: number) => {
     toast({
@@ -531,6 +611,15 @@ export default function AIScrumMasterPage() {
           </Card>
         </div>
       </section>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+        <Button size="sm" className="w-full" onClick={handleJoinSprintPlanning}>
+          Join Sprint Planning
+        </Button>
+        <Button size="sm" className="w-full" onClick={handleStartStandupMeeting}>
+          Start Standup Meeting
+        </Button>
+      </div>
     </div>
   )
 }

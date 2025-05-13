@@ -20,10 +20,71 @@ import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useMobile } from "@/hooks/use-mobile"
+import { toast } from "@/components/ui/use-toast"
 
 export default function EthicalMetricsPage() {
   const { theme, setTheme } = useTheme()
   const isMobile = useMobile()
+
+  const handleExportReport = () => {
+    toast({
+      title: "Exporting Report",
+      description: "Generating and downloading ethical metrics report...",
+    });
+    
+    // This would typically generate and download a PDF or Excel file
+  };
+
+  const handleConfigure = () => {
+    toast({
+      title: "Configure Metrics",
+      description: "Opening ethical metrics configuration settings...",
+    });
+    
+    // This would typically open a configuration modal
+  };
+
+  const handleApplyRecommendation = async () => {
+    try {
+      toast({
+        title: "Applying Recommendation",
+        description: "Implementing ethical recommendation...",
+      });
+      
+      // This would typically make an API call to apply the recommendation
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      toast({
+        title: "Recommendation Applied",
+        description: "The ethical recommendation has been implemented successfully.",
+      });
+    } catch (error) {
+      console.error("Error applying recommendation:", error);
+      toast({
+        title: "Error",
+        description: "Failed to apply recommendation. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleViewComplianceReport = () => {
+    toast({
+      title: "Compliance Report",
+      description: "Opening detailed compliance report...",
+    });
+    
+    // This would typically open a detailed compliance report
+  };
+
+  const handleSetOvertimeLimits = () => {
+    toast({
+      title: "Overtime Limits",
+      description: "Opening overtime limits configuration...",
+    });
+    
+    // This would typically open a settings modal
+  };
 
   return (
     <div className="p-4 md:p-6 space-y-6">
@@ -33,11 +94,11 @@ export default function EthicalMetricsPage() {
           <p className="text-muted-foreground">Monitor and enforce ethical standards across your team</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="gap-1">
+          <Button variant="outline" size="sm" className="gap-1" onClick={handleExportReport}>
             <Download className="h-4 w-4" />
             <span>Export Report</span>
           </Button>
-          <Button size="sm" className="gap-1">
+          <Button size="sm" className="gap-1" onClick={handleConfigure}>
             <Settings className="h-4 w-4" />
             <span>Configure</span>
           </Button>
@@ -287,7 +348,7 @@ export default function EthicalMetricsPage() {
                 </div>
               </CardContent>
               <CardFooter className="border-t pt-4">
-                <Button variant="outline" size="sm" className="gap-1">
+                <Button variant="outline" size="sm" className="gap-1" onClick={handleViewComplianceReport}>
                   <Shield className="h-4 w-4" />
                   <span>View Compliance Report</span>
                 </Button>
@@ -464,7 +525,7 @@ export default function EthicalMetricsPage() {
                 </div>
               </CardContent>
               <CardFooter className="border-t pt-4">
-                <Button variant="outline" size="sm" className="w-full gap-1">
+                <Button variant="outline" size="sm" className="w-full gap-1" onClick={handleSetOvertimeLimits}>
                   <Shield className="h-4 w-4" />
                   <span>Set Overtime Limits</span>
                 </Button>
@@ -497,7 +558,7 @@ export default function EthicalMetricsPage() {
                   <p className="text-sm text-muted-foreground mb-2">
                     Ensure team members from underrepresented groups are assigned to high-visibility tasks.
                   </p>
-                  <Button size="sm">Apply Recommendation</Button>
+                  <Button size="sm" onClick={handleApplyRecommendation}>Apply Recommendation</Button>
                 </div>
               </div>
 
@@ -510,7 +571,7 @@ export default function EthicalMetricsPage() {
                   <p className="text-sm text-muted-foreground mb-2">
                     Alice is consistently working overtime. Redistribute 2-3 tasks to team members with capacity.
                   </p>
-                  <Button size="sm">Apply Recommendation</Button>
+                  <Button size="sm" onClick={handleApplyRecommendation}>Apply Recommendation</Button>
                 </div>
               </div>
 

@@ -31,6 +31,7 @@ import { useAuth } from "@/context/auth-context"
 import { cn } from "@/lib/utils"
 import AddTaskModal from "@/components/add-task-modal"
 import { Task } from "@/types/task"
+import { useRouter } from "next/navigation"
 
 // Define types for our data
 type Sprint = {
@@ -90,6 +91,7 @@ export default function Dashboard() {
   const { theme, setTheme } = useTheme()
   const { user } = useAuth()
   const { toast } = useToast()
+  const router = useRouter()
 
   // State for data
   const [loading, setLoading] = useState(true)
@@ -283,155 +285,217 @@ export default function Dashboard() {
   // Handle button actions
   const handleApplyRecommendation = async () => {
     try {
-      // In a real implementation, you would adjust the sprint capacity based on the AI recommendation
-      if (activeSprint) {
-        toast({
-          title: "Recommendation Applied",
-          description: "Sprint capacity has been adjusted by 15%.",
-        });
-      } else {
-        toast({
-          title: "No Active Sprint",
-          description: "Cannot apply recommendation without an active sprint.",
-          variant: "destructive",
-        });
+      const response = await fetch('/api/dashboard/ai-recommendation', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sprintId: activeSprint?.id || 1,
+          taskIds: tasks.map(task => task.id)
+        }),
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to apply recommendation');
       }
+      
+      const { recommendation } = await response.json();
+      
+      // Update local state with new recommendation
+      setAIRecommendations(prev => [...prev, recommendation]);
+      
+      // Show success toast
+      toast({
+        title: "Recommendation Applied",
+        description: "The AI recommendation has been applied successfully.",
+      });
     } catch (error) {
       console.error("Error applying recommendation:", error);
       toast({
         title: "Error",
-        description: "Failed to apply recommendation.",
+        description: "Failed to apply recommendation. Please try again.",
         variant: "destructive",
       });
     }
-  }
+  };
 
   const handleIgnoreRecommendation = async () => {
-    try {
-      // In a real implementation, you would mark the recommendation as dismissed
-      toast({
-        title: "Recommendation Ignored",
-        description: "The recommendation has been dismissed.",
-      });
-    } catch (error) {
-      console.error("Error ignoring recommendation:", error);
-      toast({
-        title: "Error",
-        description: "Failed to ignore recommendation.",
-        variant: "destructive",
-      });
-    }
-  }
-
-  const handleAddTask = () => {
-    // Open the add task modal
-    if (!activeSprint) {
-      toast({
-        title: "No Active Sprint",
-        description: "Please create or start a sprint first.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    setIsAddTaskModalOpen(true);
-  }
-  
-  const handleAddTaskComplete = (newTask: Task) => {
-    // Add new task to state
-    setTasks([...tasks, newTask]);
+    // We can simply remove the recommendation from the state
+    setAIRecommendations([]);
     
     toast({
-      title: "Task Created",
-      description: "New task has been created successfully.",
+      title: "Recommendation Ignored",
+      description: "The AI recommendation has been dismissed.",
     });
-  }
+  };
+
+  const handleAddTask = () => {
+    setIsAddTaskModalOpen(true);
+  };
+
+  const handleTaskDetail = (task: Task) => {
+    setSelectedTask(task);
+    setIsTaskDetailModalOpen(true);
+  };
+
+  const handleAddTaskComplete = async (newTask: Task) => {
+    try {
+      const response = await fetch('/api/dashboard/tasks', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...newTask,
+          sprintId: activeSprint?.id
+        }),
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to create task');
+      }
+      
+      const data = await response.json();
+      
+      // Update local state
+      setTasks(prev => [...prev, data.task]);
+      
+      // Close modal
+      setIsAddTaskModalOpen(false);
+      
+      toast({
+        title: "Task Added",
+        description: "New task has been created successfully.",
+      });
+    } catch (error) {
+      console.error("Error creating task:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create task. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleTaskAction = async (action: string, taskId: number) => {
     try {
-      const taskToUpdate = tasks.find(t => t.id === taskId);
-      if (!taskToUpdate) {
-        toast({
-          title: "Error",
-          description: `Task #${taskId} not found.`,
-          variant: "destructive",
-        });
-        return;
-      }
-
-      let updatedTask = { ...taskToUpdate };
-      
       if (action === 'delete') {
-        // Handle task deletion with DELETE endpoint
         const response = await fetch(`/api/dashboard/tasks?id=${taskId}`, {
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json',
           },
+          credentials: 'include'
         });
-
+        
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || 'Failed to delete task');
+          throw new Error('Failed to delete task');
         }
-
-        // Remove from local state
-        setTasks(tasks.filter(t => t.id !== taskId));
+        
+        // Update local state
+        setTasks(prev => prev.filter(task => task.id !== taskId));
         
         toast({
           title: "Task Deleted",
-          description: `Task #${taskId} has been deleted.`,
+          description: "The task has been deleted successfully.",
         });
-        return;
+      } else if (action === 'complete') {
+        const response = await fetch('/api/dashboard/tasks', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            id: taskId,
+            status: 'completed'
+          }),
+          credentials: 'include'
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to update task');
+        }
+        
+        // Update local state
+        setTasks(prev => prev.map(task => 
+          task.id === taskId 
+            ? {...task, status: 'completed'} 
+            : task
+        ));
+        
+        toast({
+          title: "Task Completed",
+          description: "The task has been marked as completed.",
+        });
       }
-      
-      // Handle status updates
-      switch (action) {
-        case 'start':
-          updatedTask.status = 'in_progress';
-          break;
-        case 'complete':
-          updatedTask.status = 'done';
-          break;
-        case 'reopen':
-          updatedTask.status = 'todo';
-          break;
-        default:
-          break;
-      }
-
-      // Update the task using our API
-      const response = await fetch('/api/dashboard/tasks', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(updatedTask),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to update task');
-      }
-
-      const data = await response.json();
-      
-      // Update tasks state
-      setTasks(tasks.map(t => t.id === taskId ? data.task : t));
-      
-      toast({
-        title: `Task ${action.charAt(0).toUpperCase() + action.slice(1)}ed`,
-        description: `Task #${taskId} has been ${action}ed successfully.`,
-      });
     } catch (error) {
-      console.error(`Error performing ${action} on task:`, error);
+      console.error(`Error performing task action (${action}):`, error);
       toast({
         title: "Error",
         description: `Failed to ${action} task. Please try again.`,
         variant: "destructive",
       });
     }
-  }
+  };
+
+  const handleViewAllInsights = () => {
+    router.push('/dashboard/ai-scrum-master');
+  };
+
+  const handleViewDetails = () => {
+    router.push('/dashboard/team-wellbeing');
+  };
+
+  // New navigation handlers
+  const handleNavigateTo = (path: string, pageName: string) => {
+    toast({
+      title: `Navigating to ${pageName}`,
+      description: `Opening the ${pageName} page...`,
+    });
+    router.push(path);
+  };
+
+  const handleUpgradeNow = () => {
+    toast({
+      title: "Upgrade Plan",
+      description: "Opening subscription plan options...",
+    });
+    // This would typically open a modal or navigate to a subscription page
+  };
+
+  const handleViewAll = (itemType: string) => {
+    let path = "";
+    switch (itemType) {
+      case "transactions":
+        path = "/dashboard/billing";
+        break;
+      case "tasks":
+        path = "/dashboard/tasks";
+        break;
+      case "sprints":
+        path = "/dashboard/sprints";
+        break;
+      default:
+        path = "/dashboard";
+    }
+    
+    toast({
+      title: `View All ${itemType}`,
+      description: `Opening complete ${itemType} list...`,
+    });
+    
+    router.push(path);
+  };
+
+  const handleDropdownAction = (action: string) => {
+    toast({
+      title: action,
+      description: `Performing ${action.toLowerCase()}...`,
+    });
+  };
 
   return (
     <>
@@ -458,7 +522,7 @@ export default function Dashboard() {
               <CardContent className="p-6 relative z-10 text-white">
                 <h3 className="text-xl font-bold mb-4">Upgrade Your Plan</h3>
                 <p className="mb-6">Your free trial expires in 7 days</p>
-                <Button className="w-full bg-white text-purple-600 hover:bg-white/90">Upgrade Now</Button>
+                <Button className="w-full bg-white text-purple-600 hover:bg-white/90" onClick={handleUpgradeNow}>Upgrade Now</Button>
               </CardContent>
             </div>
           </Card>
@@ -477,8 +541,8 @@ export default function Dashboard() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem>View Details</DropdownMenuItem>
-                    <DropdownMenuItem>Export Data</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleDropdownAction("View Details")}>View Details</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleDropdownAction("Export Data")}>Export Data</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
@@ -507,8 +571,8 @@ export default function Dashboard() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem>View Details</DropdownMenuItem>
-                    <DropdownMenuItem>Export Data</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleNavigateTo("/dashboard/tasks", "Tasks")}>View Details</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleDropdownAction("Export Data")}>Export Data</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
@@ -537,8 +601,8 @@ export default function Dashboard() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem>View Details</DropdownMenuItem>
-                    <DropdownMenuItem>Export Data</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleNavigateTo("/dashboard/team", "Team")}>View Details</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleDropdownAction("Export Data")}>Export Data</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
@@ -622,12 +686,10 @@ export default function Dashboard() {
                       Reduce sprint commitment by 15% due to team PTO and company meetings.
                     </p>
                     <div className="mt-2 flex justify-end gap-2">
-                      <Button size="sm" variant="ghost" onClick={handleIgnoreRecommendation}>
+                      <Button size="sm" variant="ghost" onClick={() => handleIgnoreRecommendation()}>
                         Ignore
                       </Button>
-                      <Button size="sm" onClick={handleApplyRecommendation}>
-                        Apply
-                      </Button>
+                      <Button size="sm" onClick={() => handleNavigateTo("/dashboard/sprints", "Sprints")}>View Details</Button>
                     </div>
                   </div>
                   <div className="rounded-lg border bg-card p-3">
@@ -636,17 +698,17 @@ export default function Dashboard() {
                       2 team members showing signs of burnout. Consider redistributing tasks.
                     </p>
                     <div className="mt-2 flex justify-end gap-2">
-                      <Button size="sm" variant="ghost">
+                      <Button size="sm" variant="ghost" onClick={() => handleIgnoreRecommendation()}>
                         Ignore
                       </Button>
-                      <Button size="sm">View Details</Button>
+                      <Button size="sm" onClick={() => handleNavigateTo("/dashboard/team-wellbeing", "Team Wellbeing")}>View Details</Button>
                     </div>
                   </div>
                 </>
               )}
             </CardContent>
             <CardFooter>
-              <Button variant="ghost" className="w-full justify-between">
+              <Button variant="ghost" className="w-full justify-between" onClick={handleViewAllInsights}>
                 View All Insights
                 <ArrowRight className="h-4 w-4" />
               </Button>
@@ -671,9 +733,9 @@ export default function Dashboard() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem>Daily</DropdownMenuItem>
-                  <DropdownMenuItem>Weekly</DropdownMenuItem>
-                  <DropdownMenuItem>Monthly</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleDropdownAction("Set Daily View")}>Daily</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleDropdownAction("Set Weekly View")}>Weekly</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleDropdownAction("Set Monthly View")}>Monthly</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </CardHeader>
@@ -739,9 +801,9 @@ export default function Dashboard() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem>Daily</DropdownMenuItem>
-                  <DropdownMenuItem>Weekly</DropdownMenuItem>
-                  <DropdownMenuItem>Monthly</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleDropdownAction("Set Daily View")}>Daily</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleDropdownAction("Set Weekly View")}>Weekly</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleDropdownAction("Set Monthly View")}>Monthly</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </CardHeader>
@@ -782,7 +844,7 @@ export default function Dashboard() {
               <CardTitle>Recent Transactions</CardTitle>
               <CardDescription>Your recent billing activity</CardDescription>
             </div>
-            <Button variant="outline" size="sm" className="gap-1">
+            <Button variant="outline" size="sm" className="gap-1" onClick={() => handleViewAll("transactions")}>
               View All
               <ArrowRight className="h-4 w-4" />
             </Button>

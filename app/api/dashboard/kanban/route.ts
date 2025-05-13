@@ -1,160 +1,148 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
+import { kanbanColumns, kanbanTasks, users } from "@/drizzle/schema"
+import { asc, eq } from "drizzle-orm"
+import { getSession } from "@/lib/auth-actions"
 
 export async function GET(request: NextRequest) {
   try {
-    // In a real implementation, we would fetch data from the database
-    // For demo purposes, we're returning mock data
+    // Check authentication
+    const session = await getSession()
+    if (!session) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
+    }
     
-    // Example database query implementation:
-    // const columns = await db.query.kanbanColumns.findMany({
-    //   include: { tasks: true },
-    //   orderBy: { order: 'asc' },
-    // });
+    // Fetch kanban columns from the database
+    const columnsResult = await db
+      .select()
+      .from(kanbanColumns)
+      .orderBy(asc(kanbanColumns.order))
     
-    // Define mock data
-    const columns = [
-      {
-        id: "backlog",
-        title: "Backlog",
-        color: "bg-slate-400",
-        tasks: [
-          {
-            id: "task1",
-            title: "Research competitor pricing",
-            description: "Analyze pricing structures of main competitors",
-            priority: "medium",
-            dueDate: "2025-05-20",
-            assignee: {
-              id: "1",
-              name: "John Doe",
-              avatar: "",
-            },
-            tags: ["Research", "Marketing"],
-            attachments: 2,
-            comments: 3,
-            subtasks: {
-              total: 4,
-              completed: 1,
-            },
-          },
-          {
-            id: "task2",
-            title: "Update API documentation",
-            priority: "low",
-            tags: ["Documentation", "API"],
-            attachments: 1,
-            comments: 0,
-          },
-        ],
-      },
-      {
-        id: "todo",
-        title: "To Do",
-        color: "bg-blue-500",
-        tasks: [
-          {
-            id: "task3",
-            title: "Create onboarding flow wireframes",
-            priority: "high",
-            dueDate: "2025-05-18",
-            assignee: {
-              id: "2",
-              name: "Alice Smith",
-              avatar: "",
-            },
-            tags: ["Design", "UI/UX"],
-            attachments: 5,
-            comments: 8,
-            subtasks: {
-              total: 3,
-              completed: 0,
-            },
-          },
-          {
-            id: "task4",
-            title: "Implement authentication service",
-            priority: "high",
-            tags: ["Backend", "Security"],
-            comments: 2,
-          },
-        ],
-      },
-      {
-        id: "in-progress",
-        title: "In Progress",
-        color: "bg-amber-500",
-        tasks: [
-          {
-            id: "task5",
-            title: "Implement dashboard charts",
-            priority: "medium",
-            dueDate: "2025-05-15",
-            assignee: {
-              id: "1",
-              name: "John Doe",
-              avatar: "",
-            },
-            tags: ["Frontend", "Data Visualization"],
-            attachments: 1,
-            comments: 4,
-            subtasks: {
-              total: 5,
-              completed: 2,
-            },
-          },
-        ],
-      },
-      {
-        id: "review",
-        title: "Review",
-        color: "bg-purple-500",
-        tasks: [
-          {
-            id: "task6",
-            title: "Review landing page design",
-            priority: "medium",
-            assignee: {
-              id: "3",
-              name: "Bob Johnson",
-              avatar: "",
-            },
-            tags: ["Design", "Marketing"],
-            comments: 7,
-          },
-        ],
-      },
-      {
-        id: "done",
-        title: "Done",
-        color: "bg-green-500",
-        tasks: [
-          {
-            id: "task7",
-            title: "Setup CI/CD pipeline",
-            priority: "high",
-            assignee: {
-              id: "4",
-              name: "Carol Williams",
-              avatar: "",
-            },
-            tags: ["DevOps", "Infrastructure"],
-            attachments: 2,
-            subtasks: {
-              total: 3,
-              completed: 3,
-            },
-          },
-          {
-            id: "task8",
-            title: "Create project documentation",
-            priority: "low",
-            tags: ["Documentation"],
-            comments: 1,
-          },
-        ],
-      },
-    ]
+    // Prepare an array to hold our formatted columns with their tasks
+    const columns = [];
+    
+    // Fetch tasks for each column and format response
+    for (const column of columnsResult) {
+      // Fetch tasks for this column
+      const tasksResult = await db
+        .select({
+          id: kanbanTasks.id,
+          title: kanbanTasks.title,
+          description: kanbanTasks.description,
+          priority: kanbanTasks.priority,
+          status: kanbanTasks.status,
+          dueDate: kanbanTasks.dueDate,
+          assigneeId: kanbanTasks.assigneeId,
+          tags: kanbanTasks.tags,
+          attachments: kanbanTasks.attachments,
+          comments: kanbanTasks.comments,
+          subtasks: kanbanTasks.subtasks,
+          order: kanbanTasks.order,
+        })
+        .from(kanbanTasks)
+        .where(eq(kanbanTasks.columnId, column.id))
+        .orderBy(asc(kanbanTasks.order))
+      
+      // Format tasks with assignee information
+      const formattedTasks = [];
+      
+      for (const task of tasksResult) {
+        let assignee = null;
+        
+        if (task.assigneeId) {
+          // Fetch assignee info
+          const assigneeResult = await db
+            .select({
+              id: users.id,
+              name: users.name,
+              avatar: users.avatar,
+            })
+            .from(users)
+            .where(eq(users.id, task.assigneeId))
+            .limit(1)
+          
+          if (assigneeResult.length > 0) {
+            assignee = {
+              id: assigneeResult[0].id,
+              name: assigneeResult[0].name,
+              avatar: assigneeResult[0].avatar || "",
+            }
+          }
+        }
+        
+        // Format subtasks if it exists as JSON
+        let subtasksFormatted = null;
+        if (task.subtasks) {
+          // Assuming subtasks is stored as JSON with total and completed properties
+          const parsed = typeof task.subtasks === 'string' 
+            ? JSON.parse(task.subtasks) 
+            : task.subtasks;
+          
+          subtasksFormatted = {
+            total: parsed.total || 0,
+            completed: parsed.completed || 0,
+          }
+        }
+        
+        // Add formatted task to array
+        formattedTasks.push({
+          id: task.id.toString(),
+          title: task.title,
+          description: task.description || "",
+          priority: task.priority as 'low' | 'medium' | 'high',
+          dueDate: task.dueDate ? task.dueDate.toISOString().split('T')[0] : undefined,
+          assignee: assignee,
+          tags: task.tags || [],
+          attachments: task.attachments || 0,
+          comments: task.comments || 0,
+          subtasks: subtasksFormatted,
+        });
+      }
+      
+      // Add column with its tasks to the columns array
+      columns.push({
+        id: column.id.toString(),
+        title: column.title,
+        color: column.color,
+        tasks: formattedTasks,
+      });
+    }
+    
+    // If no columns found in the database, provide default columns
+    if (columns.length === 0) {
+      columns.push(
+        {
+          id: "backlog",
+          title: "Backlog",
+          color: "bg-slate-400",
+          tasks: [],
+        },
+        {
+          id: "todo", 
+          title: "To Do",
+          color: "bg-blue-500",
+          tasks: [],
+        },
+        {
+          id: "in-progress",
+          title: "In Progress",
+          color: "bg-amber-500",
+          tasks: [],
+        },
+        {
+          id: "review",
+          title: "Review",
+          color: "bg-purple-500",
+          tasks: [],
+        },
+        {
+          id: "done",
+          title: "Done",
+          color: "bg-green-500",
+          tasks: [],
+        }
+      );
+    }
 
     return NextResponse.json({ success: true, data: { columns } })
   } catch (error) {

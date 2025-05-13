@@ -1,22 +1,34 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
+import { kanbanTasks } from "@/drizzle/schema"
+import { eq } from "drizzle-orm"
+import { getSession } from "@/lib/auth-actions"
 
 export async function POST(request: NextRequest) {
   try {
+    // Check authentication
+    const session = await getSession()
+    if (!session) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
+    }
+    
     const body = await request.json()
     const { taskId, newStatus, sourceColumnId, destinationColumnId, sourceIndex, destinationIndex } = body
     
-    // In a real implementation, we would update the task status in the database
-    // For demo purposes, we're just acknowledging the request
+    // Update the task status and column ID in the database
+    const updateResult = await db
+      .update(kanbanTasks)
+      .set({
+        status: newStatus,
+        columnId: destinationColumnId,
+        // Optionally update order if you're tracking it
+      })
+      .where(eq(kanbanTasks.id, parseInt(taskId)))
+      .returning()
     
-    // Example database query implementation:
-    // await db.kanbanTask.update({
-    //   where: { id: taskId },
-    //   data: { 
-    //     columnId: destinationColumnId,
-    //     status: newStatus
-    //   }
-    // });
+    if (!updateResult || updateResult.length === 0) {
+      throw new Error(`Failed to update task with ID ${taskId}`)
+    }
     
     return NextResponse.json({ 
       success: true, 
@@ -27,7 +39,8 @@ export async function POST(request: NextRequest) {
         sourceColumnId, 
         destinationColumnId, 
         sourceIndex, 
-        destinationIndex
+        destinationIndex,
+        task: updateResult[0]
       }
     })
   } catch (error) {

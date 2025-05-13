@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server"
 import { getSession } from "@/lib/auth-actions"
+import { db } from "@/lib/db"
+import { aiInsights } from "@/drizzle/schema"
 
 export async function POST(request: Request) {
   try {
@@ -31,15 +33,28 @@ export async function POST(request: Request) {
     // Select a random recommendation
     const randomRecommendation = recommendations[Math.floor(Math.random() * recommendations.length)]
     
-    return NextResponse.json({
-      success: true,
-      recommendation: {
-        id: Math.floor(Math.random() * 1000),
+    // Store the recommendation in the database
+    const [newInsight] = await db
+      .insert(aiInsights)
+      .values({
         type: "sprint_planning",
         title: "Sprint Planning Recommendation",
         description: randomRecommendation,
         status: "active",
-        generatedAt: new Date().toISOString()
+        createdAt: new Date(),
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // Expires in 7 days
+      })
+      .returning()
+    
+    return NextResponse.json({
+      success: true,
+      recommendation: {
+        id: newInsight.id,
+        type: newInsight.type,
+        title: newInsight.title,
+        description: newInsight.description,
+        status: newInsight.status,
+        generatedAt: newInsight.createdAt.toISOString()
       }
     })
   } catch (error) {

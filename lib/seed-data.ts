@@ -8,6 +8,8 @@ import {
   ethicalMetrics,
   sprintAnalytics,
   aiInsights,
+  kanbanColumns,
+  kanbanTasks
 } from "../drizzle/schema"
 import { sql } from "drizzle-orm"
 import bcrypt from "bcryptjs"
@@ -386,10 +388,168 @@ export async function seedDatabase() {
       },
     ])
 
+    // Add Kanban Columns
+    const initialColumns = [
+      { title: "Backlog", color: "bg-slate-400", order: 10 },
+      { title: "To Do", color: "bg-blue-500", order: 20 },
+      { title: "In Progress", color: "bg-amber-500", order: 30 },
+      { title: "Review", color: "bg-purple-500", order: 40 },
+      { title: "Done", color: "bg-green-500", order: 50 }
+    ]
+    
+    let kanbanColumnsData;
+    if (USE_SQLITE) {
+      kanbanColumnsData = [];
+      
+      for (const column of initialColumns) {
+        await db.insert(kanbanColumns).values({
+          ...column,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        });
+        const result = await db.select().from(kanbanColumns).where(sql`title = ${column.title}`);
+        kanbanColumnsData.push(result[0]);
+      }
+    } else {
+      kanbanColumnsData = await db
+        .insert(kanbanColumns)
+        .values(initialColumns.map(column => ({
+          ...column,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        })))
+        .returning();
+    }
+    
+    // Add Kanban Tasks
+    const kanbanTasksData = [
+      {
+        title: "Research competitor pricing",
+        description: "Analyze pricing structures of main competitors",
+        priority: "medium",
+        status: "backlog",
+        columnId: kanbanColumnsData[0].id,
+        assigneeId: demoUsers[0].id,
+        dueDate: new Date(new Date().setDate(new Date().getDate() + 10)),
+        order: 10,
+        tags: ["Research", "Marketing"],
+        attachments: 2,
+        comments: 3,
+        subtasks: { total: 4, completed: 1 },
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        title: "Update API documentation",
+        description: "Create comprehensive documentation for all API endpoints",
+        priority: "low",
+        status: "backlog",
+        columnId: kanbanColumnsData[0].id,
+        order: 20,
+        tags: ["Documentation", "API"],
+        attachments: 1,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        title: "Create onboarding flow wireframes",
+        description: "Design the user onboarding experience",
+        priority: "high",
+        status: "todo",
+        columnId: kanbanColumnsData[1].id,
+        assigneeId: demoUsers[1].id,
+        dueDate: new Date(new Date().setDate(new Date().getDate() + 5)),
+        order: 10,
+        tags: ["Design", "UI/UX"],
+        attachments: 5,
+        comments: 8,
+        subtasks: { total: 3, completed: 0 },
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        title: "Implement authentication service",
+        description: "Build secure authentication service with JWT tokens",
+        priority: "high",
+        status: "todo",
+        columnId: kanbanColumnsData[1].id,
+        order: 20,
+        tags: ["Backend", "Security"],
+        comments: 2,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        title: "Implement dashboard charts",
+        description: "Create interactive charts for the main dashboard",
+        priority: "medium",
+        status: "in_progress",
+        columnId: kanbanColumnsData[2].id,
+        assigneeId: demoUsers[0].id,
+        dueDate: new Date(new Date().setDate(new Date().getDate() + 3)),
+        order: 10,
+        tags: ["Frontend", "Data Visualization"],
+        attachments: 1,
+        comments: 4,
+        subtasks: { total: 5, completed: 2 },
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        title: "Review landing page design",
+        description: "Review and provide feedback on the new landing page design",
+        priority: "medium",
+        status: "review",
+        columnId: kanbanColumnsData[3].id,
+        assigneeId: demoUsers[2].id,
+        order: 10,
+        tags: ["Design", "Marketing"],
+        comments: 7,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        title: "Setup CI/CD pipeline",
+        description: "Implement continuous integration and deployment",
+        priority: "high",
+        status: "done",
+        columnId: kanbanColumnsData[4].id,
+        assigneeId: demoUsers[0].id,
+        order: 10,
+        tags: ["DevOps", "Infrastructure"],
+        attachments: 2,
+        subtasks: { total: 3, completed: 3 },
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        title: "Create project documentation",
+        description: "Write comprehensive documentation for the project",
+        priority: "low",
+        status: "done",
+        columnId: kanbanColumnsData[4].id,
+        order: 20,
+        tags: ["Documentation"],
+        comments: 1,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }
+    ]
+    
+    if (USE_SQLITE) {
+      for (const task of kanbanTasksData) {
+        await db.insert(kanbanTasks).values(task);
+      }
+    } else {
+      await db
+        .insert(kanbanTasks)
+        .values(kanbanTasksData);
+    }
+    
     console.log("Database seeded successfully!")
     return true
   } catch (error) {
     console.error("Error seeding database:", error)
-    return false
+    throw error
   }
 }

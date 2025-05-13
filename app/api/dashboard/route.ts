@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { getSession } from "@/lib/auth-actions"
 import { db } from "@/lib/db"
-import { tasks, sprints, users, wellbeingMetrics, ethicalMetrics, aiInsights } from "@/drizzle/schema"
+import { tasks, sprints, users, wellbeingMetrics, ethicalMetrics, aiInsights, gamification } from "@/drizzle/schema"
 import { eq, and, desc, gte, lte, sql } from "drizzle-orm"
 
 export async function GET(request: Request) {
@@ -67,7 +67,7 @@ export async function GET(request: Request) {
     // Calculate team happiness (average)
     const teamHappinessResult = await db
       .select({
-        averageScore: sql<number>`avg(wellbeing_score)`,
+        averageScore: sql<number>`avg(${wellbeingMetrics.wellbeingScore})`,
       })
       .from(wellbeingMetrics)
     
@@ -97,16 +97,25 @@ export async function GET(request: Request) {
       .from(tasks)
       .groupBy(tasks.status)
 
+    // Get user's gamification data
+    const userGamificationResult = await db
+      .select()
+      .from(gamification)
+      .where(eq(gamification.userId, session.id))
+      .limit(1)
+
     // Format wellbeing data
     const wellbeingData = {
       teamHappiness: Math.round(Number(teamHappiness)),
-      teamMembers: teamMembers.map((member: { id: number, name: string, avatar: string | null }) => ({
-        id: member.id,
-        name: member.name,
-        avatar: member.avatar || "",
-        // Get most recent mood or default to "Neutral"
-        mood: wellbeingResult.find((w: { userId: number }) => w.userId === member.id)?.mood || "Neutral"
-      }))
+      teamMembers: teamMembers.map((member: { id: number, name: string, avatar: string | null }) => {
+        const memberWellbeing = wellbeingResult.find((w: any) => w.userId === member.id)
+        return {
+          id: member.id,
+          name: member.name,
+          avatar: member.avatar || "",
+          mood: memberWellbeing?.mood || "Neutral"
+        }
+      })
     }
     
     // Format ethical metrics
@@ -129,40 +138,15 @@ export async function GET(request: Request) {
       status: aiInsightsResult[0].status,
     } : null
     
-    // Create simulated transactions
-    const transactions = [
-      {
-        id: 1,
-        type: "Team License",
-        amount: 1200,
-        status: "completed",
-        date: "2023-05-01",
+    // Format user's gamification data
+    const gamificationData = userGamificationResult[0] ? {
+      skillTrees: userGamificationResult[0].skillTrees || {
+        "Frontend Master": { level: 3, progress: 65, tasksToNextLevel: 7 },
+        "Team Player": { level: 4, progress: 80, tasksToNextLevel: 3 },
+        "Problem Solver": { level: 2, progress: 40, tasksToNextLevel: 12 },
       },
-      {
-        id: 2,
-        type: "AI Credits",
-        amount: 450,
-        status: "completed",
-        date: "2023-05-03",
-      },
-      {
-        id: 3,
-        type: "Premium Support",
-        amount: -200,
-        status: "refunded",
-        date: "2023-05-05",
-      },
-      {
-        id: 4,
-        type: "Additional Users",
-        amount: 350,
-        status: "completed",
-        date: "2023-05-07",
-      },
-    ]
-
-    // Format gamification data
-    const gamificationData = {
+      nextReward: "Complete 5 more high-priority tasks to unlock a half-day PTO bonus!",
+    } : {
       skillTrees: [
         {
           name: "Frontend Master",
@@ -186,6 +170,18 @@ export async function GET(request: Request) {
       nextReward: "Complete 5 more high-priority tasks to unlock a half-day PTO bonus!",
     }
 
+    // Process gamification skillTrees if it's in JSON format
+    if (userGamificationResult[0] && gamificationData.skillTrees) {
+      if (typeof gamificationData.skillTrees === 'object' && !Array.isArray(gamificationData.skillTrees)) {
+        gamificationData.skillTrees = Object.entries(gamificationData.skillTrees).map(([name, data]: [string, any]) => ({
+          name,
+          level: data.level,
+          progress: data.progress,
+          tasksToNextLevel: data.tasksToNextLevel,
+        }))
+      }
+    }
+
     // Return the dashboard data
     return NextResponse.json({
       success: true,
@@ -196,7 +192,6 @@ export async function GET(request: Request) {
         wellbeing: wellbeingData,
         ethicalMetrics: ethicalData,
         gamification: gamificationData,
-        transactions,
         taskStatusCounts: taskStatusResult,
       },
     })

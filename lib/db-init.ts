@@ -137,6 +137,63 @@ export async function initializeDatabase() {
         expires_at TIMESTAMP
       )
     `)
+    
+    // Kanban tables
+    await executeSqlWithTimeout(sql`
+      CREATE TABLE IF NOT EXISTS kanban_columns (
+        id SERIAL PRIMARY KEY,
+        title TEXT NOT NULL,
+        color TEXT NOT NULL DEFAULT 'bg-slate-400',
+        "order" INTEGER NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `)
+    
+    await executeSqlWithTimeout(sql`
+      CREATE TABLE IF NOT EXISTS kanban_tasks (
+        id SERIAL PRIMARY KEY,
+        title TEXT NOT NULL,
+        description TEXT,
+        priority VARCHAR(20) NOT NULL DEFAULT 'medium',
+        status VARCHAR(50) NOT NULL DEFAULT 'backlog',
+        column_id INTEGER REFERENCES kanban_columns(id) NOT NULL,
+        assignee_id INTEGER REFERENCES users(id),
+        sprint_id INTEGER REFERENCES sprints(id),
+        due_date DATE,
+        "order" INTEGER NOT NULL,
+        tags TEXT[],
+        attachments INTEGER DEFAULT 0,
+        comments INTEGER DEFAULT 0,
+        subtasks JSONB,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `)
+    
+    await executeSqlWithTimeout(sql`
+      CREATE TABLE IF NOT EXISTS kanban_task_comments (
+        id SERIAL PRIMARY KEY,
+        task_id INTEGER REFERENCES kanban_tasks(id) NOT NULL,
+        user_id INTEGER REFERENCES users(id) NOT NULL,
+        content TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `)
+    
+    await executeSqlWithTimeout(sql`
+      CREATE TABLE IF NOT EXISTS kanban_task_attachments (
+        id SERIAL PRIMARY KEY,
+        task_id INTEGER REFERENCES kanban_tasks(id) NOT NULL,
+        user_id INTEGER REFERENCES users(id) NOT NULL,
+        filename TEXT NOT NULL,
+        file_url TEXT NOT NULL,
+        file_size INTEGER NOT NULL,
+        file_type VARCHAR(100) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `)
 
     console.log("Database tables initialized successfully")
 

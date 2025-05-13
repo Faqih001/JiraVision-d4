@@ -14,6 +14,7 @@ import {
   RefreshCw,
   Settings,
   ThumbsUp,
+  LightningBolt,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -164,47 +165,134 @@ export default function TeamWellbeingPage() {
   }, [toast])
 
   // Handle button actions
+  const handleViewHistory = async () => {
+    try {
+      toast({
+        title: "Loading Wellbeing History",
+        description: "Retrieving historical wellbeing data...",
+      });
+      
+      const response = await fetch('/api/dashboard/wellbeing', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch wellbeing history');
+      }
+      
+      const { data } = await response.json();
+      
+      // Process the history data (this would typically open a modal or update state)
+      console.log('Wellbeing history:', data);
+      
+      toast({
+        title: "History Loaded",
+        description: `Successfully loaded ${data.length} wellbeing records.`,
+      });
+    } catch (error) {
+      console.error("Error fetching wellbeing history:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load wellbeing history. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleConfigure = () => {
     toast({
-      title: "Configure",
-      description: "Opening wellbeing configuration settings...",
-    })
-  }
+      title: "Wellbeing Settings",
+      description: "Opening wellbeing monitoring configuration...",
+    });
+  };
 
-  const handleViewHistory = () => {
-    toast({
-      title: "View History",
-      description: "Opening wellbeing history view...",
-    })
-  }
-
-  const handleDownloadReport = () => {
-    toast({
-      title: "Download Report",
-      description: "Generating and downloading wellbeing report...",
-    })
-  }
+  const handleSubmitSurvey = async () => {
+    try {
+      toast({
+        title: "Submitting Survey",
+        description: "Recording your wellbeing data...",
+      });
+      
+      const surveyData = {
+        wellbeingScore: 85,
+        mood: "Focused",
+        workload: "Balanced",
+        stressLevel: 3,
+        overtimeHours: 0
+      };
+      
+      const response = await fetch('/api/dashboard/wellbeing', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(surveyData),
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to submit wellbeing survey');
+      }
+      
+      toast({
+        title: "Survey Submitted",
+        description: "Your wellbeing data has been recorded. Thank you!",
+      });
+    } catch (error) {
+      console.error("Error submitting wellbeing survey:", error);
+      toast({
+        title: "Error",
+        description: "Failed to submit wellbeing survey. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleDownloadAnalysis = () => {
     toast({
       title: "Download Analysis",
       description: "Generating and downloading full wellbeing analysis...",
-    })
-  }
+    });
+    
+    // This would typically generate and download a PDF or Excel file
+  };
 
-  const handleImplementRecommendations = () => {
-    toast({
-      title: "Implement Recommendations",
-      description: "Applying wellbeing recommendations...",
-    })
-  }
+  const handleImplementRecommendations = async () => {
+    try {
+      toast({
+        title: "Implementing Recommendations",
+        description: "Applying wellbeing recommendations...",
+      });
+      
+      // Simulating an API call to implement recommendations
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      toast({
+        title: "Recommendations Applied",
+        description: "Wellbeing recommendations have been implemented successfully.",
+      });
+    } catch (error) {
+      console.error("Error implementing recommendations:", error);
+      toast({
+        title: "Error",
+        description: "Failed to implement recommendations. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleViewMemberDetails = (memberId: number) => {
     toast({
       title: "View Details",
       description: `Opening details for team member #${memberId}...`,
-    })
-  }
+    });
+    
+    // This would typically open a modal with member details
+  };
 
   return (
     <div className="p-4 md:p-6 space-y-6">
@@ -274,7 +362,7 @@ export default function TeamWellbeingPage() {
                   </div>
                 </CardContent>
                 <CardFooter className="border-t pt-4">
-                  <Button variant="outline" size="sm" className="w-full gap-1" onClick={handleDownloadReport}>
+                  <Button variant="outline" size="sm" className="w-full gap-1" onClick={handleDownloadAnalysis}>
                     <Download className="h-4 w-4" />
                     <span>Download Full Report</span>
                   </Button>
