@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useEffect, useState, useRef } from "react"
-import { Shield, Info, Lock, Bell, Phone, Video, Search, MoreVertical, ArrowLeft, Send, Paperclip, Smile, Mic, Image as ImageIcon, FileIcon, X, Plus, Check, Reply, Edit2, Trash2, Download, MessageSquare } from "lucide-react"
+import { Shield, Info, Lock, Bell, Phone, Video, Search, MoreVertical, ArrowLeft, Send, Paperclip, Smile, Mic, Image as ImageIcon, FileIcon, X, Plus, Check, Reply, Edit2, Trash2, Download, MessageSquare, Archive } from "lucide-react"
 import { ChatProvider, useChat, Message, Chat, ChatContextType } from "@/app/context/chat/ChatContext"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -237,6 +237,7 @@ function CustomChatList() {
   const [searchQuery, setSearchQuery] = useState('')
   const [showNewChatModal, setShowNewChatModal] = useState(false)
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([])
+  const [activeTab, setActiveTab] = useState<'recent' | 'contacts'>('recent')
   
   useEffect(() => {
     // Fetch team members when component mounts
@@ -256,6 +257,11 @@ function CustomChatList() {
         (chat.lastMessage && chat.lastMessage.content.toLowerCase().includes(searchQuery.toLowerCase()))
       )
     : chats
+
+  // Show only archived chats when on "contacts" tab
+  const displayChats = activeTab === 'recent' 
+    ? filteredChats.filter(chat => !chat.isArchived)
+    : filteredChats.filter(chat => chat.isArchived)
 
   // Format time for display
   const formatTime = (timestamp: Date | undefined) => {
@@ -298,10 +304,10 @@ function CustomChatList() {
   }
 
   return (
-    <div className="w-full md:w-80 lg:w-96 border-r flex flex-col h-full bg-white">
+    <div className="w-full md:w-80 lg:w-96 border-r flex flex-col h-full bg-white relative">
       {/* Search and new chat */}
-      <div className="p-3 border-b">
-        <div className="flex items-center gap-2 mb-3">
+      <div className="p-4 border-b sticky top-0 bg-white z-10">
+        <div className="flex items-center gap-3 mb-4">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -314,7 +320,7 @@ function CustomChatList() {
           <Button 
             size="icon" 
             variant="outline" 
-            className="rounded-full"
+            className="rounded-full flex-shrink-0 hover:bg-primary hover:text-white transition-colors"
             onClick={() => setShowNewChatModal(true)}
           >
             <Plus className="h-4 w-4" />
@@ -339,56 +345,85 @@ function CustomChatList() {
       </div>
       
       {/* Chat tabs */}
-      <Tabs defaultValue="recent" className="w-full">
-        <TabsList className="w-full rounded-none border-b">
-          <TabsTrigger value="recent" className="flex-1">Recent</TabsTrigger>
-          <TabsTrigger value="contacts" className="flex-1">Contacts</TabsTrigger>
+      <Tabs 
+        defaultValue="recent" 
+        className="w-full"
+        onValueChange={(value) => setActiveTab(value as 'recent' | 'contacts')}
+      >
+        <TabsList className="w-full rounded-none border-b grid grid-cols-2">
+          <TabsTrigger value="recent" className="rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none">Recent</TabsTrigger>
+          <TabsTrigger value="contacts" className="rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none">Archived</TabsTrigger>
         </TabsList>
         
         {/* Chat list */}
         <div className="flex-1 overflow-y-auto">
-          {filteredChats.length === 0 ? (
-            <div className="p-4 text-center text-muted-foreground">
-              {searchQuery ? 'No chats found' : 'No recent chats'}
+          {displayChats.length === 0 ? (
+            <div className="p-6 text-center text-muted-foreground flex flex-col items-center justify-center min-h-[200px]">
+              {searchQuery ? (
+                <>
+                  <Search className="h-8 w-8 mb-2 text-muted-foreground/50" />
+                  <p>No chats found for "{searchQuery}"</p>
+                </>
+              ) : activeTab === 'recent' ? (
+                <>
+                  <MessageSquare className="h-8 w-8 mb-2 text-muted-foreground/50" />
+                  <p>No recent chats</p>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="mt-2"
+                    onClick={() => setShowNewChatModal(true)}
+                  >
+                    Start a new chat
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Archive className="h-8 w-8 mb-2 text-muted-foreground/50" />
+                  <p>No archived chats</p>
+                </>
+              )}
             </div>
           ) : (
-            filteredChats.map(chat => (
+            displayChats.map(chat => (
               <div
                 key={chat.id}
-                className={`flex items-center p-3 cursor-pointer transition-colors hover:bg-muted/30 ${
+                className={`flex items-center px-4 py-3 cursor-pointer transition-colors hover:bg-muted/30 ${
                   activeChat?.id === chat.id ? 'bg-muted/40' : ''
                 }`}
                 onClick={() => setActiveChat(chat)}
               >
-                <div className="relative mr-3">
-                  <Avatar className="h-12 w-12">
+                <div className="relative mr-3 flex-shrink-0">
+                  <Avatar className="h-12 w-12 border bg-background">
                     <AvatarImage src={chat.avatar} />
-                    <AvatarFallback>{chat.name.charAt(0)}</AvatarFallback>
+                    <AvatarFallback className="font-medium">
+                      {chat.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                    </AvatarFallback>
                   </Avatar>
                   {(chat as EnhancedChat).online && (
-                    <div className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 border-2 border-background"></div>
+                    <div className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 border-2 border-white"></div>
                   )}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex justify-between items-center">
-                    <h3 className="font-medium truncate">{chat.name}</h3>
-                    <span className="text-xs text-muted-foreground">
+                <div className="flex-1 min-w-0 space-y-1">
+                  <div className="flex justify-between items-baseline">
+                    <h3 className="font-medium truncate text-sm">{chat.name}</h3>
+                    <span className="text-xs text-muted-foreground flex-shrink-0 ml-2">
                       {(chat as EnhancedChat).lastMessageTime || formatTime(chat.lastMessage?.timestamp)}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <p className="text-sm text-muted-foreground truncate">
+                    <p className="text-xs text-muted-foreground truncate max-w-[calc(100%-40px)]">
                       {getChatPreview(chat)}
                     </p>
-                    <div className="flex items-center">
+                    <div className="flex items-center gap-1">
                       {chat.unreadCount > 0 && (
                         <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center text-xs text-white">
                           {chat.unreadCount}
                         </div>
                       )}
                       <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-7 w-7">
+                        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 focus:opacity-100">
                             <MoreVertical className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>

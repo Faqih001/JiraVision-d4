@@ -206,19 +206,19 @@ export const ChatProvider = ({ children, teamMembers }: { children: React.ReactN
 
         // Add last messages to other chats
         if (chat.name === "Jitu Chauhan") {
-          chat.lastMessage = null
+          chat.lastMessage = undefined
           chat.preview = "I m for unread message components..."
           chat.lastMessageTime = "8:48AM"
         }
 
         if (chat.name === "Kevin White") {
-          chat.lastMessage = null
+          chat.lastMessage = undefined
           chat.preview = "Currently chat with user components..."
           chat.lastMessageTime = "8:48AM"
         }
 
         if (chat.name === "Mary Newton") {
-          chat.lastMessage = null
+          chat.lastMessage = undefined
           chat.preview = ""
           chat.lastMessageTime = "8:48AM"
         }
