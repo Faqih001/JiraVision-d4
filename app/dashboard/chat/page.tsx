@@ -24,6 +24,7 @@ interface EnhancedChat extends Chat {
   preview?: string
   lastMessageTime?: string
   online?: boolean
+  id: string // Ensure id is string type
 }
 
 // Placeholder function to simulate fetching team members
@@ -240,6 +241,11 @@ function CustomChatList() {
   const [showNewChatModal, setShowNewChatModal] = useState(false)
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([])
   const [activeTab, setActiveTab] = useState<'recent' | 'contacts'>('recent')
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+    chatId: string | null;
+  } | null>(null)
   
   useEffect(() => {
     // Fetch team members when component mounts
@@ -249,7 +255,33 @@ function CustomChatList() {
     }
     
     loadTeamMembers()
+    
+    // Close context menu on click outside
+    const handleClickOutside = () => setContextMenu(null)
+    document.addEventListener('click', handleClickOutside)
+    return () => document.removeEventListener('click', handleClickOutside)
   }, [])
+
+  // Handle archive/unarchive chat
+  const handleArchiveChat = (chatId: string) => {
+    // In a real app, this would call an API to archive/unarchive the chat
+    const chatsCopy = [...chats];
+    const chatIndex = chatsCopy.findIndex(c => c.id === chatId);
+    
+    if (chatIndex !== -1) {
+      chatsCopy[chatIndex] = {
+        ...chatsCopy[chatIndex],
+        isArchived: !chatsCopy[chatIndex].isArchived
+      };
+      
+      // In a real app, you would update the state through your state management system
+      // This is just a simulation
+      const updatedChats = [...chatsCopy];
+      // Update context or state here
+    }
+    
+    setContextMenu(null);
+  };
 
   // Filter chats based on search query
   const filteredChats = searchQuery
@@ -319,14 +351,23 @@ function CustomChatList() {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          <Button 
-            size="icon" 
-            variant="outline" 
-            className="rounded-full flex-shrink-0 hover:bg-primary hover:text-white transition-colors"
-            onClick={() => setShowNewChatModal(true)}
-          >
-            <Plus className="h-4 w-4" />
-          </Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  size="icon" 
+                  variant="outline" 
+                  className="rounded-full flex-shrink-0 hover:bg-primary hover:text-white transition-colors"
+                  onClick={() => setShowNewChatModal(true)}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Create New Chat</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
         
         {/* Connection status */}
@@ -396,6 +437,14 @@ function CustomChatList() {
                       activeChat?.id === chat.id ? 'bg-muted/40' : ''
                     }`}
                     onClick={() => setActiveChat(chat)}
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      setContextMenu({
+                        x: e.clientX,
+                        y: e.clientY,
+                        chatId: chat.id
+                      });
+                    }}
                   >
                     <div className="relative mr-3 flex-shrink-0">
                       <Avatar className="h-12 w-12 border bg-background">
@@ -434,7 +483,12 @@ function CustomChatList() {
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem>Pin</DropdownMenuItem>
                               <DropdownMenuItem>{chat.isMuted ? 'Unmute' : 'Mute'}</DropdownMenuItem>
-                              <DropdownMenuItem>{chat.isArchived ? 'Unarchive' : 'Archive'}</DropdownMenuItem>
+                              <DropdownMenuItem onClick={(e) => {
+                                e.stopPropagation();
+                                handleArchiveChat(chat.id);
+                              }}>
+                                {chat.isArchived ? 'Unarchive' : 'Archive'}
+                              </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem className="text-destructive">Clear chat</DropdownMenuItem>
                             </DropdownMenuContent>
@@ -450,6 +504,40 @@ function CustomChatList() {
         </Tabs>
       </div>
       
+      {/* Context Menu */}
+      {contextMenu && (
+        <div
+          className="fixed bg-background shadow-lg border rounded-md py-1 z-50 w-48"
+          style={{
+            left: `${contextMenu.x}px`,
+            top: `${contextMenu.y}px`,
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button 
+            className="w-full text-left px-3 py-2 text-sm hover:bg-muted/50"
+            onClick={() => {
+              if (contextMenu.chatId) handleArchiveChat(contextMenu.chatId);
+            }}
+          >
+            {activeTab === 'recent' ? 'Archive Chat' : 'Unarchive Chat'}
+          </button>
+          <button className="w-full text-left px-3 py-2 text-sm hover:bg-muted/50">
+            Mark as Read
+          </button>
+          <button className="w-full text-left px-3 py-2 text-sm hover:bg-muted/50">
+            Pin Chat
+          </button>
+          <button className="w-full text-left px-3 py-2 text-sm hover:bg-muted/50">
+            Mute Notifications
+          </button>
+          <div className="border-t my-1"></div>
+          <button className="w-full text-left px-3 py-2 text-sm text-red-500 hover:bg-muted/50">
+            Delete Chat
+          </button>
+        </div>
+      )}
+        
       {/* New Chat Modal */}
       {showNewChatModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -469,6 +557,13 @@ function CustomChatList() {
               />
             </div>
             
+            <Tabs defaultValue="individual" className="mb-4">
+              <TabsList className="w-full">
+                <TabsTrigger value="individual" className="flex-1">Individual</TabsTrigger>
+                <TabsTrigger value="group" className="flex-1">New Group</TabsTrigger>
+              </TabsList>
+            </Tabs>
+            
             <div className="max-h-[60vh] overflow-y-auto">
               {teamMembers.map(member => (
                 <div 
@@ -478,6 +573,11 @@ function CustomChatList() {
                     // Here you would implement logic to start a new chat with this member
                     // For now, just close the modal
                     setShowNewChatModal(false)
+                    
+                    // In a real app, you would:
+                    // 1. Check if a chat with this member already exists
+                    // 2. If it exists, open that chat
+                    // 3. If not, create a new chat
                   }}
                 >
                   <Avatar className="h-10 w-10 mr-3">
@@ -488,13 +588,18 @@ function CustomChatList() {
                     <h3 className="font-medium">{member.name}</h3>
                     <p className="text-sm text-muted-foreground">{member.role}</p>
                   </div>
+                  <div className="ml-auto">
+                    {(member as any).online && (
+                      <div className="h-2.5 w-2.5 rounded-full bg-green-500 border border-white"></div>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
             
             <div className="flex justify-end gap-2 mt-4">
               <Button variant="outline" onClick={() => setShowNewChatModal(false)}>Cancel</Button>
-              <Button>Create Group</Button>
+              <Button>Create Chat</Button>
             </div>
           </div>
         </div>
@@ -635,6 +740,125 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
       </div>
     )
   }
+  
+  // Handle emoji picker
+  const [emojiCategory, setEmojiCategory] = useState<'recent' | 'smileys' | 'people' | 'nature' | 'food' | 'activities' | 'objects' | 'symbols' | 'flags'>('smileys')
+  
+  // Emoji data by category
+  const emojiData = {
+    recent: ['😀', '😂', '👍', '❤️', '🔥', '✅', '🙏', '👏'],
+    smileys: ['😀', '😁', '😂', '🤣', '😃', '😄', '😅', '😆', '😉', '😊', '😋', '😎', '🥰', '😍', '😘', '😗', '😙', '😚', '🙂', '🤗', '🤔', '🤨', '😐', '😑'],
+    people: ['👶', '👧', '🧒', '👦', '👩', '🧑', '👨', '👵', '🧓', '👴', '👲', '👳‍♀️', '👳‍♂️', '🧕', '🧔', '👱‍♀️', '👱‍♂️', '👨‍🦰', '👩‍🦰', '👨‍🦱', '👩‍🦱', '👨‍🦲', '👩‍🦲', '👨‍🦳'],
+    nature: ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🙈', '🙉', '🙊', '🐒', '🦍', '🦓', '🦒', '🦘', '🦬'],
+    food: ['🍏', '🍎', '🍐', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🫐', '🍈', '🍒', '🍑', '🥭', '🍍', '🥥', '🥝', '🍅', '🍆', '🥑', '🥦', '🥬', '🥒', '🌶'],
+    activities: ['⚽', '🏀', '🏈', '⚾', '🥎', '🎾', '🏐', '🏉', '🥏', '🎱', '🪀', '🏓', '🏸', '🏒', '🏑', '🥍', '🏏', '🪃', '🥅', '⛳', '🪁', '🏹', '🎣', '🤿'],
+    objects: ['⌚', '📱', '📲', '💻', '⌨️', '🖥', '🖨', '🖱', '🖲', '🕹', '🗜', '💽', '💾', '💿', '📀', '📼', '📷', '📸', '📹', '🎥', '📽', '🎞', '📞', '☎️'],
+    symbols: ['❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟', '☮️', '✝️', '☪️', '🕉', '☸️'],
+    flags: ['🏳️', '🏴', '🏁', '🚩', '🏳️‍🌈', '🏳️‍⚧️', '🇺🇳', '🇦🇫', '🇦🇽', '🇦🇱', '🇩🇿', '🇦🇸', '🇦🇩', '🇦🇴', '🇦🇮', '🇦🇶', '🇦🇬', '🇦🇷', '🇦🇲', '🇦🇼']
+  };
+  
+  // Render enhanced emoji picker
+  const renderEmojiPicker = () => (
+    <div className="p-2">
+      <div className="flex items-center justify-between mb-2 border-b pb-2">
+        <div className="text-sm font-medium">Emojis</div>
+        <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => setEmojiPickerOpen(false)}>
+          <X className="h-3 w-3" />
+        </Button>
+      </div>
+      
+      <div className="flex gap-1 mb-2 overflow-x-auto pb-1 scrollbar-thin">
+        <Button 
+          variant={emojiCategory === 'recent' ? 'default' : 'ghost'} 
+          size="sm" 
+          className="h-7 w-7 p-0 rounded-full"
+          onClick={() => setEmojiCategory('recent')}
+        >
+          <span className="text-xs">🕒</span>
+        </Button>
+        <Button 
+          variant={emojiCategory === 'smileys' ? 'default' : 'ghost'} 
+          size="sm" 
+          className="h-7 w-7 p-0 rounded-full"
+          onClick={() => setEmojiCategory('smileys')}
+        >
+          <span className="text-xs">😊</span>
+        </Button>
+        <Button 
+          variant={emojiCategory === 'people' ? 'default' : 'ghost'} 
+          size="sm" 
+          className="h-7 w-7 p-0 rounded-full"
+          onClick={() => setEmojiCategory('people')}
+        >
+          <span className="text-xs">👪</span>
+        </Button>
+        <Button 
+          variant={emojiCategory === 'nature' ? 'default' : 'ghost'} 
+          size="sm" 
+          className="h-7 w-7 p-0 rounded-full"
+          onClick={() => setEmojiCategory('nature')}
+        >
+          <span className="text-xs">🐶</span>
+        </Button>
+        <Button 
+          variant={emojiCategory === 'food' ? 'default' : 'ghost'} 
+          size="sm" 
+          className="h-7 w-7 p-0 rounded-full"
+          onClick={() => setEmojiCategory('food')}
+        >
+          <span className="text-xs">🍔</span>
+        </Button>
+        <Button 
+          variant={emojiCategory === 'activities' ? 'default' : 'ghost'} 
+          size="sm" 
+          className="h-7 w-7 p-0 rounded-full"
+          onClick={() => setEmojiCategory('activities')}
+        >
+          <span className="text-xs">⚽</span>
+        </Button>
+        <Button 
+          variant={emojiCategory === 'objects' ? 'default' : 'ghost'} 
+          size="sm" 
+          className="h-7 w-7 p-0 rounded-full"
+          onClick={() => setEmojiCategory('objects')}
+        >
+          <span className="text-xs">💻</span>
+        </Button>
+        <Button 
+          variant={emojiCategory === 'symbols' ? 'default' : 'ghost'} 
+          size="sm" 
+          className="h-7 w-7 p-0 rounded-full"
+          onClick={() => setEmojiCategory('symbols')}
+        >
+          <span className="text-xs">❤️</span>
+        </Button>
+        <Button 
+          variant={emojiCategory === 'flags' ? 'default' : 'ghost'} 
+          size="sm" 
+          className="h-7 w-7 p-0 rounded-full"
+          onClick={() => setEmojiCategory('flags')}
+        >
+          <span className="text-xs">🏳️</span>
+        </Button>
+      </div>
+      
+      <div className="grid grid-cols-7 gap-1 max-h-[200px] overflow-y-auto">
+        {emojiData[emojiCategory].map((emoji: string, index: number) => (
+          <Button 
+            key={`${emoji}-${index}`}
+            variant="ghost" 
+            className="h-8 w-8 p-0" 
+            onClick={() => {
+              setMessageInput((prev: string) => prev + emoji)
+              // Don't close the picker so they can add multiple emojis
+            }}
+          >
+            {emoji}
+          </Button>
+        ))}
+      </div>
+    </div>
+  );
   
   return (
     <div className="flex flex-col h-full w-full">
@@ -946,22 +1170,8 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
                       <Smile className="h-4 w-4" />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-56" align="end" alignOffset={-40} forceMount>
-                    <div className="grid grid-cols-6 gap-2">
-                      {["😀", "😂", "😊", "😍", "😎", "🥰", "😇", "🤔", "😐", "😢", "😡", "🥳", "👍", "👎", "❤️", "🔥", "🎉", "🙏", "😴", "😷", "🤮", "🤯", "💩", "👻"].map(emoji => (
-                        <Button 
-                          key={emoji}
-                          variant="ghost" 
-                          className="h-8 w-8 p-0" 
-                          onClick={() => {
-                            setMessageInput(prev => prev + emoji)
-                            setEmojiPickerOpen(false)
-                          }}
-                        >
-                          {emoji}
-                        </Button>
-                      ))}
-                    </div>
+                  <PopoverContent className="w-64 p-0" align="end" alignOffset={-40} forceMount>
+                    {renderEmojiPicker()}
                   </PopoverContent>
                 </Popover>
               </div>
@@ -1095,7 +1305,7 @@ function MessageBubbleCustom({ message, isOwnMessage, timestamp, showAvatar = tr
   const renderMessageContent = () => {
     if (message.deleted) {
       return (
-        <p className="italic text-muted-foreground">This message was deleted</p>
+        <p className={`italic ${isOwnMessage ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>This message was deleted</p>
       )
     }
     
@@ -1290,7 +1500,7 @@ function MessageBubbleCustom({ message, isOwnMessage, timestamp, showAvatar = tr
         
         {/* Always visible options button */}
         <button 
-          className={`absolute -top-3 ${isOwnMessage ? 'right-0' : 'left-0'} bg-background text-muted-foreground/70 hover:text-foreground h-6 w-6 rounded-full border flex items-center justify-center transition-opacity duration-200 ${showOptions ? 'opacity-100' : 'opacity-0 hover:opacity-60'}`}
+          className={`absolute -top-3 ${isOwnMessage ? 'right-0' : 'left-0'} bg-background text-muted-foreground/70 hover:text-foreground h-6 w-6 rounded-full border flex items-center justify-center transition-opacity duration-200 ${isOwnMessage ? 'opacity-100' : (showOptions ? 'opacity-100' : 'opacity-0 hover:opacity-60')}`}
           onClick={handleMouseEnter}
           aria-label="Message options"
         >
@@ -1320,7 +1530,7 @@ function MessageBubbleCustom({ message, isOwnMessage, timestamp, showAvatar = tr
                       })
                     }}
                   >
-                    <Reply className="h-4 w-4" />
+                    <Reply className={`h-4 w-4 ${isOwnMessage ? 'text-primary' : 'text-foreground'}`} />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
@@ -1342,7 +1552,7 @@ function MessageBubbleCustom({ message, isOwnMessage, timestamp, showAvatar = tr
                         setEditContent(message.content)
                       }}
                     >
-                      <Edit2 className="h-4 w-4" />
+                      <Edit2 className="h-4 w-4 text-primary" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
@@ -1362,7 +1572,7 @@ function MessageBubbleCustom({ message, isOwnMessage, timestamp, showAvatar = tr
                       className="h-8 w-8"
                       onClick={() => deleteMessage(message.id)}
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-4 w-4 text-primary" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
@@ -1375,7 +1585,7 @@ function MessageBubbleCustom({ message, isOwnMessage, timestamp, showAvatar = tr
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-8 w-8">
-                  <MoreVertical className="h-4 w-4" />
+                  <MoreVertical className={`h-4 w-4 ${isOwnMessage ? 'text-primary' : 'text-foreground'}`} />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align={isOwnMessage ? "end" : "start"} className="w-40">
