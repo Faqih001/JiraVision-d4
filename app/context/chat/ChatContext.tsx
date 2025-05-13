@@ -66,7 +66,7 @@ export type Chat = {
 }
 
 // Context type
-type ChatContextType = {
+export type ChatContextType = {
   chats: Chat[]
   activeChat: Chat | null
   messages: Message[]
@@ -947,4 +947,4 @@ export const ChatProvider = ({ children, teamMembers }: { children: React.ReactN
       {children}
     </ChatContext.Provider>
   )
-} 
+}

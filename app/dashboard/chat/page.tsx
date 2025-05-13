@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useRef } from "react"
 import { Shield, Info, Lock, Bell, Phone, Video, Search, MoreVertical, ArrowLeft, Send, Paperclip, Smile, Mic, Image as ImageIcon, FileIcon, X, Plus, Check, Reply, Edit2, Trash2, Download, MessageSquare } from "lucide-react"
-import { ChatProvider, useChat, Message, Chat } from "@/app/context/chat/ChatContext"
+import { ChatProvider, useChat, Message, Chat, ChatContextType } from "@/app/context/chat/ChatContext"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { 
@@ -365,7 +365,7 @@ function CustomChatList() {
                     <AvatarImage src={chat.avatar} />
                     <AvatarFallback>{chat.name.charAt(0)}</AvatarFallback>
                   </Avatar>
-                  {chat.online && (
+                  {(chat as EnhancedChat).online && (
                     <div className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 border-2 border-background"></div>
                   )}
                 </div>
@@ -373,7 +373,7 @@ function CustomChatList() {
                   <div className="flex justify-between items-center">
                     <h3 className="font-medium truncate">{chat.name}</h3>
                     <span className="text-xs text-muted-foreground">
-                      {chat.lastMessageTime || formatTime(chat.lastMessage?.timestamp)}
+                      {(chat as EnhancedChat).lastMessageTime || formatTime(chat.lastMessage?.timestamp)}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
@@ -617,7 +617,7 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
           <div className="flex-1">
             <div className="flex items-center">
               <h3 className="font-medium">{activeChat.name}</h3>
-              {activeChat.online && (
+              {(activeChat as EnhancedChat).online && (
                 <div className="ml-2 flex items-center text-xs text-green-500">
                   <div className="h-1.5 w-1.5 rounded-full bg-green-500 mr-1"></div>
                   Online
