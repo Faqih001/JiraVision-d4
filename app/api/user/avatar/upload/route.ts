@@ -118,7 +118,7 @@ export async function POST(request: Request) {
       } catch (sharpError) {
         console.error("Error optimizing image with Sharp:", sharpError)
         // Fallback to original file if optimization fails
-        await writeFile(filePath, Buffer.from(buffer))
+        await writeFile(filePath, new Uint8Array(buffer))
       }
       
       // Update user profile with avatar URL

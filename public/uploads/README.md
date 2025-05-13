@@ -37,11 +37,13 @@ This directory contains user-uploaded files, particularly profile pictures.
 ## Implementation Details
 
 To add a new profile picture:
+
 1. Call the `/api/user/avatar/upload` endpoint with a multipart form containing the image file
 2. The image will be processed, optimized, and stored in this directory
 3. The user's profile will be updated with the new avatar URL
 
 To remove a profile picture:
+
 1. Call the `/api/user/avatar/remove` endpoint
 2. The file will be deleted from the filesystem
 3. The user's profile will be updated to remove the avatar reference
@@ -53,6 +55,7 @@ This directory must exist for the upload functionality to work properly. If it d
 ## Security
 
 All uploads are validated for:
+
 - File type (only images allowed)
 - File size (max 2MB)
 - File content is processed with Sharp to prevent malicious files

@@ -1,18 +1,10 @@
-import { Skeleton } from "@/components/ui/skeleton"
-import { Loader, PulseLoader } from "@/components/ui/loader"
+"use client"
+
+import DashboardPageLoading from "@/components/dashboard-page-loading"
 
 export default function Loading() {
-  return (
-    <div className="p-6 space-y-8">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <Skeleton className="h-8 w-64 mb-2" />
-          <Skeleton className="h-4 w-80" />
-        </div>
-        <div className="flex items-center gap-2">
-          <Skeleton className="h-9 w-24" />
-        </div>
-      </div>
+  return <DashboardPageLoading />
+}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <div className="bg-card border rounded-lg p-6 space-y-4">

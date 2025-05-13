@@ -137,3 +137,44 @@ export function DashboardLoader({ className, columns = 2 }: DashboardLoaderProps
     </div>
   )
 }
+
+interface CircleJVLoaderProps {
+  className?: string
+  size?: "sm" | "md" | "lg" | "xl"
+  showText?: boolean
+}
+
+export function CircleJVLoader({ className, size = "md", showText = false }: CircleJVLoaderProps) {
+  const sizeClasses = {
+    sm: "h-16 w-16 text-xs",
+    md: "h-24 w-24 text-sm",
+    lg: "h-32 w-32 text-base",
+    xl: "h-40 w-40 text-lg"
+  }
+  
+  return (
+    <div className={cn(
+      "flex flex-col items-center justify-center gap-3",
+      className
+    )}>
+      <div 
+        className={cn(
+          "relative rounded-full border-4 border-primary animate-[spin_3s_linear_infinite]",
+          sizeClasses[size]
+        )}
+      >
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className="font-bold tracking-tighter">JV</span>
+        </div>
+        {/* Inner pulsing circle */}
+        <div className="absolute inset-1 rounded-full border-2 border-primary/30 animate-pulse" />
+      </div>
+      
+      {showText && (
+        <p className="text-sm text-muted-foreground animate-pulse">
+          Loading JiraVision...
+        </p>
+      )}
+    </div>
+  )
+}
