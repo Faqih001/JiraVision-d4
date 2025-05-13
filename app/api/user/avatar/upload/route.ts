@@ -63,7 +63,7 @@ export async function POST(request: Request) {
       const buffer = Buffer.from(await file.arrayBuffer())
       
       // Write the file
-      await writeFile(join(uploadsDir, fileName), buffer)
+      await writeFile(join(uploadsDir, fileName), new Uint8Array(buffer))
       
       // Update user profile with avatar URL
       const avatarUrl = `/uploads/${fileName}`
