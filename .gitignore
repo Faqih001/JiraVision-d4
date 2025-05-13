@@ -19,6 +19,10 @@ yarn-error.log*
 # env files
 .env*
 
+# user uploads
+/public/uploads/*
+!/public/uploads/README.md
+
 # vercel
 .vercel
 

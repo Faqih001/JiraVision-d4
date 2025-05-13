@@ -17,6 +17,7 @@ import { useMobile } from "@/hooks/use-mobile"
 import { useToast } from "@/hooks/use-toast"
 import { DashboardLoader } from "@/components/ui/loader"
 import { useAuth } from "@/context/auth-context"
+import { getCacheBustingUrl, hasImageExtension } from "@/lib/validate-image"
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme()
@@ -150,7 +151,8 @@ export default function SettingsPage() {
         data = await response.json();
       } catch (parseError) {
         console.error("Error parsing profile update response:", parseError);
-        throw new Error('Failed to process server response: ' + parseError.message);
+        throw new Error('Failed to process server response: ' + 
+          (parseError instanceof Error ? parseError.message : 'Unknown parse error'));
       }
       
       if (data.success) {
@@ -239,15 +241,18 @@ export default function SettingsPage() {
     if (url.startsWith('/uploads/')) return true;
     
     // External URLs should be valid image URLs
-    const validImageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'];
-    return validImageExtensions.some(ext => url.toLowerCase().endsWith(ext)) &&
-           (url.startsWith('http://') || url.startsWith('https://'));
+    if (!(url.startsWith('http://') || url.startsWith('https://'))) {
+      return false;
+    }
+    
+    // Use our utility function to validate image extensions
+    return hasImageExtension(url);
   }
   
-  // Add a timestamp to prevent browser caching for avatar images
+  // Use the utility function from validate-image.ts to get a cache-busted URL
   const getImageUrl = (url: string): string => {
     if (!url) return '';
-    return `${url}?t=${new Date().getTime()}`;
+    return getCacheBustingUrl(url);
   }
   
   // Handle avatar upload
@@ -325,7 +330,8 @@ export default function SettingsPage() {
         data = await response.json();
       } catch (parseError) {
         console.error("Error parsing avatar upload response:", parseError);
-        throw new Error('Failed to process server response: ' + parseError.message);
+        throw new Error('Failed to process server response: ' + 
+          (parseError instanceof Error ? parseError.message : 'Unknown parse error'));
       }
       
       if (data.success) {
@@ -408,7 +414,8 @@ export default function SettingsPage() {
         data = await response.json();
       } catch (parseError) {
         console.error("Error parsing avatar removal response:", parseError);
-        throw new Error('Failed to process server response: ' + parseError.message);
+        throw new Error('Failed to process server response: ' + 
+          (parseError instanceof Error ? parseError.message : 'Unknown parse error'));
       }
       
       if (data.success) {
