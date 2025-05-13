@@ -2,9 +2,9 @@
 
 import { Badge } from "@/components/ui/badge"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useTheme } from "next-themes"
-import { Bell, Globe, Lock, Moon, Save, Shield, Sun, User } from "lucide-react"
+import { Bell, Globe, Lock, Moon, Save, Shield, Sun, User, Camera, Brush } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -20,6 +20,20 @@ export default function SettingsPage() {
   const [emailNotifications, setEmailNotifications] = useState(true)
   const [slackNotifications, setSlackNotifications] = useState(true)
   const [browserNotifications, setBrowserNotifications] = useState(false)
+  const [viewportWidth, setViewportWidth] = useState(0)
+  
+  useEffect(() => {
+    // Set initial viewport width
+    setViewportWidth(window.innerWidth)
+    
+    // Update viewport width on resize
+    const handleResize = () => {
+      setViewportWidth(window.innerWidth)
+    }
+    
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
 
   return (
     <div className="p-4 md:p-6 space-y-6">
@@ -31,22 +45,22 @@ export default function SettingsPage() {
       </div>
 
       <Tabs defaultValue="profile" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="profile" className="gap-2">
+        <TabsList className="grid grid-cols-4 h-auto md:h-10 p-1">
+          <TabsTrigger value="profile" className="flex items-center gap-2 px-3 py-2">
             <User className="h-4 w-4" />
-            <span>Profile</span>
+            <span className="hidden md:inline">Profile</span>
           </TabsTrigger>
-          <TabsTrigger value="appearance" className="gap-2">
+          <TabsTrigger value="appearance" className="flex items-center gap-2 px-3 py-2">
             <Sun className="h-4 w-4" />
-            <span>Appearance</span>
+            <span className="hidden md:inline">Appearance</span>
           </TabsTrigger>
-          <TabsTrigger value="notifications" className="gap-2">
+          <TabsTrigger value="notifications" className="flex items-center gap-2 px-3 py-2">
             <Bell className="h-4 w-4" />
-            <span>Notifications</span>
+            <span className="hidden md:inline">Notifications</span>
           </TabsTrigger>
-          <TabsTrigger value="security" className="gap-2">
-            <Lock className="h-4 w-4" />
-            <span>Security</span>
+          <TabsTrigger value="security" className="flex items-center gap-2 px-3 py-2">
+            <Shield className="h-4 w-4" />
+            <span className="hidden md:inline">Security</span>
           </TabsTrigger>
         </TabsList>
 
@@ -98,7 +112,7 @@ export default function SettingsPage() {
               <CardFooter>
                 <Button className="gap-1">
                   <Save className="h-4 w-4" />
-                  <span>Save Changes</span>
+                  <span className="hidden sm:inline">Save Changes</span>
                 </Button>
               </CardFooter>
             </Card>
@@ -112,13 +126,14 @@ export default function SettingsPage() {
                 <CardContent className="flex flex-col items-center">
                   <Avatar className="h-24 w-24 mb-4">
                     <AvatarFallback className="text-2xl">JD</AvatarFallback>
-                  </Avatar>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm">
-                      Upload
+                  </Avatar>                    <div className="flex gap-2">
+                    <Button variant="outline" size="sm" className="gap-1">
+                      <Camera className="h-3 w-3" />
+                      <span className="hidden sm:inline">Upload</span>
                     </Button>
-                    <Button variant="outline" size="sm">
-                      Remove
+                    <Button variant="outline" size="sm" className="gap-1">
+                      <span className="hidden sm:inline">Remove</span>
+                      <span className="inline sm:hidden">×</span>
                     </Button>
                   </div>
                 </CardContent>
@@ -165,7 +180,7 @@ export default function SettingsPage() {
                 <CardFooter>
                   <Button variant="outline" className="w-full gap-1">
                     <Globe className="h-4 w-4" />
-                    <span>Update Preferences</span>
+                    <span className="hidden sm:inline">Update Preferences</span>
                   </Button>
                 </CardFooter>
               </Card>
@@ -182,7 +197,7 @@ export default function SettingsPage() {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                   <Label htmlFor="theme" className="text-base">
                     Theme
                   </Label>
@@ -194,7 +209,7 @@ export default function SettingsPage() {
                       className="gap-1"
                     >
                       <Sun className="h-4 w-4" />
-                      <span>Light</span>
+                      <span className="hidden sm:inline">Light</span>
                     </Button>
                     <Button
                       variant={theme === "dark" ? "default" : "outline"}
@@ -203,15 +218,16 @@ export default function SettingsPage() {
                       className="gap-1"
                     >
                       <Moon className="h-4 w-4" />
-                      <span>Dark</span>
+                      <span className="hidden sm:inline">Dark</span>
                     </Button>
                     <Button
                       variant={theme === "system" ? "default" : "outline"}
                       size="sm"
                       onClick={() => setTheme("system")}
-                      className="gap-1"
+                      className="gap-1 flex items-center"
                     >
-                      <span>System</span>
+                      <div className="h-4 w-4 rounded-full bg-gradient-to-r from-slate-100 to-slate-900" />
+                      <span className="hidden sm:inline ml-1">System</span>
                     </Button>
                   </div>
                 </div>
@@ -219,17 +235,17 @@ export default function SettingsPage() {
 
               <div className="space-y-4">
                 <h3 className="text-lg font-medium">Dashboard Layout</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                   <div className="border rounded-md p-4 cursor-pointer bg-primary/5 border-primary">
-                    <div className="h-32 bg-muted/50 rounded-md mb-2 flex items-center justify-center">Layout 1</div>
+                    <div className="h-24 sm:h-32 bg-muted/50 rounded-md mb-2 flex items-center justify-center text-sm">Layout 1</div>
                     <div className="text-sm font-medium">Default</div>
                   </div>
                   <div className="border rounded-md p-4 cursor-pointer hover:bg-muted/10">
-                    <div className="h-32 bg-muted/50 rounded-md mb-2 flex items-center justify-center">Layout 2</div>
+                    <div className="h-24 sm:h-32 bg-muted/50 rounded-md mb-2 flex items-center justify-center text-sm">Layout 2</div>
                     <div className="text-sm font-medium">Compact</div>
                   </div>
                   <div className="border rounded-md p-4 cursor-pointer hover:bg-muted/10">
-                    <div className="h-32 bg-muted/50 rounded-md mb-2 flex items-center justify-center">Layout 3</div>
+                    <div className="h-24 sm:h-32 bg-muted/50 rounded-md mb-2 flex items-center justify-center text-sm">Layout 3</div>
                     <div className="text-sm font-medium">Expanded</div>
                   </div>
                 </div>
@@ -237,15 +253,15 @@ export default function SettingsPage() {
 
               <div className="space-y-4">
                 <h3 className="text-lg font-medium">Sidebar Position</h3>
-                <div className="flex items-center gap-4">
-                  <div className="border rounded-md p-4 cursor-pointer bg-primary/5 border-primary">
-                    <div className="h-20 w-32 bg-muted/50 rounded-md flex">
+                <div className="flex flex-wrap items-center gap-4">
+                  <div className="border rounded-md p-3 sm:p-4 cursor-pointer bg-primary/5 border-primary">
+                    <div className="h-16 sm:h-20 w-24 sm:w-32 bg-muted/50 rounded-md flex">
                       <div className="w-1/4 bg-primary/20 h-full rounded-l-md"></div>
                       <div className="w-3/4 flex items-center justify-center text-xs">Left</div>
                     </div>
                   </div>
-                  <div className="border rounded-md p-4 cursor-pointer hover:bg-muted/10">
-                    <div className="h-20 w-32 bg-muted/50 rounded-md flex">
+                  <div className="border rounded-md p-3 sm:p-4 cursor-pointer hover:bg-muted/10">
+                    <div className="h-16 sm:h-20 w-24 sm:w-32 bg-muted/50 rounded-md flex">
                       <div className="w-3/4 flex items-center justify-center text-xs">Right</div>
                       <div className="w-1/4 bg-muted h-full rounded-r-md"></div>
                     </div>
@@ -274,7 +290,7 @@ export default function SettingsPage() {
             <CardFooter>
               <Button className="gap-1">
                 <Save className="h-4 w-4" />
-                <span>Save Preferences</span>
+                <span className="hidden sm:inline">Save Preferences</span>
               </Button>
             </CardFooter>
           </Card>
@@ -430,7 +446,7 @@ export default function SettingsPage() {
             <CardFooter>
               <Button className="gap-1">
                 <Save className="h-4 w-4" />
-                <span>Save Notification Settings</span>
+                <span className="hidden sm:inline">Save Notification Settings</span>
               </Button>
             </CardFooter>
           </Card>
@@ -461,7 +477,7 @@ export default function SettingsPage() {
               <CardFooter>
                 <Button className="gap-1">
                   <Lock className="h-4 w-4" />
-                  <span>Update Password</span>
+                  <span className="hidden sm:inline">Update Password</span>
                 </Button>
               </CardFooter>
             </Card>
@@ -518,7 +534,7 @@ export default function SettingsPage() {
               <CardFooter>
                 <Button variant="outline" className="gap-1">
                   <Shield className="h-4 w-4" />
-                  <span>Setup Two-Factor Authentication</span>
+                  <span className="hidden sm:inline">Setup Two-Factor Authentication</span>
                 </Button>
               </CardFooter>
             </Card>
@@ -547,8 +563,9 @@ export default function SettingsPage() {
                         <p className="text-sm text-muted-foreground">iOS 16 • San Francisco, CA</p>
                         <p className="text-xs text-muted-foreground mt-1">Last active: 2 hours ago</p>
                       </div>
-                      <Button variant="outline" size="sm">
-                        Revoke
+                      <Button variant="outline" size="sm" className="gap-1">
+                        <Shield className="h-3 w-3" />
+                        <span className="hidden sm:inline">Revoke</span>
                       </Button>
                     </div>
                   </div>
@@ -559,16 +576,19 @@ export default function SettingsPage() {
                         <p className="text-sm text-muted-foreground">Chrome • New York, NY</p>
                         <p className="text-xs text-muted-foreground mt-1">Last active: 3 days ago</p>
                       </div>
-                      <Button variant="outline" size="sm">
-                        Revoke
+                      <Button variant="outline" size="sm" className="gap-1">
+                        <Shield className="h-3 w-3" />
+                        <span className="hidden sm:inline">Revoke</span>
                       </Button>
                     </div>
                   </div>
                 </div>
               </CardContent>
               <CardFooter>
-                <Button variant="outline" className="text-destructive border-destructive hover:bg-destructive/10">
-                  Revoke All Other Sessions
+                <Button variant="outline" className="text-destructive border-destructive hover:bg-destructive/10 gap-1">
+                  <Shield className="h-4 w-4" />
+                  <span className="hidden sm:inline">Revoke All Other Sessions</span>
+                  <span className="inline sm:hidden">Revoke All</span>
                 </Button>
               </CardFooter>
             </Card>
