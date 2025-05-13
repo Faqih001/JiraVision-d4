@@ -241,17 +241,34 @@ interface ChatListProps {
 }
 
 function CustomChatList({ mobileView, setMobileView }: ChatListProps) {
-  const { chats, activeChat, setActiveChat, connectionStatus } = useChat()
+  const { chats, activeChat, setActiveChat, connectionStatus, markAsRead, archiveChat, unarchiveChat, muteChat, unmuteChat, clearChat } = useChat()
   const [searchQuery, setSearchQuery] = useState('')
   const [showNewChatModal, setShowNewChatModal] = useState(false)
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([])
   const [activeTab, setActiveTab] = useState<'recent' | 'contacts'>('recent')
+  const [selectedMembers, setSelectedMembers] = useState<number[]>([]) // Track selected members for group chat
+  const [groupChatName, setGroupChatName] = useState('')
+  const [modalActiveTab, setModalActiveTab] = useState<'individual' | 'group'>('individual')
   const [contextMenu, setContextMenu] = useState<{
     x: number;
     y: number;
     chatId: string | null;
+    position: 'up' | 'down';
   } | null>(null)
+  const [showSecurityModal, setShowSecurityModal] = useState(false)
+  const [showDeletedChatsModal, setShowDeletedChatsModal] = useState(false)
+  const [deletedChats, setDeletedChats] = useState<Chat[]>([])
   const { toast } = useToast()
+  
+  // Reset modal state when opening/closing
+  useEffect(() => {
+    if (!showNewChatModal) {
+      setSelectedMembers([])
+      setGroupChatName('')
+      setModalActiveTab('individual')
+      setSearchQuery('')
+    }
+  }, [showNewChatModal])
   
   useEffect(() => {
     // Fetch team members when component mounts
@@ -268,44 +285,201 @@ function CustomChatList({ mobileView, setMobileView }: ChatListProps) {
     return () => document.removeEventListener('click', handleClickOutside)
   }, [])
 
+  // Handle member selection for group chat
+  const toggleMemberSelection = (memberId: number) => {
+    setSelectedMembers(prev => {
+      if (prev.includes(memberId)) {
+        return prev.filter(id => id !== memberId)
+      } else {
+        return [...prev, memberId]
+      }
+    })
+  }
+  
+  // Handle select all for group chat
+  const handleSelectAll = () => {
+    if (selectedMembers.length === teamMembers.length) {
+      // If all are selected, deselect all
+      setSelectedMembers([])
+    } else {
+      // Otherwise select all
+      setSelectedMembers(teamMembers.map(member => member.id))
+    }
+  }
+  
+  // Generate avatar for group chat
+  const generateGroupAvatar = () => {
+    // Placeholder implementation - in real app would create an avatar with overlapping images
+    return "/placeholder-group-avatar.jpg"
+  }
+  
+  // Create new group chat
+  const handleCreateGroupChat = () => {
+    if (selectedMembers.length === 0) {
+      toast({
+        title: "No members selected",
+        description: "Please select at least one team member for the group chat.",
+        variant: "destructive"
+      })
+      return
+    }
+    
+    if (!groupChatName.trim()) {
+      toast({
+        title: "Missing group name",
+        description: "Please enter a name for the group chat.",
+        variant: "destructive"
+      })
+      return
+    }
+    
+    // In a real app, you would call an API to create the group chat
+    const newGroupChat: Chat = {
+      id: `group-${Date.now()}`,
+      type: 'group',
+      name: groupChatName,
+      avatar: generateGroupAvatar(),
+      participants: [...selectedMembers, 1], // Add current user (ID 1)
+      createdAt: new Date(),
+      unreadCount: 0,
+      isGroupAdmin: true, // Current user is admin
+      isMuted: false,     // Add missing properties
+      isArchived: false   // Add missing properties
+    }
+    
+    // Set as active chat
+    setActiveChat(newGroupChat)
+    
+    // Close modal
+    setShowNewChatModal(false)
+    
+    // Ensure chat view is shown (for mobile)
+    setMobileView('chat')
+    
+    toast({
+      title: "Group chat created",
+      description: `You've created "${groupChatName}" with ${selectedMembers.length} members.`
+    })
+  }
+  
+  // Create new individual chat or open existing
+  const handleCreateIndividualChat = (member: TeamMember) => {
+    // Check if a chat with this member already exists
+    const existingChat = chats.find(chat => 
+      chat.type === 'individual' && 
+      chat.participants.includes(member.id) && 
+      chat.participants.length === 2
+    );
+    
+    if (existingChat) {
+      // Open existing chat
+      setActiveChat(existingChat);
+      setMobileView('chat');
+      setShowNewChatModal(false);
+    } else {
+      // Create new chat
+      const newChat: Chat = {
+        id: `chat-${Date.now()}`,
+        type: 'individual',
+        name: member.name,
+        avatar: member.avatar,
+        participants: [member.id, 1], // Member and current user (ID 1)
+        createdAt: new Date(),
+        unreadCount: 0,
+        isMuted: false,     // Add missing properties
+        isArchived: false   // Add missing properties
+      }
+      
+      // Set as active chat
+      setActiveChat(newChat)
+      
+      // Close modal
+      setShowNewChatModal(false)
+      
+      // Ensure chat view is shown (for mobile)
+      setMobileView('chat')
+      
+      toast({
+        title: "Chat started",
+        description: `You've started a conversation with ${member.name}.`
+      })
+    }
+  }
+
   // Handle archive/unarchive chat
   const handleArchiveChat = (chatId: string) => {
-    // In a real app, this would call an API to archive/unarchive the chat
-    const chatsCopy = [...chats];
-    const chatIndex = chatsCopy.findIndex(c => c.id === chatId);
+    // Find the chat
+    const chat = chats.find(c => c.id === chatId);
     
-    if (chatIndex !== -1) {
-      chatsCopy[chatIndex] = {
-        ...chatsCopy[chatIndex],
-        isArchived: !chatsCopy[chatIndex].isArchived
-      };
-      
-      // Show success toast
-      toast({
-        title: chatsCopy[chatIndex].isArchived ? "Chat archived" : "Chat unarchived",
-        description: `"${chatsCopy[chatIndex].name}" has been ${chatsCopy[chatIndex].isArchived ? "archived" : "unarchived"}.`,
-      });
+    if (chat) {
+      if (chat.isArchived) {
+        unarchiveChat(chatId);
+        toast({
+          title: "Chat unarchived",
+          description: `"${chat.name}" has been moved to Recent chats.`,
+        });
+      } else {
+        archiveChat(chatId);
+        toast({
+          title: "Chat archived",
+          description: `"${chat.name}" has been moved to Archived chats.`,
+        });
+      }
     }
     
     setContextMenu(null);
   };
   
-  // Handle pin/unpin chat
+  // Handle pin/unpin chat - enforce 3 pin limit
   const handlePinChat = (chatId: string) => {
-    // In a real app, this would call an API to pin/unpin the chat
-    const chatsCopy = [...chats];
-    const chatIndex = chatsCopy.findIndex(c => c.id === chatId);
+    // Get the chat
+    const chat = chats.find(c => c.id === chatId);
+    if (!chat) return;
     
-    if (chatIndex !== -1) {
-      chatsCopy[chatIndex] = {
-        ...chatsCopy[chatIndex],
-        isPinned: !chatsCopy[chatIndex].isPinned
-      };
+    const pinnedChats = chats.filter(c => c.isPinned);
+    
+    // Check if we're unpinning
+    if (chat.isPinned) {
+      // Update in chat context
+      const chatsCopy = [...chats];
+      const chatIndex = chatsCopy.findIndex(c => c.id === chatId);
       
-      // Show success toast
+      if (chatIndex !== -1) {
+        chatsCopy[chatIndex] = {
+          ...chatsCopy[chatIndex],
+          isPinned: false
+        };
+      }
+      
       toast({
-        title: chatsCopy[chatIndex].isPinned ? "Chat pinned" : "Chat unpinned",
-        description: `"${chatsCopy[chatIndex].name}" has been ${chatsCopy[chatIndex].isPinned ? "pinned to" : "unpinned from"} the top.`,
+        title: "Chat unpinned",
+        description: `"${chat.name}" has been unpinned.`,
+      });
+    } 
+    // Check if we're pinning and under the limit
+    else if (pinnedChats.length < 3) {
+      // Update in chat context
+      const chatsCopy = [...chats];
+      const chatIndex = chatsCopy.findIndex(c => c.id === chatId);
+      
+      if (chatIndex !== -1) {
+        chatsCopy[chatIndex] = {
+          ...chatsCopy[chatIndex],
+          isPinned: true
+        };
+      }
+      
+      toast({
+        title: "Chat pinned",
+        description: `"${chat.name}" has been pinned to the top.`,
+      });
+    } 
+    // Over the limit
+    else {
+      toast({
+        title: "Pin limit reached",
+        description: "You can only pin up to 3 chats. Please unpin one first.",
+        variant: "destructive"
       });
     }
     
@@ -314,21 +488,23 @@ function CustomChatList({ mobileView, setMobileView }: ChatListProps) {
   
   // Handle mute/unmute chat
   const handleMuteChat = (chatId: string) => {
-    // In a real app, this would call an API to mute/unmute the chat
-    const chatsCopy = [...chats];
-    const chatIndex = chatsCopy.findIndex(c => c.id === chatId);
+    // Find the chat
+    const chat = chats.find(c => c.id === chatId);
     
-    if (chatIndex !== -1) {
-      chatsCopy[chatIndex] = {
-        ...chatsCopy[chatIndex],
-        isMuted: !chatsCopy[chatIndex].isMuted
-      };
-      
-      // Show success toast
-      toast({
-        title: chatsCopy[chatIndex].isMuted ? "Chat muted" : "Chat unmuted",
-        description: `Notifications for "${chatsCopy[chatIndex].name}" have been ${chatsCopy[chatIndex].isMuted ? "muted" : "unmuted"}.`,
-      });
+    if (chat) {
+      if (chat.isMuted) {
+        unmuteChat(chatId);
+        toast({
+          title: "Chat unmuted",
+          description: `You will now receive notifications from "${chat.name}".`,
+        });
+      } else {
+        muteChat(chatId);
+        toast({
+          title: "Chat muted",
+          description: `You will no longer receive notifications from "${chat.name}".`,
+        });
+      }
     }
     
     setContextMenu(null);
@@ -336,20 +512,14 @@ function CustomChatList({ mobileView, setMobileView }: ChatListProps) {
   
   // Handle mark as read
   const handleMarkAsRead = (chatId: string) => {
-    // In a real app, this would call an API to mark chat as read
-    const chatsCopy = [...chats];
-    const chatIndex = chatsCopy.findIndex(c => c.id === chatId);
+    // Find the chat
+    const chat = chats.find(c => c.id === chatId);
     
-    if (chatIndex !== -1) {
-      chatsCopy[chatIndex] = {
-        ...chatsCopy[chatIndex],
-        unreadCount: 0
-      };
-      
-      // Show success toast
+    if (chat && chat.unreadCount > 0) {
+      markAsRead(chatId);
       toast({
         title: "Marked as read",
-        description: `All messages in "${chatsCopy[chatIndex].name}" have been marked as read.`,
+        description: `All messages in "${chat.name}" have been marked as read.`,
       });
     }
     
@@ -358,14 +528,19 @@ function CustomChatList({ mobileView, setMobileView }: ChatListProps) {
   
   // Handle delete chat
   const handleDeleteChat = (chatId: string) => {
-    // In a real app, this would call an API to delete the chat
+    // Find the chat to delete
     const chatToDelete = chats.find(c => c.id === chatId);
     
     if (chatToDelete) {
-      // Show success toast
+      // Add to deleted chats
+      setDeletedChats(prev => [...prev, chatToDelete]);
+      
+      // Call clear chat to remove messages
+      clearChat(chatId);
+      
       toast({
         title: "Chat deleted",
-        description: `"${chatToDelete.name}" has been deleted.`,
+        description: `"${chatToDelete.name}" has been moved to deleted chats.`,
         variant: "destructive"
       });
       
@@ -376,6 +551,33 @@ function CustomChatList({ mobileView, setMobileView }: ChatListProps) {
     }
     
     setContextMenu(null);
+  };
+  
+  // Handle permanent delete
+  const handlePermanentDelete = (chatId: string) => {
+    setDeletedChats(prev => prev.filter(chat => chat.id !== chatId));
+    
+    toast({
+      title: "Chat permanently deleted",
+      description: "This chat has been permanently deleted and cannot be recovered.",
+      variant: "destructive"
+    });
+  };
+
+  // Handle chat contextmenu event
+  const handleContextMenu = (e: React.MouseEvent, chatId: string) => {
+    e.preventDefault();
+    
+    // Determine if the context menu should open upward or downward
+    // If the click is in the bottom 40% of the screen, open upward
+    const position = e.clientY > window.innerHeight * 0.6 ? 'up' : 'down';
+    
+    setContextMenu({
+      x: e.clientX,
+      y: e.clientY,
+      chatId,
+      position
+    });
   };
 
   // Filter chats based on search query
@@ -437,6 +639,138 @@ function CustomChatList({ mobileView, setMobileView }: ChatListProps) {
     return 'Start a conversation'
   }
 
+  // Render the New Chat Modal
+  const renderNewChatModal = () => (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-background rounded-lg w-full max-w-md p-4">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold">New Chat</h2>
+          <Button variant="ghost" size="icon" onClick={() => setShowNewChatModal(false)}>
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+        
+        <div className="relative mb-4">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search contacts..."
+            className="pl-9"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+        
+        <Tabs 
+          defaultValue="individual" 
+          className="mb-4"
+          onValueChange={(value) => setModalActiveTab(value as 'individual' | 'group')}
+        >
+          <TabsList className="w-full">
+            <TabsTrigger value="individual" className="flex-1">Individual</TabsTrigger>
+            <TabsTrigger value="group" className="flex-1">New Group</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="individual" className="mt-4">
+            <div className="max-h-[60vh] overflow-y-auto">
+              {teamMembers
+                .filter(member => 
+                  searchQuery ? 
+                    member.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                    member.role.toLowerCase().includes(searchQuery.toLowerCase()) : 
+                    true
+                )
+                .map(member => (
+                <div 
+                  key={member.id}
+                  className="flex items-center p-3 hover:bg-muted/30 rounded-md cursor-pointer"
+                  onClick={() => handleCreateIndividualChat(member)}
+                >
+                  <Avatar className="h-10 w-10 mr-3">
+                    <AvatarImage src={member.avatar} />
+                    <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <h3 className="font-medium">{member.name}</h3>
+                    <p className="text-sm text-muted-foreground">{member.role}</p>
+                  </div>
+                  <div className="ml-auto">
+                    {(member as any).online && (
+                      <div className="h-2.5 w-2.5 rounded-full bg-green-500 border border-white"></div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="group" className="mt-4">
+            <div className="mb-4">
+              <label className="text-sm font-medium mb-2 block">Group Name</label>
+              <Input 
+                placeholder="Enter group name" 
+                className="mb-3" 
+                value={groupChatName}
+                onChange={(e) => setGroupChatName(e.target.value)}
+              />
+              
+              <label className="text-sm font-medium mb-2 block">Select Members</label>
+              <div className="max-h-[40vh] overflow-y-auto border rounded-md p-2 mb-3">
+                {teamMembers
+                  .filter(member => 
+                    searchQuery ? 
+                      member.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                      member.role.toLowerCase().includes(searchQuery.toLowerCase()) : 
+                      true
+                  )
+                  .map(member => (
+                  <div 
+                    key={member.id}
+                    className="flex items-center p-2 hover:bg-muted/30 rounded-md cursor-pointer mb-1"
+                    onClick={() => toggleMemberSelection(member.id)}
+                  >
+                    <input
+                      type="checkbox"
+                      id={`select-member-${member.id}`}
+                      className="mr-3 h-4 w-4 rounded border-muted-foreground"
+                      checked={selectedMembers.includes(member.id)}
+                      onChange={() => {}} // Controlled component
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                    <Avatar className="h-8 w-8 mr-3">
+                      <AvatarImage src={member.avatar} />
+                      <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    <label htmlFor={`select-member-${member.id}`} className="flex-1 cursor-pointer">
+                      <div className="font-medium text-sm">{member.name}</div>
+                      <div className="text-xs text-muted-foreground">{member.role}</div>
+                    </label>
+                  </div>
+                ))}
+              </div>
+              
+              <div className="flex items-center justify-between text-sm mb-3">
+                <span className="text-muted-foreground">Selected: <span className="font-medium">{selectedMembers.length}</span> members</span>
+                <Button variant="ghost" size="sm" className="h-7 px-2" onClick={handleSelectAll}>
+                  {selectedMembers.length === teamMembers.length ? 'Deselect All' : 'Select All'}
+                </Button>
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
+        
+        <div className="flex justify-end gap-2 mt-4">
+          <Button variant="outline" onClick={() => setShowNewChatModal(false)}>Cancel</Button>
+          <Button 
+            onClick={modalActiveTab === 'group' ? handleCreateGroupChat : () => {}}
+            disabled={modalActiveTab === 'group' && (selectedMembers.length === 0 || !groupChatName.trim())}
+          >
+            Create Chat
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="flex flex-col h-full w-full bg-white">
       {/* Search and new chat */}
@@ -470,7 +804,7 @@ function CustomChatList({ mobileView, setMobileView }: ChatListProps) {
             </TooltipProvider>
         </div>
         
-        {/* Connection status */}
+        {/* Top tools section */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className={`h-2 w-2 rounded-full ${
@@ -483,6 +817,47 @@ function CustomChatList({ mobileView, setMobileView }: ChatListProps) {
                 connectionStatus === 'connecting' ? 'Connecting...' : 'Disconnected'
               }
             </p>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" onClick={() => setShowSecurityModal(true)}>
+                    <Shield className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Chat Security</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <Bell className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Notification Settings</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" onClick={() => setShowDeletedChatsModal(true)}>
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>More Options</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
         </div>
       </div>
@@ -537,14 +912,7 @@ function CustomChatList({ mobileView, setMobileView }: ChatListProps) {
                       activeChat?.id === chat.id ? 'bg-muted/40' : ''
                     } ${chat.isPinned ? 'border-l-4 border-primary' : ''}`}
                     onClick={() => setActiveChat(chat)}
-                    onContextMenu={(e) => {
-                      e.preventDefault();
-                      setContextMenu({
-                        x: e.clientX,
-                        y: e.clientY,
-                        chatId: chat.id
-                      });
-                    }}
+                    onContextMenu={(e) => handleContextMenu(e, chat.id)}
                   >
                     <div className="relative mr-3 flex-shrink-0">
                       <Avatar className="h-12 w-12 border bg-background">
@@ -590,7 +958,7 @@ function CustomChatList({ mobileView, setMobileView }: ChatListProps) {
                                 handlePinChat(chat.id);
                               }}>
                                 {chat.isPinned ? 'Unpin' : 'Pin'}
-                </DropdownMenuItem>
+                              </DropdownMenuItem>
                               <DropdownMenuItem onClick={(e) => {
                                 e.stopPropagation();
                                 handleMuteChat(chat.id);
@@ -614,8 +982,8 @@ function CustomChatList({ mobileView, setMobileView }: ChatListProps) {
                                 e.stopPropagation();
                                 handleDeleteChat(chat.id);
                               }}>
-                                Clear chat
-                </DropdownMenuItem>
+                                Delete chat
+                              </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -629,13 +997,15 @@ function CustomChatList({ mobileView, setMobileView }: ChatListProps) {
         </Tabs>
         </div>
         
-      {/* Context Menu */}
+      {/* Context Menu - positioned up or down based on click position */}
       {contextMenu && (
         <div
-          className="fixed bg-background shadow-lg border rounded-md py-1 z-50 w-48"
+          className={`fixed bg-background shadow-lg border rounded-md py-1 z-50 w-48`}
           style={{
             left: `${contextMenu.x}px`,
-            top: `${contextMenu.y}px`,
+            top: contextMenu.position === 'up' 
+              ? `${contextMenu.y - 180}px` // Position above click point
+              : `${contextMenu.y}px`,      // Position below click point
           }}
           onClick={(e) => e.stopPropagation()}
         >
@@ -682,143 +1052,127 @@ function CustomChatList({ mobileView, setMobileView }: ChatListProps) {
           </button>
           </div>
       )}
-        
-      {/* New Chat Modal */}
-      {showNewChatModal && (
+      
+      {/* Security Modal */}
+      {showSecurityModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-background rounded-lg w-full max-w-md p-4">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold">New Chat</h2>
-              <Button variant="ghost" size="icon" onClick={() => setShowNewChatModal(false)}>
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <Shield className="h-5 w-5 text-primary" />
+                Chat Security
+              </h2>
+              <Button variant="ghost" size="icon" onClick={() => setShowSecurityModal(false)}>
                 <X className="h-4 w-4" />
               </Button>
             </div>
             
-            <div className="relative mb-4">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search contacts..."
-                className="pl-9"
-                onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-            
-            <Tabs defaultValue="individual" className="mb-4">
-              <TabsList className="w-full">
-                <TabsTrigger value="individual" className="flex-1">Individual</TabsTrigger>
-                <TabsTrigger value="group" className="flex-1">New Group</TabsTrigger>
-              </TabsList>
+            <div className="space-y-4">
+              <div className="bg-muted/30 p-4 rounded-md">
+                <h3 className="font-medium flex items-center gap-2 mb-2">
+                  <Lock className="h-4 w-4 text-green-500" />
+                  End-to-End Encryption
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  All personal conversations are protected with end-to-end encryption. 
+                  This means that your messages can only be read by you and the people you're chatting with.
+                </p>
+              </div>
               
-              <TabsContent value="individual" className="mt-4">
-                <div className="max-h-[60vh] overflow-y-auto">
-                  {teamMembers
-                    .filter(member => 
-                      searchQuery ? 
-                        member.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                        member.role.toLowerCase().includes(searchQuery.toLowerCase()) : 
-                        true
-                    )
-                    .map(member => (
-                    <div 
-                      key={member.id}
-                      className="flex items-center p-3 hover:bg-muted/30 rounded-md cursor-pointer"
-                      onClick={() => {
-                        // Check if a chat with this member already exists
-                        const existingChat = chats.find(chat => 
-                          chat.type === 'individual' && 
-                          chat.participants.includes(member.id) && 
-                          chat.participants.length === 2
-                        );
-                        
-                        if (existingChat) {
-                          // Open existing chat
-                          setActiveChat(existingChat);
-                          setMobileView('chat');
-                        } else {
-                          // In a real app, you would create a new chat here
-                          // For demo, we'll just simulate it with a placeholder alert
-                          alert(`Starting new chat with ${member.name}`);
-                          
-                          // In real implementation, you would:
-                          // 1. Call an API to create a new chat
-                          // 2. Get the chat data from response
-                          // 3. Add it to the chats list
-                          // 4. Set it as active chat
-                        }
-                        
-                        setShowNewChatModal(false);
-                      }}
-                    >
-                      <Avatar className="h-10 w-10 mr-3">
-                        <AvatarImage src={member.avatar} />
-                        <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <h3 className="font-medium">{member.name}</h3>
-                        <p className="text-sm text-muted-foreground">{member.role}</p>
-      </div>
-                      <div className="ml-auto">
-                        {(member as any).online && (
-                          <div className="h-2.5 w-2.5 rounded-full bg-green-500 border border-white"></div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </TabsContent>
-              
-              <TabsContent value="group" className="mt-4">
-                <div className="mb-4">
-                  <label className="text-sm font-medium mb-2 block">Group Name</label>
-                  <Input placeholder="Enter group name" className="mb-3" />
-                  
-                  <label className="text-sm font-medium mb-2 block">Select Members</label>
-                  <div className="max-h-[40vh] overflow-y-auto border rounded-md p-2 mb-3">
-                    {teamMembers
-                      .filter(member => 
-                        searchQuery ? 
-                          member.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          member.role.toLowerCase().includes(searchQuery.toLowerCase()) : 
-                          true
-                      )
-                      .map(member => (
-                      <div 
-                        key={member.id}
-                        className="flex items-center p-2 hover:bg-muted/30 rounded-md cursor-pointer mb-1"
-                      >
-                        <input
-                          type="checkbox"
-                          id={`select-member-${member.id}`}
-                          className="mr-3 h-4 w-4 rounded border-muted-foreground"
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                        <Avatar className="h-8 w-8 mr-3">
-                          <AvatarImage src={member.avatar} />
-                          <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
-                        </Avatar>
-                        <label htmlFor={`select-member-${member.id}`} className="flex-1 cursor-pointer">
-                          <div className="font-medium text-sm">{member.name}</div>
-                          <div className="text-xs text-muted-foreground">{member.role}</div>
-                        </label>
-                      </div>
-                    ))}
-                  </div>
-                  
-                  <div className="flex items-center justify-between text-sm mb-3">
-                    <span className="text-muted-foreground">Selected: <span className="font-medium">0</span> members</span>
-                    <Button variant="ghost" size="sm" className="h-7 px-2">Select All</Button>
-                  </div>
-                </div>
-              </TabsContent>
-            </Tabs>
+              <div>
+                <h3 className="font-medium mb-2">Security Tips</h3>
+                <ul className="text-sm text-muted-foreground space-y-2">
+                  <li className="flex items-start gap-2">
+                    <div className="h-5 w-5 flex items-center justify-center text-xs bg-primary text-white rounded-full flex-shrink-0 mt-0.5">1</div>
+                    <p>Never share sensitive information like passwords or credit card details in chats.</p>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <div className="h-5 w-5 flex items-center justify-center text-xs bg-primary text-white rounded-full flex-shrink-0 mt-0.5">2</div>
+                    <p>Be cautious about clicking links or downloading files, even if they appear to come from someone you know.</p>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <div className="h-5 w-5 flex items-center justify-center text-xs bg-primary text-white rounded-full flex-shrink-0 mt-0.5">3</div>
+                    <p>Regularly review and remove old chats containing sensitive information.</p>
+                  </li>
+                </ul>
+              </div>
+            </div>
             
-            <div className="flex justify-end gap-2 mt-4">
-              <Button variant="outline" onClick={() => setShowNewChatModal(false)}>Cancel</Button>
-              <Button>Create Chat</Button>
+            <div className="mt-6">
+              <Button variant="outline" className="w-full" onClick={() => setShowSecurityModal(false)}>
+                Close
+              </Button>
             </div>
           </div>
         </div>
       )}
+      
+      {/* Deleted Chats Modal */}
+      {showDeletedChatsModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-background rounded-lg w-full max-w-md p-4">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <Trash2 className="h-5 w-5 text-red-500" />
+                Deleted Chats
+              </h2>
+              <Button variant="ghost" size="icon" onClick={() => setShowDeletedChatsModal(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            <div className="space-y-1 max-h-[50vh] overflow-y-auto">
+              {deletedChats.length === 0 ? (
+                <div className="text-center py-8">
+                  <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-muted mb-4">
+                    <Trash2 className="h-6 w-6 text-muted-foreground" />
+                  </div>
+                  <p className="text-muted-foreground">No deleted chats found</p>
+                </div>
+              ) : (
+                deletedChats.map(chat => (
+                  <div 
+                    key={chat.id} 
+                    className="flex items-center justify-between p-3 hover:bg-muted/30 rounded-md"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-10 w-10">
+                        <AvatarImage src={chat.avatar} />
+                        <AvatarFallback>
+                          {chat.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="font-medium text-sm">{chat.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          Deleted {Math.floor(Math.random() * 7) + 1} days ago
+                        </p>
+                      </div>
+                    </div>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="text-red-500 hover:text-red-700 hover:bg-red-100"
+                      onClick={() => handlePermanentDelete(chat.id)}
+                    >
+                      Delete forever
+                    </Button>
+                  </div>
+                ))
+              )}
+            </div>
+            
+            <div className="mt-6 flex justify-end">
+              <Button variant="outline" onClick={() => setShowDeletedChatsModal(false)}>
+                Close
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Use the enhanced New Chat Modal */}
+      {showNewChatModal && renderNewChatModal()}
     </div>
   )
 }
@@ -1092,7 +1446,7 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
                 <Button variant="ghost" size="icon" onClick={() => setShowNewChatModal(false)}>
                   <X className="h-4 w-4" />
                 </Button>
-      </div>
+              </div>
               
               <div className="relative mb-4">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -1222,784 +1576,4 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
       </div>
     )
   }
-  
-  return (
-    <div className="flex flex-col h-full w-full">
-      {/* Chat header */}
-      <div className="border-b py-2 px-4 flex items-center justify-between sticky top-0 bg-white z-10">
-        {mobileView === 'chat' && (
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="md:hidden mr-2"
-            onClick={() => setMobileView('list')}
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        )}
-        
-        <div className="flex items-center flex-1 min-w-0">
-          <Avatar className="h-10 w-10 mr-3 border bg-background">
-            <AvatarImage src={activeChat.avatar} />
-            <AvatarFallback className="font-medium">
-              {activeChat.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center">
-              <h3 className="font-medium truncate">{activeChat.name}</h3>
-              {(activeChat as EnhancedChat).online && (
-                <div className="ml-2 flex items-center text-xs text-green-500">
-                  <div className="h-1.5 w-1.5 rounded-full bg-green-500 mr-1"></div>
-                  Online
-            </div>
-              )}
-            </div>
-            {activeChat.type === 'group' && (
-              <p className="text-xs text-muted-foreground truncate">
-                {participants.length} members • {participants.slice(0, 3).map(p => p.name.split(' ')[0]).join(', ')}
-                {participants.length > 3 && ` +${participants.length - 3} more`}
-              </p>
-            )}
-          </div>
-        </div>
-        
-        <div className="flex items-center gap-1 ml-2">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="hidden sm:flex">
-                  <Phone className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Call</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="hidden sm:flex">
-                  <Video className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Video call</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <Info className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Info</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          
-          {activeChat.type === 'group' && activeChat.isGroupAdmin && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <MoreVertical className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-                <DropdownMenuItem>
-                  <Plus className="h-4 w-4 mr-2" /> Add Members
-              </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Edit2 className="h-4 w-4 mr-2" /> Edit Group
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-destructive">
-                  <Trash2 className="h-4 w-4 mr-2" /> Delete Group
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          )}
-        </div>
-      </div>
-      
-      {/* Chat messages */}
-      <div className="flex-1 p-4 overflow-y-auto bg-gradient-to-b from-white to-muted/10">
-        <div className="max-w-3xl w-full mx-auto space-y-6">
-          {/* Chat start info */}
-          <div className="text-center my-6">
-            <div className="bg-muted/20 rounded-full p-3 w-16 h-16 mx-auto mb-3 flex items-center justify-center">
-              <Avatar className="h-full w-full">
-                <AvatarImage src={activeChat.avatar} />
-                <AvatarFallback className="font-medium">
-                  {activeChat.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
-                </AvatarFallback>
-              </Avatar>
-            </div>
-            <h3 className="font-semibold text-lg mb-1">{activeChat.name}</h3>
-            {activeChat.type === 'individual' && (
-              <p className="text-sm text-muted-foreground mb-3">
-                {participants[0]?.role || 'Team Member'}
-              </p>
-            )}
-            <p className="text-xs text-muted-foreground">
-              Chat started on {formatDate(activeChat.createdAt)}
-            </p>
-          </div>
-          
-          {messages.length > 0 && (
-            <div className="space-y-4">
-              {messages.map((message, index) => {
-                // Fake timestamps from the reference image
-                let timestamp = message.timestamp;
-                if (message.senderId === 2 && message.content.includes("Hello, Setup the github repo")) {
-                  timestamp = new Date();
-                  timestamp.setHours(9, 35, 0);
-                } else if (message.senderId === 1 && message.content.includes("Yes, Currently working")) {
-                  timestamp = new Date();
-                  timestamp.setHours(9, 39, 0);
-                } else if (message.senderId === 2 && message.content === "Thank you") {
-                  timestamp = new Date();
-                  timestamp.setHours(9, 42, 0);
-                } else if (message.senderId === 1 && message.content === "You are most welcome.") {
-                  timestamp = new Date();
-                  timestamp.setHours(9, 48, 0);
-                } else if (message.senderId === 2 && message.content.includes("After complete this")) {
-                  timestamp = new Date();
-                  timestamp.setHours(9, 50, 0);
-                } else if (message.senderId === 1 && message.content.includes("Yes, we work on the react")) {
-                  timestamp = new Date();
-                  timestamp.setHours(9, 52, 0);
-                }
-                
-                // Group messages by sender and time (within 2 minutes)
-                const isFirstInGroup = index === 0 || 
-                  messages[index - 1].senderId !== message.senderId || 
-                  (timestamp.getTime() - new Date(messages[index - 1].timestamp).getTime() > 2 * 60 * 1000);
-                
-                const isLastInGroup = index === messages.length - 1 || 
-                  messages[index + 1].senderId !== message.senderId || 
-                  (new Date(messages[index + 1].timestamp).getTime() - timestamp.getTime() > 2 * 60 * 1000);
-                
-                // Show date separator if needed (first message or new day)
-                const showDateSeparator = index === 0 || 
-                  new Date(timestamp).toDateString() !== new Date(messages[index - 1].timestamp).toDateString();
-            
-            return (
-                  <React.Fragment key={message.id}>
-                    {showDateSeparator && (
-                      <div className="flex justify-center my-4">
-                        <div className="bg-muted/20 text-xs text-muted-foreground px-3 py-1 rounded-full">
-                          {formatDateHeader(timestamp)}
-                        </div>
-                      </div>
-                    )}
-                    
-                    <div className={`${isLastInGroup ? 'mb-4' : 'mb-1'}`}>
-                      <MessageBubbleCustom 
-                message={message}
-                        isOwnMessage={message.senderId === 1}
-                        timestamp={timestamp}
-                        showAvatar={isLastInGroup}
-                        showTimestamp={isLastInGroup}
-                      />
-                    </div>
-                  </React.Fragment>
-                )
-              })}
-            </div>
-          )}
-          
-          {/* End of messages ref for scrolling */}
-          <div ref={messageEndRef} />
-            </div>
-          </div>
-      
-      {/* Active reply display */}
-      {activeReply && (
-        <div className="px-4 py-2 bg-muted/30 border-t flex items-center justify-between">
-          <div className="flex items-center">
-            <Reply className="h-4 w-4 mr-2 text-muted-foreground" />
-            <div>
-              <p className="text-xs text-muted-foreground">Replying to {activeReply.sender}</p>
-              <p className="text-sm truncate max-w-[200px]">{activeReply.content}</p>
-        </div>
-          </div>
-          <Button variant="ghost" size="icon" onClick={() => setActiveReply(null)}>
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
-      )}
-      
-      {/* Chat input */}
-      <div className="p-3 border-t bg-white">
-        {isRecording ? (
-          <div className="flex items-center p-2 bg-muted/30 rounded-full">
-            <div className="animate-pulse bg-red-500 h-3 w-3 rounded-full mr-2"></div>
-            <span className="text-sm">{formatRecordingTime(recordingTime)}</span>
-            <div className="ml-auto flex gap-2">
-              <Button variant="ghost" size="icon" onClick={() => {
-                setIsRecording(false)
-                if (timerRef.current) clearInterval(timerRef.current)
-                setRecordingTime(0)
-              }}>
-                <X className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="icon" onClick={handleRecordVoice}>
-                <Send className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2">
-            <div className="relative flex-1">
-              <input
-                type="file"
-                ref={fileInputRef}
-                className="hidden"
-                onChange={handleFileUpload}
-                aria-label="Upload files"
-                title="Upload files"
-              />
-              
-              <div className="absolute inset-y-0 left-0 flex items-center pl-3">
-                <Popover open={attachmentMenuOpen} onOpenChange={setAttachmentMenuOpen}>
-                  <PopoverTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-muted/50 rounded-full">
-                      <Paperclip className="h-4 w-4" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-56" align="start" alignOffset={-40} forceMount>
-                    <div className="grid grid-cols-2 gap-2">
-              <Button 
-                        variant="outline" 
-                        className="flex flex-col h-auto py-2"
-                        onClick={() => {
-                          if (fileInputRef.current) {
-                            fileInputRef.current.accept = "image/*"
-                            fileInputRef.current.click()
-                          }
-                        }}
-                      >
-                        <ImageIcon className="h-4 w-4 mb-1" />
-                        <span className="text-xs">Image</span>
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        className="flex flex-col h-auto py-2"
-                        onClick={() => {
-                          if (fileInputRef.current) {
-                            fileInputRef.current.accept = "video/*"
-                            fileInputRef.current.click()
-                          }
-                        }}
-                      >
-                        <Video className="h-4 w-4 mb-1" />
-                        <span className="text-xs">Video</span>
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        className="flex flex-col h-auto py-2"
-                        onClick={() => {
-                          if (fileInputRef.current) {
-                            fileInputRef.current.accept = "audio/*"
-                            fileInputRef.current.click()
-                          }
-                        }}
-                      >
-                        <FileIcon className="h-4 w-4 mb-1" />
-                        <span className="text-xs">Audio</span>
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        className="flex flex-col h-auto py-2"
-                        onClick={() => {
-                          if (fileInputRef.current) {
-                            fileInputRef.current.accept = ".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt"
-                            fileInputRef.current.click()
-                          }
-                        }}
-                      >
-                        <FileIcon className="h-4 w-4 mb-1" />
-                        <span className="text-xs">Document</span>
-                      </Button>
-                    </div>
-                  </PopoverContent>
-                </Popover>
-              </div>
-              
-              <Input
-                placeholder="Type a message..."
-                className="pl-12 pr-12 rounded-full border-muted"
-                value={messageInput}
-                onChange={(e) => setMessageInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault()
-                    handleSendMessage()
-                  }
-                }}
-                onFocus={() => startTyping()}
-                onBlur={() => stopTyping()}
-              />
-              
-              <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                <Popover open={emojiPickerOpen} onOpenChange={setEmojiPickerOpen}>
-                  <PopoverTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-muted/50 rounded-full">
-                      <Smile className="h-4 w-4" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-64 p-0" align="end" alignOffset={-40} forceMount>
-                    {renderEmojiPicker()}
-                  </PopoverContent>
-                </Popover>
-              </div>
-            </div>
-            
-            {messageInput.trim() ? (
-              <Button 
-                size="icon" 
-                className="rounded-full bg-primary hover:bg-primary/90" 
-                onClick={handleSendMessage}
-              >
-                <Send className="h-4 w-4" />
-              </Button>
-            ) : (
-              <Button 
-                size="icon" 
-                className="rounded-full bg-primary hover:bg-primary/90" 
-                onClick={handleRecordVoice}
-              >
-                <Mic className="h-4 w-4" />
-              </Button>
-            )}
-            </div>
-        )}
-      </div>
-    </div>
-  )
-}
-
-// Helper functions for date formatting
-const formatDate = (date: Date) => {
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric'
-  });
-};
-
-const formatDateHeader = (date: Date) => {
-  const today = new Date();
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-  
-  if (date.toDateString() === today.toDateString()) {
-    return 'Today';
-  } else if (date.toDateString() === yesterday.toDateString()) {
-    return 'Yesterday';
-  } else {
-    return formatDate(date);
-  }
-};
-
-// Message bubble component
-interface MessageBubbleProps {
-  message: Message
-  isOwnMessage: boolean
-  timestamp: Date
-  showAvatar?: boolean
-  showTimestamp?: boolean
-}
-
-function MessageBubbleCustom({ message, isOwnMessage, timestamp, showAvatar = true, showTimestamp = true }: MessageBubbleProps) {
-  const [showOptions, setShowOptions] = useState(false)
-  const [optionsTimeout, setOptionsTimeout] = useState<NodeJS.Timeout | null>(null)
-  const { editMessage, deleteMessage, replyToMessage, setActiveReply, activeChat } = useChat()
-  const [isEditing, setIsEditing] = useState(false)
-  const [editContent, setEditContent] = useState(message.content)
-  const optionsRef = useRef<HTMLDivElement>(null)
-  
-  // Handle mouse enter to show options
-  const handleMouseEnter = () => {
-    if (optionsTimeout) {
-      clearTimeout(optionsTimeout)
-      setOptionsTimeout(null)
-    }
-    setShowOptions(true)
-  }
-  
-  // Handle mouse leave with delay
-  const handleMouseLeave = () => {
-    const timeout = setTimeout(() => {
-      setShowOptions(false)
-    }, 1000) // 1 second delay before hiding options
-    
-    setOptionsTimeout(timeout as unknown as NodeJS.Timeout)
-  }
-  
-  // Clear timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (optionsTimeout) {
-        clearTimeout(optionsTimeout)
-      }
-    }
-  }, [optionsTimeout])
-  
-  // Get avatar URL based on sender name
-  const getAvatarUrl = (senderName: string) => {
-    // This would normally come from your user database
-    const avatarMap: Record<string, string> = {
-      "Herbert Strayhorn": "https://randomuser.me/api/portraits/men/32.jpg",
-      "Jitu Chauhan": "https://randomuser.me/api/portraits/men/44.jpg",
-      "Denise Reece": "https://randomuser.me/api/portraits/women/65.jpg",
-      "Kevin White": "https://randomuser.me/api/portraits/men/22.jpg",
-      "Mary Newton": "https://randomuser.me/api/portraits/women/45.jpg",
-      "Richard Sousa": "https://randomuser.me/api/portraits/men/46.jpg",
-      "Melissa Westbrook": "https://randomuser.me/api/portraits/women/28.jpg",
-      "Christy Obrien": "https://randomuser.me/api/portraits/women/36.jpg",
-      "Joe Lindahl": "https://randomuser.me/api/portraits/men/53.jpg",
-      // Current user's avatar (You)
-      "You": "https://randomuser.me/api/portraits/men/32.jpg"
-    };
-    
-    return avatarMap[senderName] || undefined;
-  };
-  
-  // Format message time
-  const formatMessageTime = (date: Date) => {
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-  }
-  
-  // Handle edit save
-  const handleSaveEdit = () => {
-    if (editContent.trim() && editContent !== message.content) {
-      editMessage(message.id, editContent)
-    }
-    setIsEditing(false)
-  }
-  
-  // Render message content based on type
-  const renderMessageContent = () => {
-    if (message.deleted) {
-      return (
-        <p className={`italic ${isOwnMessage ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>This message was deleted</p>
-      )
-    }
-    
-    if (isEditing) {
-      return (
-        <div className="flex flex-col gap-2">
-          <Input
-            value={editContent}
-            onChange={(e) => setEditContent(e.target.value)}
-            className="border-primary"
-            autoFocus
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault()
-                handleSaveEdit()
-              }
-              if (e.key === 'Escape') {
-                setIsEditing(false)
-                setEditContent(message.content)
-              }
-            }}
-          />
-          <div className="flex items-center gap-2 justify-end">
-            <Button 
-              variant="ghost" 
-              size="sm"
-              onClick={() => {
-                setIsEditing(false)
-                setEditContent(message.content)
-              }}
-            >
-              Cancel
-            </Button>
-            <Button size="sm" onClick={handleSaveEdit}>
-              Save
-            </Button>
-                </div>
-              </div>
-      )
-    }
-    
-    switch (message.type) {
-      case 'text':
-        return <p className="whitespace-pre-line break-words">{message.content}</p>
-        
-      case 'image':
-        return (
-          <div className="relative">
-            <img 
-              src={message.mediaUrl} 
-              alt="Image" 
-              className="rounded-md max-w-[240px] max-h-[320px] object-cover cursor-pointer hover:opacity-95 transition-opacity"
-              onClick={() => window.open(message.mediaUrl, '_blank')}
-            />
-            <div className="mt-1 text-xs text-muted-foreground">{message.fileName}</div>
-                      </div>
-        )
-        
-      case 'video':
-        return (
-                      <div>
-            <video 
-              controls
-              className="rounded-md max-w-[240px] max-h-[320px]"
-            >
-              <source src={message.mediaUrl} type="video/mp4" />
-              Your browser does not support the video tag.
-            </video>
-            <div className="mt-1 text-xs text-muted-foreground">{message.fileName}</div>
-                      </div>
-        )
-        
-      case 'audio':
-        return (
-          <div>
-            <audio controls className="max-w-[240px]">
-              <source src={message.mediaUrl} type="audio/mpeg" />
-              Your browser does not support the audio tag.
-            </audio>
-            <div className="mt-1 text-xs text-muted-foreground">{message.fileName}</div>
-                    </div>
-        )
-        
-      case 'voice':
-        return (
-          <div className="flex items-center gap-2">
-            <audio controls className="max-w-[180px] h-[36px]">
-              <source src={message.mediaUrl} type="audio/mpeg" />
-              Your browser does not support the audio tag.
-            </audio>
-            <div className="text-xs text-muted-foreground">0:19</div>
-                </div>
-        )
-        
-      case 'document':
-        return (
-          <div className="flex items-center gap-2 p-2 border rounded-md bg-background">
-            <FileIcon className="h-8 w-8 text-blue-500" />
-            <div className="flex-1 min-w-0">
-              <div className="font-medium truncate text-sm">{message.fileName}</div>
-              <div className="text-xs text-muted-foreground">
-                {Math.round(message.fileSize! / 1024)} KB
-              </div>
-            </div>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
-              <Download className="h-4 w-4" />
-            </Button>
-          </div>
-        )
-        
-      default:
-        return <p>{message.content}</p>
-    }
-  }
-  
-  return (
-    <div 
-      className={`flex items-end gap-2 group ${isOwnMessage ? 'justify-end' : 'justify-start'}`}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
-    >
-      {/* Receiver avatar - show on the left for received messages */}
-      {!isOwnMessage && (
-        <Avatar className="h-8 w-8 mb-1 flex-shrink-0">
-          <AvatarImage src={getAvatarUrl(message.senderName)} />
-          <AvatarFallback className="text-xs font-medium">
-            {message.senderName.split(' ').map(n => n[0]).join('').slice(0, 2)}
-          </AvatarFallback>
-        </Avatar>
-      )}
-      
-      <div 
-        className={`relative p-3 rounded-xl max-w-[85%] sm:max-w-[70%] ${
-          isOwnMessage 
-            ? 'bg-primary text-primary-foreground rounded-br-none' 
-            : 'bg-muted/50 border border-muted/30 rounded-bl-none'
-        }`}
-      >
-        {/* Sender name for group chats - only show for first message in a group */}
-        {!isOwnMessage && showAvatar && (
-          <div className="text-xs font-medium text-muted-foreground mb-1">
-            {message.senderName}
-        </div>
-        )}
-        
-        {/* Reply info */}
-        {message.replyTo && (
-          <div className={`p-2 mb-2 text-sm rounded border-l-2 ${
-            isOwnMessage ? 'bg-primary-700 border-primary-foreground/30' : 'bg-background border-muted-foreground/30'
-          }`}>
-            <p className="text-xs font-medium">
-              {message.replyTo.sender === message.senderName 
-                ? 'Replying to self' 
-                : `Replying to ${message.replyTo.sender}`}
-            </p>
-            <p className="truncate">{message.replyTo.content}</p>
-          </div>
-        )}
-        
-        {/* Message content */}
-        <div>{renderMessageContent()}</div>
-        
-        {/* Message info */}
-        {showTimestamp && (
-          <div className={`flex items-center gap-1 mt-1 text-xs ${
-            isOwnMessage ? 'text-primary-foreground/70' : 'text-muted-foreground'
-          }`}>
-            <span>{formatMessageTime(timestamp)}</span>
-            {isOwnMessage && message.status === 'read' && (
-              <Check className="h-3 w-3 ml-1" />
-            )}
-          </div>
-        )}
-        
-        {/* Reactions */}
-        {message.reactions && message.reactions.length > 0 && (
-          <div className={`flex flex-wrap gap-1 mt-2 ${
-            isOwnMessage ? 'justify-end' : 'justify-start'
-          }`}>
-            {message.reactions.map((reaction, index) => (
-              <div 
-                key={`${reaction.emoji}-${index}`}
-                className={`px-1.5 py-0.5 rounded-full text-xs ${
-                  isOwnMessage ? 'bg-primary-700' : 'bg-background'
-                }`}
-              >
-                {reaction.emoji}
-              </div>
-            ))}
-          </div>
-        )}
-        
-        {/* Always visible options button */}
-        <button 
-          className={`absolute -top-3 ${isOwnMessage ? 'right-0' : 'left-0'} bg-background text-muted-foreground/70 hover:text-foreground h-6 w-6 rounded-full border flex items-center justify-center transition-opacity duration-200 ${isOwnMessage ? 'opacity-100' : (showOptions ? 'opacity-100' : 'opacity-0 hover:opacity-60')}`}
-          onClick={handleMouseEnter}
-          aria-label="Message options"
-        >
-          <MoreVertical className="h-3 w-3" />
-        </button>
-        
-        {/* Message options */}
-        {showOptions && !message.deleted && (
-          <div 
-            ref={optionsRef}
-            className={`absolute -top-12 ${isOwnMessage ? 'right-0' : 'left-0'} bg-background shadow-md rounded-lg border flex z-50 transition-opacity duration-300 opacity-100`}
-            onMouseEnter={handleMouseEnter}
-            onMouseLeave={handleMouseLeave}
-          >
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="h-8 w-8"
-                    onClick={() => {
-                      setActiveReply({
-                        messageId: message.id,
-                        content: message.content,
-                        sender: message.senderName
-                      })
-                    }}
-                  >
-                    <Reply className={`h-4 w-4 ${isOwnMessage ? 'text-primary' : 'text-foreground'}`} />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Reply</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            
-            {isOwnMessage && message.type === 'text' && (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-8 w-8"
-                      onClick={() => {
-                        setIsEditing(true)
-                        setEditContent(message.content)
-                      }}
-                    >
-                      <Edit2 className="h-4 w-4 text-primary" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Edit</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )}
-            
-            {(isOwnMessage || (activeChat?.type === 'group' && activeChat?.isGroupAdmin)) && (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-8 w-8"
-                      onClick={() => deleteMessage(message.id)}
-                    >
-                      <Trash2 className="h-4 w-4 text-primary" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Delete</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )}
-            
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
-                  <MoreVertical className={`h-4 w-4 ${isOwnMessage ? 'text-primary' : 'text-foreground'}`} />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align={isOwnMessage ? "end" : "start"} className="w-40">
-                <DropdownMenuItem>
-                  <Forward className="h-4 w-4 mr-2" /> Forward
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Copy className="h-4 w-4 mr-2" /> Copy Text
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Save className="h-4 w-4 mr-2" /> Save
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem>
-                  <ThumbsUp className="h-4 w-4 mr-2" /> React
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        )}
-      </div>
-      
-      {/* Sender avatar - show on the right for own messages */}
-      {isOwnMessage && (
-        <Avatar className="h-8 w-8 mb-1 flex-shrink-0">
-          <AvatarImage src={getAvatarUrl("You")} />
-          <AvatarFallback className="text-xs font-medium">You</AvatarFallback>
-        </Avatar>
-      )}
-    </div>
-  )
 }
