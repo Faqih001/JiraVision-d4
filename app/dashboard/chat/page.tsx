@@ -19,6 +19,13 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { TeamMember } from "@/types/team"
 
+// Add missing properties to Chat type
+interface EnhancedChat extends Chat {
+  preview?: string
+  lastMessageTime?: string
+  online?: boolean
+}
+
 // Placeholder function to simulate fetching team members
 const fetchTeamMembers = async (): Promise<TeamMember[]> => {
   // In a real app, this would be an API call
@@ -245,7 +252,7 @@ function CustomChatList() {
   const filteredChats = searchQuery
     ? chats.filter(chat => 
         chat.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (chat.preview && chat.preview.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        ((chat as EnhancedChat).preview && (chat as EnhancedChat).preview!.toLowerCase().includes(searchQuery.toLowerCase())) ||
         (chat.lastMessage && chat.lastMessage.content.toLowerCase().includes(searchQuery.toLowerCase()))
       )
     : chats
@@ -274,7 +281,8 @@ function CustomChatList() {
 
   // Get chat preview text
   const getChatPreview = (chat: Chat) => {
-    if (chat.preview) return chat.preview
+    const enhancedChat = chat as EnhancedChat
+    if (enhancedChat.preview) return enhancedChat.preview
     
     if (chat.lastMessage) {
       if (chat.lastMessage.deleted) return 'This message was deleted'
