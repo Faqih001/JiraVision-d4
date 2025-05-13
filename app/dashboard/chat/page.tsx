@@ -15,7 +15,7 @@ import {
 import { useToast } from "@/hooks/use-toast"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { TeamMember } from "@/types/team"
 
@@ -222,7 +222,7 @@ export default function ChatPage() {
         <div className="flex flex-1 overflow-hidden">
           {/* Chat list - always show on desktop, conditionally on mobile */}
           <div className={`${mobileView === 'list' ? 'block' : 'hidden'} md:block h-full border-r w-full md:w-80 lg:w-96 flex-shrink-0`}>
-            <CustomChatList />
+            <CustomChatList mobileView={mobileView} setMobileView={setMobileView} />
           </div>
           
           {/* Chat window - always show on desktop, conditionally on mobile */}
@@ -235,7 +235,12 @@ export default function ChatPage() {
   )
 }
 
-function CustomChatList() {
+interface ChatListProps {
+  mobileView: 'list' | 'chat';
+  setMobileView: (view: 'list' | 'chat') => void;
+}
+
+function CustomChatList({ mobileView, setMobileView }: ChatListProps) {
   const { chats, activeChat, setActiveChat, connectionStatus } = useChat()
   const [searchQuery, setSearchQuery] = useState('')
   const [showNewChatModal, setShowNewChatModal] = useState(false)
@@ -554,6 +559,7 @@ function CustomChatList() {
               <Input
                 placeholder="Search contacts..."
                 className="pl-9"
+                onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
             
@@ -562,40 +568,109 @@ function CustomChatList() {
                 <TabsTrigger value="individual" className="flex-1">Individual</TabsTrigger>
                 <TabsTrigger value="group" className="flex-1">New Group</TabsTrigger>
               </TabsList>
-            </Tabs>
-            
-            <div className="max-h-[60vh] overflow-y-auto">
-              {teamMembers.map(member => (
-                <div 
-                  key={member.id}
-                  className="flex items-center p-3 hover:bg-muted/30 rounded-md cursor-pointer"
-                  onClick={() => {
-                    // Here you would implement logic to start a new chat with this member
-                    // For now, just close the modal
-                    setShowNewChatModal(false)
-                    
-                    // In a real app, you would:
-                    // 1. Check if a chat with this member already exists
-                    // 2. If it exists, open that chat
-                    // 3. If not, create a new chat
-                  }}
-                >
-                  <Avatar className="h-10 w-10 mr-3">
-                    <AvatarImage src={member.avatar} />
-                    <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <h3 className="font-medium">{member.name}</h3>
-                    <p className="text-sm text-muted-foreground">{member.role}</p>
+              
+              <TabsContent value="individual" className="mt-4">
+                <div className="max-h-[60vh] overflow-y-auto">
+                  {teamMembers
+                    .filter(member => 
+                      searchQuery ? 
+                        member.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                        member.role.toLowerCase().includes(searchQuery.toLowerCase()) : 
+                        true
+                    )
+                    .map(member => (
+                    <div 
+                      key={member.id}
+                      className="flex items-center p-3 hover:bg-muted/30 rounded-md cursor-pointer"
+                      onClick={() => {
+                        // Check if a chat with this member already exists
+                        const existingChat = chats.find(chat => 
+                          chat.type === 'individual' && 
+                          chat.participants.includes(member.id) && 
+                          chat.participants.length === 2
+                        );
+                        
+                        if (existingChat) {
+                          // Open existing chat
+                          setActiveChat(existingChat);
+                          setMobileView('chat');
+                        } else {
+                          // In a real app, you would create a new chat here
+                          // For demo, we'll just simulate it with a placeholder alert
+                          alert(`Starting new chat with ${member.name}`);
+                          
+                          // In real implementation, you would:
+                          // 1. Call an API to create a new chat
+                          // 2. Get the chat data from response
+                          // 3. Add it to the chats list
+                          // 4. Set it as active chat
+                        }
+                        
+                        setShowNewChatModal(false);
+                      }}
+                    >
+                      <Avatar className="h-10 w-10 mr-3">
+                        <AvatarImage src={member.avatar} />
+                        <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <h3 className="font-medium">{member.name}</h3>
+                        <p className="text-sm text-muted-foreground">{member.role}</p>
+                      </div>
+                      <div className="ml-auto">
+                        {(member as any).online && (
+                          <div className="h-2.5 w-2.5 rounded-full bg-green-500 border border-white"></div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="group" className="mt-4">
+                <div className="mb-4">
+                  <label className="text-sm font-medium mb-2 block">Group Name</label>
+                  <Input placeholder="Enter group name" className="mb-3" />
+                  
+                  <label className="text-sm font-medium mb-2 block">Select Members</label>
+                  <div className="max-h-[40vh] overflow-y-auto border rounded-md p-2 mb-3">
+                    {teamMembers
+                      .filter(member => 
+                        searchQuery ? 
+                          member.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          member.role.toLowerCase().includes(searchQuery.toLowerCase()) : 
+                          true
+                      )
+                      .map(member => (
+                      <div 
+                        key={member.id}
+                        className="flex items-center p-2 hover:bg-muted/30 rounded-md cursor-pointer mb-1"
+                      >
+                        <input
+                          type="checkbox"
+                          id={`select-member-${member.id}`}
+                          className="mr-3 h-4 w-4 rounded border-muted-foreground"
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                        <Avatar className="h-8 w-8 mr-3">
+                          <AvatarImage src={member.avatar} />
+                          <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        <label htmlFor={`select-member-${member.id}`} className="flex-1 cursor-pointer">
+                          <div className="font-medium text-sm">{member.name}</div>
+                          <div className="text-xs text-muted-foreground">{member.role}</div>
+                        </label>
+                      </div>
+                    ))}
                   </div>
-                  <div className="ml-auto">
-                    {(member as any).online && (
-                      <div className="h-2.5 w-2.5 rounded-full bg-green-500 border border-white"></div>
-                    )}
+                  
+                  <div className="flex items-center justify-between text-sm mb-3">
+                    <span className="text-muted-foreground">Selected: <span className="font-medium">0</span> members</span>
+                    <Button variant="ghost" size="sm" className="h-7 px-2">Select All</Button>
                   </div>
                 </div>
-              ))}
-            </div>
+              </TabsContent>
+            </Tabs>
             
             <div className="flex justify-end gap-2 mt-4">
               <Button variant="outline" onClick={() => setShowNewChatModal(false)}>Cancel</Button>
@@ -614,7 +689,7 @@ interface ChatWindowProps {
 }
 
 function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
-  const { activeChat, sendMessage, messages, getParticipants, startTyping, stopTyping, activeReply, setActiveReply } = useChat()
+  const { activeChat, sendMessage, messages, getParticipants, startTyping, stopTyping, activeReply, setActiveReply, setActiveChat, chats } = useChat()
   const [messageInput, setMessageInput] = useState('')
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false)
   const [attachmentMenuOpen, setAttachmentMenuOpen] = useState(false)
@@ -624,8 +699,19 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [showEmoji, setShowEmoji] = useState(false)
   const [showNewChatModal, setShowNewChatModal] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
   const participants = activeChat ? getParticipants(activeChat.id) : []
   const timerRef = useRef<NodeJS.Timeout | null>(null)
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([])
+  
+  // Fetch team members when component mounts
+  useEffect(() => {
+    const loadTeamMembers = async () => {
+      const members = await fetchTeamMembers()
+      setTeamMembers(members.filter(member => member.id !== 1)) // Exclude current user
+    }
+    loadTeamMembers()
+  }, [])
   
   useEffect(() => {
     // Scroll to bottom on new messages
@@ -737,6 +823,143 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
             New Chat
           </Button>
         </div>
+        
+        {/* New Chat Modal */}
+        {showNewChatModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-background rounded-lg w-full max-w-md p-4">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold">New Chat</h2>
+                <Button variant="ghost" size="icon" onClick={() => setShowNewChatModal(false)}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              
+              <div className="relative mb-4">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search contacts..."
+                  className="pl-9"
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+              
+              <Tabs defaultValue="individual" className="mb-4">
+                <TabsList className="w-full">
+                  <TabsTrigger value="individual" className="flex-1">Individual</TabsTrigger>
+                  <TabsTrigger value="group" className="flex-1">New Group</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="individual" className="mt-4">
+                  <div className="max-h-[60vh] overflow-y-auto">
+                    {teamMembers
+                      .filter(member => 
+                        searchQuery ? 
+                          member.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          member.role.toLowerCase().includes(searchQuery.toLowerCase()) : 
+                          true
+                      )
+                      .map(member => (
+                      <div 
+                        key={member.id}
+                        className="flex items-center p-3 hover:bg-muted/30 rounded-md cursor-pointer"
+                        onClick={() => {
+                          // Check if a chat with this member already exists
+                          const existingChat = chats.find(chat => 
+                            chat.type === 'individual' && 
+                            chat.participants.includes(member.id) && 
+                            chat.participants.length === 2
+                          );
+                          
+                          if (existingChat) {
+                            // Open existing chat
+                            setActiveChat(existingChat);
+                            setMobileView('chat');
+                          } else {
+                            // In a real app, you would create a new chat here
+                            // For demo, we'll just simulate it with a placeholder alert
+                            alert(`Starting new chat with ${member.name}`);
+                            
+                            // In real implementation, you would:
+                            // 1. Call an API to create a new chat
+                            // 2. Get the chat data from response
+                            // 3. Add it to the chats list
+                            // 4. Set it as active chat
+                          }
+                          
+                          setShowNewChatModal(false);
+                        }}
+                      >
+                        <Avatar className="h-10 w-10 mr-3">
+                          <AvatarImage src={member.avatar} />
+                          <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <h3 className="font-medium">{member.name}</h3>
+                          <p className="text-sm text-muted-foreground">{member.role}</p>
+                        </div>
+                        <div className="ml-auto">
+                          {(member as any).online && (
+                            <div className="h-2.5 w-2.5 rounded-full bg-green-500 border border-white"></div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="group" className="mt-4">
+                  <div className="mb-4">
+                    <label className="text-sm font-medium mb-2 block">Group Name</label>
+                    <Input placeholder="Enter group name" className="mb-3" />
+                    
+                    <label className="text-sm font-medium mb-2 block">Select Members</label>
+                    <div className="max-h-[40vh] overflow-y-auto border rounded-md p-2 mb-3">
+                      {teamMembers
+                        .filter(member => 
+                          searchQuery ? 
+                            member.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                            member.role.toLowerCase().includes(searchQuery.toLowerCase()) : 
+                            true
+                        )
+                        .map(member => (
+                        <div 
+                          key={member.id}
+                          className="flex items-center p-2 hover:bg-muted/30 rounded-md cursor-pointer mb-1"
+                        >
+                          <input
+                            type="checkbox"
+                            id={`select-member-${member.id}`}
+                            className="mr-3 h-4 w-4 rounded border-muted-foreground"
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                          <Avatar className="h-8 w-8 mr-3">
+                            <AvatarImage src={member.avatar} />
+                            <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
+                          </Avatar>
+                          <label htmlFor={`select-member-${member.id}`} className="flex-1 cursor-pointer">
+                            <div className="font-medium text-sm">{member.name}</div>
+                            <div className="text-xs text-muted-foreground">{member.role}</div>
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    <div className="flex items-center justify-between text-sm mb-3">
+                      <span className="text-muted-foreground">Selected: <span className="font-medium">0</span> members</span>
+                      <Button variant="ghost" size="sm" className="h-7 px-2">Select All</Button>
+                    </div>
+                  </div>
+                </TabsContent>
+              </Tabs>
+              
+              <div className="flex justify-end gap-2 mt-4">
+                <Button variant="outline" onClick={() => setShowNewChatModal(false)}>Cancel</Button>
+                <Button>Create Chat</Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     )
   }
@@ -940,6 +1163,28 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
+          
+          {activeChat.type === 'group' && activeChat.isGroupAdmin && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem>
+                  <Plus className="h-4 w-4 mr-2" /> Add Members
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <Edit2 className="h-4 w-4 mr-2" /> Edit Group
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="text-destructive">
+                  <Trash2 className="h-4 w-4 mr-2" /> Delete Group
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
       </div>
       
@@ -1236,7 +1481,7 @@ interface MessageBubbleProps {
 function MessageBubbleCustom({ message, isOwnMessage, timestamp, showAvatar = true, showTimestamp = true }: MessageBubbleProps) {
   const [showOptions, setShowOptions] = useState(false)
   const [optionsTimeout, setOptionsTimeout] = useState<NodeJS.Timeout | null>(null)
-  const { editMessage, deleteMessage, replyToMessage, setActiveReply } = useChat()
+  const { editMessage, deleteMessage, replyToMessage, setActiveReply, activeChat } = useChat()
   const [isEditing, setIsEditing] = useState(false)
   const [editContent, setEditContent] = useState(message.content)
   const optionsRef = useRef<HTMLDivElement>(null)
@@ -1562,7 +1807,7 @@ function MessageBubbleCustom({ message, isOwnMessage, timestamp, showAvatar = tr
               </TooltipProvider>
             )}
             
-            {isOwnMessage && (
+            {(isOwnMessage || (activeChat?.type === 'group' && activeChat?.isGroupAdmin)) && (
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
