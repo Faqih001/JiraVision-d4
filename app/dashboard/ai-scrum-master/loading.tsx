@@ -1,125 +1,87 @@
 "use client"
 
-import DashboardPageLoading from "@/components/dashboard-page-loading"
+import { useEffect, useState } from "react"
+import { Loader2 } from "lucide-react"
+import { Card, CardContent } from "@/components/ui/card"
+import { Skeleton } from "@/components/ui/skeleton"
 
 export default function Loading() {
-  return <DashboardPageLoading />
-}
+  const [progress, setProgress] = useState(0)
+  const [step, setStep] = useState(1)
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div className="bg-card border rounded-lg p-6 space-y-4">
-          <div className="flex justify-between items-center">
-            <Skeleton className="h-6 w-40" />
-            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-              <Loader size="sm" />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-5/6" />
-            <Skeleton className="h-4 w-4/6" />
-          </div>
-          <div className="flex justify-between items-center pt-2">
-            <Skeleton className="h-6 w-16" />
-            <Skeleton className="h-6 w-16" />
-          </div>
-        </div>
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setProgress((prev) => {
+        if (prev >= 100) {
+          clearInterval(timer)
+          return 100
+        }
+        return prev + 1.5
+      })
+    }, 50)
 
-        <div className="bg-card border rounded-lg p-6 space-y-4">
-          <div className="flex justify-between items-center">
-            <Skeleton className="h-6 w-40" />
-            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-              <Loader size="sm" />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-5/6" />
-            <Skeleton className="h-4 w-4/6" />
-          </div>
-          <div className="flex justify-between items-center pt-2">
-            <Skeleton className="h-6 w-16" />
-            <Skeleton className="h-6 w-16" />
-          </div>
-        </div>
+    const stepTimer = setInterval(() => {
+      setStep((prev) => (prev >= 3 ? 1 : prev + 1))
+    }, 2000)
 
-        <div className="bg-card border rounded-lg p-6 space-y-4">
-          <div className="flex justify-between items-center">
-            <Skeleton className="h-6 w-40" />
-            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-              <Loader size="sm" />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-5/6" />
-            <Skeleton className="h-4 w-4/6" />
-          </div>
-          <div className="flex justify-between items-center pt-2">
-            <Skeleton className="h-6 w-16" />
-            <Skeleton className="h-6 w-16" />
-          </div>
+    return () => {
+      clearInterval(timer)
+      clearInterval(stepTimer)
+    }
+  }, [])
+
+  return (
+    <div className="container mx-auto py-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold">AI Scrum Master</h1>
+        <div className="flex items-center space-x-2">
+          <Loader2 className="h-5 w-5 animate-spin" />
+          <span className="text-sm text-muted-foreground">
+            Loading... {Math.round(progress)}%
+          </span>
         </div>
       </div>
 
-      <div className="bg-card border rounded-lg overflow-hidden">
-        <div className="p-6 border-b">
-          <Skeleton className="h-6 w-48" />
-        </div>
-        <div className="p-6">
-          <div className="flex items-center justify-center py-8">
-            <div className="text-center">
-              <div className="relative mb-6">
-                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Loader size="md" />
-                </div>
-                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                  <svg className="w-24 h-24" viewBox="0 0 100 100">
-                    <circle 
-                      className="text-muted/20 stroke-[3]" 
-                      cx="50" 
-                      cy="50" 
-                      r="40" 
-                      fill="none"
-                    />
-                    <circle 
-                      className="text-primary stroke-[3] animate-dash" 
-                      cx="50" 
-                      cy="50" 
-                      r="40"
-                      fill="none"
-                    />
-                  </svg>
-                </div>
-              </div>
-              <Skeleton className="h-6 w-64 mx-auto mb-3" />
-              <Skeleton className="h-4 w-80 mx-auto" />
-              <div className="mt-4">
-                <PulseLoader className="justify-center" />
-              </div>
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card>
+          <CardContent className="p-6">
             <div className="space-y-4">
-              <Skeleton className="h-5 w-40" />
+              <Skeleton className="h-6 w-1/3" />
               <div className="space-y-2">
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-5/6" />
-                <Skeleton className="h-4 w-4/6" />
+                {[1, 2, 3].map((i) => (
+                  <Skeleton key={i} className="h-4 w-full" />
+                ))}
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
             <div className="space-y-4">
-              <Skeleton className="h-5 w-40" />
+              <Skeleton className="h-6 w-1/3" />
               <div className="space-y-2">
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-5/6" />
-                <Skeleton className="h-4 w-4/6" />
+                {[1, 2, 3, 4].map((i) => (
+                  <Skeleton key={i} className="h-4 w-full" />
+                ))}
               </div>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
+
+      <Card>
+        <CardContent className="p-6">
+          <div className="space-y-4">
+            <Skeleton className="h-8 w-1/4" />
+            <div className="space-y-2">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <Skeleton key={i} className="h-4 w-full" />
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }
