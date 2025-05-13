@@ -94,19 +94,30 @@ export async function POST(request: Request) {
         // Get metadata to preserve aspect ratio
         const metadata = await sharpInstance.metadata();
         
+        // Determine output format based on original file or convert to webp for best optimization
+        const outputFormat = formData.get("useWebp") === "true" ? "webp" : 
+                           (fileExtension === 'png' ? 'png' : 
+                           (fileExtension === 'webp' ? 'webp' : 'jpeg'));
+        
         // Resize to reasonable dimensions for a profile picture (max 300x300px)
         // While preserving aspect ratio
         await sharpInstance
           .resize({
             width: Math.min(metadata.width || 300, 300),
             height: Math.min(metadata.height || 300, 300),
-            fit: 'inside',
+            fit: 'cover',
+            position: 'center',
             withoutEnlargement: true
           })
+          // Apply basic enhancements
+          .normalise()
+          // Remove metadata for privacy and smaller file size
+          .withMetadata(false)
           // Optimize based on file type
-          .toFormat(fileExtension === 'png' ? 'png' : 'jpeg', {
-            quality: 80,
+          .toFormat(outputFormat, {
+            quality: outputFormat === 'webp' ? 85 : 80,
             progressive: true,
+            effort: 6, // Higher compression effort
             optimizeScans: true
           })
           // Write directly to file

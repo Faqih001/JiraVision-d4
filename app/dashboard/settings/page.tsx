@@ -252,6 +252,11 @@ export default function SettingsPage() {
       const formData = new FormData()
       formData.append('avatar', file)
       
+      // Use WebP format for better compression if available in browser
+      const useWebP = window.navigator.userAgent.indexOf("Safari") === -1 || 
+                     window.navigator.userAgent.indexOf("Chrome") !== -1
+      formData.append('useWebp', useWebP.toString())
+      
       // Send to server
       let response;
       try {
@@ -570,6 +575,14 @@ export default function SettingsPage() {
                         onError={(e) => {
                           // If avatar image fails to load, show fallback
                           e.currentTarget.style.display = 'none';
+                          console.error('Failed to load profile image:', profileData.avatar);
+                          
+                          // Notify user about the broken image
+                          toast({
+                            title: 'Image Error',
+                            description: 'Failed to load profile image. Try uploading a new one.',
+                            variant: 'destructive',
+                          });
                         }}
                       />
                     ) : null}

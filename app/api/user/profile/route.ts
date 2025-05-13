@@ -64,9 +64,7 @@ export async function PUT(request: Request) {
     const body = await request.json()
     
     // Fields that can be updated
-    const { name, avatar, jobTitle, department, location, bio, language, timezone } = body
-    
-    // Validate input
+    const { name, avatar, jobTitle, department, location, bio, language, timezone } = body      // Validate input
     if (!name || name.trim() === "") {
       return NextResponse.json(
         { error: "Name is required" },
@@ -79,7 +77,11 @@ export async function PUT(request: Request) {
       const validLanguages = languages.map(lang => lang.value);
       if (!validLanguages.includes(language)) {
         return NextResponse.json(
-          { error: "Invalid language selected. Please choose a valid language.", validOptions: validLanguages },
+          { 
+            error: "Invalid language selected. Please choose a valid language.", 
+            validOptions: validLanguages,
+            supportedLanguages: languages
+          },
           { status: 400 }
         )
       }
@@ -95,7 +97,12 @@ export async function PUT(request: Request) {
       
       if (!validTimezones.includes(timezone)) {
         return NextResponse.json(
-          { error: "Invalid timezone selected. Please choose a valid timezone." },
+          { 
+            error: "Invalid timezone selected. Please choose a valid timezone.",
+            validOptions: validTimezones,
+            africanTimezones,
+            internationalTimezones
+          },
           { status: 400 }
         )
       }
