@@ -4,6 +4,7 @@ import { join } from "path"
 import { getSession } from "@/lib/auth-actions"
 import { updateUserProfile } from "@/lib/data-access"
 import { constants } from "fs"
+import sharp from 'sharp'
 
 // For profile picture uploads
 export async function POST(request: Request) {
@@ -83,9 +84,40 @@ export async function POST(request: Request) {
         throw new Error("Could not read uploaded file")
       })
       
-      // Write the file
+      // Process and optimize the image with Sharp
       const filePath = join(uploadsDir, fileName)
-      await writeFile(filePath, new Uint8Array(buffer))
+      
+      try {
+        // Create a Sharp instance from the buffer
+        const sharpInstance = sharp(new Uint8Array(buffer));
+        
+        // Get metadata to preserve aspect ratio
+        const metadata = await sharpInstance.metadata();
+        
+        // Resize to reasonable dimensions for a profile picture (max 300x300px)
+        // While preserving aspect ratio
+        await sharpInstance
+          .resize({
+            width: Math.min(metadata.width || 300, 300),
+            height: Math.min(metadata.height || 300, 300),
+            fit: 'inside',
+            withoutEnlargement: true
+          })
+          // Optimize based on file type
+          .toFormat(fileExtension === 'png' ? 'png' : 'jpeg', {
+            quality: 80,
+            progressive: true,
+            optimizeScans: true
+          })
+          // Write directly to file
+          .toFile(filePath);
+          
+      } catch (sharpError) {
+        console.error("Error optimizing image with Sharp:", sharpError);
+        // Fallback to original file if optimization fails
+        console.log("Falling back to original file without optimization");
+        await writeFile(filePath, new Uint8Array(buffer));
+      }
       
       // Update user profile with avatar URL
       const avatarUrl = `/uploads/${fileName}`

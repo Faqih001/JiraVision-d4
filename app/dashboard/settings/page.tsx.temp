@@ -2,10 +2,9 @@
 
 import { Badge } from "@/components/ui/badge"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect } from "react"
 import { useTheme } from "next-themes"
-import { Bell, Globe, Lock, Moon, Save, Shield, Sun, User, Camera, Brush, Loader2, X, Upload } from "lucide-react"
-import { allTimezones, languages } from "@/lib/timezones"
+import { Bell, Globe, Lock, Moon, Save, Shield, Sun, User, Camera, Brush, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -23,7 +22,6 @@ export default function SettingsPage() {
   const { toast } = useToast()
   const { user } = useAuth()
   const isMobile = useMobile()
-  const fileInputRef = useRef<HTMLInputElement>(null)
   const [emailNotifications, setEmailNotifications] = useState(true)
   const [slackNotifications, setSlackNotifications] = useState(true)
   const [browserNotifications, setBrowserNotifications] = useState(false)
@@ -32,7 +30,6 @@ export default function SettingsPage() {
   // Profile state
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
-  const [isUploading, setIsUploading] = useState(false)
   const [profileData, setProfileData] = useState({
     name: '',
     email: '',
@@ -40,9 +37,7 @@ export default function SettingsPage() {
     jobTitle: '',
     department: '',
     location: '',
-    bio: '',
-    language: 'en-US',
-    timezone: 'Africa/Nairobi'
+    bio: ''
   })
   
   // Fetch user profile data
@@ -64,12 +59,12 @@ export default function SettingsPage() {
             name: data.profile.name || '',
             email: data.profile.email || '',
             avatar: data.profile.avatar || '',
-            jobTitle: data.profile.jobTitle || '',
-            department: data.profile.department || '',
-            location: data.profile.location || '',
-            bio: data.profile.bio || '',
-            language: data.profile.language || 'en-US',
-            timezone: data.profile.timezone || 'Africa/Nairobi'
+            // These fields don't exist in our database schema yet, 
+            // but we'll keep them in the UI for future expansion
+            jobTitle: '',
+            department: '',
+            location: '',
+            bio: ''
           })
         }
       } catch (error) {
@@ -92,66 +87,25 @@ export default function SettingsPage() {
   // Handle profile update
   const handleProfileUpdate = async () => {
     try {
-      if (!profileData.name || profileData.name.trim() === "") {
-        toast({
-          title: 'Error',
-          description: 'Name is required',
-          variant: 'destructive'
-        })
-        return
-      }
-      
       setIsSaving(true)
       
-      let response;
-      try {
-        response = await fetch('/api/user/profile', {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            name: profileData.name,
-            avatar: profileData.avatar,
-            jobTitle: profileData.jobTitle,
-            department: profileData.department,
-            location: profileData.location,
-            bio: profileData.bio,
-            language: profileData.language,
-            timezone: profileData.timezone
-          }),
-        });
-      } catch (networkError) {
-        console.error("Network error when updating profile:", networkError);
-        throw new Error('Network error when updating profile. Please check your connection and try again.');
+      const response = await fetch('/api/user/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: profileData.name,
+          avatar: profileData.avatar
+        }),
+      })
+      
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to update profile')
       }
       
-      let errorData;
-      let data;
-      
-      try {
-        // Clone the response to read it twice if needed
-        const responseClone = response.clone();
-        
-        if (!response.ok) {
-          try {
-            errorData = await response.json();
-            throw new Error(errorData.error || 'Failed to update profile');
-          } catch (jsonError) {
-            if (jsonError instanceof SyntaxError) {
-              // If response is not JSON, get text instead
-              const errorText = await responseClone.text();
-              throw new Error(errorText || 'Failed to update profile (server returned non-JSON response)');
-            }
-            throw jsonError;
-          }
-        }
-        
-        data = await response.json();
-      } catch (parseError) {
-        console.error("Error parsing profile update response:", parseError);
-        throw new Error('Failed to process server response: ' + parseError.message);
-      }
+      const data = await response.json()
       
       if (data.success) {
         toast({
@@ -159,50 +113,12 @@ export default function SettingsPage() {
           description: 'Profile updated successfully',
           variant: 'default'
         })
-        
-        // Refresh the profile data to show updated information
-        try {
-          const fetchResponse = await fetch('/api/user/profile')
-          
-          if (!fetchResponse.ok) {
-            console.warn("Failed to refresh profile data after update:", await fetchResponse.text())
-            // We can still consider the update successful even if refresh fails
-          } else {
-            const refreshedData = await fetchResponse.json()
-            if (refreshedData.success && refreshedData.profile) {
-              setProfileData({
-                name: refreshedData.profile.name || '',
-                email: refreshedData.profile.email || '',
-                avatar: refreshedData.profile.avatar || '',
-                jobTitle: refreshedData.profile.jobTitle || '',
-                department: refreshedData.profile.department || '',
-                location: refreshedData.profile.location || '',
-                bio: refreshedData.profile.bio || '',
-                language: refreshedData.profile.language || 'en-US',
-                timezone: refreshedData.profile.timezone || 'Africa/Nairobi'
-              })
-            }
-          }
-        } catch (refreshError) {
-          // Log but don't throw - the update was still successful
-          console.warn("Error refreshing profile data:", refreshError)
-        }
       }
     } catch (error) {
       console.error('Error updating profile:', error)
-      
-      // Extract the error message for the toast
-      let errorMessage = 'Failed to update profile data';
-      
-      if (error instanceof Error) {
-        errorMessage = error.message || errorMessage;
-      } else if (typeof error === 'string') {
-        errorMessage = error;
-      }
-      
       toast({
         title: 'Error',
-        description: errorMessage,
+        description: 'Failed to update profile data',
         variant: 'destructive'
       })
     } finally {
@@ -216,196 +132,6 @@ export default function SettingsPage() {
       ...prev,
       [field]: value
     }))
-  }
-  
-  // Handle avatar upload
-  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    
-    try {
-      setIsUploading(true)
-      
-      // Validate file type
-      const validTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"]
-      if (!validTypes.includes(file.type)) {
-        toast({
-          title: 'Error',
-          description: 'Please select a valid image file (JPG, PNG, GIF, WEBP)',
-          variant: 'destructive'
-        })
-        return
-      }
-      
-      // Validate file size (max 2MB)
-      const maxSize = 2 * 1024 * 1024 // 2MB
-      if (file.size > maxSize) {
-        toast({
-          title: 'Error',
-          description: 'Image file size should be less than 2MB',
-          variant: 'destructive'
-        })
-        return
-      }
-      
-      // Create form data
-      const formData = new FormData()
-      formData.append('avatar', file)
-      
-      // Send to server
-      let response;
-      try {
-        response = await fetch('/api/user/avatar/upload', {
-          method: 'POST',
-          body: formData
-        })
-      } catch (networkError) {
-        console.error("Network error when uploading avatar:", networkError);
-        throw new Error('Network error when uploading profile picture. Please check your connection and try again.');
-      }
-      
-      let errorData;
-      let data;
-      
-      try {
-        // Clone the response to read it twice if needed
-        const responseClone = response.clone();
-        
-        if (!response.ok) {
-          try {
-            errorData = await response.json();
-            throw new Error(errorData.error || 'Failed to upload avatar');
-          } catch (jsonError) {
-            if (jsonError instanceof SyntaxError) {
-              // If response is not JSON, get text instead
-              const errorText = await responseClone.text();
-              throw new Error(errorText || 'Failed to upload avatar (server returned non-JSON response)');
-            }
-            throw jsonError;
-          }
-        }
-        
-        data = await response.json();
-      } catch (parseError) {
-        console.error("Error parsing avatar upload response:", parseError);
-        throw new Error('Failed to process server response: ' + parseError.message);
-      }
-      
-      if (data.success) {
-        setProfileData(prev => ({
-          ...prev,
-          avatar: data.avatar
-        }))
-        
-        toast({
-          title: 'Success',
-          description: 'Profile picture updated successfully',
-          variant: 'default'
-        })
-      }
-    } catch (error) {
-      console.error('Error uploading avatar:', error)
-      
-      // Extract the error message for the toast
-      let errorMessage = 'Failed to upload profile picture';
-      
-      if (error instanceof Error) {
-        errorMessage = error.message || errorMessage;
-      } else if (typeof error === 'string') {
-        errorMessage = error;
-      }
-      
-      // Show more specific error message to the user
-      toast({
-        title: 'Error',
-        description: errorMessage,
-        variant: 'destructive'
-      })
-    } finally {
-      setIsUploading(false)
-      // Reset the file input
-      if (fileInputRef.current) {
-        fileInputRef.current.value = ''
-      }
-    }
-  }
-  
-  // Handle avatar removal
-  const handleRemoveAvatar = async () => {
-    if (!profileData.avatar) return
-    
-    try {
-      setIsUploading(true)
-      
-      let response;
-      try {
-        response = await fetch('/api/user/avatar/remove', {
-          method: 'DELETE'
-        });
-      } catch (networkError) {
-        console.error("Network error when removing avatar:", networkError);
-        throw new Error('Network error when removing profile picture. Please check your connection and try again.');
-      }
-      
-      let errorData;
-      let data;
-      
-      try {
-        // Clone the response to read it twice if needed
-        const responseClone = response.clone();
-        
-        if (!response.ok) {
-          try {
-            errorData = await response.json();
-            throw new Error(errorData.error || 'Failed to remove avatar');
-          } catch (jsonError) {
-            if (jsonError instanceof SyntaxError) {
-              // If response is not JSON, get text instead
-              const errorText = await responseClone.text();
-              throw new Error(errorText || 'Failed to remove avatar (server returned non-JSON response)');
-            }
-            throw jsonError;
-          }
-        }
-        
-        data = await response.json();
-      } catch (parseError) {
-        console.error("Error parsing avatar removal response:", parseError);
-        throw new Error('Failed to process server response: ' + parseError.message);
-      }
-      
-      if (data.success) {
-        setProfileData(prev => ({
-          ...prev,
-          avatar: ''
-        }))
-        
-        toast({
-          title: 'Success',
-          description: 'Profile picture removed successfully',
-          variant: 'default'
-        })
-      }
-    } catch (error) {
-      console.error('Error removing avatar:', error)
-      
-      // Extract the error message for the toast
-      let errorMessage = 'Failed to remove profile picture';
-      
-      if (error instanceof Error) {
-        errorMessage = error.message || errorMessage;
-      } else if (typeof error === 'string') {
-        errorMessage = error;
-      }
-      
-      toast({
-        title: 'Error',
-        description: errorMessage,
-        variant: 'destructive'
-      })
-    } finally {
-      setIsUploading(false)
-    }
   }
   
   useEffect(() => {
@@ -578,50 +304,15 @@ export default function SettingsPage() {
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex gap-2">
-                    <input 
-                      type="file" 
-                      id="avatar-upload" 
-                      className="hidden" 
-                      accept="image/png,image/jpeg,image/gif,image/webp"
-                      onChange={handleAvatarUpload}
-                      ref={fileInputRef}
-                      aria-label="Upload profile picture"
-                    />
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="gap-1" 
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={isUploading}
-                    >
-                      {isUploading ? (
-                        <>
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                          <span className="hidden sm:inline">Uploading...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Camera className="h-3 w-3" />
-                          <span className="hidden sm:inline">Upload</span>
-                        </>
-                      )}
+                    <Button variant="outline" size="sm" className="gap-1">
+                      <Camera className="h-3 w-3" />
+                      <span className="hidden sm:inline">Upload</span>
                     </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="gap-1"
-                      onClick={handleRemoveAvatar}
-                      disabled={!profileData.avatar || isUploading}
-                    >
-                      <X className="h-3 w-3" />
+                    <Button variant="outline" size="sm" className="gap-1">
                       <span className="hidden sm:inline">Remove</span>
+                      <span className="inline sm:hidden">×</span>
                     </Button>
                   </div>
-                  {profileData.avatar && (
-                    <p className="text-xs text-muted-foreground mt-2 text-center">
-                      Current avatar: {profileData.avatar.split('/').pop()}
-                    </p>
-                  )}
                 </CardContent>
               </Card>
 
@@ -637,14 +328,14 @@ export default function SettingsPage() {
                       id="language"
                       aria-label="Select language"
                       className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                      value={profileData.language}
-                      onChange={(e) => handleInputChange('language', e.target.value)}
+                      defaultValue="en-US"
                     >
-                      {languages.map((lang) => (
-                        <option key={lang.value} value={lang.value}>
-                          {lang.label}
-                        </option>
-                      ))}
+                      <option value="en-US">English (US)</option>
+                      <option value="en-GB">English (UK)</option>
+                      <option value="es">Spanish</option>
+                      <option value="fr">French</option>
+                      <option value="de">German</option>
+                      <option value="ja">Japanese</option>
                     </select>
                   </div>
                   <div className="space-y-2">
@@ -653,39 +344,20 @@ export default function SettingsPage() {
                       id="timezone"
                       aria-label="Select timezone"
                       className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                      value={profileData.timezone}
-                      onChange={(e) => handleInputChange('timezone', e.target.value)}
+                      defaultValue="America/Los_Angeles"
                     >
-                      {allTimezones.map((group) => (
-                        <optgroup key={group.label} label={group.label}>
-                          {group.options.map((tz) => (
-                            <option key={tz.value} value={tz.value}>
-                              {tz.label}
-                            </option>
-                          ))}
-                        </optgroup>
-                      ))}
+                      <option value="America/Los_Angeles">Pacific Time (US & Canada)</option>
+                      <option value="America/New_York">Eastern Time (US & Canada)</option>
+                      <option value="Europe/London">London</option>
+                      <option value="Europe/Paris">Paris</option>
+                      <option value="Asia/Tokyo">Tokyo</option>
                     </select>
                   </div>
                 </CardContent>
                 <CardFooter>
-                  <Button 
-                    variant="outline" 
-                    className="w-full gap-1"
-                    onClick={handleProfileUpdate}
-                    disabled={isSaving}
-                  >
-                    {isSaving ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        <span>Updating...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Globe className="h-4 w-4" />
-                        <span className="hidden sm:inline">Update Preferences</span>
-                      </>
-                    )}
+                  <Button variant="outline" className="w-full gap-1">
+                    <Globe className="h-4 w-4" />
+                    <span className="hidden sm:inline">Update Preferences</span>
                   </Button>
                 </CardFooter>
               </Card>

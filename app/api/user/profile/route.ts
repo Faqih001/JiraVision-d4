@@ -4,6 +4,7 @@ import { users } from "@/drizzle/schema"
 import { eq } from "drizzle-orm"
 import { getSession } from "@/lib/auth-actions"
 import { getUserProfile, updateUserProfile } from "@/lib/data-access"
+import { africanTimezones, internationalTimezones, languages } from "@/lib/timezones"
 
 // GET user profile data
 export async function GET() {
@@ -63,7 +64,7 @@ export async function PUT(request: Request) {
     const body = await request.json()
     
     // Fields that can be updated
-    const { name, avatar, jobTitle, department, location, bio } = body
+    const { name, avatar, jobTitle, department, location, bio, language, timezone } = body
     
     // Validate input
     if (!name || name.trim() === "") {
@@ -71,6 +72,33 @@ export async function PUT(request: Request) {
         { error: "Name is required" },
         { status: 400 }
       )
+    }
+    
+    // Validate language (if provided)
+    if (language) {
+      const validLanguages = languages.map(lang => lang.value);
+      if (!validLanguages.includes(language)) {
+        return NextResponse.json(
+          { error: "Invalid language selected. Please choose a valid language.", validOptions: validLanguages },
+          { status: 400 }
+        )
+      }
+    }
+    
+    // Validate timezone (if provided)
+    if (timezone) {
+      // Create a list of all valid timezone values from both arrays
+      const validTimezones = [
+        ...africanTimezones.map(tz => tz.value),
+        ...internationalTimezones.map(tz => tz.value)
+      ];
+      
+      if (!validTimezones.includes(timezone)) {
+        return NextResponse.json(
+          { error: "Invalid timezone selected. Please choose a valid timezone." },
+          { status: 400 }
+        )
+      }
     }
     
     // Update user profile using the helper function
