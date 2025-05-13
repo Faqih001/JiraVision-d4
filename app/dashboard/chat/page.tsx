@@ -1,405 +1,541 @@
 "use client"
 
-import { useState } from "react"
-import { useTheme } from "next-themes"
-import { Search, Send, Smile, Paperclip, MoreVertical, Phone, Video, User, Settings } from "lucide-react"
+import React, { useEffect, useState, useRef } from "react"
+import { Shield, Info, Lock, Bell, Phone, Video, Search, MoreVertical, ArrowLeft, Send } from "lucide-react"
+import { ChatProvider, useChat, Message, Chat } from "@/app/context/chat/ChatContext"
+import { ChatList } from "@/components/chat/ChatList"
+import { ChatMessageInput } from "@/components/chat/ChatMessageInput"
+import { MessageBubble } from "@/components/chat/MessageBubble"
+import { TeamMember } from "@/types/team"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { Button } from "@/components/ui/button"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuSeparator, 
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu"
+import { useToast } from "@/hooks/use-toast"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+
+// Placeholder function to simulate fetching team members
+const fetchTeamMembers = async (): Promise<TeamMember[]> => {
+  // In a real app, this would be an API call
+  return [
+    {
+      id: 1,
+      name: "You (Current User)",
+      role: "Product Manager",
+      email: "you@example.com",
+      department: "Product",
+      status: "active",
+      skills: ["Product Management", "UX", "Strategy"],
+      utilization: 80
+    },
+    {
+      id: 2,
+      name: "Herbert Strayhorn",
+      role: "Project Lead",
+      email: "herbert.strayhorn@example.com",
+      phone: "+1 (555) 234-5678",
+      department: "Management",
+      status: "busy",
+      skills: ["Leadership", "Strategy", "Project Management"],
+      utilization: 95,
+      avatar: "https://randomuser.me/api/portraits/men/32.jpg"
+    },
+    {
+      id: 3,
+      name: "Jitu Chauhan",
+      role: "Frontend Developer",
+      email: "jitu.chauhan@example.com",
+      department: "Engineering",
+      status: "online",
+      skills: ["React", "TypeScript", "CSS", "UI Design"],
+      utilization: 85,
+      avatar: "https://randomuser.me/api/portraits/men/44.jpg"
+    },
+    {
+      id: 4,
+      name: "Denise Reece",
+      role: "UX Designer",
+      email: "denise.reece@example.com",
+      department: "Design",
+      status: "active",
+      skills: ["Figma", "User Research", "Wireframing", "Prototyping"],
+      utilization: 90,
+      avatar: "https://randomuser.me/api/portraits/women/65.jpg"
+    },
+    {
+      id: 5,
+      name: "Kevin White",
+      role: "Backend Developer",
+      email: "kevin.white@example.com",
+      phone: "+1 (555) 987-6543",
+      department: "Engineering",
+      status: "active",
+      skills: ["Node.js", "Express", "PostgreSQL", "API Design"],
+      utilization: 100,
+      avatar: "https://randomuser.me/api/portraits/men/22.jpg"
+    },
+    {
+      id: 6,
+      name: "Mary Newton",
+      role: "Project Manager",
+      email: "mary.newton@example.com",
+      phone: "+1 (555) 456-7890",
+      department: "Product",
+      status: "active",
+      skills: ["Agile", "JIRA", "Roadmapping", "Stakeholder Management"],
+      utilization: 75,
+      avatar: "https://randomuser.me/api/portraits/women/45.jpg"
+    },
+    {
+      id: 7,
+      name: "Richard Sousa",
+      role: "QA Engineer",
+      email: "richard.sousa@example.com",
+      department: "Engineering",
+      status: "away",
+      skills: ["Test Automation", "Selenium", "Cypress", "Manual Testing"],
+      utilization: 60,
+      avatar: "https://randomuser.me/api/portraits/men/46.jpg"
+    },
+    {
+      id: 8,
+      name: "Melissa Westbrook",
+      role: "UI Designer",
+      email: "melissa.westbrook@example.com",
+      department: "Design",
+      status: "active",
+      skills: ["UI Design", "Wireframing", "Prototyping"],
+      utilization: 70,
+      avatar: "https://randomuser.me/api/portraits/women/28.jpg"
+    },
+    {
+      id: 9,
+      name: "Christy Obrien",
+      role: "UX Researcher",
+      email: "christy.obrien@example.com",
+      department: "Design",
+      status: "active",
+      skills: ["User Research", "User Testing", "Wireframing"],
+      utilization: 85,
+      avatar: "https://randomuser.me/api/portraits/women/36.jpg"
+    },
+    {
+      id: 10,
+      name: "Joe Lindahl",
+      role: "DevOps Engineer",
+      email: "joe.lindahl@example.com",
+      department: "Engineering",
+      status: "active",
+      skills: ["Docker", "Kubernetes", "AWS", "CI/CD"],
+      utilization: 90,
+      avatar: "https://randomuser.me/api/portraits/men/53.jpg"
+    },
+  ]
+}
 
 export default function ChatPage() {
-  const { theme } = useTheme()
-  const [message, setMessage] = useState("")
-  const [activeChat, setActiveChat] = useState("sharad")
-  const [searchQuery, setSearchQuery] = useState("")
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([])
+  const [loading, setLoading] = useState(true)
+  const [mobileView, setMobileView] = useState<'list' | 'chat'>('list')
+  const { toast } = useToast()
 
-  // Sample data for chats
-  const contacts = [
-    {
-      id: "sharad",
-      name: "Sharad Mishra",
-      avatar: "/avatars/sharad.png",
-      online: true,
-      isActive: true,
-      unread: 0,
-      preview: "Hello, Setup the github repo for bootstrap admin dashboard.",
-      lastMessageTime: "09:35",
-      messages: [
-        {
-          id: 1,
-          sender: "sharad",
-          content: "Hello, Setup the github repo for bootstrap admin dashboard.",
-          time: "09:35",
-          isRead: true
-        },
-        {
-          id: 2,
-          sender: "user",
-          content: "Yes, Currently working on the today evening i will up the admin dashboard template.",
-          time: "09:39",
-          isRead: true
-        },
-        {
-          id: 3,
-          sender: "sharad",
-          content: "Thank you",
-          time: "09:42",
-          isRead: true
-        },
-        {
-          id: 4,
-          sender: "user",
-          content: "You are most welcome.",
-          time: "09:48",
-          isRead: true
-        },
-        {
-          id: 5,
-          sender: "sharad",
-          content: "After complete this we working on React/Next.js based admin dasboard template.",
-          time: "09:50", 
-          isRead: true
-        },
-        {
-          id: 6,
-          sender: "user",
-          content: "Yes, we work on the react and next.js",
-          time: "09:52",
-          isRead: true
-        }
-      ]
-    },
-    {
-      id: "jitu",
-      name: "Jitu Chauhan",
-      avatar: "/avatars/jitu.png",
-      online: true,
-      isActive: false,
-      unread: 0,
-      preview: "Online",
-      lastMessageTime: "",
-      messages: []
-    },
-    {
-      id: "denise",
-      name: "Denise Reece",
-      avatar: "/avatars/denise.png",
-      online: false,
-      isActive: false,
-      unread: 1,
-      preview: "I m for unread message components...",
-      lastMessageTime: "8:48AM",
-      messages: []
-    },
-    {
-      id: "kevin",
-      name: "Kevin White",
-      avatar: "/avatars/kevin.png",
-      online: false,
-      isActive: false,
-      unread: 0,
-      preview: "Currently chat with user components...",
-      lastMessageTime: "8:48AM",
-      messages: []
-    },
-    {
-      id: "mary",
-      name: "Mary Newton",
-      avatar: "/avatars/mary.png",
-      online: false,
-      isActive: false,
-      unread: 0,
-      preview: "",
-      lastMessageTime: "8:48AM",
-      messages: []
-    },
-    {
-      id: "figma",
-      name: "Figma to HTML5",
-      avatar: "",
-      online: false,
-      isActive: false,
-      unread: 0,
-      preview: "Convert Figma to HTML5 template...",
-      lastMessageTime: "3/11/2023",
-      messages: []
-    },
-    {
-      id: "richard",
-      name: "Richard Sousa",
-      avatar: "/avatars/richard.png",
-      online: false,
-      isActive: false,
-      unread: 0,
-      preview: "On going description of group...",
-      lastMessageTime: "2/10/2023",
-      messages: []
-    },
-    {
-      id: "melissa",
-      name: "Melissa Westbrook",
-      avatar: "/avatars/melissa.png",
-      online: false,
-      isActive: false,
-      unread: 0,
-      preview: "On going description of group...",
-      lastMessageTime: "2/3/2023",
-      messages: []
-    },
-    {
-      id: "christy",
-      name: "Christy Obrien",
-      avatar: "/avatars/christy.png",
-      online: false,
-      isActive: false,
-      unread: 0,
-      preview: "Start design system for UI.",
-      lastMessageTime: "1/24/2023",
-      messages: []
-    },
-    {
-      id: "herbert",
-      name: "Herbert Strayhorn",
-      avatar: "/avatars/herbert.png",
-      online: false,
-      isActive: false,
-      unread: 0,
-      preview: "Start design system for UI...",
-      lastMessageTime: "3/3/2023",
-      messages: []
-    },
-    {
-      id: "joe",
-      name: "Joe Lindahl",
-      avatar: "/avatars/joe.png",
-      online: false,
-      isActive: false,
-      unread: 0,
-      preview: "On going description of group...",
-      lastMessageTime: "1/5/2023",
-      messages: []
+  useEffect(() => {
+    const loadTeamMembers = async () => {
+      try {
+        const members = await fetchTeamMembers()
+        setTeamMembers(members)
+        setLoading(false)
+      } catch (error) {
+        console.error("Error loading team members:", error)
+        toast({
+          title: "Error",
+          description: "Failed to load team members. Please try again.",
+          variant: "destructive",
+        })
+      }
     }
-  ]
 
-  const currentChat = contacts.find(contact => contact.id === activeChat)
+    loadTeamMembers()
+  }, [toast])
 
-  const filteredContacts = contacts.filter(contact => 
-    contact.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    contact.preview.toLowerCase().includes(searchQuery.toLowerCase())
-  )
-
-  const handleSendMessage = () => {
-    if (!message.trim()) return
-    
-    // In a real app, you would send the message to the backend here
-    console.log("Message sent:", message)
-
-    // Clear the message input
-    setMessage("")
-  }
-
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      handleSendMessage()
+  // Check window size for responsive behavior
+  useEffect(() => {
+    const handleResize = () => {
+      if (typeof window !== 'undefined') {
+        setMobileView(window.innerWidth < 768 ? 'list' : 'chat')
+      }
     }
+
+    // Initialize
+    handleResize()
+
+    // Add event listener
+    window.addEventListener('resize', handleResize)
+
+    // Cleanup
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="flex flex-col items-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+          <p className="mt-4 text-muted-foreground">Loading chat...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
-    <div className="flex h-screen overflow-hidden">
-      {/* Left Sidebar - Chat List */}
-      <div className="w-full md:w-80 lg:w-96 border-r flex flex-col bg-white dark:bg-gray-950">
-        {/* Chat Header */}
-        <div className="p-4 border-b flex justify-between items-center">
-          <h1 className="text-xl font-semibold">Chat</h1>
-          <div className="flex gap-2">
-            <Button variant="ghost" size="icon" className="rounded-full h-9 w-9">
-              <Settings className="h-5 w-5" />
+    <ChatProvider teamMembers={teamMembers}>
+      <div className="h-[calc(100vh-4rem)] flex flex-col relative">
+        <div className="border-b p-4 flex items-center justify-between bg-background">
+          <h1 className="text-2xl font-bold">Chat</h1>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="icon" className="rounded-full">
+              <Bell className="h-5 w-5" />
             </Button>
-            <Button variant="ghost" size="icon" className="rounded-full h-9 w-9 text-primary">
-              <User className="h-5 w-5" />
+            
+            <Button variant="ghost" size="icon" className="rounded-full">
+              <MoreVertical className="h-5 w-5" />
             </Button>
           </div>
         </div>
-
-        {/* Search */}
-        <div className="p-3 border-b">
-          <div className="relative">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input 
-              placeholder="Search people, group and messages" 
-              className="pl-9 bg-muted/40"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
+        
+        <div className="flex flex-1 overflow-hidden">
+          {/* Chat List (Left Side) */}
+          <div 
+            className={`${
+              mobileView === 'chat' ? 'hidden md:block' : 'w-full'
+            } md:w-80 lg:w-96 border-r border-gray-200`}
+          >
+            <CustomChatList />
           </div>
+          
+          {/* Chat Area (Right Side) */}
+          <ChatWindow 
+            mobileView={mobileView}
+            setMobileView={setMobileView}
+          />
         </div>
+      </div>
+    </ChatProvider>
+  )
+}
 
-        {/* Tabs */}
-        <Tabs defaultValue="recent" className="border-b">
-          <TabsList className="w-full flex h-12 rounded-none bg-transparent border-b">
-            <TabsTrigger 
-              value="recent" 
-              className="flex-1 rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none"
-            >
+function CustomChatList() {
+  const { chats, activeChat, setActiveChat, connectionStatus } = useChat()
+  const [searchQuery, setSearchQuery] = useState('')
+  const [activeTab, setActiveTab] = useState('recent')
+
+  // Filter chats based on search query
+  const filteredChats = chats.filter(chat => 
+    chat.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (chat.lastMessage && chat.lastMessage.content.toLowerCase().includes(searchQuery.toLowerCase()))
+  )
+
+  // Format timestamp for display
+  const formatTime = (timestamp: Date | undefined) => {
+    if (!timestamp) return ''
+    
+    return timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  }
+
+  return (
+    <div className="flex flex-col h-full bg-white">
+      {/* Search box */}
+      <div className="p-3 border-b border-gray-200">
+        <div className="relative">
+          <Input 
+            placeholder="Search people, group and messages" 
+            className="pl-9 bg-gray-100 border-0"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
+        </div>
+        
+        {/* Connection status indicator */}
+        <div className="flex items-center mt-2 text-xs">
+          <div className={`w-2 h-2 rounded-full mr-1 ${
+            connectionStatus === 'connected' ? 'bg-green-500' : 
+            connectionStatus === 'connecting' ? 'bg-yellow-500' : 'bg-red-500'
+          }`}></div>
+          <span className="text-gray-500">
+            {connectionStatus === 'connected' ? 'Connected' : 
+             connectionStatus === 'connecting' ? 'Connecting...' : 'Disconnected'}
+          </span>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="border-b border-gray-200">
+        <Tabs defaultValue="recent" value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="w-full grid grid-cols-2 h-12 rounded-none bg-transparent">
+            <TabsTrigger value="recent" className="rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none">
               Recent
             </TabsTrigger>
-            <TabsTrigger 
-              value="contact" 
-              className="flex-1 rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none"
-            >
+            <TabsTrigger value="contact" className="rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none">
               Contact
             </TabsTrigger>
           </TabsList>
         </Tabs>
-
-        {/* Chat List */}
-        <div className="overflow-y-auto flex-1">
-          {filteredContacts.map((contact) => (
-            <button
-              key={contact.id}
-              className={`w-full flex items-center p-4 hover:bg-muted/50 transition-colors text-left relative border-b ${
-                contact.isActive ? "bg-muted/30" : ""
-              }`}
-              onClick={() => setActiveChat(contact.id)}
-            >
-              <div className="relative">
-                <Avatar className="h-10 w-10 flex-shrink-0">
-                  {contact.avatar ? (
-                    <AvatarImage src={contact.avatar} />
-                  ) : (
-                    <AvatarFallback className="bg-primary/10 text-primary">
-                      {contact.id === "figma" ? "DU" : contact.name.substring(0, 2)}
-                    </AvatarFallback>
-                  )}
-                </Avatar>
-                {contact.online && (
-                  <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-green-500 border-2 border-background"></div>
-                )}
-              </div>
-              <div className="ml-3 flex-1 min-w-0">
-                <div className="font-medium">{contact.name}</div>
-                <div className="text-sm text-muted-foreground truncate max-w-[180px]">
-                  {contact.preview}
-                </div>
-              </div>
-              <div className="flex flex-col items-end gap-1.5 ml-1 min-w-[55px]">
-                <span className="text-xs text-muted-foreground">{contact.lastMessageTime}</span>
-                {contact.unread > 0 && (
-                  <Badge variant="destructive" className="rounded-full h-5 min-w-[20px] flex items-center justify-center px-1.5">
-                    {contact.unread}
-                  </Badge>
-                )}
-              </div>
-            </button>
-          ))}
-        </div>
       </div>
 
-      {/* Right Content - Chat Area */}
-      <div className="hidden md:flex flex-col flex-1 h-full">
-        {currentChat ? (
-          <>
-            {/* Chat Header */}
-            <div className="p-4 border-b flex justify-between items-center bg-white dark:bg-gray-950">
-              <div className="flex items-center gap-3">
-                <Avatar className="h-9 w-9">
-                  {currentChat.avatar ? (
-                    <AvatarImage src={currentChat.avatar} />
+      {/* Contact list */}
+      <ScrollArea className="flex-1">
+        {filteredChats.map((chat) => {
+          const isActive = activeChat?.id === chat.id
+          const statusColor = chat.type === 'individual' ? 
+            (chat.online ? 'bg-green-500' : chat.participants.find(id => id !== 1) === 2 ? 'bg-red-500' : 'bg-gray-400') : ''
+            
+          return (
+            <div 
+              key={chat.id}
+              className={`flex items-center p-4 border-b border-gray-200 cursor-pointer hover:bg-gray-50 ${
+                isActive ? 'bg-blue-50' : ''
+              }`}
+              onClick={() => setActiveChat(chat)}
+            >
+              <div className="relative mr-3">
+                <Avatar className="h-10 w-10">
+                  {chat.avatar ? (
+                    <AvatarImage src={chat.avatar} alt={chat.name} />
                   ) : (
-                    <AvatarFallback className="bg-primary/10 text-primary">
-                      {currentChat.id === "figma" ? "DU" : currentChat.name.substring(0, 2)}
+                    <AvatarFallback className="bg-gray-200">
+                      {chat.name.charAt(0)}
                     </AvatarFallback>
                   )}
                 </Avatar>
-                <div>
-                  <h2 className="font-medium">{currentChat.name}</h2>
-                  <p className="text-xs text-muted-foreground">{currentChat.online ? "Online" : "Offline"}</p>
-                </div>
+                {chat.type === 'individual' && (
+                  <span className={`absolute bottom-0 right-0 w-3 h-3 ${statusColor} border-2 border-white rounded-full`}></span>
+                )}
               </div>
-              <div className="flex items-center gap-1">
-                <Button variant="ghost" size="icon" className="rounded-full h-9 w-9">
-                  <Phone className="h-5 w-5" />
-                </Button>
-                <Button variant="ghost" size="icon" className="rounded-full h-9 w-9">
-                  <Video className="h-5 w-5" />
-                </Button>
-                <Button variant="ghost" size="icon" className="rounded-full h-9 w-9">
-                  <MoreVertical className="h-5 w-5" />
-                </Button>
+              <div className="flex-1 min-w-0">
+                <div className="flex justify-between">
+                  <h4 className="font-medium text-sm truncate">{chat.name}</h4>
+                  <span className="text-xs text-gray-500">
+                    {chat.lastMessage ? formatTime(chat.lastMessage.timestamp) : ''}
+                  </span>
+                </div>
+                <p className="text-sm text-gray-500 truncate">
+                  {chat.lastMessage ? chat.lastMessage.content : chat.description || ''}
+                </p>
               </div>
             </div>
+          )
+        })}
+      </ScrollArea>
+    </div>
+  )
+}
 
-            {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-gray-900">
-              {currentChat.messages.map((msg) => (
-                <div key={msg.id} className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}>
-                  {msg.sender !== "user" && (
-                    <Avatar className="h-8 w-8 mr-2 flex-shrink-0 mt-1">
-                      {currentChat.avatar ? (
-                        <AvatarImage src={currentChat.avatar} />
-                      ) : (
-                        <AvatarFallback className="bg-primary/10 text-primary">
-                          {currentChat.name.substring(0, 2)}
-                        </AvatarFallback>
-                      )}
-                    </Avatar>
-                  )}
-                  <div className="flex flex-col">
-                    <div className={`px-4 py-2 rounded-md max-w-xs md:max-w-md lg:max-w-lg ${
-                      msg.sender === "user" 
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted"
-                    }`}>
-                      <p className="text-sm">{msg.content}</p>
-                    </div>
-                    <span className="text-xs text-muted-foreground mt-1 self-end">
-                      {msg.time}
-                    </span>
-                  </div>
-                  {msg.sender === "user" && (
-                    <Avatar className="h-8 w-8 ml-2 flex-shrink-0 mt-1">
-                      <AvatarFallback>
-                        {contacts[0].name.substring(0, 2)}
-                      </AvatarFallback>
-                    </Avatar>
-                  )}
-                </div>
-              ))}
-              
-              {/* Message input area */}
-              <div className="mt-auto sticky bottom-0 pt-4">
-                <div className="flex items-center gap-2 bg-white dark:bg-gray-950 rounded-lg border p-2">
-                  <Button variant="ghost" size="icon" className="rounded-full h-8 w-8">
-                    <Smile className="h-5 w-5" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="rounded-full h-8 w-8">
-                    <Paperclip className="h-5 w-5" />
-                  </Button>
-                  <Input
-                    placeholder="Are you there?"
-                    className="flex-1 border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                  />
-                  <Button size="icon" className="rounded-full h-8 w-8" onClick={handleSendMessage} disabled={!message.trim()}>
-                    <Send className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
+interface ChatWindowProps {
+  mobileView: 'list' | 'chat'
+  setMobileView: (view: 'list' | 'chat') => void
+}
+
+function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
+  const { activeChat, messages, sendMessage, getParticipants } = useChat()
+  const messageInputRef = useRef<HTMLInputElement>(null)
+  const [newMessage, setNewMessage] = useState('')
+  const teamMembers = activeChat ? getParticipants(activeChat.id) : []
+  
+  // Show empty state if no chat is selected
+  if (!activeChat) {
+    return (
+      <div 
+        className={`${mobileView === 'list' ? 'hidden md:flex' : 'flex'} flex-1 flex-col items-center justify-center bg-gray-50`}
+      >
+        <div className="text-center p-8 max-w-md">
+          <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-gray-200 mb-4">
+            <Lock className="h-8 w-8 text-gray-500" />
+          </div>
+          <h3 className="text-2xl font-semibold mb-2">Select a conversation</h3>
+          <p className="text-gray-500 mb-6">
+            Choose a contact from the sidebar to start chatting
+          </p>
+          <Button
+            variant="outline"
+            className="md:hidden"
+            onClick={() => setMobileView('list')}
+          >
+            Select a conversation
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  // Get the contact avatar and status
+  const contactId = activeChat.participants.find(id => id !== 1)
+  const contact = teamMembers.find(m => m.id === contactId)
+  const isOnline = contact?.status === 'online'
+  const isBusy = contact?.status === 'busy'
+  
+  // Handle sending message
+  const handleSendMessage = () => {
+    if (newMessage.trim()) {
+      sendMessage(newMessage)
+      setNewMessage('')
+    }
+  }
+  
+  return (
+    <div 
+      className={`${mobileView === 'list' ? 'hidden md:flex' : 'flex'} flex-1 flex-col relative bg-white`}
+    >
+      {/* Chat Header */}
+      <div className="p-3 border-b border-gray-200 flex items-center justify-between bg-white z-10">
+        <div className="flex items-center">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="md:hidden mr-2 rounded-full"
+            onClick={() => setMobileView('list')}
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div className="flex items-center">
+            <div className="relative mr-3">
+              <Avatar className="h-10 w-10">
+                {contact?.avatar ? (
+                  <AvatarImage src={contact.avatar} alt={contact.name} />
+                ) : (
+                  <AvatarFallback className="bg-gray-200">
+                    {activeChat.name.charAt(0)}
+                  </AvatarFallback>
+                )}
+              </Avatar>
+              <span className={`absolute bottom-0 right-0 w-3 h-3 ${isOnline ? 'bg-green-500' : isBusy ? 'bg-red-500' : 'bg-gray-400'} border-2 border-white rounded-full`}></span>
             </div>
-          </>
-        ) : (
-          <div className="flex flex-col items-center justify-center h-full bg-gray-50 dark:bg-gray-900">
-            <div className="p-8 text-center">
-              <h3 className="text-2xl font-bold mb-2">Select a conversation</h3>
-              <p className="text-muted-foreground mb-6">Choose a contact from the sidebar to start chatting</p>
+            <div>
+              <h2 className="font-medium text-base">{activeChat.name}</h2>
+              <p className="text-xs text-gray-500">
+                {isOnline ? 'Online' : isBusy ? 'Busy' : 'Offline'}
+              </p>
             </div>
           </div>
-        )}
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="icon" className="rounded-full">
+            <Phone className="h-5 w-5" />
+          </Button>
+          <Button variant="ghost" size="icon" className="rounded-full">
+            <Video className="h-5 w-5" />
+          </Button>
+          <Button variant="ghost" size="icon" className="rounded-full">
+            <MoreVertical className="h-5 w-5" />
+          </Button>
+        </div>
+      </div>
+      
+      {/* Chat Messages */}
+      <ScrollArea className="flex-1 p-4 bg-gray-50">
+        <div className="flex flex-col space-y-4 max-w-3xl mx-auto">
+          {messages.map((message, index) => {
+            const prevMessage = index > 0 ? messages[index - 1] : null
+            const nextMessage = index < messages.length - 1 ? messages[index + 1] : null
+            const isSameSenderAsPrev = prevMessage && prevMessage.senderId === message.senderId
+            const isSameSenderAsNext = nextMessage && nextMessage.senderId === message.senderId
+            
+            // Group messages from the same sender
+            const isFirstInGroup = !isSameSenderAsPrev
+            const isLastInGroup = !isSameSenderAsNext
+            
+            return (
+              <div key={message.id} className={message.senderId === 1 ? 'self-end' : 'self-start'}>
+                <MessageBubbleCustom 
+                  message={message}
+                  isFirstInGroup={isFirstInGroup}
+                  isLastInGroup={isLastInGroup}
+                  teamMember={teamMembers?.find(m => m.id === message.senderId)}
+                />
+              </div>
+            )
+          })}
+        </div>
+      </ScrollArea>
+      
+      {/* Message Input */}
+      <div className="border-t border-gray-200 p-3 bg-white">
+        <div className="flex items-center gap-2">
+          <Input
+            placeholder="Type a message..."
+            value={newMessage}
+            onChange={(e) => setNewMessage(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault()
+                handleSendMessage()
+              }
+            }}
+            className="flex-1 bg-gray-100 border-0"
+            ref={messageInputRef}
+          />
+          <Button
+            size="icon"
+            className="bg-purple-600 text-white hover:bg-purple-700 rounded-full h-10 w-10 flex-shrink-0"
+            onClick={handleSendMessage}
+          >
+            <Send className="h-5 w-5" />
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+interface MessageBubbleCustomProps {
+  message: Message
+  isFirstInGroup: boolean
+  isLastInGroup: boolean
+  teamMember?: TeamMember
+}
+
+function MessageBubbleCustom({ message, isFirstInGroup, isLastInGroup, teamMember }: MessageBubbleCustomProps) {
+  const isCurrentUser = message.senderId === 1
+  
+  return (
+    <div className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'} mb-1`}>
+      {!isCurrentUser && isFirstInGroup && (
+        <div className="flex-shrink-0 mr-2 self-end">
+          <Avatar className="h-8 w-8">
+            {teamMember?.avatar ? (
+              <AvatarImage src={teamMember.avatar} alt={teamMember.name} />
+            ) : (
+              <AvatarFallback className="bg-gray-200">
+                {message.senderName.charAt(0)}
+              </AvatarFallback>
+            )}
+          </Avatar>
+        </div>
+      )}
+      
+      <div
+        className={`
+          px-3 py-2 rounded-lg max-w-[75%] break-words
+          ${isCurrentUser ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-900'}
+          ${!isCurrentUser && !isFirstInGroup ? 'ml-10' : ''}
+          ${!isFirstInGroup && !isLastInGroup ? 'my-1' : ''}
+          ${isFirstInGroup ? (isCurrentUser ? 'rounded-tr-none' : 'rounded-tl-none') : ''}
+          ${isLastInGroup ? (isCurrentUser ? 'rounded-br-none' : 'rounded-bl-none') : ''}
+        `}
+      >
+        {message.content}
+        <div className={`text-xs mt-1 ${isCurrentUser ? 'text-purple-200' : 'text-gray-500'} text-right`}>
+          {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+        </div>
       </div>
     </div>
   )
