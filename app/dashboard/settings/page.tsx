@@ -208,17 +208,43 @@ export default function SettingsPage() {
       formData.append('avatar', file)
       
       // Send to server
-      const response = await fetch('/api/user/avatar/upload', {
-        method: 'POST',
-        body: formData
-      })
-      
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to upload avatar')
+      let response;
+      try {
+        response = await fetch('/api/user/avatar/upload', {
+          method: 'POST',
+          body: formData
+        })
+      } catch (networkError) {
+        console.error("Network error when uploading avatar:", networkError);
+        throw new Error('Network error when uploading profile picture. Please check your connection and try again.');
       }
       
-      const data = await response.json()
+      let errorData;
+      let data;
+      
+      try {
+        // Clone the response to read it twice if needed
+        const responseClone = response.clone();
+        
+        if (!response.ok) {
+          try {
+            errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to upload avatar');
+          } catch (jsonError) {
+            if (jsonError instanceof SyntaxError) {
+              // If response is not JSON, get text instead
+              const errorText = await responseClone.text();
+              throw new Error(errorText || 'Failed to upload avatar (server returned non-JSON response)');
+            }
+            throw jsonError;
+          }
+        }
+        
+        data = await response.json();
+      } catch (parseError) {
+        console.error("Error parsing avatar upload response:", parseError);
+        throw new Error('Failed to process server response: ' + parseError.message);
+      }
       
       if (data.success) {
         setProfileData(prev => ({

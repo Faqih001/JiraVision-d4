@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server"
-import { writeFile } from "fs/promises"
+import { writeFile, mkdir, access } from "fs/promises"
 import { join } from "path"
 import { getSession } from "@/lib/auth-actions"
 import { updateUserProfile } from "@/lib/data-access"
+import { constants } from "fs"
 
 // For profile picture uploads
 export async function POST(request: Request) {
@@ -55,19 +56,48 @@ export async function POST(request: Request) {
     const fileExtension = file.name.split('.').pop() || 'jpg'
     const fileName = `avatar-${userId}-${uniqueId}.${fileExtension}`
     
-    // Ensure the directory exists
+    // Define uploads directory path
     const uploadsDir = join(process.cwd(), 'public', 'uploads')
     
     try {
+      // Check if directory exists, create if it doesn't
+      try {
+        await access(uploadsDir, constants.F_OK).catch(async (dirError) => {
+          // Directory doesn't exist, create it
+          console.log("Creating uploads directory...")
+          try {
+            await mkdir(uploadsDir, { recursive: true })
+          } catch (mkdirError) {
+            console.error("Failed to create uploads directory:", mkdirError)
+            throw new Error(`Failed to create uploads directory: ${mkdirError instanceof Error ? mkdirError.message : "Unknown error"}`)
+          }
+        })
+      } catch (dirError) {
+        console.error("Failed to check/create uploads directory:", dirError)
+        throw new Error(`Directory access error: ${dirError instanceof Error ? dirError.message : "Unknown error"}`)
+      }
+      
       // Convert file to buffer
-      const buffer = Buffer.from(await file.arrayBuffer())
+      const buffer = await file.arrayBuffer().catch(err => {
+        console.error("Error reading file buffer:", err)
+        throw new Error("Could not read uploaded file")
+      })
       
       // Write the file
-      await writeFile(join(uploadsDir, fileName), new Uint8Array(buffer))
+      const filePath = join(uploadsDir, fileName)
+      await writeFile(filePath, new Uint8Array(buffer))
       
       // Update user profile with avatar URL
       const avatarUrl = `/uploads/${fileName}`
-      await updateUserProfile(userId, { avatar: avatarUrl })
+      const updateResult = await updateUserProfile(userId, { avatar: avatarUrl })
+      
+      if (!updateResult) {
+        console.error("Failed to update user profile with new avatar")
+        return NextResponse.json(
+          { error: "Failed to update profile with new avatar" },
+          { status: 500 }
+        )
+      }
       
       return NextResponse.json({
         success: true,
@@ -75,16 +105,20 @@ export async function POST(request: Request) {
         avatar: avatarUrl
       })
     } catch (error) {
-      console.error("Error writing file:", error)
+      console.error("Error writing file or updating profile:", error)
+      // Try to get more specific error information
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
       return NextResponse.json(
-        { error: "Failed to upload profile picture" },
+        { error: `Failed to upload profile picture: ${errorMessage}` },
         { status: 500 }
       )
     }
   } catch (error) {
+    // Handle top-level errors
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
     console.error("Failed to process avatar upload:", error)
     return NextResponse.json(
-      { error: "Failed to process avatar upload" },
+      { error: `Failed to process avatar upload: ${errorMessage}` },
       { status: 500 }
     )
   }

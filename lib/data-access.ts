@@ -14,6 +14,11 @@ import {
 // User functions
 export async function getUserProfile(userId: number) {
   try {
+    // Validate userId
+    if (!userId || typeof userId !== 'number') {
+      throw new Error(`Invalid user ID: ${userId}`);
+    }
+    
     const result = await db.select({
       id: users.id,
       name: users.name,
@@ -32,10 +37,16 @@ export async function getUserProfile(userId: number) {
       preferences: users.preferences,
     }).from(users).where(eq(users.id, userId)).limit(1)
     
+    // Log warning if user not found
+    if (!result[0]) {
+      console.warn(`No user found with ID ${userId}`);
+    }
+    
     return result[0] || null
   } catch (error) {
-    console.error(`Error getting user profile ${userId}:`, error)
-    return null
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    console.error(`Error getting user profile ${userId}: ${errorMessage}`, error)
+    throw error; // Propagate error to caller for proper handling
   }
 }
 
@@ -47,19 +58,32 @@ export async function updateUserProfile(userId: number, profileData: Partial<typ
     // Log the data being saved for debugging
     console.log('Updating user profile with data:', safeUpdateData)
     
-    await db.update(users)
-      .set({
-        ...safeUpdateData,
-        updatedAt: new Date()
-      })
-      .where(eq(users.id, userId))
+    // Wrap in try/catch to handle specific database errors
+    try {
+      await db.update(users)
+        .set({
+          ...safeUpdateData,
+          updatedAt: new Date()
+        })
+        .where(eq(users.id, userId))
+    } catch (dbError) {
+      console.error(`Database error updating profile for user ${userId}:`, dbError)
+      const errorMessage = dbError instanceof Error ? dbError.message : "Unknown database error";
+      throw new Error(`Database update failed: ${errorMessage}`);
+    }
     
     // Get the updated profile to return
-    const updatedProfile = await getUserProfile(userId)
-    return updatedProfile !== null
+    try {
+      const updatedProfile = await getUserProfile(userId)
+      return updatedProfile !== null
+    } catch (getError) {
+      // If we can't get the updated profile, the update might still have succeeded
+      console.warn(`Failed to get updated profile for user ${userId} after update:`, getError);
+      return true; // Assume update succeeded since we didn't catch an error in the update
+    }
   } catch (error) {
     console.error(`Error updating user profile ${userId}:`, error)
-    return false
+    throw error; // Propagate error to caller for proper handling
   }
 }
 

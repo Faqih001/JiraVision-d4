@@ -20,7 +20,10 @@ export async function GET() {
     const userId = session.id
     
     // Get user profile using the helper function
-    const userProfile = await getUserProfile(userId)
+    const userProfile = await getUserProfile(userId).catch(error => {
+      console.error(`Error fetching profile for user ${userId}:`, error)
+      throw new Error(`Failed to fetch user profile: ${error instanceof Error ? error.message : "Unknown error"}`)
+    })
     
     if (!userProfile) {
       return NextResponse.json(
@@ -35,9 +38,10 @@ export async function GET() {
     })
     
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
     console.error("Failed to fetch user profile:", error)
     return NextResponse.json(
-      { error: "Failed to fetch user profile" },
+      { error: `Failed to fetch user profile: ${errorMessage}` },
       { status: 500 }
     )
   }
@@ -80,6 +84,9 @@ export async function PUT(request: Request) {
       language: body.language,
       timezone: body.timezone,
       updatedAt: new Date()
+    }).catch(error => {
+      console.error(`Error updating profile for user ${userId}:`, error)
+      throw new Error(`Failed to update user profile: ${error instanceof Error ? error.message : "Unknown error"}`)
     })
     
     if (!success) {
@@ -95,9 +102,10 @@ export async function PUT(request: Request) {
     })
     
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
     console.error("Failed to update user profile:", error)
     return NextResponse.json(
-      { error: "Failed to update user profile" },
+      { error: `Failed to update user profile: ${errorMessage}` },
       { status: 500 }
     )
   }
