@@ -264,6 +264,22 @@ export const ChatProvider = ({ children, teamMembers }: { children: React.ReactN
         setConnectionStatus('connecting')
         setInitError(null)
         
+        // Direct API test
+        try {
+          console.log("Testing chat API directly...");
+          const response = await fetch('/api/chat');
+          if (!response.ok) {
+            console.error("API Test failed:", response.status, response.statusText);
+            const errorText = await response.text();
+            console.error("API Error details:", errorText);
+          } else {
+            const data = await response.json();
+            console.log("API Test Response:", data);
+          }
+        } catch (apiTestError) {
+          console.error("API Test Error:", apiTestError);
+        }
+        
         // First, fetch chats from API with retry on error
         let chatData = [];
         try {

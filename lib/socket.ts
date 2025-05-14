@@ -1,5 +1,8 @@
 import { io, Socket } from 'socket.io-client';
 
+// Add debug flag
+const DEBUG = true;
+
 let socket: Socket | null = null;
 
 export function getSocket(): Socket | null {
@@ -44,46 +47,49 @@ export async function initSocket(): Promise<Socket> {
       // Get current user with retry
       let user = null;
       let retryCount = 0;
+      const maxRetries = 5;  // Increased from 3 to 5
       
-      while (!user && retryCount < 3) {
+      while (!user && retryCount < maxRetries) {
         try {
           user = await getCurrentUser();
           if (user) {
             console.log('Socket initialization: User authenticated:', user.id, user.name);
           } else {
-            console.warn(`Socket initialization: User authentication failed (attempt ${retryCount + 1})`);
+            console.warn(`Socket initialization: User authentication failed (attempt ${retryCount + 1}/${maxRetries})`);
             retryCount++;
-            if (retryCount < 3) {
-              // Wait before retrying
-              await new Promise(r => setTimeout(r, 1000 * retryCount));
+            if (retryCount < maxRetries) {
+              // Wait before retrying with longer delays
+              const retryDelay = Math.min(2000 * Math.pow(1.5, retryCount), 10000);
+              console.log(`Waiting ${retryDelay}ms before retry...`);
+              await new Promise(r => setTimeout(r, retryDelay));
             }
           }
         } catch (authError) {
           console.error('Socket initialization: Authentication error:', authError);
           retryCount++;
-          if (retryCount < 3) {
-            // Wait before retrying
-            await new Promise(r => setTimeout(r, 1000 * retryCount));
+          if (retryCount < maxRetries) {
+            // Wait before retrying with longer delays
+            const retryDelay = Math.min(2000 * Math.pow(1.5, retryCount), 10000);
+            console.log(`Waiting ${retryDelay}ms before retry...`);
+            await new Promise(r => setTimeout(r, retryDelay));
           }
         }
       }
       
       if (!user) {
         console.error('Socket initialization failed: No authenticated user found after multiple attempts');
-        reject(new Error('No authenticated user found'));
+        reject(new Error('No authenticated user found. Please refresh the page and try again.'));
         return;
       }
       
       console.log('Socket initializing with user:', user.id, user.name);
 
+      // If socket exists but is disconnected, close it and create a new one
       if (socket) {
-        // If socket exists but is disconnected, reconnect
-        if (!socket.connected) {
-          console.log('Reconnecting existing socket...');
-          socket.connect();
-        }
-        resolve(socket);
-        return;
+        console.log('Cleaning up existing socket connection:', socket.id);
+        socket.removeAllListeners();
+        socket.disconnect();
+        socket = null;
       }
 
       // Create new socket connection
@@ -95,14 +101,21 @@ export async function initSocket(): Promise<Socket> {
       
       console.log('Creating new socket connection to:', socketUrl);
       
+      // Temporarily try a more direct connection to debug
       socket = io(socketUrl, {
         autoConnect: true,
         reconnection: true,
-        reconnectionAttempts: 5,
+        reconnectionAttempts: 10,     // Increased from 5 to 10
         reconnectionDelay: 1000,
-        timeout: 20000, // Increased timeout to 20 seconds
-        transports: ['websocket', 'polling'],
-        withCredentials: true // This is important for cookies
+        reconnectionDelayMax: 5000,   // Added max delay
+        timeout: 30000,               // Increased timeout to 30 seconds
+        transports: ['polling', 'websocket'], // Try polling first, then websocket
+        withCredentials: true,        // This is important for cookies
+        auth: {                       // Add auth data directly in connection
+          userId: user.id,
+          userName: user.name
+        },
+        debug: DEBUG                  // Enable debugging
       });
 
       // Handle connection events
@@ -110,6 +123,18 @@ export async function initSocket(): Promise<Socket> {
         console.log('Socket connected successfully, ID:', socket?.id);
         
         // Authenticate after connection
+        socket?.emit('auth', { 
+          userId: user.id, 
+          userName: user.name,
+          token: 'session-token' 
+        });
+      });
+
+      // Add event to handle reconnection
+      socket.on('reconnect', (attemptNumber) => {
+        console.log(`Socket reconnected after ${attemptNumber} attempts`);
+        
+        // Re-authenticate after reconnection
         socket?.emit('auth', { 
           userId: user.id, 
           userName: user.name,
@@ -129,20 +154,39 @@ export async function initSocket(): Promise<Socket> {
 
       socket.on('disconnect', (reason) => {
         console.log('Socket disconnected:', reason);
+        // If the server initiated the disconnect, try to reconnect manually
+        if (reason === 'io server disconnect') {
+          console.log('Server initiated disconnect, attempting to reconnect...');
+          socket?.connect();
+        }
       });
 
       socket.on('connect_error', (error) => {
-        console.error('Socket connection error:', error);
-        reject(error);
+        console.error('Socket connection error details:', error.message, error);
       });
       
       // Set a timeout in case the connection takes too long
-      setTimeout(() => {
+      const connectionTimeout = setTimeout(() => {
         if (!socket?.connected) {
-          console.error('Socket connection timeout');
-          reject(new Error('Socket connection timeout'));
+          console.error('Socket connection timeout after 30 seconds');
+          reject(new Error('Socket connection timeout. Please check your network connection.'));
         }
-      }, 20000); // Match the timeout setting above
+      }, 30000); // Match the timeout setting above
+
+      // Clear the timeout if we connect successfully
+      socket.on('connect', () => {
+        clearTimeout(connectionTimeout);
+      });
+
+      // Set a listener to resolve the promise when authenticated
+      const authSuccessListener = (data: any) => {
+        console.log('Auth success received, resolving promise');
+        clearTimeout(connectionTimeout);
+        resolve(socket as Socket);
+      };
+      
+      socket.on('auth_success', authSuccessListener);
+      
     } catch (error) {
       console.error('Error initializing socket:', error);
       reject(error);

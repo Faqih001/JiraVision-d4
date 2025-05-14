@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { chats, messages, chatParticipants, users } from "@/drizzle/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { getSession } from "@/lib/auth-actions";
 
@@ -29,14 +29,23 @@ export async function GET(req: NextRequest) {
     const userId = session.id;
     console.log(`API: Fetching chats for user ${userId} (${session.name || 'Unknown'})`);
     
-    // Fetch chats where the current user is a participant
+    // First, get the chat IDs where the current user is a participant
+    const userChatIds = await db
+      .select({ chatId: chatParticipants.chatId })
+      .from(chatParticipants)
+      .where(eq(chatParticipants.userId, userId));
+    
+    if (userChatIds.length === 0) {
+      console.log(`API: User ${userId} has no chats.`);
+      return NextResponse.json([]);
+    }
+    
+    const chatIdValues = userChatIds.map(row => row.chatId);
+    console.log(`API: Found ${chatIdValues.length} chat IDs for user ${userId}`);
+    
+    // Then fetch the actual chats with these IDs
     const result = await db.query.chats.findMany({
-      where: (chats, { eq }) => eq(
-        chats.id,
-        db.select({ chatId: chatParticipants.chatId })
-          .from(chatParticipants)
-          .where(eq(chatParticipants.userId, userId))
-      ),
+      where: inArray(chats.id, chatIdValues),
       with: {
         participants: {
           with: {

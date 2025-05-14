@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useEffect, useState, useRef } from "react"
-import { Shield, Info, Lock, Bell, Phone, Video, Search, MoreVertical, ArrowLeft, Send, Paperclip, Mic, Image as ImageIcon, FileIcon, X, Plus, Check, Reply, Edit2, Trash2, Download, MessageSquare, Archive, Forward, Copy, Save, ThumbsUp } from "lucide-react"
+import { Shield, Info, Lock, Bell, Phone, Video, Search, MoreVertical, ArrowLeft, Send, Paperclip, Mic, Image as ImageIcon, FileIcon, X, Plus, Check, Reply, Edit2, Trash2, Download, MessageSquare, Archive, Forward, Copy, Save, ThumbsUp, AlertTriangle, Loader } from "lucide-react"
 import { ChatProvider, useChat, Message, Chat, ChatContextType } from "@/app/context/chat/ChatContext"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -504,6 +504,34 @@ function CustomChatList({ mobileView, setMobileView, deletedChats, setDeletedCha
   } | null>(null)
   const profileData = useProfile();
   const { toast } = useToast();
+  const [isReconnecting, setIsReconnecting] = useState(false);
+  
+  // Add reconnect function
+  const handleReconnect = async () => {
+    try {
+      setIsReconnecting(true);
+      
+      console.log("Manual reconnection initiated by user");
+      // First, try direct API access to see if server is reachable
+      try {
+        const response = await fetch('/api/chat');
+        if (response.ok) {
+          console.log("API is reachable, attempting socket reconnection");
+        } else {
+          console.error("API is not reachable:", response.status, response.statusText);
+        }
+      } catch (apiError) {
+        console.error("API test failed:", apiError);
+      }
+      
+      // Force refresh the page to reconnect all systems
+      window.location.reload();
+    } catch (error) {
+      console.error('Reconnection failed:', error);
+    } finally {
+      setIsReconnecting(false);
+    }
+  };
   
   // Reset modal state when opening/closing
   useEffect(() => {
@@ -1139,6 +1167,29 @@ function CustomChatList({ mobileView, setMobileView, deletedChats, setDeletedCha
               }
             </p>
           </div>
+          
+          {/* Add reconnect button when disconnected */}
+          {connectionStatus === 'disconnected' && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="text-xs h-7 px-2 bg-red-50 text-red-600 border-red-200 hover:bg-red-100"
+              onClick={handleReconnect}
+              disabled={isReconnecting}
+            >
+              {isReconnecting ? (
+                <>
+                  <Loader className="h-3 w-3 mr-1 animate-spin" />
+                  Reconnecting...
+                </>
+              ) : (
+                <>
+                  <span className="mr-1">⟳</span>
+                  Reconnect
+                </>
+              )}
+            </Button>
+          )}
         </div>
       </div>
       
@@ -1357,7 +1408,8 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
     getParticipants,
     chats,
     createGroup,
-    setChats
+    setChats,
+    connectionStatus
   } = useChat()
   const [messageInput, setMessageInput] = useState('')
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false)
@@ -1377,16 +1429,35 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
   const [groupChatName, setGroupChatName] = useState('')
   const [modalActiveTab, setModalActiveTab] = useState<'individual' | 'group'>('individual')
   const [showSecurityModal, setShowSecurityModal] = useState(false)
-  const [showDeletedChatsModal, setShowDeletedChatsModal] = useState(false)
-  const [showNotificationModal, setShowNotificationModal] = useState(false)
-  const [notificationSettings, setNotificationSettings] = useState({
-    all: true,
-    messages: true,
-    mentions: true,
-    groups: true,
-    sound: true
-  })
+  const [isReconnecting, setIsReconnecting] = useState(false)
   const { toast } = useToast()
+  
+  // Add reconnect function
+  const handleReconnect = async () => {
+    try {
+      setIsReconnecting(true);
+      
+      console.log("Manual reconnection initiated by user");
+      // First, try direct API access to see if server is reachable
+      try {
+        const response = await fetch('/api/chat');
+        if (response.ok) {
+          console.log("API is reachable, attempting socket reconnection");
+        } else {
+          console.error("API is not reachable:", response.status, response.statusText);
+        }
+      } catch (apiError) {
+        console.error("API test failed:", apiError);
+      }
+      
+      // Force refresh the page to reconnect all systems
+      window.location.reload();
+    } catch (error) {
+      console.error('Reconnection failed:', error);
+    } finally {
+      setIsReconnecting(false);
+    }
+  };
   
   // Handle emoji picker - moved outside the conditional rendering
   const [emojiCategory, setEmojiCategory] = useState<'recent' | 'smileys' | 'people' | 'nature' | 'food' | 'activities' | 'objects' | 'symbols' | 'flags'>('smileys')

@@ -22,7 +22,20 @@ const getDbClient = () => {
     console.error('DATABASE_URL environment variable is not set!');
     process.exit(1);
   }
-  return postgres(connectionString, { max: 1 });
+  
+  // Log the connection being established
+  console.log('Creating database connection to:', connectionString.split('@')[1]);
+  
+  try {
+    return postgres(connectionString, { 
+      max: 1,
+      ssl: { rejectUnauthorized: false }, // Add SSL support for cloud PostgreSQL
+      debug: process.env.NODE_ENV === 'development', // Enable query logging in dev
+    });
+  } catch (error) {
+    console.error('Database connection error:', error);
+    throw error;
+  }
 };
 
 app.prepare().then(() => {
@@ -36,8 +49,14 @@ app.prepare().then(() => {
     cors: {
       origin: "*",
       methods: ["GET", "POST"],
-      credentials: true
-    }
+      credentials: true,
+      allowedHeaders: ["*"]
+    },
+    transports: ['polling', 'websocket'],
+    pingTimeout: 60000,
+    pingInterval: 25000,
+    connectTimeout: 45000,
+    allowEIO3: true
   });
 
   // Socket.IO connection handling

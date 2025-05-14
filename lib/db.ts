@@ -18,17 +18,50 @@ export type User = {
 // Use connection string from .env
 const connectionString = process.env.DATABASE_URL!;
 
-// For query purposes (not migrations)
-const queryClient = postgres(connectionString, { max: 1 });
-export const db = drizzle(queryClient, { schema });
+// Check database type to configure properly
+const isDatabaseTypePostgres = process.env.DATABASE_TYPE === 'postgres';
+
+// Debug flag
+const DEBUG = process.env.NODE_ENV === 'development';
+
+console.log(`Database connection: Using ${isDatabaseTypePostgres ? 'PostgreSQL' : 'SQL Server'} connection`);
+
+// Configure options based on database type
+const connectionOptions: postgres.Options<{}> = {
+  max: 1,
+  debug: DEBUG,
+  ssl: isDatabaseTypePostgres ? { rejectUnauthorized: false } : undefined,
+  onnotice: msg => {
+    if (DEBUG) console.log('Database notice:', msg);
+  }
+};
+
+try {
+  // For query purposes (not migrations)
+  const queryClient = postgres(connectionString, connectionOptions);
+  export const db = drizzle(queryClient, { schema });
+  
+  if (DEBUG) {
+    console.log('Database connection established successfully.');
+  }
+} catch (error) {
+  console.error('Failed to establish database connection:', error);
+  // Don't throw here, let the application handle connection errors
+  // Create an empty db object to prevent runtime errors
+  const queryClient = postgres('postgres://localhost:5432/empty', { max: 0 });
+  export const db = drizzle(queryClient, { schema });
+}
 
 // Create a separate connection for one-off operations that is immediately closed
 export async function withDb<T>(callback: (db: typeof db) => Promise<T>): Promise<T> {
-  const singleClient = postgres(connectionString);
+  const singleClient = postgres(connectionString, connectionOptions);
   const singleDb = drizzle(singleClient, { schema });
   
   try {
     return await callback(singleDb);
+  } catch (error) {
+    console.error('Error in database operation:', error);
+    throw error;
   } finally {
     await singleClient.end();
   }
@@ -39,9 +72,14 @@ export async function transaction<T>(
   callback: (tx: typeof db) => Promise<T>
 ): Promise<T> {
   return await withDb(async (db) => {
-    return await db.transaction(async (tx) => {
-      return await callback(tx);
-    });
+    try {
+      return await db.transaction(async (tx) => {
+        return await callback(tx);
+      });
+    } catch (error) {
+      console.error('Transaction error:', error);
+      throw error;
+    }
   });
 }
 
