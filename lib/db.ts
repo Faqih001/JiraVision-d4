@@ -36,21 +36,23 @@ const connectionOptions: postgres.Options<{}> = {
   }
 };
 
+// Create a default client - will be replaced in the try block if successful
+let queryClient = postgres('postgres://localhost:5432/empty', { max: 0 });
+
 try {
   // For query purposes (not migrations)
-  const queryClient = postgres(connectionString, connectionOptions);
-  export const db = drizzle(queryClient, { schema });
+  queryClient = postgres(connectionString, connectionOptions);
   
   if (DEBUG) {
     console.log('Database connection established successfully.');
   }
 } catch (error) {
   console.error('Failed to establish database connection:', error);
-  // Don't throw here, let the application handle connection errors
-  // Create an empty db object to prevent runtime errors
-  const queryClient = postgres('postgres://localhost:5432/empty', { max: 0 });
-  export const db = drizzle(queryClient, { schema });
+  // We already have a fallback client defined above
 }
+
+// Export db OUTSIDE the try-catch
+export const db = drizzle(queryClient, { schema });
 
 // Create a separate connection for one-off operations that is immediately closed
 export async function withDb<T>(callback: (db: typeof db) => Promise<T>): Promise<T> {

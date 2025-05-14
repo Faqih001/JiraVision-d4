@@ -1,4 +1,5 @@
 import Link from "next/link"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ArrowRight, Twitter, Linkedin, Github, Facebook, Instagram } from "lucide-react"
@@ -12,7 +13,15 @@ export function MainFooter() {
           {/* Company Info */}
           <div className="md:col-span-5">
             <div className="flex items-center gap-2 font-bold text-xl mb-6">
-              <div className="bg-primary text-primary-foreground p-1 rounded">JV</div>
+              <div className="relative h-8 w-8">
+                <Image 
+                  src="/jiravision_logo.png" 
+                  alt="JiraVision"
+                  fill
+                  sizes="32px"
+                  className="object-contain"
+                />
+              </div>
               <span>JiraVision</span>
             </div>
             <p className="text-muted-foreground mb-6 max-w-md">

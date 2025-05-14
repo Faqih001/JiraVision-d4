@@ -43,104 +43,173 @@ export async function GET(req: NextRequest) {
     const chatIdValues = userChatIds.map(row => row.chatId);
     console.log(`API: Found ${chatIdValues.length} chat IDs for user ${userId}`);
     
-    // Then fetch the actual chats with these IDs
-    const result = await db.query.chats.findMany({
-      where: inArray(chats.id, chatIdValues),
-      with: {
-        participants: {
-          with: {
-            user: {
-              columns: {
-                id: true,
-                name: true,
-                avatar: true,
-                status: true,
-              },
-            },
-          },
-        },
-        messages: {
-          limit: 1,
-          orderBy: (messages, { desc }) => [desc(messages.timestamp)],
-          with: {
-            sender: {
-              columns: {
-                id: true,
-                name: true,
-                avatar: true,
-              },
-            },
-          },
-        },
-      },
-      orderBy: (chats, { desc }) => [desc(chats.createdAt)],
-    });
-    
-    console.log(`API: Found ${result.length} chats for user ${userId}`);
-    
-    // Transform the data to match the Chat type used in the frontend
-    const transformedChats = result.map(chat => {
-      const participants = chat.participants.map(p => p.userId);
-      const lastMessage = chat.messages[0] || null;
+    try {
+      // Fetch the chats - without complex relations to diagnose issues
+      const chatResults = await db
+        .select()
+        .from(chats)
+        .where(inArray(chats.id, chatIdValues));
       
-      // Find the other participant(s) for individual chats to get the name/avatar
-      let chatName = chat.name;
-      let chatAvatar = chat.avatar;
+      console.log(`API: Successfully retrieved ${chatResults.length} basic chats`);
       
-      // For individual chats, use the other participant's name and avatar
-      if (chat.type === 'individual') {
-        const otherParticipant = chat.participants.find(p => p.userId !== userId)?.user;
-        if (otherParticipant) {
-          chatName = otherParticipant.name;
-          chatAvatar = otherParticipant.avatar;
+      // Manually fetch participant information
+      const chatIds = chatResults.map(chat => chat.id);
+      
+      // Get all participants for these chats
+      const participantsResults = await db
+        .select({
+          chatId: chatParticipants.chatId,
+          userId: chatParticipants.userId,
+        })
+        .from(chatParticipants)
+        .where(inArray(chatParticipants.chatId, chatIds));
+      
+      // Get unique user IDs to fetch user info
+      const userIds = [...new Set(participantsResults.map(p => p.userId))];
+      
+      // Fetch user information for all participants
+      const userResults = await db
+        .select({
+          id: users.id,
+          name: users.name,
+          avatar: users.avatar,
+        })
+        .from(users)
+        .where(inArray(users.id, userIds));
+      
+      // Create a map for easier lookup
+      const userMap = new Map(userResults.map(user => [user.id, user]));
+      
+      // Group participants by chat
+      const chatParticipantsMap = new Map();
+      participantsResults.forEach(p => {
+        if (!chatParticipantsMap.has(p.chatId)) {
+          chatParticipantsMap.set(p.chatId, []);
         }
-      }
+        const user = userMap.get(p.userId);
+        if (user) {
+          chatParticipantsMap.get(p.chatId).push({
+            userId: p.userId,
+            user: user
+          });
+        }
+      });
       
-      return {
+      // Fetch last message for each chat
+      const lastMessagesPromises = chatIds.map(async chatId => {
+        const messageResult = await db
+          .select()
+          .from(messages)
+          .where(eq(messages.chatId, chatId))
+          .orderBy(messages.timestamp)
+          .limit(1);
+          
+        return messageResult.length > 0 ? { chatId, message: messageResult[0] } : null;
+      });
+      
+      const lastMessagesResults = await Promise.all(lastMessagesPromises);
+      const lastMessagesMap = new Map();
+      
+      lastMessagesResults.forEach(result => {
+        if (result) {
+          lastMessagesMap.set(result.chatId, result.message);
+        }
+      });
+      
+      // Transform the data to match the Chat type used in the frontend
+      const transformedChats = chatResults.map(chat => {
+        const participants = chatParticipantsMap.get(chat.id) || [];
+        const participantIds = participants.map(p => p.userId);
+        const lastMessage = lastMessagesMap.get(chat.id);
+        
+        // Find the other participant(s) for individual chats to get the name/avatar
+        let chatName = chat.name;
+        let chatAvatar = chat.avatar;
+        
+        // For individual chats, use the other participant's name and avatar
+        if (chat.type === 'individual') {
+          const otherParticipant = participants.find(p => p.userId !== userId)?.user;
+          if (otherParticipant) {
+            chatName = otherParticipant.name;
+            chatAvatar = otherParticipant.avatar;
+          }
+        }
+        
+        return {
+          id: chat.id,
+          type: chat.type,
+          name: chatName,
+          avatar: chatAvatar || "",
+          participants: participantIds,
+          createdAt: chat.createdAt,
+          lastMessage: lastMessage ? {
+            id: lastMessage.id,
+            content: lastMessage.content,
+            timestamp: lastMessage.timestamp,
+            senderId: lastMessage.senderId,
+            type: lastMessage.type,
+            fileUrl: lastMessage.fileUrl || undefined,
+            fileName: lastMessage.fileName || undefined,
+            fileSize: lastMessage.fileSize || undefined,
+            deleted: lastMessage.deleted,
+          } : undefined,
+          unreadCount: 0, // Would need a separate query to calculate this
+          isPinned: chat.isPinned,
+          isMuted: chat.isMuted,
+          isArchived: chat.isArchived,
+          isGroupAdmin: chat.isGroupAdmin,
+          online: chat.type === 'individual' ? 
+            false : // Always set to false since status field doesn't exist
+            false,
+          lastMessageTime: lastMessage ? 
+            lastMessage.timestamp.toISOString() : 
+            undefined,
+          preview: lastMessage ? 
+            (lastMessage.deleted ? 'This message was deleted' : 
+              lastMessage.type === 'text' ? lastMessage.content : 
+              lastMessage.type === 'image' ? '📷 Photo' : 
+              lastMessage.type === 'video' ? '📹 Video' : 
+              lastMessage.type === 'document' ? '📄 Document' : 
+              lastMessage.type === 'audio' ? '🎵 Audio' : 
+              lastMessage.type === 'voice' ? '🎤 Voice message' : 
+              'Message'
+            ) : 
+            'Start a conversation',
+        };
+      });
+
+      console.log(`API: Returning ${transformedChats.length} transformed chats`);
+      return NextResponse.json(transformedChats);
+    } catch (innerError) {
+      console.error("API Inner error fetching chats:", innerError);
+      
+      // Fallback to a minimal chat list if the full query fails
+      const simpleChatResults = await db
+        .select({
+          id: chats.id,
+          type: chats.type,
+          name: chats.name,
+          avatar: chats.avatar,
+          createdAt: chats.createdAt,
+        })
+        .from(chats)
+        .where(inArray(chats.id, chatIdValues));
+      
+      console.log(`API: Fallback - returning ${simpleChatResults.length} minimal chats`);
+      
+      // Return minimal chat objects
+      const minimalChats = simpleChatResults.map(chat => ({
         id: chat.id,
         type: chat.type,
-        name: chatName,
-        avatar: chatAvatar || "",
-        participants: participants,
+        name: chat.name,
+        avatar: chat.avatar || "",
+        participants: [],
         createdAt: chat.createdAt,
-        lastMessage: lastMessage ? {
-          id: lastMessage.id,
-          content: lastMessage.content,
-          timestamp: lastMessage.timestamp,
-          senderId: lastMessage.senderId,
-          type: lastMessage.type,
-          fileUrl: lastMessage.fileUrl || undefined,
-          fileName: lastMessage.fileName || undefined,
-          fileSize: lastMessage.fileSize || undefined,
-          deleted: lastMessage.deleted,
-        } : undefined,
-        unreadCount: 0, // Would need a separate query to calculate this
-        isPinned: chat.isPinned,
-        isMuted: chat.isMuted,
-        isArchived: chat.isArchived,
-        isGroupAdmin: chat.isGroupAdmin,
-        online: chat.type === 'individual' ? 
-          chat.participants.find(p => p.userId !== userId)?.user.status === 'online' : 
-          false,
-        lastMessageTime: lastMessage ? 
-          lastMessage.timestamp.toISOString() : 
-          undefined,
-        preview: lastMessage ? 
-          (lastMessage.deleted ? 'This message was deleted' : 
-            lastMessage.type === 'text' ? lastMessage.content : 
-            lastMessage.type === 'image' ? '📷 Photo' : 
-            lastMessage.type === 'video' ? '📹 Video' : 
-            lastMessage.type === 'document' ? '📄 Document' : 
-            lastMessage.type === 'audio' ? '🎵 Audio' : 
-            lastMessage.type === 'voice' ? '🎤 Voice message' : 
-            'Message'
-          ) : 
-          'Start a conversation',
-      };
-    });
-
-    console.log(`API: Returning ${transformedChats.length} transformed chats`);
-    return NextResponse.json(transformedChats);
+        preview: "Chat data partially loaded",
+      }));
+      
+      return NextResponse.json(minimalChats);
+    }
   } catch (error) {
     console.error("API Error fetching chats:", error);
     return NextResponse.json(

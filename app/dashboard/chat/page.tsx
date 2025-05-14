@@ -904,13 +904,60 @@ function CustomChatList({ mobileView, setMobileView, deletedChats, setDeletedCha
 
   // Show only archived chats when on "contacts" tab
   // Sort chats to put pinned ones at the top
-  const displayChats = activeTab === 'recent' 
-    ? filteredChats.filter(chat => !chat.isArchived).sort((a, b) => {
+  const displayChats = React.useMemo(() => {
+    console.log("Calculating display chats:", { 
+      total: chats.length, 
+      archived: chats.filter(chat => chat.isArchived).length,
+      nonArchived: chats.filter(chat => !chat.isArchived).length,
+      activeTab
+    });
+    
+    // Filter chats based on active tab and search query
+    return chats
+      .filter(chat => {
+        // Filter based on active tab
+        const matchesTab = activeTab === 'recent' ? !chat.isArchived : chat.isArchived;
+        
+        // No search query? Just return tab filter result
+        if (!searchQuery) return matchesTab;
+        
+        // With search query, match against chat name
+        const matchesSearch = chat.name.toLowerCase().includes(searchQuery.toLowerCase());
+        
+        // Return chats that match both conditions
+        return matchesTab && matchesSearch;
+      })
+      .sort((a, b) => {
+        // Sort pinned chats first
         if (a.isPinned && !b.isPinned) return -1;
         if (!a.isPinned && b.isPinned) return 1;
-        return 0;
-      })
-    : filteredChats.filter(chat => chat.isArchived)
+        
+        // Then sort by last message time or creation date
+        const aTime = a.lastMessage?.timestamp || a.createdAt;
+        const bTime = b.lastMessage?.timestamp || b.createdAt;
+        return new Date(bTime).getTime() - new Date(aTime).getTime();
+      });
+  }, [chats, activeTab, searchQuery]);
+
+  // Also add a useEffect to log when chats change
+  useEffect(() => {
+    console.log("Chat list updated:", chats.length, "total chats");
+  }, [chats]);
+
+  // Add debug message in the render section
+  // Inside the displayChats.length === 0 check, add this:
+  {displayChats.length === 0 && chats.length > 0 && (
+    <div className="p-6 text-center text-muted-foreground">
+      <MessageSquare className="h-8 w-8 mb-2 text-muted-foreground/50 mx-auto" />
+      <p>You have {chats.length} chats, but none match your current filter</p>
+      {activeTab === 'contacts' && (
+        <p className="text-xs mt-2">No archived chats found</p>
+      )}
+      {searchQuery && (
+        <p className="text-xs mt-2">No results for "{searchQuery}"</p>
+      )}
+    </div>
+  )}
 
   // Format time for display
   const formatTime = (timestamp: Date | undefined) => {

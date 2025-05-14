@@ -1,6 +1,7 @@
 "use client"
 import { useState } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname } from "next/navigation"
 import {
   NavigationMenu,
@@ -15,8 +16,24 @@ import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Menu, ChevronDown, ChevronUp } from "lucide-react"
 
+// Define interfaces for navigation items
+interface NavItem {
+  title: string;
+  href: string;
+  description: string;
+  image?: string;
+}
+
 // Add this new component for mobile navigation
-function MobileNavAccordion({ title, items, setIsOpen }) {
+function MobileNavAccordion({ 
+  title, 
+  items, 
+  setIsOpen 
+}: { 
+  title: string; 
+  items: NavItem[]; 
+  setIsOpen: React.Dispatch<React.SetStateAction<boolean>> 
+}) {
   const [isExpanded, setIsExpanded] = useState(false)
 
   return (
@@ -39,7 +56,13 @@ function MobileNavAccordion({ title, items, setIsOpen }) {
               onClick={() => setIsOpen(false)}
             >
               <div className="h-8 w-8 rounded overflow-hidden flex-shrink-0">
-                <img src={item.image || "/placeholder.svg"} alt={item.title} className="h-full w-full object-cover" />
+                <Image 
+                  src={item.image || "/placeholder.svg"} 
+                  alt={item.title} 
+                  width={32}
+                  height={32}
+                  className="object-cover w-full h-full" 
+                />
               </div>
               <div>
                 <div className="font-medium">{item.title}</div>
@@ -155,7 +178,16 @@ export function MainNavbar() {
       <div className="container flex h-16 items-center justify-between px-4 md:px-6">
         <div className="flex items-center gap-2 font-bold text-xl">
           <Link href="/" className="flex items-center gap-2">
-            <div className="bg-primary text-primary-foreground p-1 rounded">JV</div>
+            <div className="relative">
+              <Image 
+                src="/jiravision_logo.png" 
+                alt="JiraVision"
+                width={32}
+                height={32}
+                className="object-contain"
+                priority
+              />
+            </div>
             <span>JiraVision</span>
           </Link>
         </div>
@@ -171,11 +203,13 @@ export function MainNavbar() {
                     {productItems.map((item) => (
                       <Link key={item.title} href={item.href} className="group block">
                         <div className="flex gap-4 rounded-lg p-3 hover:bg-muted transition-colors">
-                          <div className="h-16 w-16 rounded-md overflow-hidden">
-                            <img
+                          <div className="h-16 w-16 rounded-md overflow-hidden relative">
+                            <Image
                               src={item.image || "/placeholder.svg"}
                               alt={item.title}
-                              className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              width={64}
+                              height={64}
+                              className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
                             />
                           </div>
                           <div>
@@ -199,11 +233,13 @@ export function MainNavbar() {
                     {solutionItems.map((item) => (
                       <Link key={item.title} href={item.href} className="group block">
                         <div className="flex gap-4 rounded-lg p-3 hover:bg-muted transition-colors">
-                          <div className="h-16 w-16 rounded-md overflow-hidden">
-                            <img
+                          <div className="h-16 w-16 rounded-md overflow-hidden relative">
+                            <Image
                               src={item.image || "/placeholder.svg"}
                               alt={item.title}
-                              className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              width={64}
+                              height={64}
+                              className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
                             />
                           </div>
                           <div>
@@ -227,11 +263,13 @@ export function MainNavbar() {
                     {resourceItems.map((item) => (
                       <Link key={item.title} href={item.href} className="group block">
                         <div className="flex gap-4 rounded-lg p-3 hover:bg-muted transition-colors">
-                          <div className="h-16 w-16 rounded-md overflow-hidden">
-                            <img
+                          <div className="h-16 w-16 rounded-md overflow-hidden relative">
+                            <Image
                               src={item.image || "/placeholder.svg"}
                               alt={item.title}
-                              className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              width={64}
+                              height={64}
+                              className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
                             />
                           </div>
                           <div>
@@ -272,7 +310,16 @@ export function MainNavbar() {
             <SheetContent side="right" className="w-[300px] sm:w-[400px] overflow-y-auto max-h-screen">
               <div className="flex items-center gap-2 font-bold text-xl mb-6">
                 <Link href="/" className="flex items-center gap-2" onClick={() => setIsOpen(false)}>
-                  <div className="bg-primary text-primary-foreground p-1 rounded">JV</div>
+                  <div className="relative">
+                    <Image 
+                      src="/jiravision_logo.png" 
+                      alt="JiraVision"
+                      width={32}
+                      height={32}
+                      className="object-contain"
+                      priority
+                    />
+                  </div>
                   <span>JiraVision</span>
                 </Link>
               </div>

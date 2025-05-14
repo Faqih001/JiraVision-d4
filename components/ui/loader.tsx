@@ -2,6 +2,7 @@
 
 import { Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import Image from "next/image"
 
 interface LoaderProps extends React.HTMLAttributes<HTMLDivElement> {
   size?: "sm" | "md" | "lg"
@@ -169,7 +170,16 @@ export function CircleJVLoader({ className, size = "md", showText = false }: Cir
         )}
       >
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className="font-bold tracking-tighter">JV</span>
+          <div className="relative h-5/6 w-5/6">
+            <Image 
+              src="/jiravision_logo.png" 
+              alt="JiraVision"
+              width={64}
+              height={64}
+              className="object-contain"
+              sizes="(max-width: 768px) 64px, 96px"
+            />
+          </div>
         </div>
         {/* Inner pulsing circle */}
         <div className="absolute inset-1 rounded-full border-2 border-primary/30 animate-pulse" />

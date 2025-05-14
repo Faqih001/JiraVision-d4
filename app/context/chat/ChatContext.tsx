@@ -267,14 +267,35 @@ export const ChatProvider = ({ children, teamMembers }: { children: React.ReactN
         // Direct API test
         try {
           console.log("Testing chat API directly...");
-          const response = await fetch('/api/chat');
-          if (!response.ok) {
-            console.error("API Test failed:", response.status, response.statusText);
-            const errorText = await response.text();
+          const apiResponse = await fetch('/api/chat', {
+            method: 'GET',
+            headers: {
+              'Cache-Control': 'no-cache',
+              'Pragma': 'no-cache'
+            }
+          });
+          
+          console.log("API Test status:", apiResponse.status, apiResponse.statusText);
+          
+          if (!apiResponse.ok) {
+            console.error("API Test failed:", apiResponse.status, apiResponse.statusText);
+            const errorText = await apiResponse.text();
             console.error("API Error details:", errorText);
           } else {
-            const data = await response.json();
-            console.log("API Test Response:", data);
+            const testData = await apiResponse.json();
+            console.log("API Test successful, chat count:", testData.length);
+            
+            // If we get a successful response but empty chats, set them directly
+            if (testData.length > 0) {
+              console.log("Setting chats directly from API test call");
+              setChats(testData);
+              
+              // If testData has minimal chats (only preview field set), force API fetch
+              const hasFullData = testData.some((chat: Chat) => chat.lastMessage || chat.participants?.length > 0);
+              if (!hasFullData) {
+                console.log("API returned minimal chat data, will attempt full fetch");
+              }
+            }
           }
         } catch (apiTestError) {
           console.error("API Test Error:", apiTestError);

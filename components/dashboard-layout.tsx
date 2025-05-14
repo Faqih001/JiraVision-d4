@@ -6,6 +6,7 @@ import { useRouter, usePathname } from "next/navigation"
 import { useAuth } from "@/context/auth-context"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
+import Image from "next/image"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import {
@@ -43,6 +44,7 @@ import {
 } from "lucide-react"
 import { useTheme } from "next-themes"
 import { useMobile } from "@/hooks/use-mobile"
+import { CircleJVLoader } from "@/components/ui/loader"
 
 export default function DashboardLayout({
   children,
@@ -96,7 +98,11 @@ export default function DashboardLayout({
   }, [user, isLoading, router, pathname, isMobile])
 
   if (isLoading) {
-    return <div className="flex h-screen items-center justify-center">Loading...</div>
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <CircleJVLoader size="md" showText={true} />
+      </div>
+    )
   }
 
   if (!user) {
@@ -229,8 +235,15 @@ export default function DashboardLayout({
         {/* Sidebar Header */}
         <div className="flex h-16 items-center justify-between border-b px-4">
           <Link href="/dashboard" className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded bg-primary text-primary-foreground font-bold">
-              JV
+            <div className={cn("relative", sidebarCollapsed ? "mx-auto" : "")}>
+              <Image 
+                src="/jiravision_logo.png" 
+                alt="JiraVision"
+                width={32}
+                height={32}
+                className="object-contain"
+                priority
+              />
             </div>
             {!sidebarCollapsed && <span className="font-bold text-xl">JiraVision</span>}
           </Link>
