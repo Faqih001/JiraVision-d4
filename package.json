@@ -9,7 +9,11 @@
     "lint": "next lint",
     "drizzle:push": "dotenv -e .env -- drizzle-kit push",
     "db:generate": "npx drizzle-kit generate",
-    "db:migrate": "npx ts-node -r dotenv/config ./drizzle/migrate.ts",
+    "db:migrate": "node -r dotenv/config ./drizzle/migrate.js",
+    "db:push": "npx drizzle-kit push",
+    "db:apply": "node -r dotenv/config ./drizzle/apply-schema.js",
+    "db:fix": "node -r dotenv/config ./drizzle/create-missing-tables.js",
+    "db:seed": "node -r dotenv/config ./drizzle/add-sample-data.js",
     "db:test": "node -r dotenv/config ./app/api/db-test/test-connect.js",
     "db:check": "curl http://localhost:3000/api/db-migrations-check"
   },
