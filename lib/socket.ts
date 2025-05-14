@@ -6,50 +6,75 @@ export function getSocket(): Socket | null {
   return socket;
 }
 
-export function initSocket(userId: number, token: string): Promise<Socket> {
-  return new Promise((resolve, reject) => {
-    if (socket) {
-      // If socket exists but is disconnected, reconnect
-      if (!socket.connected) {
-        socket.connect();
-      }
-      resolve(socket);
-      return;
+async function getCurrentUser() {
+  try {
+    const response = await fetch('/api/user/current');
+    if (!response.ok) {
+      throw new Error('Failed to fetch current user');
     }
+    const data = await response.json();
+    return data.user;
+  } catch (error) {
+    console.error('Error fetching current user:', error);
+    return null;
+  }
+}
 
-    // Create new socket connection
-    socket = io(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000', {
-      autoConnect: true,
-      reconnection: true,
-      timeout: 10000,
-    });
+export async function initSocket(): Promise<Socket> {
+  return new Promise(async (resolve, reject) => {
+    try {
+      // Get current user
+      const user = await getCurrentUser();
+      if (!user) {
+        throw new Error('No authenticated user found');
+      }
 
-    // Handle connection events
-    socket.on('connect', () => {
-      console.log('Socket connected:', socket?.id);
-      
-      // Authenticate after connection
-      socket?.emit('auth', { userId, token });
-    });
+      if (socket) {
+        // If socket exists but is disconnected, reconnect
+        if (!socket.connected) {
+          socket.connect();
+        }
+        resolve(socket);
+        return;
+      }
 
-    socket.on('auth_success', (data) => {
-      console.log('Socket authenticated:', data);
-      resolve(socket as Socket);
-    });
+      // Create new socket connection
+      socket = io(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000', {
+        autoConnect: true,
+        reconnection: true,
+        timeout: 10000,
+      });
 
-    socket.on('auth_error', (error) => {
-      console.error('Socket authentication error:', error);
+      // Handle connection events
+      socket.on('connect', () => {
+        console.log('Socket connected:', socket?.id);
+        
+        // Authenticate after connection
+        socket?.emit('auth', { userId: user.id, token: 'session-token' });
+      });
+
+      socket.on('auth_success', (data) => {
+        console.log('Socket authenticated:', data);
+        resolve(socket as Socket);
+      });
+
+      socket.on('auth_error', (error) => {
+        console.error('Socket authentication error:', error);
+        reject(error);
+      });
+
+      socket.on('disconnect', (reason) => {
+        console.log('Socket disconnected:', reason);
+      });
+
+      socket.on('connect_error', (error) => {
+        console.error('Socket connection error:', error);
+        reject(error);
+      });
+    } catch (error) {
+      console.error('Error initializing socket:', error);
       reject(error);
-    });
-
-    socket.on('disconnect', (reason) => {
-      console.log('Socket disconnected:', reason);
-    });
-
-    socket.on('connect_error', (error) => {
-      console.error('Socket connection error:', error);
-      reject(error);
-    });
+    }
   });
 }
 

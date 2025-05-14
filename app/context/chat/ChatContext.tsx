@@ -4,7 +4,6 @@ import React, { createContext, useContext, useEffect, useState, useRef } from 'r
 import { TeamMember } from '@/types/team'
 import * as chatApi from '@/lib/api-chat'
 import * as socketUtil from '@/lib/socket'
-import { Socket } from 'socket.io-client'
 
 // Message status types
 export type MessageStatus = 'sent' | 'delivered' | 'read' | 'sending' | 'failed'
@@ -228,7 +227,7 @@ export const ChatProvider = ({ children, teamMembers }: { children: React.ReactN
   const [messages, setMessages] = useState<Message[]>([])
   const [activeReply, setActiveReply] = useState<ReplyInfo | null>(null)
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'connecting' | 'disconnected'>('disconnected')
-  const [socket, setSocket] = useState<Socket | null>(null)
+  const [socket, setSocket] = useState<ReturnType<typeof socketUtil.initSocket> extends Promise<infer T> ? T : never | null>(null)
   const [isInitialized, setIsInitialized] = useState(false)
   
   // Initialize the chat with API data and WebSocket connection
@@ -242,11 +241,7 @@ export const ChatProvider = ({ children, teamMembers }: { children: React.ReactN
         setChats(chatData)
         
         // Then, establish WebSocket connection
-        // In a real app, you would get the userId and token from authentication
-        const userId = 1 // Hardcoded for demo purposes
-        const token = 'demo-token' // Hardcoded for demo purposes
-        
-        const socketInstance = await socketUtil.initSocket(userId, token)
+        const socketInstance = await socketUtil.initSocket()
         setSocket(socketInstance)
         setConnectionStatus('connected')
         
