@@ -3,9 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -p 3001",
+    "dev:socket": "node server.js",
     "build": "next build",
     "start": "next start",
+    "start:socket": "NODE_ENV=production node server.js",
     "lint": "next lint",
     "drizzle:push": "dotenv -e .env -- drizzle-kit push",
     "db:generate": "npx drizzle-kit generate",
@@ -15,7 +17,8 @@
     "db:fix": "node -r dotenv/config ./drizzle/create-missing-tables.js",
     "db:seed": "node -r dotenv/config ./drizzle/add-sample-data.js",
     "db:test": "node -r dotenv/config ./app/api/db-test/test-connect.js",
-    "db:check": "curl http://localhost:3000/api/db-migrations-check"
+    "db:check": "curl http://localhost:3000/api/db-migrations-check",
+    "seed:chats": "node drizzle/seed-chats.js"
   },
   "dependencies": {
     "@aws-sdk/client-rds-data": "latest",

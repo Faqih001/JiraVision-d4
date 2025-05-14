@@ -46,18 +46,25 @@ app.prepare().then(() => {
     // Handle authentication
     socket.on('auth', async (data) => {
       try {
-        const { userId, token } = data;
+        const { userId, userName, token } = data;
         
         if (!userId) {
+          console.error('Socket auth failed: Missing userId');
           socket.emit('auth_error', { message: 'User ID is required' });
           return;
         }
+        
+        console.log(`Socket ${socket.id} authenticating user: ${userId} (${userName || 'Unknown'})`);
         
         // In a real application, you would validate the token
         // For now, we'll just accept the userId
         
         // Store the authenticated user
-        authenticatedUsers.set(socket.id, { userId, socketId: socket.id });
+        authenticatedUsers.set(socket.id, { 
+          userId, 
+          userName: userName || 'Unknown User',
+          socketId: socket.id 
+        });
         
         // Join a room for this user
         socket.join(`user:${userId}`);
@@ -65,6 +72,7 @@ app.prepare().then(() => {
         // Get user's chats
         const client = getDbClient();
         try {
+          console.log(`Fetching chats for user ${userId}...`);
           const userChats = await client`
             SELECT c.id 
             FROM chats c
@@ -77,19 +85,37 @@ app.prepare().then(() => {
             socket.join(`chat:${chat.id}`);
           });
           
-          console.log(`User ${userId} authenticated and joined ${userChats.length} chat rooms`);
+          console.log(`User ${userId} (${userName || 'Unknown'}) authenticated and joined ${userChats.length} chat rooms`);
           
           // Emit success
-          socket.emit('auth_success', { userId });
+          socket.emit('auth_success', { 
+            userId,
+            userName: userName || 'Unknown User',
+            chatsJoined: userChats.length
+          });
           
           // Notify others that this user is online
           socket.broadcast.emit('user_status', { userId, status: 'online' });
+          
+          // Update user status in the database
+          try {
+            await client`
+              UPDATE users
+              SET status = 'online'
+              WHERE id = ${userId}
+            `;
+          } catch (statusError) {
+            console.error('Error updating user status:', statusError);
+          }
+        } catch (dbError) {
+          console.error('Database error during authentication:', dbError);
+          socket.emit('auth_error', { message: 'Database error during authentication' });
         } finally {
           await client.end();
         }
       } catch (error) {
         console.error('Authentication error:', error);
-        socket.emit('auth_error', { message: 'Authentication failed' });
+        socket.emit('auth_error', { message: 'Authentication failed: ' + error.message });
       }
     });
     
@@ -101,9 +127,12 @@ app.prepare().then(() => {
         // Get user from authenticated users
         const user = authenticatedUsers.get(socket.id);
         if (!user) {
+          console.error('Message rejected: User not authenticated');
           socket.emit('error', { message: 'Not authenticated' });
           return;
         }
+        
+        console.log(`User ${user.userId} (${user.userName}) sending message to chat ${chatId}`);
         
         const client = getDbClient();
         try {
@@ -122,13 +151,14 @@ app.prepare().then(() => {
           
           // Get sender name
           const [sender] = await client`
-            SELECT name FROM users WHERE id = ${user.userId}
+            SELECT name, avatar FROM users WHERE id = ${user.userId}
           `;
           
           // Prepare message to send
           const messageToSend = {
             ...message,
-            senderName: sender.name
+            senderName: sender.name,
+            senderAvatar: sender.avatar
           };
           
           // Emit message to chat room
@@ -140,12 +170,17 @@ app.prepare().then(() => {
             SET updated_at = now()
             WHERE id = ${chatId}
           `;
+          
+          console.log(`Message sent to chat ${chatId}`);
+        } catch (dbError) {
+          console.error('Database error sending message:', dbError);
+          socket.emit('error', { message: 'Database error: ' + dbError.message });
         } finally {
           await client.end();
         }
       } catch (error) {
         console.error('Error sending message:', error);
-        socket.emit('error', { message: 'Failed to send message' });
+        socket.emit('error', { message: 'Failed to send message: ' + error.message });
       }
     });
     
@@ -157,7 +192,8 @@ app.prepare().then(() => {
       
       socket.to(`chat:${chatId}`).emit('typing_start', { 
         chatId, 
-        userId: user.userId 
+        userId: user.userId,
+        userName: user.userName
       });
     });
     
@@ -179,6 +215,8 @@ app.prepare().then(() => {
         const user = authenticatedUsers.get(socket.id);
         if (!user) return;
         
+        console.log(`User ${user.userId} marking chat ${chatId} as read`);
+        
         const client = getDbClient();
         try {
           // Update last read timestamp
@@ -192,8 +230,11 @@ app.prepare().then(() => {
           socket.to(`chat:${chatId}`).emit('message_read', {
             chatId,
             userId: user.userId,
+            userName: user.userName,
             timestamp: new Date()
           });
+        } catch (dbError) {
+          console.error('Database error marking as read:', dbError);
         } finally {
           await client.end();
         }
@@ -203,14 +244,32 @@ app.prepare().then(() => {
     });
     
     // Handle disconnection
-    socket.on('disconnect', () => {
+    socket.on('disconnect', async () => {
       const user = authenticatedUsers.get(socket.id);
       if (user) {
+        console.log(`User ${user.userId} (${user.userName}) disconnected`);
+        
         // Notify others that this user is offline
         socket.broadcast.emit('user_status', { 
           userId: user.userId, 
           status: 'offline' 
         });
+        
+        // Update user status in the database
+        try {
+          const client = getDbClient();
+          try {
+            await client`
+              UPDATE users
+              SET status = 'offline'
+              WHERE id = ${user.userId}
+            `;
+          } finally {
+            await client.end();
+          }
+        } catch (dbError) {
+          console.error('Error updating user status on disconnect:', dbError);
+        }
         
         // Remove from authenticated users
         authenticatedUsers.delete(socket.id);

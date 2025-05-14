@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { messages, chatParticipants, users, reactions } from "@/drizzle/schema";
 import { eq, and } from "drizzle-orm";
 import { randomUUID } from "crypto";
+import { getSession } from "@/lib/auth-actions";
 
 export async function GET(req: NextRequest) {
   try {
@@ -13,6 +14,33 @@ export async function GET(req: NextRequest) {
       return NextResponse.json(
         { error: "Chat ID is required" },
         { status: 400 }
+      );
+    }
+    
+    // Get the current user from the session
+    const session = await getSession();
+    if (!session || !session.id) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+    
+    const userId = session.id;
+    console.log(`Fetching messages for chat ${chatId} by user ${userId} (${session.name})`);
+    
+    // Check if the user is a participant in the chat
+    const isParticipant = await db.query.chatParticipants.findFirst({
+      where: (cp, { and, eq }) => and(
+        eq(cp.chatId, chatId),
+        eq(cp.userId, userId)
+      )
+    });
+    
+    if (!isParticipant) {
+      return NextResponse.json(
+        { error: "You are not a participant in this chat" },
+        { status: 403 }
       );
     }
     
@@ -43,6 +71,8 @@ export async function GET(req: NextRequest) {
       orderBy: (messages, { asc }) => [asc(messages.timestamp)],
     });
     
+    console.log(`Found ${messageResults.length} messages for chat ${chatId}`);
+    
     // For reply messages, we need to fetch them separately since we can't do a circular relationship
     // in the query above
     const messageIds = messageResults.map(msg => msg.id);
@@ -63,9 +93,6 @@ export async function GET(req: NextRequest) {
     });
     
     // Mark all messages as read for the current user
-    // In a real app, you would get the userId from the session
-    const userId = 1; // Hardcoded for demo purposes
-    
     await db.update(chatParticipants)
       .set({ lastRead: new Date() })
       .where(
@@ -74,6 +101,8 @@ export async function GET(req: NextRequest) {
           eq(chatParticipants.userId, userId)
         )
       );
+    
+    console.log(`Marked chat ${chatId} as read for user ${userId}`);
     
     // Transform the data to match the Message type used in the frontend
     const transformedMessages = messageResults.map(message => {
@@ -136,8 +165,17 @@ export async function POST(req: NextRequest) {
       );
     }
     
-    // In a real app, you would get the userId from the session
-    const userId = 1; // Hardcoded for demo purposes
+    // Get the current user from the session
+    const session = await getSession();
+    if (!session || !session.id) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+    
+    const userId = session.id;
+    console.log(`Sending message to chat ${chatId} by user ${userId} (${session.name})`);
     
     // Verify that the user is a participant in the chat
     const participant = await db.query.chatParticipants.findFirst({
@@ -170,6 +208,8 @@ export async function POST(req: NextRequest) {
         timestamp: new Date(),
       })
       .returning();
+    
+    console.log(`Created message ${messageId} in chat ${chatId}`);
     
     // Get sender info
     const sender = await db.query.users.findFirst({

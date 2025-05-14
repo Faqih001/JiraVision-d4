@@ -10,9 +10,14 @@ async function getCurrentUser() {
   try {
     const response = await fetch('/api/user/current');
     if (!response.ok) {
-      throw new Error('Failed to fetch current user');
+      console.error('Failed to fetch current user:', response.statusText);
+      return null;
     }
     const data = await response.json();
+    if (!data.success || !data.user) {
+      console.error('Invalid user data returned:', data);
+      return null;
+    }
     return data.user;
   } catch (error) {
     console.error('Error fetching current user:', error);
@@ -26,12 +31,17 @@ export async function initSocket(): Promise<Socket> {
       // Get current user
       const user = await getCurrentUser();
       if (!user) {
-        throw new Error('No authenticated user found');
+        console.error('Socket initialization failed: No authenticated user found');
+        reject(new Error('No authenticated user found'));
+        return;
       }
+      
+      console.log('Socket initializing with user:', user.id, user.name);
 
       if (socket) {
         // If socket exists but is disconnected, reconnect
         if (!socket.connected) {
+          console.log('Reconnecting existing socket...');
           socket.connect();
         }
         resolve(socket);
@@ -39,22 +49,37 @@ export async function initSocket(): Promise<Socket> {
       }
 
       // Create new socket connection
-      socket = io(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000', {
+      let socketUrl = process.env.NEXT_PUBLIC_APP_URL;
+      if (!socketUrl) {
+        // Fallback to window.location as a last resort
+        socketUrl = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+      }
+      
+      console.log('Creating new socket connection to:', socketUrl);
+      
+      socket = io(socketUrl, {
         autoConnect: true,
         reconnection: true,
-        timeout: 10000,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000,
+        timeout: 20000, // Increased timeout to 20 seconds
+        transports: ['websocket', 'polling'],
       });
 
       // Handle connection events
       socket.on('connect', () => {
-        console.log('Socket connected:', socket?.id);
+        console.log('Socket connected successfully, ID:', socket?.id);
         
         // Authenticate after connection
-        socket?.emit('auth', { userId: user.id, token: 'session-token' });
+        socket?.emit('auth', { 
+          userId: user.id, 
+          userName: user.name,
+          token: 'session-token' 
+        });
       });
 
       socket.on('auth_success', (data) => {
-        console.log('Socket authenticated:', data);
+        console.log('Socket authenticated successfully:', data);
         resolve(socket as Socket);
       });
 
@@ -71,6 +96,14 @@ export async function initSocket(): Promise<Socket> {
         console.error('Socket connection error:', error);
         reject(error);
       });
+      
+      // Set a timeout in case the connection takes too long
+      setTimeout(() => {
+        if (!socket?.connected) {
+          console.error('Socket connection timeout');
+          reject(new Error('Socket connection timeout'));
+        }
+      }, 20000); // Match the timeout setting above
     } catch (error) {
       console.error('Error initializing socket:', error);
       reject(error);

@@ -150,11 +150,40 @@ const fetchTeamMembers = async (): Promise<TeamMember[]> => {
 }
 
 // Mock profile data until we have a real profile context
-const useProfile = () => ({
-  avatar: "https://randomuser.me/api/portraits/men/32.jpg",
-  name: "You (Current User)",
-  email: "you@example.com"
-});
+const useProfile = () => {
+  const [profile, setProfile] = useState({
+    avatar: "",
+    name: "Loading...",
+    email: ""
+  });
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const response = await fetch('/api/user/current');
+        if (!response.ok) {
+          console.error("Failed to fetch user profile:", response.statusText);
+          return;
+        }
+        
+        const data = await response.json();
+        if (data.success && data.user) {
+          setProfile({
+            avatar: data.user.avatar || "https://randomuser.me/api/portraits/men/32.jpg",
+            name: data.user.name || "Current User",
+            email: data.user.email || ""
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching profile:", error);
+      }
+    };
+    
+    fetchUserProfile();
+  }, []);
+
+  return profile;
+};
 
 export default function Page() {
   const [mobileView, setMobileView] = useState<'list' | 'chat'>('list');
@@ -171,24 +200,24 @@ export default function Page() {
   const [deletedChats, setDeletedChats] = useState<Chat[]>([]);
   const { toast } = useToast();
   
-  return (
+    return (
     <div className="flex h-screen flex-col">
-      <div className="border-b p-4 flex items-center justify-between bg-background">
+        <div className="border-b p-4 flex items-center justify-between bg-background">
         <h1 className="text-2xl font-bold">Chat</h1>
-        <div className="flex items-center gap-2">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
+          <div className="flex items-center gap-2">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
                 <Button variant="outline" size="icon" onClick={() => setShowSecurityModal(true)}>
                   <Shield className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
                 <p>Chat Security</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -214,9 +243,9 @@ export default function Page() {
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
+          </div>
         </div>
-      </div>
-      
+        
       <main className="flex-1 flex w-full overflow-hidden">
         <div
           className={cn(
@@ -225,8 +254,8 @@ export default function Page() {
           )}
         >
           <CustomChatList 
-            mobileView={mobileView} 
-            setMobileView={setMobileView} 
+            mobileView={mobileView}
+            setMobileView={setMobileView}
             deletedChats={deletedChats} 
             setDeletedChats={setDeletedChats} 
           />
@@ -238,7 +267,7 @@ export default function Page() {
           )}
         >
           <ChatWindow mobileView={mobileView} setMobileView={setMobileView} />
-        </div>
+      </div>
       </main>
       
       {/* Notification Settings Modal */}
@@ -283,7 +312,7 @@ export default function Page() {
                 <div>
                   <h3 className="font-medium">Mentions</h3>
                   <p className="text-sm text-muted-foreground">Get notified when someone mentions you</p>
-                </div>
+          </div>
                 <Switch id="mention-notifications" 
                   checked={notificationSettings.mentions}
                   disabled={!notificationSettings.all}
@@ -441,9 +470,9 @@ export default function Page() {
             <div className="mt-6 flex justify-end">
               <Button variant="outline" onClick={() => setShowDeletedChatsModal(false)}>
                 Close
-              </Button>
-            </div>
-          </div>
+          </Button>
+        </div>
+      </div>
         </div>
       )}
     </div>
@@ -547,7 +576,7 @@ function CustomChatList({ mobileView, setMobileView, deletedChats, setDeletedCha
     
     if (selectedMembers.length === 0) {
       console.log("Error: No members selected");
-      toast({
+    toast({
         title: "No members selected",
         description: "Please select at least one team member for the group chat.",
         variant: "destructive"
@@ -626,78 +655,53 @@ function CustomChatList({ mobileView, setMobileView, deletedChats, setDeletedCha
   
   // Create new individual chat or open existing
   const handleCreateIndividualChat = (member: TeamMember) => {
-    console.log(`Starting individual chat creation with ${member.name} (ID: ${member.id})...`);
+    console.log("Creating individual chat with:", member);
     
-    // Check if a chat with this member already exists
-    const existingChat = chats.find(chat => 
-      chat.type === 'individual' && 
-      chat.participants.some(p => p === member.id)
+    if (!member || !member.id) {
+      console.error("Invalid member selected for individual chat");
+      toast({
+        title: "Error",
+        description: "Invalid team member selected",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Check if a chat with this user already exists
+    const existingChat = chats.find(c => 
+      c.type === 'individual' && 
+      c.participants.includes(member.id)
     );
     
     if (existingChat) {
-      console.log(`Found existing chat with ${member.name}, ID: ${existingChat.id}`);
-      // Open existing chat
+      console.log("Chat already exists, setting as active:", existingChat);
       setActiveChat(existingChat);
-      setMobileView('chat');
-      setShowNewChatModal(false);
-      console.log("Opened existing chat");
-    } else {
-      console.log(`Creating new chat with ${member.name}...`);
       
-      try {
-        // Create new chat
-        const chatId = `chat-${Date.now()}`;
-        const newChat: Chat = {
-          id: chatId,
-          type: 'individual',
-          name: member.name,
-          avatar: member.avatar,
-          participants: [member.id, 1], // Member and current user (ID 1)
-          createdAt: new Date(),
-          unreadCount: 0,
-          isMuted: false,
-          isArchived: false
-        }
-        
-        console.log("New chat object created:", newChat);
-        
-        // Add new chat to chats list
-        setChats(prev => {
-          console.log("Previous chats count:", prev.length);
-          const updatedChats = [newChat, ...prev];
-          console.log("Updated chats list count:", updatedChats.length);
-          return updatedChats;
-        });
-        
-        // Set as active chat - IMPORTANT: this needs to happen after the chat is added
-        setTimeout(() => {
-          console.log("Setting active chat to new chat ID:", chatId);
-          setActiveChat(newChat);
-        }, 100);
-        
-        // Close modal
-        setShowNewChatModal(false);
-        
-        // Ensure chat view is shown (for mobile)
-        setMobileView('chat');
-        
-        console.log(`Individual chat with ${member.name} created successfully`);
-        
-        toast({
-          title: "Chat started",
-          description: `You've started a conversation with ${member.name}.`
-        });
-      } catch (error) {
-        console.error("Error creating individual chat:", error);
-        toast({
-          title: "Error creating chat",
-          description: "There was a problem creating the chat. Please try again.",
-          variant: "destructive"
-        })
-      }
+      // Handle mobile view
+      setMobileView('chat');
+      
+      setShowNewChatModal(false);
+      return;
     }
-  }
-
+    
+    console.log("No existing chat found, creating new chat with:", member.name);
+    
+    createGroup(
+      member.name, // Use member name as chat name for individual chats
+      [member.id],
+      member.avatar,
+    );
+    
+    toast({
+      title: "Success",
+      description: `Chat with ${member.name} created`,
+      variant: "default",
+    });
+    
+    setShowNewChatModal(false);
+    setSelectedMembers([]);
+  };
+  
   // Handle archive/unarchive chat
   const handleArchiveChat = (chatId: string) => {
     // Find the chat
@@ -1049,15 +1053,15 @@ function CustomChatList({ mobileView, setMobileView, deletedChats, setDeletedCha
                 <span className="text-muted-foreground">
                   Selected: <span className="font-medium">{selectedMembers.length}</span> members
                 </span>
-                <Button 
-                  variant="ghost" 
+          <Button 
+            variant="ghost" 
                   size="sm" 
                   className="h-7 px-2" 
                   onClick={handleSelectAll}
                 >
                   {selectedMembers.length === teamMembers.length ? 'Deselect All' : 'Select All'}
-                </Button>
-              </div>
+          </Button>
+            </div>
             </div>
           </TabsContent>
         </Tabs>
@@ -1079,9 +1083,9 @@ function CustomChatList({ mobileView, setMobileView, deletedChats, setDeletedCha
           >
             Create Chat
           </Button>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
   );
 
   return (
@@ -1098,9 +1102,9 @@ function CustomChatList({ mobileView, setMobileView, deletedChats, setDeletedCha
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
                 <Button 
                   size="icon" 
                   variant="outline" 
@@ -1108,13 +1112,13 @@ function CustomChatList({ mobileView, setMobileView, deletedChats, setDeletedCha
                   onClick={() => setShowNewChatModal(true)}
                 >
                   <Plus className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
                 <p>Create New Chat</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
         
         {/* Top tools section */}
@@ -1222,32 +1226,32 @@ function CustomChatList({ mobileView, setMobileView, deletedChats, setDeletedCha
                               {chat.unreadCount}
                             </div>
                           )}
-            <DropdownMenu>
+          <DropdownMenu>
                             <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                               <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 focus:opacity-100">
                                 <MoreVertical className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
                               <DropdownMenuItem onClick={(e) => {
                                 e.stopPropagation();
                                 handlePinChat(chat.id);
                               }}>
                                 {chat.isPinned ? 'Unpin' : 'Pin'}
-                              </DropdownMenuItem>
+              </DropdownMenuItem>
                               <DropdownMenuItem onClick={(e) => {
                                 e.stopPropagation();
                                 handleMuteChat(chat.id);
                               }}>
                                 {chat.isMuted ? 'Unmute' : 'Mute'}
-                              </DropdownMenuItem>
+              </DropdownMenuItem>
                               <DropdownMenuItem onClick={(e) => {
                                 e.stopPropagation();
                                 handleArchiveChat(chat.id);
                               }}>
                                 {chat.isArchived ? 'Unarchive' : 'Archive'}
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
                               <DropdownMenuItem onClick={(e) => {
                                 e.stopPropagation();
                                 handleMarkAsRead(chat.id);
@@ -1259,10 +1263,10 @@ function CustomChatList({ mobileView, setMobileView, deletedChats, setDeletedCha
                                 handleDeleteChat(chat.id);
                               }}>
                                 Delete chat
-                              </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
                       </div>
                     </div>
                   </div>
@@ -1271,8 +1275,8 @@ function CustomChatList({ mobileView, setMobileView, deletedChats, setDeletedCha
             )}
           </div>
         </Tabs>
-        </div>
-        
+      </div>
+      
       {/* Context Menu - positioned up or down based on click position */}
       {contextMenu && (
         <div
@@ -1326,12 +1330,12 @@ function CustomChatList({ mobileView, setMobileView, deletedChats, setDeletedCha
           >
             Delete Chat
           </button>
-          </div>
+            </div>
       )}
       
       {/* Use the fixed New Chat Modal */}
       {showNewChatModal && renderNewChatModal()}
-    </div>
+          </div>
   )
 }
 
@@ -1544,73 +1548,52 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
   
   // Create new individual chat or open existing
   const handleCreateIndividualChat = (member: TeamMember) => {
-    console.log(`Starting individual chat creation with ${member.name} (ID: ${member.id}) in ChatWindow...`);
+    console.log("Creating individual chat with:", member);
     
-    // Check if a chat with this member already exists
-    const existingChat = chats.find(chat => 
-      chat.type === 'individual' && 
-      chat.participants.some(p => p === member.id)
+    if (!member || !member.id) {
+      console.error("Invalid member selected for individual chat");
+      toast({
+        title: "Error",
+        description: "Invalid team member selected",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Check if a chat with this user already exists
+    const existingChat = chats.find(c => 
+      c.type === 'individual' && 
+      c.participants.includes(member.id)
     );
     
     if (existingChat) {
-      console.log(`Found existing chat with ${member.name}, ID: ${existingChat.id}`);
-      // Open existing chat
+      console.log("Chat already exists, setting as active:", existingChat);
       setActiveChat(existingChat);
-      setShowNewChatModal(false);
-    } else {
-      console.log(`Creating new chat with ${member.name} in ChatWindow...`);
       
-      try {
-        // Create new chat
-        const chatId = `chat-${Date.now()}`;
-        const newChat: Chat = {
-          id: chatId,
-          type: 'individual',
-          name: member.name,
-          avatar: member.avatar,
-          participants: [member.id, 1], // Member and current user (ID 1)
-          createdAt: new Date(),
-          unreadCount: 0,
-          isMuted: false,
-          isArchived: false
-        }
-        
-        console.log("New chat object created in ChatWindow:", newChat);
-        
-        // Add new chat to chats list
-        setChats(prev => {
-          console.log("Previous chats:", prev);
-          const updatedChats = [newChat, ...prev];
-          console.log("Updated chats list in ChatWindow:", updatedChats);
-          return updatedChats;
-        });
-        
-        // Set as active chat
-        setActiveChat(newChat);
-        console.log("Set active chat to new chat in ChatWindow");
-        
-        // Close modal
-        setShowNewChatModal(false);
-        
-        // Ensure chat view is shown (for mobile)
-        setMobileView('chat');
-        
-        console.log(`Individual chat with ${member.name} created successfully in ChatWindow`);
-        
-        toast({
-          title: "Chat started",
-          description: `You've started a conversation with ${member.name}.`
-        });
-      } catch (error) {
-        console.error("Error creating individual chat in ChatWindow:", error);
-        toast({
-          title: "Error creating chat",
-          description: "There was a problem creating the chat. Please try again.",
-          variant: "destructive"
-        })
-      }
+      // Handle mobile view
+      setMobileView('chat');
+      
+      setShowNewChatModal(false);
+      return;
     }
-  }
+    
+    console.log("No existing chat found, creating new chat with:", member.name);
+    
+    createGroup(
+      member.name, // Use member name as chat name for individual chats
+      [member.id],
+      member.avatar,
+    );
+    
+    toast({
+      title: "Success",
+      description: `Chat with ${member.name} created`,
+      variant: "default",
+    });
+    
+    setShowNewChatModal(false);
+    setSelectedMembers([]);
+  };
   
   useEffect(() => {
     // Scroll to bottom on new messages
@@ -1709,7 +1692,7 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
         <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => setEmojiPickerOpen(false)}>
           <X className="h-3 w-3" />
         </Button>
-      </div>
+            </div>
       
       <div className="flex gap-1 mb-2 overflow-x-auto pb-1 scrollbar-thin">
         <Button 
@@ -1784,13 +1767,13 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
         >
           <span className="text-xs">🏳️</span>
         </Button>
-      </div>
+          </div>
       
       <div className="grid grid-cols-7 gap-1 max-h-[200px] overflow-y-auto">
         {emojiData[emojiCategory].map((emoji: string, index: number) => (
-          <Button 
+              <Button 
             key={`${emoji}-${index}`}
-            variant="ghost" 
+                variant="ghost" 
             className="h-8 w-8 p-0" 
             onClick={() => {
               setMessageInput((prev: string) => prev + emoji)
@@ -1798,9 +1781,9 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
             }}
           >
             {emoji}
-          </Button>
+              </Button>
         ))}
-      </div>
+            </div>
     </div>
   );
   
@@ -1811,7 +1794,7 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
         <div className="text-center max-w-md mx-auto flex flex-col items-center justify-center h-full">
           <div className="bg-muted/30 rounded-full p-6 mx-auto mb-6 w-24 h-24 flex items-center justify-center">
             <MessageSquare className="h-12 w-12 text-muted-foreground" />
-          </div>
+                </div>
           <h2 className="text-2xl font-bold mb-3">No chat selected</h2>
           <p className="text-muted-foreground mb-6 max-w-xs">
             Select a chat from the list or start a new conversation to connect with your team
@@ -1824,8 +1807,8 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
             <Plus className="h-4 w-4 mr-2" />
             New Chat
           </Button>
-        </div>
-        
+              </div>
+              
         {/* Improved New Chat Modal */}
         {showNewChatModal && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -1835,7 +1818,7 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
                 <Button variant="ghost" size="icon" onClick={() => setShowNewChatModal(false)}>
                   <X className="h-4 w-4" />
                 </Button>
-              </div>
+                      </div>
               
               <div className="relative mb-4">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -1887,7 +1870,7 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
                           <AvatarImage src={member.avatar} />
                           <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
                         </Avatar>
-                        <div>
+                      <div>
                           <h3 className="font-medium">{member.name}</h3>
                           <p className="text-sm text-muted-foreground">{member.role}</p>
                         </div>
@@ -1900,10 +1883,10 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
                           {(member as any).online && (
                             <div className="h-2.5 w-2.5 rounded-full bg-green-500 border border-white"></div>
                           )}
-                        </div>
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  ))}
+                </div>
                 </TabsContent>
                 
                 <TabsContent value="group" className="mt-4">
@@ -1947,7 +1930,7 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
                             <div className="font-medium text-sm">{member.name}</div>
                             <div className="text-xs text-muted-foreground">{member.role}</div>
                           </label>
-                        </div>
+              </div>
                       ))}
                     </div>
                     
@@ -1985,11 +1968,11 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
                 >
                   Create Chat
                 </Button>
-              </div>
             </div>
           </div>
-        )}
-      </div>
-    )
+        </div>
+      )}
+    </div>
+  )
   }
 }

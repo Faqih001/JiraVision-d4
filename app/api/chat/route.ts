@@ -3,12 +3,21 @@ import { db } from "@/lib/db";
 import { chats, messages, chatParticipants, users } from "@/drizzle/schema";
 import { eq, and } from "drizzle-orm";
 import { randomUUID } from "crypto";
+import { getSession } from "@/lib/auth-actions";
 
 export async function GET(req: NextRequest) {
   try {
-    // Get chats for the current user
-    // In a real app, you would get the userId from the session
-    const userId = 1; // Hardcoded for demo purposes
+    // Get the current user from the session
+    const session = await getSession();
+    if (!session || !session.id) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+    
+    const userId = session.id;
+    console.log(`Fetching chats for user ${userId} (${session.name})`);
     
     // Fetch chats where the current user is a participant
     const result = await db.query.chats.findMany({
@@ -48,16 +57,31 @@ export async function GET(req: NextRequest) {
       orderBy: (chats, { desc }) => [desc(chats.createdAt)],
     });
     
+    console.log(`Found ${result.length} chats for user ${userId}`);
+    
     // Transform the data to match the Chat type used in the frontend
     const transformedChats = result.map(chat => {
       const participants = chat.participants.map(p => p.userId);
       const lastMessage = chat.messages[0] || null;
       
+      // Find the other participant(s) for individual chats to get the name/avatar
+      let chatName = chat.name;
+      let chatAvatar = chat.avatar;
+      
+      // For individual chats, use the other participant's name and avatar
+      if (chat.type === 'individual') {
+        const otherParticipant = chat.participants.find(p => p.userId !== userId)?.user;
+        if (otherParticipant) {
+          chatName = otherParticipant.name;
+          chatAvatar = otherParticipant.avatar;
+        }
+      }
+      
       return {
         id: chat.id,
         type: chat.type,
-        name: chat.name,
-        avatar: chat.avatar || "",
+        name: chatName,
+        avatar: chatAvatar || "",
         participants: participants,
         createdAt: chat.createdAt,
         lastMessage: lastMessage ? {
@@ -119,8 +143,17 @@ export async function POST(req: NextRequest) {
       );
     }
     
-    // In a real app, you would get the userId from the session
-    const userId = 1; // Hardcoded for demo purposes
+    // Get the current user from the session
+    const session = await getSession();
+    if (!session || !session.id) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+    
+    const userId = session.id;
+    console.log(`Creating ${type} chat for user ${userId} (${session.name}) with ${participants.length} participants`);
     
     // Create a new chat
     const chatId = randomUUID();
@@ -168,6 +201,8 @@ export async function POST(req: NextRequest) {
           timestamp: new Date()
         });
     }
+    
+    console.log(`Successfully created chat with ID: ${chatId}`);
     
     return NextResponse.json({
       id: newChat.id,

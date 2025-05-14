@@ -11,10 +11,8 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  experimental: {
-    // Make sure modules used for WebSockets are correctly bundled
-    serverComponentsExternalPackages: ['socket.io', 'socket.io-client'],
-  },
+  // Make sure modules used for WebSockets are correctly bundled
+  serverExternalPackages: ['socket.io', 'socket.io-client'],
   // Enable the custom server for WebSocket support
   // NOTE: This disables automatic static optimization
   // You may want to keep this disabled in production and handle WebSockets separately

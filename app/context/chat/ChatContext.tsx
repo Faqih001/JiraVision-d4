@@ -229,24 +229,64 @@ export const ChatProvider = ({ children, teamMembers }: { children: React.ReactN
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'connecting' | 'disconnected'>('disconnected')
   const [socket, setSocket] = useState<ReturnType<typeof socketUtil.initSocket> extends Promise<infer T> ? T : never | null>(null)
   const [isInitialized, setIsInitialized] = useState(false)
+  const [currentUser, setCurrentUser] = useState<{ id: number, name: string, avatar: string } | null>(null)
+  const [initError, setInitError] = useState<string | null>(null)
+  const [retryCount, setRetryCount] = useState(0)
   
+  // Get current user data
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try {
+        const response = await fetch('/api/user/current');
+        if (!response.ok) {
+          throw new Error('Failed to fetch current user');
+        }
+        const data = await response.json();
+        if (data.success && data.user) {
+          setCurrentUser({
+            id: data.user.id,
+            name: data.user.name,
+            avatar: data.user.avatar || ''
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching current user:', error);
+      }
+    };
+    
+    fetchCurrentUser();
+  }, []);
+
   // Initialize the chat with API data and WebSocket connection
   useEffect(() => {
     const initializeChat = async () => {
       try {
         setConnectionStatus('connecting')
+        setInitError(null)
         
-        // First, fetch chats from API
-        const chatData = await chatApi.fetchChats()
+        // First, fetch chats from API with retry on error
+        let chatData = [];
+        try {
+          console.log('Fetching chats from API...');
+          chatData = await chatApi.fetchChats()
+          console.log('Chats fetched successfully:', chatData.length);
+        } catch (chatError) {
+          console.error('Error fetching chats:', chatError)
+          // We'll continue even if this fails, socket might still work
+        }
+        
         setChats(chatData)
         
         // Then, establish WebSocket connection
+        console.log('Initializing socket connection...');
         const socketInstance = await socketUtil.initSocket()
+        console.log('Socket connection established successfully');
         setSocket(socketInstance)
         setConnectionStatus('connected')
         
         // Set up event listeners
         const unsubscribeNewMessage = socketUtil.onNewMessage((message) => {
+          console.log('New message received:', message);
           setMessages(prev => [...prev, message])
           
           // Update last message in chat
@@ -290,7 +330,7 @@ export const ChatProvider = ({ children, teamMembers }: { children: React.ReactN
           // Update online status for individual chats with this user
           setChats(prevChats => 
             prevChats.map(chat => {
-              if (chat.type === 'individual' && chat.participants.includes(userId) && userId !== 1) {
+              if (chat.type === 'individual' && chat.participants.includes(userId) && userId !== currentUser?.id) {
                 return { ...chat, online: status === 'online' }
               }
               return chat
@@ -299,10 +339,12 @@ export const ChatProvider = ({ children, teamMembers }: { children: React.ReactN
         })
         
         const unsubscribeNewChat = socketUtil.onNewChat((chat) => {
+          console.log('New chat received:', chat);
           setChats(prev => [chat, ...prev])
         })
         
         setIsInitialized(true)
+        setRetryCount(0) // Reset retry counter on successful connection
         
         // Cleanup function to remove event listeners
         return () => {
@@ -316,12 +358,26 @@ export const ChatProvider = ({ children, teamMembers }: { children: React.ReactN
       } catch (error) {
         console.error('Failed to initialize chat:', error)
         setConnectionStatus('disconnected')
+        setInitError(error instanceof Error ? error.message : 'Unknown error initializing chat')
+        
+        // Set up retry with increasing delay
+        if (retryCount < 3) {
+          const retryDelay = Math.pow(2, retryCount) * 1000; // Exponential backoff
+          console.log(`Scheduling connection retry in ${retryDelay}ms (attempt ${retryCount + 1})`)
+          
+          const retryTimer = setTimeout(() => {
+            setRetryCount(prev => prev + 1)
+            console.log(`Retrying connection (attempt ${retryCount + 1})`)
+          }, retryDelay)
+          
+          return () => clearTimeout(retryTimer)
+        }
       }
     }
     
     initializeChat()
-  }, [teamMembers])
-  
+  }, [teamMembers, activeChat?.id, currentUser?.id, retryCount])
+
   // Load messages when active chat changes
   useEffect(() => {
     if (!activeChat) {
@@ -331,9 +387,11 @@ export const ChatProvider = ({ children, teamMembers }: { children: React.ReactN
     
     const loadMessages = async () => {
       try {
+        console.log(`Loading messages for chat ${activeChat.id}...`);
         const messageData = await chatApi.fetchMessages(activeChat.id)
+        console.log(`Loaded ${messageData.length} messages`);
         setMessages(messageData)
-        
+
         // Mark chat as read
         if (activeChat.unreadCount > 0) {
           await chatApi.markChatAsRead(activeChat.id)
@@ -353,10 +411,10 @@ export const ChatProvider = ({ children, teamMembers }: { children: React.ReactN
     
     loadMessages()
   }, [activeChat])
-  
+
   // Send a message
   const sendMessage = async (
-    content: string,
+    content: string, 
     type: MessageType = 'text', 
     replyTo?: ReplyInfo,
     mediaUrl?: string,
@@ -393,11 +451,11 @@ export const ChatProvider = ({ children, teamMembers }: { children: React.ReactN
       edited: false,
       deleted: false
     }
-    
+
     // Add to UI immediately
     setMessages(prev => [...prev, tempMessage])
     setActiveReply(null)
-    
+
     try {
       // Try to send via WebSocket first
       const sent = socketUtil.sendMessage(messageData)
@@ -407,8 +465,8 @@ export const ChatProvider = ({ children, teamMembers }: { children: React.ReactN
         const response = await chatApi.sendMessage(messageData)
         
         // Replace the temp message with the real one
-        setMessages(prev => 
-          prev.map(msg => 
+      setMessages(prev => 
+        prev.map(msg => 
             msg.id === tempId ? { ...response, status: 'sent' } : msg
           )
         )
@@ -433,20 +491,20 @@ export const ChatProvider = ({ children, teamMembers }: { children: React.ReactN
       )
     }
   }
-  
+
   // Edit a message
   const editMessage = async (messageId: string, newContent: string) => {
     if (!newContent.trim()) return
-    
+
     try {
       // Optimistic update
-      setMessages(prev => 
-        prev.map(msg => 
-          msg.id === messageId 
-            ? { ...msg, content: newContent, edited: true } 
-            : msg
-        )
+    setMessages(prev => 
+      prev.map(msg => 
+        msg.id === messageId 
+          ? { ...msg, content: newContent, edited: true } 
+          : msg
       )
+    )
       
       // Send to API
       await chatApi.editMessage(messageId, newContent)
@@ -456,16 +514,16 @@ export const ChatProvider = ({ children, teamMembers }: { children: React.ReactN
       // You'd need to fetch the original message again
     }
   }
-  
+
   // Delete a message
   const deleteMessage = async (messageId: string) => {
     try {
       // Optimistic update
-      setMessages(prev => 
-        prev.map(msg => 
-          msg.id === messageId ? { ...msg, deleted: true, content: 'This message was deleted' } : msg
-        )
+    setMessages(prev => 
+      prev.map(msg => 
+        msg.id === messageId ? { ...msg, deleted: true, content: 'This message was deleted' } : msg
       )
+    )
       
       // Send to API
       await chatApi.deleteMessage(messageId)
@@ -480,40 +538,40 @@ export const ChatProvider = ({ children, teamMembers }: { children: React.ReactN
   const reactToMessage = async (messageId: string, emoji: string) => {
     try {
       // Optimistic update
-      setMessages(prev => 
-        prev.map(msg => {
-          if (msg.id === messageId) {
-            // Check if user already reacted with this emoji
-            const existingReaction = msg.reactions?.find(r => r.userId === 1 && r.emoji === emoji)
-            
-            if (existingReaction) {
-              // Remove reaction if it exists
-              return {
-                ...msg,
-                reactions: msg.reactions?.filter(r => !(r.userId === 1 && r.emoji === emoji))
-              }
-            } else {
-              // Add or update reaction
+    setMessages(prev => 
+      prev.map(msg => {
+        if (msg.id === messageId) {
+          // Check if user already reacted with this emoji
+          const existingReaction = msg.reactions?.find(r => r.userId === 1 && r.emoji === emoji)
+          
+          if (existingReaction) {
+            // Remove reaction if it exists
+            return {
+              ...msg,
+              reactions: msg.reactions?.filter(r => !(r.userId === 1 && r.emoji === emoji))
+            }
+          } else {
+            // Add or update reaction
               const newReactions = [...(msg.reactions || [])]
-              
-              // Remove any existing reaction from this user
+            
+            // Remove any existing reaction from this user
               const userReactionIndex = newReactions.findIndex(r => r.userId === 1)
-              if (userReactionIndex !== -1) {
+            if (userReactionIndex !== -1) {
                 newReactions.splice(userReactionIndex, 1)
-              }
-              
-              // Add new reaction
+            }
+            
+            // Add new reaction
               newReactions.push({ userId: 1, emoji })
-              
-              return {
-                ...msg,
-                reactions: newReactions
-              }
+            
+            return {
+              ...msg,
+              reactions: newReactions
             }
           }
-          return msg
-        })
-      )
+        }
+        return msg
+      })
+    )
       
       // Send to API
       await chatApi.reactToMessage(messageId, emoji)
@@ -523,16 +581,16 @@ export const ChatProvider = ({ children, teamMembers }: { children: React.ReactN
       // You'd need to fetch the original reactions again
     }
   }
-  
+
   // Mark chat as read
   const markAsRead = async (chatId: string) => {
     try {
       // Optimistic update
-      setChats(prev => 
-        prev.map(chat => 
-          chat.id === chatId ? { ...chat, unreadCount: 0 } : chat
-        )
+    setChats(prev => 
+      prev.map(chat => 
+        chat.id === chatId ? { ...chat, unreadCount: 0 } : chat
       )
+    )
       
       // Send to API
       await chatApi.markChatAsRead(chatId)
@@ -541,16 +599,16 @@ export const ChatProvider = ({ children, teamMembers }: { children: React.ReactN
       console.error('Error marking as read:', error)
     }
   }
-  
+
   // Create a new group chat
   const createGroup = async (name: string, participants: number[], avatar?: string, description?: string) => {
     try {
       // Send to API
       const newChat = await chatApi.createChat({
         type: 'group',
-        name,
+      name,
         participants,
-        avatar,
+      avatar,
         message: `${name} group created`
       })
       
@@ -564,16 +622,16 @@ export const ChatProvider = ({ children, teamMembers }: { children: React.ReactN
       throw error
     }
   }
-  
+
   // Mute a chat
   const muteChat = async (chatId: string) => {
     try {
       // Optimistic update
-      setChats(prev => 
-        prev.map(chat => 
-          chat.id === chatId ? { ...chat, isMuted: true } : chat
-        )
+    setChats(prev => 
+      prev.map(chat => 
+        chat.id === chatId ? { ...chat, isMuted: true } : chat
       )
+    )
       
       // Send to API
       await chatApi.toggleMuteChat(chatId, true)
@@ -587,16 +645,16 @@ export const ChatProvider = ({ children, teamMembers }: { children: React.ReactN
       )
     }
   }
-  
+
   // Unmute a chat
   const unmuteChat = async (chatId: string) => {
     try {
       // Optimistic update
-      setChats(prev => 
-        prev.map(chat => 
-          chat.id === chatId ? { ...chat, isMuted: false } : chat
-        )
+    setChats(prev => 
+      prev.map(chat => 
+        chat.id === chatId ? { ...chat, isMuted: false } : chat
       )
+    )
       
       // Send to API
       await chatApi.toggleMuteChat(chatId, false)
@@ -610,36 +668,36 @@ export const ChatProvider = ({ children, teamMembers }: { children: React.ReactN
       )
     }
   }
-  
+
   // Archive a chat
   const archiveChat = async (chatId: string) => {
     try {
       // Optimistic update
-      setChats(prev => 
-        prev.map(chat => 
-          chat.id === chatId ? { ...chat, isArchived: true } : chat
-        )
+    setChats(prev => 
+      prev.map(chat => 
+        chat.id === chatId ? { ...chat, isArchived: true } : chat
       )
+    )
       
       // Send to API
       await chatApi.toggleArchiveChat(chatId, true)
     } catch (error) {
       console.error('Error archiving chat:', error)
       // Revert if error
-      setChats(prev => 
-        prev.map(chat => 
-          chat.id === chatId ? { ...chat, isArchived: false } : chat
-        )
+    setChats(prev => 
+      prev.map(chat => 
+        chat.id === chatId ? { ...chat, isArchived: false } : chat
       )
-    }
+    )
+  }
   }
   
   // Unarchive a chat
   const unarchiveChat = async (chatId: string) => {
     try {
       // Optimistic update
-      setChats(prev => 
-        prev.map(chat => 
+    setChats(prev => 
+      prev.map(chat => 
           chat.id === chatId ? { ...chat, isArchived: false } : chat
         )
       )
@@ -649,8 +707,8 @@ export const ChatProvider = ({ children, teamMembers }: { children: React.ReactN
     } catch (error) {
       console.error('Error unarchiving chat:', error)
       // Revert if error
-      setChats(prev => 
-        prev.map(chat => 
+    setChats(prev => 
+      prev.map(chat => 
           chat.id === chatId ? { ...chat, isArchived: true } : chat
         )
       )
@@ -678,7 +736,7 @@ export const ChatProvider = ({ children, teamMembers }: { children: React.ReactN
       .map(id => teamMembers.find(m => m.id === id))
       .filter((m): m is TeamMember => m !== undefined)
   }
-  
+
   // Download chat history (placeholder)
   const downloadChat = (chatId: string) => {
     console.log(`Downloading chat history for ${chatId}`)
@@ -880,4 +938,4 @@ export const ChatProvider = ({ children, teamMembers }: { children: React.ReactN
       {children}
     </ChatContext.Provider>
   )
-}
+} 
