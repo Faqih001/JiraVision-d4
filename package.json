@@ -87,6 +87,8 @@
     "recharts": "2.15.0",
     "resend": "latest",
     "sharp": "^0.34.1",
+    "socket.io": "^4.7.2",
+    "socket.io-client": "^4.7.2",
     "sonner": "^1.7.1",
     "sql.js": "latest",
     "sqlite3": "latest",
@@ -94,14 +96,13 @@
     "tailwindcss-animate": "^1.0.7",
     "uuid": "latest",
     "vaul": "^0.9.6",
-    "zod": "^3.24.1",
-    "socket.io": "^4.7.2",
-    "socket.io-client": "^4.7.2"
+    "zod": "^3.24.1"
   },
   "devDependencies": {
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/socket.io-client": "^1.4.36",
     "dotenv-cli": "^8.0.0",
     "mini-css-extract-plugin": "^2.9.2",
     "postcss": "^8",

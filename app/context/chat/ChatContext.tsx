@@ -7,7 +7,7 @@ import * as socketUtil from '@/lib/socket'
 import { Socket } from 'socket.io-client'
 
 // Message status types
-export type MessageStatus = 'sent' | 'delivered' | 'read'
+export type MessageStatus = 'sent' | 'delivered' | 'read' | 'sending' | 'failed'
 
 // Message types
 export type MessageType = 'text' | 'image' | 'video' | 'document' | 'audio' | 'voice'
@@ -689,6 +689,158 @@ export const ChatProvider = ({ children, teamMembers }: { children: React.ReactN
     console.log(`Downloading chat history for ${chatId}`)
     // In a real implementation, this would generate a file and prompt a download
   }
+
+  // Reply to message
+  const replyToMessage = (messageId: string) => {
+    const message = messages.find(m => m.id === messageId);
+    if (!message) return;
+    
+    setActiveReply({
+      messageId,
+      content: message.content,
+      sender: message.senderName
+    });
+  };
+  
+  // Search chats
+  const searchChats = (query: string): Chat[] => {
+    if (!query.trim()) return chats;
+    
+    const lowerQuery = query.toLowerCase();
+    return chats.filter(chat => 
+      chat.name.toLowerCase().includes(lowerQuery) ||
+      chat.lastMessage?.content.toLowerCase().includes(lowerQuery)
+    );
+  };
+  
+  // Search messages
+  const searchMessages = (query: string): Message[] => {
+    if (!query.trim()) return messages;
+    
+    const lowerQuery = query.toLowerCase();
+    return messages.filter(message =>
+      message.content.toLowerCase().includes(lowerQuery)
+    );
+  };
+  
+  // Update group
+  const updateGroup = async (chatId: string, name?: string, avatar?: string, description?: string) => {
+    console.log('Updating group:', { chatId, name, avatar, description });
+    // In a real implementation, this would call an API
+    // For now, just update the local state
+    setChats(prev => 
+      prev.map(chat => 
+        chat.id === chatId 
+          ? { 
+              ...chat, 
+              name: name || chat.name,
+              avatar: avatar || chat.avatar,
+              description: description || chat.description
+            } 
+          : chat
+      )
+    );
+  };
+  
+  // Add participants
+  const addParticipants = async (chatId: string, userIds: number[]) => {
+    console.log('Adding participants:', { chatId, userIds });
+    // In a real implementation, this would call an API
+    // For now, just update the local state
+    setChats(prev => 
+      prev.map(chat => {
+        if (chat.id === chatId) {
+          const newParticipants = [...new Set([...chat.participants, ...userIds])];
+          return { ...chat, participants: newParticipants };
+        }
+        return chat;
+      })
+    );
+  };
+  
+  // Remove participant
+  const removeParticipant = async (chatId: string, userId: number) => {
+    console.log('Removing participant:', { chatId, userId });
+    // In a real implementation, this would call an API
+    // For now, just update the local state
+    setChats(prev => 
+      prev.map(chat => {
+        if (chat.id === chatId) {
+          const newParticipants = chat.participants.filter(id => id !== userId);
+          return { ...chat, participants: newParticipants };
+        }
+        return chat;
+      })
+    );
+  };
+  
+  // Block chat
+  const blockChat = async (chatId: string) => {
+    console.log('Blocking chat:', chatId);
+    // In a real implementation, this would call an API
+    // For now, just update the local state
+    setChats(prev => 
+      prev.map(chat => 
+        chat.id === chatId ? { ...chat, isBlocked: true } : chat
+      )
+    );
+  };
+  
+  // Unblock chat
+  const unblockChat = async (chatId: string) => {
+    console.log('Unblocking chat:', chatId);
+    // In a real implementation, this would call an API
+    // For now, just update the local state
+    setChats(prev => 
+      prev.map(chat => 
+        chat.id === chatId ? { ...chat, isBlocked: false } : chat
+      )
+    );
+  };
+  
+  // Clear chat history
+  const clearChat = async (chatId: string) => {
+    console.log('Clearing chat history:', chatId);
+    // In a real implementation, this would call an API
+    // For now, just clear the messages if it's the active chat
+    if (activeChat?.id === chatId) {
+      setMessages([]);
+    }
+  };
+  
+  // Forward message
+  const forwardMessage = async (messageId: string, chatIds: string[]) => {
+    console.log('Forwarding message:', { messageId, chatIds });
+    const messageToForward = messages.find(m => m.id === messageId);
+    if (!messageToForward) return;
+    
+    // In a real implementation, this would call an API for each chat
+    // For now, just log the action
+    chatIds.forEach(chatId => {
+      console.log(`Forwarded message to chat ${chatId}: ${messageToForward.content.substring(0, 20)}...`);
+    });
+  };
+  
+  // Star message
+  const starMessage = async (messageId: string) => {
+    console.log('Starring message:', messageId);
+    // In a real implementation, this would call an API
+    // For now, just log the action
+  };
+  
+  // Unstar message
+  const unstarMessage = async (messageId: string) => {
+    console.log('Unstarring message:', messageId);
+    // In a real implementation, this would call an API
+    // For now, just log the action
+  };
+  
+  // Load more messages
+  const loadMoreMessages = async () => {
+    console.log('Loading more messages');
+    // In a real implementation, this would fetch older messages
+    // For now, just log the action
+  };
 
   return (
     <ChatContext.Provider
