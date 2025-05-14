@@ -765,6 +765,8 @@ export const ChatProvider = ({ children, teamMembers }: { children: React.ReactN
   // Create a new group chat
   const createGroup = (name: string, participants: number[], avatar?: string, description?: string) => {
     if (!name.trim() || participants.length < 1) return
+    
+    console.log("Creating group chat with name:", name, "participants:", participants);
 
     const newGroupId = `group-${generateId()}`
     
@@ -773,7 +775,7 @@ export const ChatProvider = ({ children, teamMembers }: { children: React.ReactN
       name,
       type: 'group',
       participants: [...participants, 1], // Include current user
-      avatar,
+      avatar: avatar || '/placeholder-group-avatar.jpg',
       description,
       unreadCount: 0,
       isMuted: false,
@@ -781,9 +783,21 @@ export const ChatProvider = ({ children, teamMembers }: { children: React.ReactN
       isGroupAdmin: true, // Current user is admin
       createdAt: new Date()
     }
+    
+    console.log("New group chat object created:", newGroup);
 
-    setChats(prev => [newGroup, ...prev])
+    // Add to chats list and set as active
+    setChats(prev => {
+      const updatedChats = [newGroup, ...prev];
+      console.log("Updated chats list with new group:", updatedChats);
+      return updatedChats;
+    })
+    
+    // Set as active chat
     setActiveChat(newGroup)
+    console.log("Set active chat to new group:", newGroup.id);
+    
+    return newGroup;
   }
 
   // Update group details

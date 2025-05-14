@@ -464,6 +464,7 @@ function CustomChatList({ mobileView, setMobileView, deletedChats, setDeletedCha
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([])
   const [activeTab, setActiveTab] = useState<'recent' | 'contacts'>('recent')
   const [selectedMembers, setSelectedMembers] = useState<number[]>([]) // Track selected members for group chat
+  const [selectedIndividualMember, setSelectedIndividualMember] = useState<TeamMember | null>(null) // Track selected member for individual chat
   const [groupChatName, setGroupChatName] = useState('')
   const [modalActiveTab, setModalActiveTab] = useState<'individual' | 'group'>('individual')
   const [contextMenu, setContextMenu] = useState<{
@@ -479,6 +480,7 @@ function CustomChatList({ mobileView, setMobileView, deletedChats, setDeletedCha
   useEffect(() => {
     if (!showNewChatModal) {
       setSelectedMembers([])
+      setSelectedIndividualMember(null)
       setGroupChatName('')
       setModalActiveTab('individual')
       setSearchQuery('')
@@ -612,6 +614,7 @@ function CustomChatList({ mobileView, setMobileView, deletedChats, setDeletedCha
       setActiveChat(existingChat);
       setMobileView('chat');
       setShowNewChatModal(false);
+      console.log("Opened existing chat");
     } else {
       console.log(`Creating new chat with ${member.name}...`);
       
@@ -913,7 +916,15 @@ function CustomChatList({ mobileView, setMobileView, deletedChats, setDeletedCha
           defaultValue="individual" 
           className="mb-4"
           value={modalActiveTab}
-          onValueChange={(value) => setModalActiveTab(value as 'individual' | 'group')}
+          onValueChange={(value) => {
+            setModalActiveTab(value as 'individual' | 'group');
+            // Reset selection when switching tabs
+            if (value === 'individual') {
+              setSelectedIndividualMember(null);
+            } else {
+              setSelectedMembers([]);
+            }
+          }}
         >
           <TabsList className="w-full">
             <TabsTrigger value="individual" className="flex-1">Individual</TabsTrigger>
@@ -932,8 +943,10 @@ function CustomChatList({ mobileView, setMobileView, deletedChats, setDeletedCha
                 .map(member => (
                 <div 
                   key={member.id}
-                  className="flex items-center p-3 hover:bg-muted/30 rounded-md cursor-pointer"
-                  onClick={() => handleCreateIndividualChat(member)}
+                  className={`flex items-center p-3 hover:bg-muted/30 rounded-md cursor-pointer ${
+                    selectedIndividualMember?.id === member.id ? 'bg-blue-100 dark:bg-blue-900' : ''
+                  }`}
+                  onClick={() => setSelectedIndividualMember(member)}
                 >
                   <Avatar className="h-10 w-10 mr-3">
                     <AvatarImage src={member.avatar} />
@@ -944,6 +957,11 @@ function CustomChatList({ mobileView, setMobileView, deletedChats, setDeletedCha
                     <p className="text-sm text-muted-foreground">{member.role}</p>
                   </div>
                   <div className="ml-auto">
+                    {selectedIndividualMember?.id === member.id && (
+                      <div className="h-4 w-4 rounded-full bg-primary flex items-center justify-center">
+                        <Check className="h-3 w-3 text-white" />
+                      </div>
+                    )}
                     {(member as any).online && (
                       <div className="h-2.5 w-2.5 rounded-full bg-green-500 border border-white"></div>
                     )}
@@ -1023,26 +1041,12 @@ function CustomChatList({ mobileView, setMobileView, deletedChats, setDeletedCha
             onClick={() => {
               if (modalActiveTab === 'group') {
                 handleCreateGroupChat();
-              } else if (modalActiveTab === 'individual' && teamMembers.length > 0) {
-                // Select the first filtered member when clicking Create Chat on individual tab
-                const filteredMembers = teamMembers.filter(member => 
-                  searchQuery ? 
-                    member.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                    member.role.toLowerCase().includes(searchQuery.toLowerCase()) : 
-                    true
-                );
-                if (filteredMembers.length > 0) {
-                  handleCreateIndividualChat(filteredMembers[0]);
-                }
+              } else if (modalActiveTab === 'individual' && selectedIndividualMember) {
+                handleCreateIndividualChat(selectedIndividualMember);
               }
             }}
             disabled={(modalActiveTab === 'group' && (selectedMembers.length === 0 || !groupChatName.trim())) ||
-                     (modalActiveTab === 'individual' && teamMembers.filter(member => 
-                       searchQuery ? 
-                         member.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                         member.role.toLowerCase().includes(searchQuery.toLowerCase()) : 
-                         true
-                      ).length === 0)}
+                     (modalActiveTab === 'individual' && !selectedIndividualMember)}
           >
             Create Chat
           </Button>
@@ -1336,6 +1340,7 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
   const timerRef = useRef<NodeJS.Timeout | null>(null)
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([])
   const [selectedMembers, setSelectedMembers] = useState<number[]>([])
+  const [selectedIndividualMember, setSelectedIndividualMember] = useState<TeamMember | null>(null)
   const [groupChatName, setGroupChatName] = useState('')
   const [modalActiveTab, setModalActiveTab] = useState<'individual' | 'group'>('individual')
   const [showSecurityModal, setShowSecurityModal] = useState(false)
@@ -1379,6 +1384,7 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
   useEffect(() => {
     if (!showNewChatModal) {
       setSelectedMembers([])
+      setSelectedIndividualMember(null)
       setGroupChatName('')
       setModalActiveTab('individual')
       setSearchQuery('')
@@ -1789,7 +1795,15 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
                 defaultValue="individual" 
                 value={modalActiveTab}
                 className="mb-4"
-                onValueChange={(value) => setModalActiveTab(value as 'individual' | 'group')}
+                onValueChange={(value) => {
+                  setModalActiveTab(value as 'individual' | 'group');
+                  // Reset selection when switching tabs
+                  if (value === 'individual') {
+                    setSelectedIndividualMember(null);
+                  } else {
+                    setSelectedMembers([]);
+                  }
+                }}
               >
                 <TabsList className="w-full">
                   <TabsTrigger value="individual" className="flex-1">Individual</TabsTrigger>
@@ -1808,8 +1822,10 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
                       .map(member => (
                       <div 
                         key={member.id}
-                        className="flex items-center p-3 hover:bg-muted/30 rounded-md cursor-pointer"
-                        onClick={() => handleCreateIndividualChat(member)}
+                        className={`flex items-center p-3 hover:bg-muted/30 rounded-md cursor-pointer ${
+                          selectedIndividualMember?.id === member.id ? 'bg-blue-100 dark:bg-blue-900' : ''
+                        }`}
+                        onClick={() => setSelectedIndividualMember(member)}
                       >
                         <Avatar className="h-10 w-10 mr-3">
                           <AvatarImage src={member.avatar} />
@@ -1820,6 +1836,11 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
                           <p className="text-sm text-muted-foreground">{member.role}</p>
                         </div>
                         <div className="ml-auto">
+                          {selectedIndividualMember?.id === member.id && (
+                            <div className="h-4 w-4 rounded-full bg-primary flex items-center justify-center">
+                              <Check className="h-3 w-3 text-white" />
+                            </div>
+                          )}
                           {(member as any).online && (
                             <div className="h-2.5 w-2.5 rounded-full bg-green-500 border border-white"></div>
                           )}
@@ -1834,7 +1855,7 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
                     <label className="text-sm font-medium mb-2 block">Group Name</label>
                     <Input 
                       placeholder="Enter group name" 
-                      className="mb-3"
+                      className="mb-3" 
                       value={groupChatName}
                       onChange={(e) => setGroupChatName(e.target.value)}
                     />
@@ -1856,17 +1877,17 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
                         >
                           <input
                             type="checkbox"
-                            id={`member-${member.id}`}
+                            id={`select-member-${member.id}`}
                             className="mr-3 h-4 w-4 rounded border-muted-foreground"
                             checked={selectedMembers.includes(member.id)}
-                            onChange={() => toggleMemberSelection(member.id)}
-                            onClick={(e) => e.stopPropagation()}
+                            onChange={() => toggleMemberSelection(member.id)} // Use the toggle function here
+                            onClick={(e) => e.stopPropagation()} // Prevent double triggering
                           />
                           <Avatar className="h-8 w-8 mr-3">
                             <AvatarImage src={member.avatar} />
                             <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
                           </Avatar>
-                          <label htmlFor={`member-${member.id}`} className="flex-1 cursor-pointer">
+                          <label htmlFor={`select-member-${member.id}`} className="flex-1 cursor-pointer">
                             <div className="font-medium text-sm">{member.name}</div>
                             <div className="text-xs text-muted-foreground">{member.role}</div>
                           </label>
@@ -1899,26 +1920,12 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
                   onClick={() => {
                     if (modalActiveTab === 'group') {
                       handleCreateGroupChat();
-                    } else if (modalActiveTab === 'individual' && teamMembers.length > 0) {
-                      // Select the first filtered member when clicking Create Chat on individual tab
-                      const filteredMembers = teamMembers.filter(member => 
-                        searchQuery ? 
-                          member.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          member.role.toLowerCase().includes(searchQuery.toLowerCase()) : 
-                          true
-                      );
-                      if (filteredMembers.length > 0) {
-                        handleCreateIndividualChat(filteredMembers[0]);
-                      }
+                    } else if (modalActiveTab === 'individual' && selectedIndividualMember) {
+                      handleCreateIndividualChat(selectedIndividualMember);
                     }
                   }}
                   disabled={(modalActiveTab === 'group' && (selectedMembers.length === 0 || !groupChatName.trim())) ||
-                           (modalActiveTab === 'individual' && teamMembers.filter(member => 
-                             searchQuery ? 
-                               member.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                               member.role.toLowerCase().includes(searchQuery.toLowerCase()) : 
-                               true
-                            ).length === 0)}
+                           (modalActiveTab === 'individual' && !selectedIndividualMember)}
                 >
                   Create Chat
                 </Button>
