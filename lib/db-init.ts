@@ -27,6 +27,14 @@ export async function initializeDatabase() {
         role VARCHAR(50) NOT NULL DEFAULT 'user',
         avatar TEXT,
         email_verified BOOLEAN DEFAULT FALSE,
+        job_title VARCHAR(255),
+        department VARCHAR(255),
+        location VARCHAR(255),
+        bio TEXT,
+        language VARCHAR(10) DEFAULT 'en-US',
+        timezone VARCHAR(50) DEFAULT 'Africa/Nairobi',
+        preferences JSONB DEFAULT '{}',
+        status VARCHAR(20) DEFAULT 'offline',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
@@ -202,6 +210,24 @@ export async function initializeDatabase() {
       await seedDatabase()
     } catch (seedError) {
       console.warn("Warning: Database seeding failed but tables were created:", seedError)
+    }
+
+    // Add columns to existing users table if it already exists
+    try {
+      await executeSqlWithTimeout(sql`
+        ALTER TABLE users 
+        ADD COLUMN IF NOT EXISTS job_title VARCHAR(255),
+        ADD COLUMN IF NOT EXISTS department VARCHAR(255),
+        ADD COLUMN IF NOT EXISTS location VARCHAR(255),
+        ADD COLUMN IF NOT EXISTS bio TEXT,
+        ADD COLUMN IF NOT EXISTS language VARCHAR(10) DEFAULT 'en-US',
+        ADD COLUMN IF NOT EXISTS timezone VARCHAR(50) DEFAULT 'Africa/Nairobi',
+        ADD COLUMN IF NOT EXISTS preferences JSONB DEFAULT '{}',
+        ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'offline'
+      `)
+      console.log("Updated users table with new columns if needed")
+    } catch (alterError) {
+      console.error("Error adding columns to users table:", alterError)
     }
 
     return true

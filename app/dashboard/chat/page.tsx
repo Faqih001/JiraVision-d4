@@ -17,9 +17,9 @@ import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { TeamMember } from "@/types/team"
 import { Switch } from "@/components/ui/switch"
 import { cn } from "@/lib/utils"
+import { TeamMember } from "@/types/team"
 
 // Add missing properties to Chat type
 interface EnhancedChat extends Chat {
@@ -149,6 +149,13 @@ const fetchTeamMembers = async (): Promise<TeamMember[]> => {
   ]
 }
 
+// Mock profile data until we have a real profile context
+const useProfile = () => ({
+  avatar: "https://randomuser.me/api/portraits/men/32.jpg",
+  name: "You (Current User)",
+  email: "you@example.com"
+});
+
 export default function Page() {
   const [mobileView, setMobileView] = useState<'list' | 'chat'>('list');
   const [showSecurityModal, setShowSecurityModal] = useState(false);
@@ -161,6 +168,7 @@ export default function Page() {
     groups: true,
     sound: true
   });
+  const [deletedChats, setDeletedChats] = useState<Chat[]>([]);
   const { toast } = useToast();
   
   return (
@@ -216,7 +224,12 @@ export default function Page() {
             mobileView === "list" ? "flex" : "hidden"
           )}
         >
-          <CustomChatList mobileView={mobileView} setMobileView={setMobileView} />
+          <CustomChatList 
+            mobileView={mobileView} 
+            setMobileView={setMobileView} 
+            deletedChats={deletedChats} 
+            setDeletedChats={setDeletedChats} 
+          />
         </div>
         <div
           className={cn(
@@ -323,6 +336,116 @@ export default function Page() {
           </div>
         </div>
       )}
+      
+      {/* Security Modal */}
+      {showSecurityModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-background rounded-lg w-full max-w-md p-4">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <Shield className="h-5 w-5 text-primary" />
+                Chat Security
+              </h2>
+              <Button variant="ghost" size="icon" onClick={() => setShowSecurityModal(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="bg-muted/30 p-4 rounded-md">
+                <h3 className="font-medium flex items-center gap-2 mb-2">
+                  <Lock className="h-4 w-4 text-green-500" />
+                  End-to-End Encryption
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  All personal conversations are protected with end-to-end encryption. 
+                  This means that your messages can only be read by you and the people you're chatting with.
+                </p>
+              </div>
+              
+              <div>
+                <h3 className="font-medium mb-2">Security Tips</h3>
+                <ul className="text-sm text-muted-foreground space-y-2">
+                  <li className="flex items-start gap-2">
+                    <div className="h-5 w-5 flex items-center justify-center text-xs bg-primary text-white rounded-full flex-shrink-0 mt-0.5">1</div>
+                    <p>Never share sensitive information like passwords or credit card details in chats.</p>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <div className="h-5 w-5 flex items-center justify-center text-xs bg-primary text-white rounded-full flex-shrink-0 mt-0.5">2</div>
+                    <p>Be cautious about clicking links or downloading files, even if they appear to come from someone you know.</p>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <div className="h-5 w-5 flex items-center justify-center text-xs bg-primary text-white rounded-full flex-shrink-0 mt-0.5">3</div>
+                    <p>Regularly review and remove old chats containing sensitive information.</p>
+                  </li>
+                </ul>
+              </div>
+            </div>
+            
+            <div className="mt-6">
+              <Button variant="outline" className="w-full" onClick={() => setShowSecurityModal(false)}>
+                Close
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Deleted Chats Modal */}
+      {showDeletedChatsModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-background rounded-lg w-full max-w-md p-4">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <Trash2 className="h-5 w-5 text-red-500" />
+                Deleted Chats
+              </h2>
+              <Button variant="ghost" size="icon" onClick={() => setShowDeletedChatsModal(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            <div className="space-y-1 max-h-[50vh] overflow-y-auto">
+              {deletedChats.length === 0 ? (
+                <div className="text-center py-8">
+                  <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-muted mb-4">
+                    <Trash2 className="h-6 w-6 text-muted-foreground" />
+                  </div>
+                  <p className="text-muted-foreground">No deleted chats found</p>
+                </div>
+              ) : (
+                deletedChats.map(chat => (
+                  <div 
+                    key={chat.id} 
+                    className="flex items-center justify-between p-3 hover:bg-muted/30 rounded-md"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-10 w-10">
+                        <AvatarImage src={chat.avatar} />
+                        <AvatarFallback>
+                          {chat.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="font-medium text-sm">{chat.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          Deleted {Math.floor(Math.random() * 7) + 1} days ago
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+            
+            <div className="mt-6 flex justify-end">
+              <Button variant="outline" onClick={() => setShowDeletedChatsModal(false)}>
+                Close
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -330,9 +453,11 @@ export default function Page() {
 interface ChatListProps {
   mobileView: 'list' | 'chat';
   setMobileView: (view: 'list' | 'chat') => void;
+  deletedChats: Chat[];
+  setDeletedChats: React.Dispatch<React.SetStateAction<Chat[]>>;
 }
 
-function CustomChatList({ mobileView, setMobileView }: ChatListProps) {
+function CustomChatList({ mobileView, setMobileView, deletedChats, setDeletedChats }: ChatListProps) {
   const { chats, activeChat, setActiveChat, connectionStatus, markAsRead, archiveChat, unarchiveChat, muteChat, unmuteChat, clearChat } = useChat()
   const [searchQuery, setSearchQuery] = useState('')
   const [showNewChatModal, setShowNewChatModal] = useState(false)
@@ -347,18 +472,8 @@ function CustomChatList({ mobileView, setMobileView }: ChatListProps) {
     chatId: string | null;
     position: 'up' | 'down';
   } | null>(null)
-  const [showSecurityModal, setShowSecurityModal] = useState(false)
-  const [showDeletedChatsModal, setShowDeletedChatsModal] = useState(false)
-  const [showNotificationModal, setShowNotificationModal] = useState(false)
-  const [notificationSettings, setNotificationSettings] = useState({
-    all: true,
-    messages: true,
-    mentions: true,
-    groups: true,
-    sound: true
-  })
-  const [deletedChats, setDeletedChats] = useState<Chat[]>([])
-  const { toast } = useToast()
+  const profileData = useProfile();
+  const { toast } = useToast();
   
   // Reset modal state when opening/closing
   useEffect(() => {
@@ -653,17 +768,6 @@ function CustomChatList({ mobileView, setMobileView }: ChatListProps) {
     setContextMenu(null);
   };
   
-  // Handle permanent delete
-  const handlePermanentDelete = (chatId: string) => {
-    setDeletedChats(prev => prev.filter(chat => chat.id !== chatId));
-    
-    toast({
-      title: "Chat permanently deleted",
-      description: "This chat has been permanently deleted and cannot be recovered.",
-      variant: "destructive"
-    });
-  };
-
   // Handle chat contextmenu event
   const handleContextMenu = (e: React.MouseEvent, chatId: string) => {
     e.preventDefault();
@@ -918,7 +1022,7 @@ function CustomChatList({ mobileView, setMobileView }: ChatListProps) {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Avatar className="h-7 w-7 mr-1">
-              <AvatarImage src={teamMembers.find(m => m.id === 1)?.avatar} />
+              <AvatarImage src={profileData?.avatar || teamMembers.find(m => m.id === 1)?.avatar} />
               <AvatarFallback>Me</AvatarFallback>
             </Avatar>
             <div className={`h-2 w-2 rounded-full ${
@@ -1126,124 +1230,6 @@ function CustomChatList({ mobileView, setMobileView }: ChatListProps) {
           </div>
       )}
       
-      {/* Security Modal */}
-      {showSecurityModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-background rounded-lg w-full max-w-md p-4">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold flex items-center gap-2">
-                <Shield className="h-5 w-5 text-primary" />
-                Chat Security
-              </h2>
-              <Button variant="ghost" size="icon" onClick={() => setShowSecurityModal(false)}>
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-            
-            <div className="space-y-4">
-              <div className="bg-muted/30 p-4 rounded-md">
-                <h3 className="font-medium flex items-center gap-2 mb-2">
-                  <Lock className="h-4 w-4 text-green-500" />
-                  End-to-End Encryption
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  All personal conversations are protected with end-to-end encryption. 
-                  This means that your messages can only be read by you and the people you're chatting with.
-                </p>
-              </div>
-              
-              <div>
-                <h3 className="font-medium mb-2">Security Tips</h3>
-                <ul className="text-sm text-muted-foreground space-y-2">
-                  <li className="flex items-start gap-2">
-                    <div className="h-5 w-5 flex items-center justify-center text-xs bg-primary text-white rounded-full flex-shrink-0 mt-0.5">1</div>
-                    <p>Never share sensitive information like passwords or credit card details in chats.</p>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <div className="h-5 w-5 flex items-center justify-center text-xs bg-primary text-white rounded-full flex-shrink-0 mt-0.5">2</div>
-                    <p>Be cautious about clicking links or downloading files, even if they appear to come from someone you know.</p>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <div className="h-5 w-5 flex items-center justify-center text-xs bg-primary text-white rounded-full flex-shrink-0 mt-0.5">3</div>
-                    <p>Regularly review and remove old chats containing sensitive information.</p>
-                  </li>
-                </ul>
-              </div>
-            </div>
-            
-            <div className="mt-6">
-              <Button variant="outline" className="w-full" onClick={() => setShowSecurityModal(false)}>
-                Close
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-      
-      {/* Deleted Chats Modal */}
-      {showDeletedChatsModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-background rounded-lg w-full max-w-md p-4">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold flex items-center gap-2">
-                <Trash2 className="h-5 w-5 text-red-500" />
-                Deleted Chats
-              </h2>
-              <Button variant="ghost" size="icon" onClick={() => setShowDeletedChatsModal(false)}>
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-            
-            <div className="space-y-1 max-h-[50vh] overflow-y-auto">
-              {deletedChats.length === 0 ? (
-                <div className="text-center py-8">
-                  <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-muted mb-4">
-                    <Trash2 className="h-6 w-6 text-muted-foreground" />
-                  </div>
-                  <p className="text-muted-foreground">No deleted chats found</p>
-                </div>
-              ) : (
-                deletedChats.map(chat => (
-                  <div 
-                    key={chat.id} 
-                    className="flex items-center justify-between p-3 hover:bg-muted/30 rounded-md"
-                  >
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-10 w-10">
-                        <AvatarImage src={chat.avatar} />
-                        <AvatarFallback>
-                          {chat.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="font-medium text-sm">{chat.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          Deleted {Math.floor(Math.random() * 7) + 1} days ago
-                        </p>
-                      </div>
-                    </div>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="text-red-500 hover:text-red-700 hover:bg-red-100"
-                      onClick={() => handlePermanentDelete(chat.id)}
-                    >
-                      Delete forever
-                    </Button>
-                  </div>
-                ))
-              )}
-            </div>
-            
-            <div className="mt-6 flex justify-end">
-              <Button variant="outline" onClick={() => setShowDeletedChatsModal(false)}>
-                Close
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-      
       {/* Use the fixed New Chat Modal */}
       {showNewChatModal && renderNewChatModal()}
     </div>
@@ -1387,6 +1373,9 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
     
     // Close modal
     setShowNewChatModal(false)
+    
+    // Ensure chat view is shown (for mobile)
+    setMobileView('chat')
     
     toast({
       title: "Group chat created",

@@ -8,6 +8,13 @@
       "when": 1746381272412,
       "tag": "0000_lame_warbird",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1747181301539,
+      "tag": "0001_panoramic_gideon",
+      "breakpoints": true
     }
   ]
 }

@@ -1,4 +1,4 @@
-import { pgTable, serial, text, varchar, timestamp, boolean, date, integer, decimal, jsonb } from "drizzle-orm/pg-core"
+import { pgTable, serial, text, varchar, timestamp, boolean, date, integer, decimal, jsonb, primaryKey, uuid } from "drizzle-orm/pg-core"
 
 // Users table
 export const users = pgTable("users", {
@@ -17,9 +17,63 @@ export const users = pgTable("users", {
   language: varchar("language", { length: 10 }).default("en-US"),
   timezone: varchar("timezone", { length: 50 }).default("Africa/Nairobi"),
   preferences: jsonb("preferences").default({}),
+  // User status for chat
+  status: varchar("status", { length: 20 }).default("offline"),
   // Timestamps
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+})
+
+// Chat tables
+export const chats = pgTable("chats", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  type: varchar("type", { length: 20 }).notNull(), // 'individual' or 'group'
+  name: text("name").notNull(),
+  avatar: text("avatar"),
+  isPinned: boolean("is_pinned").default(false),
+  isMuted: boolean("is_muted").default(false),
+  isArchived: boolean("is_archived").default(false),
+  isGroupAdmin: boolean("is_group_admin").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+})
+
+export const chatParticipants = pgTable("chat_participants", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  chatId: uuid("chat_id").notNull().references(() => chats.id, { onDelete: "cascade" }),
+  userId: integer("user_id").notNull().references(() => users.id),
+  joinedAt: timestamp("joined_at").defaultNow(),
+  lastRead: timestamp("last_read"),
+}, (table) => {
+  return {
+    chatUserUnique: primaryKey({ columns: [table.chatId, table.userId] }),
+  }
+})
+
+export const messages = pgTable("messages", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  content: text("content").notNull(),
+  type: varchar("type", { length: 20 }).notNull(), // 'text', 'image', 'video', 'document', 'audio', 'voice'
+  timestamp: timestamp("timestamp").defaultNow(),
+  fileUrl: text("file_url"),
+  fileName: text("file_name"),
+  fileSize: integer("file_size"),
+  isRead: boolean("is_read").default(false),
+  deleted: boolean("deleted").default(false),
+  chatId: uuid("chat_id").notNull().references(() => chats.id, { onDelete: "cascade" }),
+  senderId: integer("sender_id").notNull().references(() => users.id),
+  replyToId: uuid("reply_to_id").references(() => messages.id, { onDelete: "set null" }),
+})
+
+export const reactions = pgTable("reactions", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  emoji: text("emoji").notNull(),
+  messageId: uuid("message_id").notNull().references(() => messages.id, { onDelete: "cascade" }),
+  userId: integer("user_id").notNull().references(() => users.id),
+}, (table) => {
+  return {
+    messageUserUnique: primaryKey({ columns: [table.messageId, table.userId] }),
+  }
 })
 
 // Password reset tokens table

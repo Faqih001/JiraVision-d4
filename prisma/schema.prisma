@@ -1,0 +1,105 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// User model
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  role          String?
+  avatar        String?
+  createdAt     DateTime  @default(now())
+  status        String?   // "active", "busy", "away", etc.
+  
+  // Relations
+  messages      Message[]
+  chatParticipant ChatParticipant[]
+  reactions     Reaction[]
+  
+  @@map("users")
+}
+
+// Chat-related models
+model Chat {
+  id            String   @id @default(cuid())
+  type          String   // "individual" or "group"
+  name          String
+  avatar        String?
+  createdAt     DateTime @default(now())
+  isPinned      Boolean  @default(false)
+  isMuted       Boolean  @default(false)
+  isArchived    Boolean  @default(false)
+  isGroupAdmin  Boolean  @default(false)
+  
+  // Relationships
+  messages      Message[]
+  participants  ChatParticipant[]
+  
+  @@map("chats")
+}
+
+model Message {
+  id            String   @id @default(cuid())
+  content       String
+  type          String   // "text", "image", "video", "document", "audio", "voice"
+  timestamp     DateTime @default(now())
+  fileUrl       String?
+  fileName      String?
+  fileSize      Int?
+  isRead        Boolean  @default(false)
+  deleted       Boolean  @default(false)
+  
+  // Message reactions
+  reactions     Reaction[]
+  
+  // Relationships
+  chat          Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  chatId        String
+  sender        User     @relation(fields: [senderId], references: [id])
+  senderId      String
+  replyToId     String?
+  replyTo       Message? @relation("ReplyTo", fields: [replyToId], references: [id])
+  replies       Message[] @relation("ReplyTo")
+  
+  @@map("messages")
+}
+
+model ChatParticipant {
+  id            String   @id @default(cuid())
+  
+  // Relationships
+  chat          Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  chatId        String
+  user          User     @relation(fields: [userId], references: [id])
+  userId        String
+  
+  // Additional fields
+  joinedAt      DateTime @default(now())
+  lastRead      DateTime?
+  
+  @@unique([chatId, userId])
+  @@map("chat_participants")
+}
+
+model Reaction {
+  id            String   @id @default(cuid())
+  emoji         String
+  
+  // Relationships
+  message       Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  messageId     String
+  user          User     @relation(fields: [userId], references: [id])
+  userId        String
+  
+  @@unique([messageId, userId])
+  @@map("reactions")
+} 

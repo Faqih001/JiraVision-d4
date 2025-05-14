@@ -150,20 +150,279 @@ const generateId = () => {
   return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
 }
 
+// Add function to fetch chats from API
+const fetchChats = async (): Promise<Chat[]> => {
+  try {
+    const response = await fetch('/api/chat');
+    if (!response.ok) {
+      throw new Error('Failed to fetch chats');
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching chats:', error);
+    return [];
+  }
+};
+
+// Add function to fetch messages for a chat
+const fetchMessages = async (chatId: string): Promise<Message[]> => {
+  try {
+    const response = await fetch(`/api/chat/messages?chatId=${chatId}`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch messages');
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching messages:', error);
+    return [];
+  }
+};
+
+// Add function to send a message
+const sendMessageToApi = async (
+  chatId: string,
+  content: string,
+  type: MessageType,
+  replyToId?: string,
+  fileUrl?: string,
+  fileName?: string,
+  fileSize?: number
+): Promise<Message | null> => {
+  try {
+    const response = await fetch('/api/chat/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        chatId,
+        content,
+        type,
+        replyToId,
+        fileUrl,
+        fileName,
+        fileSize,
+      }),
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to send message');
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error sending message:', error);
+    return null;
+  }
+};
+
 // Provider component
 export const ChatProvider = ({ children, teamMembers }: { children: React.ReactNode, teamMembers: TeamMember[] }) => {
   const [chats, setChats] = useState<Chat[]>([])
   const [activeChat, setActiveChat] = useState<Chat | null>(null)
-  const [messages, setMessages] = useState<Message[]>([])
+  const [messages, setMessages] = useState<Record<string, Message[]>>({})
   const [activeReply, setActiveReply] = useState<ReplyInfo | null>(null)
-  const [connectionStatus, setConnectionStatus] = useState<'connected' | 'connecting' | 'disconnected'>('disconnected')
+  const [connectionStatus, setConnectionStatus] = useState<'connected' | 'connecting' | 'disconnected'>('connecting')
+  const [typing, setTyping] = useState<Record<string, boolean>>({})
   
   // WebSocket connection ref
   const wsRef = useRef<WebSocket | null>(null)
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
-  // Initialize chats with team members
+  // Fetch chats when component mounts
   useEffect(() => {
+    const loadChats = async () => {
+      setConnectionStatus("connecting")
+      try {
+        const fetchedChats = await fetchChats()
+        setChats(fetchedChats)
+        setConnectionStatus("connected")
+      } catch (error) {
+        console.error("Error loading chats:", error)
+        setConnectionStatus("disconnected")
+      }
+    }
+    
+    loadChats()
+    
+    // For real-time communications, here you would initialize a WebSocket connection
+    
+    return () => {
+      // Clean up WebSocket connection if needed
+    }
+  }, [])
+  
+  // Fetch messages when activeChat changes
+  useEffect(() => {
+    if (activeChat) {
+      const loadMessages = async () => {
+        try {
+          const fetchedMessages = await fetchMessages(activeChat.id)
+          setMessages(prev => ({
+            ...prev,
+            [activeChat.id]: fetchedMessages,
+          }))
+        } catch (error) {
+          console.error("Error loading messages:", error)
+        }
+      }
+      
+      loadMessages()
+    }
+  }, [activeChat])
+
+  // Send a message function
+  const sendMessage = async (
+    content: string,
+    type: MessageType = "text",
+    replyTo?: ReplyInfo,
+    fileUrl?: string,
+    fileName?: string,
+    fileSize?: number
+  ) => {
+    if (!activeChat) return
+    
+    try {
+      const message = await sendMessageToApi(
+        activeChat.id,
+        content,
+        type,
+        replyTo?.messageId,
+        fileUrl,
+        fileName,
+        fileSize
+      )
+      
+      if (message) {
+        // Update messages state
+        setMessages(prev => ({
+          ...prev,
+          [activeChat.id]: [...(prev[activeChat.id] || []), message],
+        }))
+        
+        // Update lastMessage in chat
+        setChats(prev => {
+          return prev.map(chat => {
+            if (chat.id === activeChat.id) {
+              return {
+                ...chat,
+                lastMessage: message,
+                preview: type === 'text' ? content : (
+                  type === 'image' ? '📷 Photo' :
+                  type === 'video' ? '📹 Video' :
+                  type === 'document' ? '📄 Document' :
+                  type === 'audio' ? '🎵 Audio' :
+                  type === 'voice' ? '🎤 Voice message' : 'Message'
+                ),
+                unreadCount: 0, // Reset unread count for active chat
+              }
+            }
+            return chat
+          })
+        })
+      }
+    } catch (error) {
+      console.error("Error sending message:", error)
+    }
+  }
+
+  // Edit a message
+  const editMessage = (messageId: string, newContent: string) => {
+    if (!newContent.trim()) return
+
+    setMessages(prev => 
+      prev.map(msg => 
+        msg.id === messageId 
+          ? { ...msg, content: newContent, edited: true } 
+          : msg
+      )
+    )
+  }
+
+  // Delete a message
+  const deleteMessage = (messageId: string) => {
+    setMessages(prev => 
+      prev.map(msg => 
+        msg.id === messageId ? { ...msg, deleted: true, content: 'This message was deleted' } : msg
+      )
+    )
+  }
+
+  // Reply to a message
+  const replyToMessage = (messageId: string) => {
+    const messageToReply = messages.find(msg => msg.id === messageId)
+    if (!messageToReply) return
+
+    setActiveReply({
+      messageId,
+      content: messageToReply.content,
+      sender: messageToReply.senderName
+    })
+  }
+
+  // React to a message with emoji
+  const reactToMessage = (messageId: string, emoji: string) => {
+    setMessages(prev => 
+      prev.map(msg => {
+        if (msg.id === messageId) {
+          // Check if user already reacted with this emoji
+          const existingReaction = msg.reactions?.find(r => r.userId === 1 && r.emoji === emoji)
+          
+          if (existingReaction) {
+            // Remove reaction if it exists
+            return {
+              ...msg,
+              reactions: msg.reactions?.filter(r => !(r.userId === 1 && r.emoji === emoji))
+            }
+          } else {
+            // Add or update reaction
+            const newReactions = [...(msg.reactions || [])]
+            
+            // Remove any existing reaction from this user
+            const userReactionIndex = newReactions.findIndex(r => r.userId === 1)
+            if (userReactionIndex !== -1) {
+              newReactions.splice(userReactionIndex, 1)
+            }
+            
+            // Add new reaction
+            newReactions.push({ userId: 1, emoji })
+            
+            return {
+              ...msg,
+              reactions: newReactions
+            }
+          }
+        }
+        return msg
+      })
+    )
+  }
+
+  // Mark chat as read
+  const markAsRead = (chatId: string) => {
+    setChats(prev => 
+      prev.map(chat => 
+        chat.id === chatId ? { ...chat, unreadCount: 0 } : chat
+      )
+    )
+  }
+
+  // Search chats
+  const searchChats = (query: string): Chat[] => {
+    if (!query.trim()) return chats
+    const lowerQuery = query.toLowerCase()
+    
+    return chats.filter(chat => 
+      chat.name.toLowerCase().includes(lowerQuery) || 
+      chat.lastMessage?.content.toLowerCase().includes(lowerQuery)
+    )
+  }
+
+  // Search messages in current chat
+  const searchMessages = (query: string): Message[] => {
+    if (!query.trim() || !activeChat) return []
+    const lowerQuery = query.toLowerCase()
+    
     if (teamMembers && teamMembers.length > 0) {
       const initialChats: Chat[] = teamMembers
         .filter(member => member.id !== 1) // Exclude the current user

@@ -12,9 +12,10 @@ import {
   deletePasswordResetToken,
   getUserById,
   type User,
+  db,
 } from "./db"
 import { Resend } from "resend"
-import { db, users } from "./db"
+import { users } from "@/drizzle/schema"
 import { eq } from "drizzle-orm"
 import { initializeDatabase } from "./db-init"
 

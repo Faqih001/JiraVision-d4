@@ -1,5 +1,7 @@
 import { sql } from "drizzle-orm"
 import { db } from "../lib/db"
+import * as fs from "fs"
+import * as path from "path"
 
 async function runMigration() {
   try {
@@ -62,6 +64,29 @@ async function runMigration() {
       console.log("Added preferences column")
     } catch (error) {
       console.log("preferences column might already exist:", error.message)
+    }
+    
+    // Add status column for chat
+    try {
+      await db.execute(sql`ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "status" VARCHAR(20) DEFAULT 'offline';`)
+      console.log("Added status column")
+    } catch (error) {
+      console.log("status column might already exist:", error.message)
+    }
+    
+    // Run the custom chat migration
+    console.log("Running chat tables migration...")
+    try {
+      const chatMigrationPath = path.join(__dirname, 'migrations', '20240701000000_add_chat_tables.sql');
+      if (fs.existsSync(chatMigrationPath)) {
+        const migrationSql = fs.readFileSync(chatMigrationPath, 'utf8');
+        await db.execute(sql.raw(migrationSql));
+        console.log("Chat tables migration completed successfully");
+      } else {
+        console.log("Chat migration file doesn't exist, skipping");
+      }
+    } catch (error) {
+      console.error("Error running chat migration:", error.message);
     }
     
     console.log("Database migration completed successfully!")
