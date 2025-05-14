@@ -102,6 +102,7 @@ export type ChatContextType = {
   activeReply: ReplyInfo | null
   setActiveReply: (reply: ReplyInfo | null) => void
   connectionStatus: 'connected' | 'connecting' | 'disconnected'
+  setChats: React.Dispatch<React.SetStateAction<Chat[]>>
 }
 
 // Create context with default values
@@ -139,7 +140,8 @@ const ChatContext = createContext<ChatContextType>({
   getParticipants: () => [],
   activeReply: null,
   setActiveReply: () => {},
-  connectionStatus: 'disconnected'
+  connectionStatus: 'disconnected',
+  setChats: () => {}
 })
 
 // Custom hook to use the chat context
@@ -220,7 +222,7 @@ const sendMessageToApi = async (
 export const ChatProvider = ({ children, teamMembers }: { children: React.ReactNode, teamMembers: TeamMember[] }) => {
   const [chats, setChats] = useState<Chat[]>([])
   const [activeChat, setActiveChat] = useState<Chat | null>(null)
-  const [messages, setMessages] = useState<Record<string, Message[]>>({})
+  const [messages, setMessages] = useState<Message[]>([])
   const [activeReply, setActiveReply] = useState<ReplyInfo | null>(null)
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'connecting' | 'disconnected'>('connecting')
   const [typing, setTyping] = useState<Record<string, boolean>>({})
@@ -258,10 +260,7 @@ export const ChatProvider = ({ children, teamMembers }: { children: React.ReactN
       const loadMessages = async () => {
         try {
           const fetchedMessages = await fetchMessages(activeChat.id)
-          setMessages(prev => ({
-            ...prev,
-            [activeChat.id]: fetchedMessages,
-          }))
+          setMessages(fetchedMessages)
         } catch (error) {
           console.error("Error loading messages:", error)
         }
@@ -271,58 +270,273 @@ export const ChatProvider = ({ children, teamMembers }: { children: React.ReactN
     }
   }, [activeChat])
 
+  // Set up WebSocket connection
+  useEffect(() => {
+    // In a real application, you would connect to a real WebSocket server
+    // For demo purposes, we'll simulate the connection
+    const setupWebsocket = () => {
+      setConnectionStatus('connecting')
+      
+      // Simulate connecting after a delay
+      setTimeout(() => {
+        setConnectionStatus('connected')
+        console.log("WebSocket connected (simulated)")
+      }, 1000)
+    }
+    
+    setupWebsocket()
+    
+    // Clean up on unmount
+    return () => {
+      if (wsRef.current) {
+        wsRef.current.close()
+        wsRef.current = null
+      }
+      
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current)
+        reconnectTimeoutRef.current = null
+      }
+    }
+  }, [])
+
+  // Load messages when active chat changes
+  useEffect(() => {
+    if (activeChat) {
+      // Generate dummy messages for the selected chat
+      const dummyMessages: Message[] = []
+      
+      // Special case for Herbert Strayhorn
+      if (activeChat.name === "Herbert Strayhorn") {
+        // First message - from Herbert
+        dummyMessages.push({
+          id: generateId(),
+          chatId: activeChat.id,
+          senderId: 2, // Herbert's ID
+          senderName: "Herbert Strayhorn",
+          content: "Hello, Setup the github repo for bootstrap admin dashboard.",
+          timestamp: new Date(Date.now() - 3 * 3600000), // 3 hours ago
+          status: 'read',
+          type: 'text',
+          edited: false,
+          deleted: false
+        })
+        
+        // Reply from current user
+        dummyMessages.push({
+          id: generateId(),
+          chatId: activeChat.id,
+          senderId: 1, // Current user
+          senderName: "You",
+          content: "Yes, Currently working on the today evening i will up the admin dashboard template.",
+          timestamp: new Date(Date.now() - 2.9 * 3600000), // 2.9 hours ago
+          status: 'read',
+          type: 'text',
+          edited: false,
+          deleted: false
+        })
+        
+        // Thank you from Herbert
+        dummyMessages.push({
+          id: generateId(),
+          chatId: activeChat.id,
+          senderId: 2, // Herbert's ID
+          senderName: "Herbert Strayhorn",
+          content: "Thank you",
+          timestamp: new Date(Date.now() - 2.8 * 3600000), // 2.8 hours ago
+          status: 'read',
+          type: 'text',
+          edited: false,
+          deleted: false
+        })
+        
+        // Response from current user
+        dummyMessages.push({
+          id: generateId(),
+          chatId: activeChat.id,
+          senderId: 1, // Current user
+          senderName: "You",
+          content: "You are most welcome.",
+          timestamp: new Date(Date.now() - 2.7 * 3600000), // 2.7 hours ago
+          status: 'read',
+          type: 'text',
+          edited: false,
+          deleted: false
+        })
+        
+        // New message from Herbert about React/Next.js
+        dummyMessages.push({
+          id: generateId(),
+          chatId: activeChat.id,
+          senderId: 2, // Herbert's ID
+          senderName: "Herbert Strayhorn",
+          content: "After complete this we working on React/Next.js based admin dashboard template.",
+          timestamp: new Date(Date.now() - 2.5 * 3600000), // 2.5 hours ago
+          status: 'read',
+          type: 'text',
+          edited: false,
+          deleted: false
+        })
+        
+        // Agreement from current user
+        dummyMessages.push({
+          id: generateId(),
+          chatId: activeChat.id,
+          senderId: 1, // Current user
+          senderName: "You",
+          content: "Yes, we work on the react and next.js",
+          timestamp: new Date(Date.now() - 2.4 * 3600000), // 2.4 hours ago
+          status: 'read',
+          type: 'text',
+          edited: false,
+          deleted: false
+        })
+      } else {
+        // For other chats, generate generic messages
+        const messageCount = 5 + Math.floor(Math.random() * 10)
+        
+        for (let i = 0; i < messageCount; i++) {
+          const isCurrentUser = Math.random() > 0.5
+          const senderId = isCurrentUser ? 1 : activeChat.participants.find(id => id !== 1) || activeChat.participants[0]
+          const senderName = isCurrentUser ? 'You' : 
+            teamMembers.find(m => m.id === senderId)?.name || 'Unknown User'
+
+          dummyMessages.push({
+            id: generateId(),
+            chatId: activeChat.id,
+            senderId,
+            senderName,
+            content: isCurrentUser 
+              ? ['Hello!', 'How is the project going?', 'Let me know if you need help.', 'What are your thoughts on this?'][Math.floor(Math.random() * 4)]
+              : ['Hi there!', 'The project is on track.', 'I\'ll update you soon.', 'I need your help with something.', 'Can we meet later?'][Math.floor(Math.random() * 5)],
+            timestamp: new Date(Date.now() - Math.floor(Math.random() * 86400000)),
+            status: isCurrentUser ? ['sent', 'delivered', 'read'][Math.floor(Math.random() * 3)] as MessageStatus : 'read',
+            type: 'text',
+            edited: false,
+            deleted: false
+          })
+        }
+      }
+
+      // Sort messages by timestamp
+      dummyMessages.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
+
+      setMessages(dummyMessages)
+
+      // Mark chat as read
+      if (activeChat.unreadCount > 0) {
+        setChats(prevChats => 
+          prevChats.map(chat => 
+            chat.id === activeChat.id ? { ...chat, unreadCount: 0 } : chat
+          )
+        )
+      }
+    } else {
+      setMessages([])
+    }
+  }, [activeChat, teamMembers])
+
   // Send a message function
-  const sendMessage = async (
+  const sendMessage = (
     content: string,
-    type: MessageType = "text",
+    type: MessageType = 'text', 
     replyTo?: ReplyInfo,
-    fileUrl?: string,
+    mediaUrl?: string,
     fileName?: string,
     fileSize?: number
   ) => {
     if (!activeChat) return
     
-    try {
-      const message = await sendMessageToApi(
-        activeChat.id,
-        content,
-        type,
-        replyTo?.messageId,
-        fileUrl,
-        fileName,
-        fileSize
+    // Create a new message
+    const newMessage: Message = {
+      id: generateId(),
+      chatId: activeChat.id,
+      senderId: 1, // Current user
+      senderName: 'You',
+      content,
+      timestamp: new Date(),
+      status: 'sent',
+      type,
+      replyTo,
+      mediaUrl,
+      fileName,
+      fileSize,
+      edited: false,
+      deleted: false
+    }
+    
+    // Add message to state
+    setMessages(prev => [...prev, newMessage])
+    setActiveReply(null)
+    
+    // Update chat with last message
+    setChats(prevChats => 
+      prevChats.map(chat => 
+        chat.id === activeChat.id 
+          ? { 
+              ...chat, 
+              lastMessage: newMessage,
+              unreadCount: 0 // Reset unread for current user
+            } 
+          : chat
       )
-      
-      if (message) {
-        // Update messages state
-        setMessages(prev => ({
-          ...prev,
-          [activeChat.id]: [...(prev[activeChat.id] || []), message],
-        }))
+    )
+    
+    // Simulate sending to WebSocket
+    console.log("Message sent via WebSocket (simulated):", newMessage)
+    
+    // Simulate message delivery
+    setTimeout(() => {
+      setMessages(prev => 
+        prev.map(msg => 
+          msg.id === newMessage.id
+            ? { ...msg, status: 'delivered' }
+            : msg
+        )
+      )
+    }, 500)
+    
+    // Simulate message read
+    setTimeout(() => {
+      setMessages(prev => 
+        prev.map(msg => 
+          msg.id === newMessage.id
+            ? { ...msg, status: 'read' }
+            : msg
+        )
+      )
+    }, 1500)
+    
+    // For demo: if this is Herbert's chat, simulate a reply
+    if (activeChat.name === "Herbert Strayhorn") {
+      setTimeout(() => {
+        const replyMessage: Message = {
+          id: generateId(),
+          chatId: activeChat.id,
+          senderId: 2, // Herbert's ID
+          senderName: "Herbert Strayhorn",
+          content: ["Great!", "Thanks for the update!", "Looking forward to it!"][Math.floor(Math.random() * 3)],
+          timestamp: new Date(),
+          status: 'sent',
+          type: 'text',
+          edited: false,
+          deleted: false
+        }
         
-        // Update lastMessage in chat
-        setChats(prev => {
-          return prev.map(chat => {
-            if (chat.id === activeChat.id) {
-              return {
-                ...chat,
-                lastMessage: message,
-                preview: type === 'text' ? content : (
-                  type === 'image' ? '📷 Photo' :
-                  type === 'video' ? '📹 Video' :
-                  type === 'document' ? '📄 Document' :
-                  type === 'audio' ? '🎵 Audio' :
-                  type === 'voice' ? '🎤 Voice message' : 'Message'
-                ),
-                unreadCount: 0, // Reset unread count for active chat
-              }
-            }
-            return chat
-          })
-        })
-      }
-    } catch (error) {
-      console.error("Error sending message:", error)
+        setMessages(prev => [...prev, replyMessage])
+        
+        // Update chat with last message
+        setChats(prevChats => 
+          prevChats.map(chat => 
+            chat.id === activeChat.id 
+              ? { 
+                  ...chat, 
+                  lastMessage: replyMessage,
+                } 
+              : chat
+          )
+        )
+      }, 3000)
     }
   }
 
@@ -514,374 +728,6 @@ export const ChatProvider = ({ children, teamMembers }: { children: React.ReactN
 
       setChats(initialChats)
     }
-  }, [teamMembers])
-
-  // Set up WebSocket connection
-  useEffect(() => {
-    // In a real application, you would connect to a real WebSocket server
-    // For demo purposes, we'll simulate the connection
-    const setupWebsocket = () => {
-      setConnectionStatus('connecting')
-      
-      // Simulate connecting after a delay
-      setTimeout(() => {
-        setConnectionStatus('connected')
-        console.log("WebSocket connected (simulated)")
-      }, 1000)
-    }
-    
-    setupWebsocket()
-    
-    // Clean up on unmount
-    return () => {
-      if (wsRef.current) {
-        wsRef.current.close()
-        wsRef.current = null
-      }
-      
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current)
-        reconnectTimeoutRef.current = null
-      }
-    }
-  }, [])
-
-  // Load messages when active chat changes
-  useEffect(() => {
-    if (activeChat) {
-      // Generate dummy messages for the selected chat
-      const dummyMessages: Message[] = []
-      
-      // Special case for Herbert Strayhorn
-      if (activeChat.name === "Herbert Strayhorn") {
-        // First message - from Herbert
-        dummyMessages.push({
-          id: generateId(),
-          chatId: activeChat.id,
-          senderId: 2, // Herbert's ID
-          senderName: "Herbert Strayhorn",
-          content: "Hello, Setup the github repo for bootstrap admin dashboard.",
-          timestamp: new Date(Date.now() - 3 * 3600000), // 3 hours ago
-          status: 'read',
-          type: 'text',
-          edited: false,
-          deleted: false
-        })
-        
-        // Reply from current user
-        dummyMessages.push({
-          id: generateId(),
-          chatId: activeChat.id,
-          senderId: 1, // Current user
-          senderName: "You",
-          content: "Yes, Currently working on the today evening i will up the admin dashboard template.",
-          timestamp: new Date(Date.now() - 2.9 * 3600000), // 2.9 hours ago
-          status: 'read',
-          type: 'text',
-          edited: false,
-          deleted: false
-        })
-        
-        // Thank you from Herbert
-        dummyMessages.push({
-          id: generateId(),
-          chatId: activeChat.id,
-          senderId: 2, // Herbert's ID
-          senderName: "Herbert Strayhorn",
-          content: "Thank you",
-          timestamp: new Date(Date.now() - 2.8 * 3600000), // 2.8 hours ago
-          status: 'read',
-          type: 'text',
-          edited: false,
-          deleted: false
-        })
-        
-        // Response from current user
-        dummyMessages.push({
-          id: generateId(),
-          chatId: activeChat.id,
-          senderId: 1, // Current user
-          senderName: "You",
-          content: "You are most welcome.",
-          timestamp: new Date(Date.now() - 2.7 * 3600000), // 2.7 hours ago
-          status: 'read',
-          type: 'text',
-          edited: false,
-          deleted: false
-        })
-        
-        // New message from Herbert about React/Next.js
-        dummyMessages.push({
-          id: generateId(),
-          chatId: activeChat.id,
-          senderId: 2, // Herbert's ID
-          senderName: "Herbert Strayhorn",
-          content: "After complete this we working on React/Next.js based admin dashboard template.",
-          timestamp: new Date(Date.now() - 2.5 * 3600000), // 2.5 hours ago
-          status: 'read',
-          type: 'text',
-          edited: false,
-          deleted: false
-        })
-        
-        // Agreement from current user
-        dummyMessages.push({
-          id: generateId(),
-          chatId: activeChat.id,
-          senderId: 1, // Current user
-          senderName: "You",
-          content: "Yes, we work on the react and next.js",
-          timestamp: new Date(Date.now() - 2.4 * 3600000), // 2.4 hours ago
-          status: 'read',
-          type: 'text',
-          edited: false,
-          deleted: false
-        })
-      } else {
-        // For other chats, generate generic messages
-        const messageCount = 5 + Math.floor(Math.random() * 10)
-        
-        for (let i = 0; i < messageCount; i++) {
-          const isCurrentUser = Math.random() > 0.5
-          const senderId = isCurrentUser ? 1 : activeChat.participants.find(id => id !== 1) || activeChat.participants[0]
-          const senderName = isCurrentUser ? 'You' : 
-            teamMembers.find(m => m.id === senderId)?.name || 'Unknown User'
-
-          dummyMessages.push({
-            id: generateId(),
-            chatId: activeChat.id,
-            senderId,
-            senderName,
-            content: isCurrentUser 
-              ? ['Hello!', 'How is the project going?', 'Let me know if you need help.', 'What are your thoughts on this?'][Math.floor(Math.random() * 4)]
-              : ['Hi there!', 'The project is on track.', 'I\'ll update you soon.', 'I need your help with something.', 'Can we meet later?'][Math.floor(Math.random() * 5)],
-            timestamp: new Date(Date.now() - Math.floor(Math.random() * 86400000)),
-            status: isCurrentUser ? ['sent', 'delivered', 'read'][Math.floor(Math.random() * 3)] as MessageStatus : 'read',
-            type: 'text',
-            edited: false,
-            deleted: false
-          })
-        }
-      }
-
-      // Sort messages by timestamp
-      dummyMessages.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
-
-      setMessages(dummyMessages)
-
-      // Mark chat as read
-      if (activeChat.unreadCount > 0) {
-        setChats(prevChats => 
-          prevChats.map(chat => 
-            chat.id === activeChat.id ? { ...chat, unreadCount: 0 } : chat
-          )
-        )
-      }
-    } else {
-      setMessages([])
-    }
-  }, [activeChat, teamMembers])
-
-  // Send a new message
-  const sendMessage = (
-    content: string, 
-    type: MessageType = 'text', 
-    replyTo?: ReplyInfo,
-    mediaUrl?: string,
-    fileName?: string,
-    fileSize?: number
-  ) => {
-    if (!activeChat) return
-    
-    // Create a new message
-    const newMessage: Message = {
-      id: generateId(),
-      chatId: activeChat.id,
-      senderId: 1, // Current user
-      senderName: 'You',
-      content,
-      timestamp: new Date(),
-      status: 'sent',
-      type,
-      replyTo,
-      mediaUrl,
-      fileName,
-      fileSize,
-      edited: false,
-      deleted: false
-    }
-    
-    // Add message to state
-    setMessages(prev => [...prev, newMessage])
-    setActiveReply(null)
-    
-    // Update chat with last message
-    setChats(prevChats => 
-      prevChats.map(chat => 
-        chat.id === activeChat.id 
-          ? { 
-              ...chat, 
-              lastMessage: newMessage,
-              unreadCount: 0 // Reset unread for current user
-            } 
-          : chat
-      )
-    )
-    
-    // Simulate sending to WebSocket
-    console.log("Message sent via WebSocket (simulated):", newMessage)
-    
-    // Simulate message delivery
-    setTimeout(() => {
-      setMessages(prev => 
-        prev.map(msg => 
-          msg.id === newMessage.id
-            ? { ...msg, status: 'delivered' }
-            : msg
-        )
-      )
-    }, 500)
-    
-    // Simulate message read
-    setTimeout(() => {
-      setMessages(prev => 
-        prev.map(msg => 
-          msg.id === newMessage.id
-            ? { ...msg, status: 'read' }
-            : msg
-        )
-      )
-    }, 1500)
-    
-    // For demo: if this is Herbert's chat, simulate a reply
-    if (activeChat.name === "Herbert Strayhorn") {
-      setTimeout(() => {
-        const replyMessage: Message = {
-          id: generateId(),
-          chatId: activeChat.id,
-          senderId: 2, // Herbert's ID
-          senderName: "Herbert Strayhorn",
-          content: ["Great!", "Thanks for the update!", "Looking forward to it!"][Math.floor(Math.random() * 3)],
-          timestamp: new Date(),
-          status: 'sent',
-          type: 'text',
-          edited: false,
-          deleted: false
-        }
-        
-        setMessages(prev => [...prev, replyMessage])
-        
-        // Update chat with last message
-        setChats(prevChats => 
-          prevChats.map(chat => 
-            chat.id === activeChat.id 
-              ? { 
-                  ...chat, 
-                  lastMessage: replyMessage,
-                } 
-              : chat
-          )
-        )
-      }, 3000)
-    }
-  }
-
-  // Edit a message
-  const editMessage = (messageId: string, newContent: string) => {
-    if (!newContent.trim()) return
-
-    setMessages(prev => 
-      prev.map(msg => 
-        msg.id === messageId 
-          ? { ...msg, content: newContent, edited: true } 
-          : msg
-      )
-    )
-  }
-
-  // Delete a message
-  const deleteMessage = (messageId: string) => {
-    setMessages(prev => 
-      prev.map(msg => 
-        msg.id === messageId ? { ...msg, deleted: true, content: 'This message was deleted' } : msg
-      )
-    )
-  }
-
-  // Reply to a message
-  const replyToMessage = (messageId: string) => {
-    const messageToReply = messages.find(msg => msg.id === messageId)
-    if (!messageToReply) return
-
-    setActiveReply({
-      messageId,
-      content: messageToReply.content,
-      sender: messageToReply.senderName
-    })
-  }
-
-  // React to a message with emoji
-  const reactToMessage = (messageId: string, emoji: string) => {
-    setMessages(prev => 
-      prev.map(msg => {
-        if (msg.id === messageId) {
-          // Check if user already reacted with this emoji
-          const existingReaction = msg.reactions?.find(r => r.userId === 1 && r.emoji === emoji)
-          
-          if (existingReaction) {
-            // Remove reaction if it exists
-            return {
-              ...msg,
-              reactions: msg.reactions?.filter(r => !(r.userId === 1 && r.emoji === emoji))
-            }
-          } else {
-            // Add or update reaction
-            const newReactions = [...(msg.reactions || [])];
-            
-            // Remove any existing reaction from this user
-            const userReactionIndex = newReactions.findIndex(r => r.userId === 1);
-            if (userReactionIndex !== -1) {
-              newReactions.splice(userReactionIndex, 1);
-            }
-            
-            // Add new reaction
-            newReactions.push({ userId: 1, emoji });
-            
-            return {
-              ...msg,
-              reactions: newReactions
-            }
-          }
-        }
-        return msg
-      })
-    )
-  }
-
-  // Mark chat as read
-  const markAsRead = (chatId: string) => {
-    setChats(prev => 
-      prev.map(chat => 
-        chat.id === chatId ? { ...chat, unreadCount: 0 } : chat
-      )
-    )
-  }
-
-  // Search chats
-  const searchChats = (query: string): Chat[] => {
-    if (!query.trim()) return chats
-    const lowerQuery = query.toLowerCase()
-    
-    return chats.filter(chat => 
-      chat.name.toLowerCase().includes(lowerQuery) || 
-      chat.lastMessage?.content.toLowerCase().includes(lowerQuery)
-    )
-  }
-
-  // Search messages in current chat
-  const searchMessages = (query: string): Message[] => {
-    if (!query.trim() || !activeChat) return []
-    const lowerQuery = query.toLowerCase()
     
     return messages.filter(msg => 
       msg.content.toLowerCase().includes(lowerQuery)
@@ -1131,12 +977,6 @@ export const ChatProvider = ({ children, teamMembers }: { children: React.ReactN
     })
   }
 
-  // Download chat history (placeholder)
-  const downloadChat = (chatId: string) => {
-    console.log(`Downloading chat history for ${chatId}`)
-    // In a real implementation, this would generate a file and prompt a download
-  }
-
   // Star a message (placeholder)
   const starMessage = (messageId: string) => {
     console.log(`Starring message ${messageId}`)
@@ -1160,9 +1000,14 @@ export const ChatProvider = ({ children, teamMembers }: { children: React.ReactN
     const chat = chats.find(c => c.id === chatId)
     if (!chat) return []
 
-    return chat.participants
-      .map(id => teamMembers.find(m => m.id === id))
-      .filter((member): member is TeamMember => member !== undefined) as TeamMember[]
+    return teamMembers
+      .filter(m => chat.participants.includes(m.id)) as TeamMember[]
+  }
+
+  // Download chat history (placeholder)
+  const downloadChat = (chatId: string) => {
+    console.log(`Downloading chat history for ${chatId}`)
+    // In a real implementation, this would generate a file and prompt a download
   }
 
   return (
@@ -1201,7 +1046,8 @@ export const ChatProvider = ({ children, teamMembers }: { children: React.ReactN
         getParticipants,
         activeReply,
         setActiveReply,
-        connectionStatus
+        connectionStatus,
+        setChats
       }}
     >
       {children}

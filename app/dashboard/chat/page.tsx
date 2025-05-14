@@ -458,7 +458,7 @@ interface ChatListProps {
 }
 
 function CustomChatList({ mobileView, setMobileView, deletedChats, setDeletedChats }: ChatListProps) {
-  const { chats, activeChat, setActiveChat, connectionStatus, markAsRead, archiveChat, unarchiveChat, muteChat, unmuteChat, clearChat } = useChat()
+  const { chats, activeChat, setActiveChat, connectionStatus, markAsRead, archiveChat, unarchiveChat, muteChat, unmuteChat, clearChat, createGroup, setChats } = useChat()
   const [searchQuery, setSearchQuery] = useState('')
   const [showNewChatModal, setShowNewChatModal] = useState(false)
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([])
@@ -513,12 +513,23 @@ function CustomChatList({ mobileView, setMobileView, deletedChats, setDeletedCha
   
   // Handle select all for group chat
   const handleSelectAll = () => {
-    if (selectedMembers.length === teamMembers.length) {
-      // If all are selected, deselect all
-      setSelectedMembers([])
+    // Get all selectable team members (excluding current user with ID 1)
+    const selectableMembers = teamMembers
+      .filter(member => member.id !== 1)
+      .filter(member => 
+        searchQuery ? 
+          member.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+          member.role.toLowerCase().includes(searchQuery.toLowerCase()) : 
+          true
+      )
+      .map(member => member.id);
+    
+    if (selectedMembers.length === selectableMembers.length) {
+      // If all visible members are selected, deselect all
+      setSelectedMembers([]);
     } else {
-      // Otherwise select all
-      setSelectedMembers(teamMembers.map(member => member.id))
+      // Otherwise select all visible members
+      setSelectedMembers(selectableMembers);
     }
   }
   
@@ -530,7 +541,10 @@ function CustomChatList({ mobileView, setMobileView, deletedChats, setDeletedCha
   
   // Create new group chat
   const handleCreateGroupChat = () => {
+    console.log("Starting group chat creation process...");
+    
     if (selectedMembers.length === 0) {
+      console.log("Error: No members selected");
       toast({
         title: "No members selected",
         description: "Please select at least one team member for the group chat.",
@@ -540,6 +554,7 @@ function CustomChatList({ mobileView, setMobileView, deletedChats, setDeletedCha
     }
     
     if (!groupChatName.trim()) {
+      console.log("Error: Missing group name");
       toast({
         title: "Missing group name",
         description: "Please enter a name for the group chat.",
@@ -548,65 +563,17 @@ function CustomChatList({ mobileView, setMobileView, deletedChats, setDeletedCha
       return
     }
     
-    // In a real app, you would call an API to create the group chat
-    const newGroupChat: Chat = {
-      id: `group-${Date.now()}`,
-      type: 'group',
-      name: groupChatName,
-      avatar: generateGroupAvatar(),
-      participants: [...selectedMembers, 1], // Add current user (ID 1)
-      createdAt: new Date(),
-      unreadCount: 0,
-      isGroupAdmin: true, // Current user is admin
-      isMuted: false,     // Add missing properties
-      isArchived: false   // Add missing properties
-    }
+    console.log(`Creating group '${groupChatName}' with ${selectedMembers.length} members:`, selectedMembers);
     
-    // Set as active chat
-    setActiveChat(newGroupChat)
-    
-    // Close modal
-    setShowNewChatModal(false)
-    
-    // Ensure chat view is shown (for mobile)
-    setMobileView('chat')
-    
-    toast({
-      title: "Group chat created",
-      description: `You've created "${groupChatName}" with ${selectedMembers.length} members.`
-    })
-  }
-  
-  // Create new individual chat or open existing
-  const handleCreateIndividualChat = (member: TeamMember) => {
-    // Check if a chat with this member already exists
-    const existingChat = chats.find(chat => 
-      chat.type === 'individual' && 
-      chat.participants.includes(member.id) && 
-      chat.participants.length === 2
-    );
-    
-    if (existingChat) {
-      // Open existing chat
-      setActiveChat(existingChat);
-      setMobileView('chat');
-      setShowNewChatModal(false);
-    } else {
-      // Create new chat
-      const newChat: Chat = {
-        id: `chat-${Date.now()}`,
-        type: 'individual',
-        name: member.name,
-        avatar: member.avatar,
-        participants: [member.id, 1], // Member and current user (ID 1)
-        createdAt: new Date(),
-        unreadCount: 0,
-        isMuted: false,     // Add missing properties
-        isArchived: false   // Add missing properties
-      }
+    try {
+      // Use the createGroup function from context to add the chat to the chat list
+      createGroup(
+        groupChatName,
+        selectedMembers,
+        generateGroupAvatar()
+      );
       
-      // Set as active chat
-      setActiveChat(newChat)
+      console.log(`Group chat created successfully: ${groupChatName}`);
       
       // Close modal
       setShowNewChatModal(false)
@@ -615,9 +582,87 @@ function CustomChatList({ mobileView, setMobileView, deletedChats, setDeletedCha
       setMobileView('chat')
       
       toast({
-        title: "Chat started",
-        description: `You've started a conversation with ${member.name}.`
+        title: "Group chat created",
+        description: `You've created "${groupChatName}" with ${selectedMembers.length} members.`
       })
+    } catch (error) {
+      console.error("Error creating group chat:", error);
+      toast({
+        title: "Error creating chat",
+        description: "There was a problem creating the group chat. Please try again.",
+        variant: "destructive"
+      })
+    }
+  }
+  
+  // Create new individual chat or open existing
+  const handleCreateIndividualChat = (member: TeamMember) => {
+    console.log(`Starting individual chat creation with ${member.name} (ID: ${member.id})...`);
+    
+    // Check if a chat with this member already exists
+    const existingChat = chats.find(chat => 
+      chat.type === 'individual' && 
+      chat.participants.includes(member.id) && 
+      chat.participants.length === 2
+    );
+    
+    if (existingChat) {
+      console.log(`Found existing chat with ${member.name}, ID: ${existingChat.id}`);
+      // Open existing chat
+      setActiveChat(existingChat);
+      setMobileView('chat');
+      setShowNewChatModal(false);
+    } else {
+      console.log(`Creating new chat with ${member.name}...`);
+      
+      try {
+        // Create new chat
+        const newChat: Chat = {
+          id: `chat-${Date.now()}`,
+          type: 'individual',
+          name: member.name,
+          avatar: member.avatar,
+          participants: [member.id, 1], // Member and current user (ID 1)
+          createdAt: new Date(),
+          unreadCount: 0,
+          isMuted: false,
+          isArchived: false
+        }
+        
+        console.log("New chat object created:", newChat);
+        
+        // Add new chat to chats list
+        setChats(prev => {
+          console.log("Previous chats:", prev);
+          const updatedChats = [newChat, ...prev];
+          console.log("Updated chats list:", updatedChats);
+          return updatedChats;
+        });
+        
+        // Set as active chat
+        setActiveChat(newChat);
+        console.log("Set active chat to new chat");
+        
+        // Close modal
+        setShowNewChatModal(false);
+        
+        // Ensure chat view is shown (for mobile)
+        setMobileView('chat');
+        
+        console.log(`Individual chat with ${member.name} created successfully`);
+        
+        toast({
+          title: "Chat started",
+          description: `You've started a conversation with ${member.name}.`
+        });
+      } catch (error) {
+        console.error("Error creating individual chat:", error);
+        toast({
+          title: "Error creating chat",
+          description: "There was a problem creating the chat. Please try again.",
+          variant: "destructive"
+        })
+      }
     }
   }
 
@@ -975,8 +1020,29 @@ function CustomChatList({ mobileView, setMobileView, deletedChats, setDeletedCha
             Cancel
           </Button>
           <Button 
-            onClick={() => modalActiveTab === 'group' ? handleCreateGroupChat() : {}}
-            disabled={modalActiveTab === 'group' && (selectedMembers.length === 0 || !groupChatName.trim())}
+            onClick={() => {
+              if (modalActiveTab === 'group') {
+                handleCreateGroupChat();
+              } else if (modalActiveTab === 'individual' && teamMembers.length > 0) {
+                // Select the first filtered member when clicking Create Chat on individual tab
+                const filteredMembers = teamMembers.filter(member => 
+                  searchQuery ? 
+                    member.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                    member.role.toLowerCase().includes(searchQuery.toLowerCase()) : 
+                    true
+                );
+                if (filteredMembers.length > 0) {
+                  handleCreateIndividualChat(filteredMembers[0]);
+                }
+              }
+            }}
+            disabled={(modalActiveTab === 'group' && (selectedMembers.length === 0 || !groupChatName.trim())) ||
+                     (modalActiveTab === 'individual' && teamMembers.filter(member => 
+                       searchQuery ? 
+                         member.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                         member.role.toLowerCase().includes(searchQuery.toLowerCase()) : 
+                         true
+                      ).length === 0)}
           >
             Create Chat
           </Button>
@@ -1242,7 +1308,20 @@ interface ChatWindowProps {
 }
 
 function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
-  const { activeChat, sendMessage, messages, getParticipants, startTyping, stopTyping, activeReply, setActiveReply, setActiveChat, chats } = useChat()
+  const { 
+    activeChat, 
+    messages, 
+    setActiveChat, 
+    sendMessage, 
+    startTyping, 
+    stopTyping, 
+    activeReply, 
+    setActiveReply, 
+    getParticipants,
+    chats,
+    createGroup,
+    setChats
+  } = useChat()
   const [messageInput, setMessageInput] = useState('')
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false)
   const [attachmentMenuOpen, setAttachmentMenuOpen] = useState(false)
@@ -1319,12 +1398,23 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
   
   // Handle select all for group chat
   const handleSelectAll = () => {
-    if (selectedMembers.length === teamMembers.length) {
-      // If all are selected, deselect all
-      setSelectedMembers([])
+    // Get all selectable team members (excluding current user with ID 1)
+    const selectableMembers = teamMembers
+      .filter(member => member.id !== 1)
+      .filter(member => 
+        searchQuery ? 
+          member.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+          member.role.toLowerCase().includes(searchQuery.toLowerCase()) : 
+          true
+      )
+      .map(member => member.id);
+    
+    if (selectedMembers.length === selectableMembers.length) {
+      // If all visible members are selected, deselect all
+      setSelectedMembers([]);
     } else {
-      // Otherwise select all
-      setSelectedMembers(teamMembers.map(member => member.id))
+      // Otherwise select all visible members
+      setSelectedMembers(selectableMembers);
     }
   }
   
@@ -1336,7 +1426,10 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
   
   // Create new group chat
   const handleCreateGroupChat = () => {
+    console.log("Starting group chat creation process in ChatWindow...");
+    
     if (selectedMembers.length === 0) {
+      console.log("Error: No members selected");
       toast({
         title: "No members selected",
         description: "Please select at least one team member for the group chat.",
@@ -1346,6 +1439,7 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
     }
     
     if (!groupChatName.trim()) {
+      console.log("Error: Missing group name");
       toast({
         title: "Missing group name",
         description: "Please enter a name for the group chat.",
@@ -1354,64 +1448,17 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
       return
     }
     
-    // In a real app, you would call an API to create the group chat
-    const newGroupChat: Chat = {
-      id: `group-${Date.now()}`,
-      type: 'group',
-      name: groupChatName,
-      avatar: generateGroupAvatar(),
-      participants: [...selectedMembers, 1], // Add current user (ID 1)
-      createdAt: new Date(),
-      unreadCount: 0,
-      isGroupAdmin: true, // Current user is admin
-      isMuted: false,     // Add missing properties
-      isArchived: false   // Add missing properties
-    }
+    console.log(`Creating group '${groupChatName}' with ${selectedMembers.length} members:`, selectedMembers);
     
-    // Set as active chat
-    setActiveChat(newGroupChat)
-    
-    // Close modal
-    setShowNewChatModal(false)
-    
-    // Ensure chat view is shown (for mobile)
-    setMobileView('chat')
-    
-    toast({
-      title: "Group chat created",
-      description: `You've created "${groupChatName}" with ${selectedMembers.length} members.`
-    })
-  }
-  
-  // Create new individual chat or open existing
-  const handleCreateIndividualChat = (member: TeamMember) => {
-    // Check if a chat with this member already exists
-    const existingChat = chats.find(chat => 
-      chat.type === 'individual' && 
-      chat.participants.includes(member.id) && 
-      chat.participants.length === 2
-    );
-    
-    if (existingChat) {
-      // Open existing chat
-      setActiveChat(existingChat);
-      setShowNewChatModal(false);
-    } else {
-      // Create new chat
-      const newChat: Chat = {
-        id: `chat-${Date.now()}`,
-        type: 'individual',
-        name: member.name,
-        avatar: member.avatar,
-        participants: [member.id, 1], // Member and current user (ID 1)
-        createdAt: new Date(),
-        unreadCount: 0,
-        isMuted: false,     // Add missing properties
-        isArchived: false   // Add missing properties
-      }
+    try {
+      // Use the createGroup function from context to add the chat to the chat list
+      createGroup(
+        groupChatName,
+        selectedMembers,
+        generateGroupAvatar()
+      );
       
-      // Set as active chat
-      setActiveChat(newChat)
+      console.log(`Group chat created successfully in ChatWindow: ${groupChatName}`);
       
       // Close modal
       setShowNewChatModal(false)
@@ -1420,9 +1467,86 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
       setMobileView('chat')
       
       toast({
-        title: "Chat started",
-        description: `You've started a conversation with ${member.name}.`
+        title: "Group chat created",
+        description: `You've created "${groupChatName}" with ${selectedMembers.length} members.`
       })
+    } catch (error) {
+      console.error("Error creating group chat in ChatWindow:", error);
+      toast({
+        title: "Error creating chat",
+        description: "There was a problem creating the group chat. Please try again.",
+        variant: "destructive"
+      })
+    }
+  }
+  
+  // Create new individual chat or open existing
+  const handleCreateIndividualChat = (member: TeamMember) => {
+    console.log(`Starting individual chat creation with ${member.name} (ID: ${member.id}) in ChatWindow...`);
+    
+    // Check if a chat with this member already exists
+    const existingChat = chats.find(chat => 
+      chat.type === 'individual' && 
+      chat.participants.includes(member.id) && 
+      chat.participants.length === 2
+    );
+    
+    if (existingChat) {
+      console.log(`Found existing chat with ${member.name}, ID: ${existingChat.id}`);
+      // Open existing chat
+      setActiveChat(existingChat);
+      setShowNewChatModal(false);
+    } else {
+      console.log(`Creating new chat with ${member.name} in ChatWindow...`);
+      
+      try {
+        // Create new chat
+        const newChat: Chat = {
+          id: `chat-${Date.now()}`,
+          type: 'individual',
+          name: member.name,
+          avatar: member.avatar,
+          participants: [member.id, 1], // Member and current user (ID 1)
+          createdAt: new Date(),
+          unreadCount: 0,
+          isMuted: false,
+          isArchived: false
+        }
+        
+        console.log("New chat object created in ChatWindow:", newChat);
+        
+        // Add new chat to chats list
+        setChats(prev => {
+          console.log("Previous chats:", prev);
+          const updatedChats = [newChat, ...prev];
+          console.log("Updated chats list in ChatWindow:", updatedChats);
+          return updatedChats;
+        });
+        
+        // Set as active chat
+        setActiveChat(newChat);
+        console.log("Set active chat to new chat in ChatWindow");
+        
+        // Close modal
+        setShowNewChatModal(false);
+        
+        // Ensure chat view is shown (for mobile)
+        setMobileView('chat');
+        
+        console.log(`Individual chat with ${member.name} created successfully in ChatWindow`);
+        
+        toast({
+          title: "Chat started",
+          description: `You've started a conversation with ${member.name}.`
+        });
+      } catch (error) {
+        console.error("Error creating individual chat in ChatWindow:", error);
+        toast({
+          title: "Error creating chat",
+          description: "There was a problem creating the chat. Please try again.",
+          variant: "destructive"
+        })
+      }
     }
   }
   
@@ -1768,15 +1892,33 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
               </Tabs>
               
               <div className="flex justify-end gap-2 mt-4">
-                <Button 
-                  variant="outline" 
-                  onClick={() => setShowNewChatModal(false)}
-                >
+                <Button variant="outline" onClick={() => setShowNewChatModal(false)}>
                   Cancel
                 </Button>
-                <Button
-                  onClick={() => modalActiveTab === 'group' ? handleCreateGroupChat() : {}}
-                  disabled={modalActiveTab === 'group' && (selectedMembers.length === 0 || !groupChatName.trim())}
+                <Button 
+                  onClick={() => {
+                    if (modalActiveTab === 'group') {
+                      handleCreateGroupChat();
+                    } else if (modalActiveTab === 'individual' && teamMembers.length > 0) {
+                      // Select the first filtered member when clicking Create Chat on individual tab
+                      const filteredMembers = teamMembers.filter(member => 
+                        searchQuery ? 
+                          member.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          member.role.toLowerCase().includes(searchQuery.toLowerCase()) : 
+                          true
+                      );
+                      if (filteredMembers.length > 0) {
+                        handleCreateIndividualChat(filteredMembers[0]);
+                      }
+                    }
+                  }}
+                  disabled={(modalActiveTab === 'group' && (selectedMembers.length === 0 || !groupChatName.trim())) ||
+                           (modalActiveTab === 'individual' && teamMembers.filter(member => 
+                             searchQuery ? 
+                               member.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                               member.role.toLowerCase().includes(searchQuery.toLowerCase()) : 
+                               true
+                            ).length === 0)}
                 >
                   Create Chat
                 </Button>
