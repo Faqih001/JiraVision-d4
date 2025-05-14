@@ -568,12 +568,39 @@ function CustomChatList({ mobileView, setMobileView, deletedChats, setDeletedCha
     console.log(`Creating group '${groupChatName}' with ${selectedMembers.length} members:`, selectedMembers);
     
     try {
-      // Use the createGroup function from context to add the chat to the chat list
-      createGroup(
-        groupChatName,
-        selectedMembers,
-        generateGroupAvatar()
-      );
+      // Create a unique ID for the new group
+      const groupId = `group-${Date.now()}`;
+      
+      // Create the group chat directly
+      const newGroupChat: Chat = {
+        id: groupId,
+        name: groupChatName,
+        type: 'group',
+        participants: [...selectedMembers, 1], // Include current user
+        avatar: generateGroupAvatar(),
+        description: `Group chat with ${selectedMembers.length} members`,
+        unreadCount: 0,
+        isMuted: false,
+        isArchived: false,
+        isGroupAdmin: true, // Current user is admin
+        createdAt: new Date()
+      };
+      
+      console.log("New group chat object created:", newGroupChat);
+      
+      // Add to chats list
+      setChats(prev => {
+        console.log("Previous chats count:", prev.length);
+        const updatedChats = [newGroupChat, ...prev];
+        console.log("Updated chats list count:", updatedChats.length);
+        return updatedChats;
+      });
+      
+      // Set as active chat - with slight delay to ensure state is updated
+      setTimeout(() => {
+        console.log("Setting active chat to new group ID:", groupId);
+        setActiveChat(newGroupChat);
+      }, 100);
       
       console.log(`Group chat created successfully: ${groupChatName}`);
       
@@ -604,8 +631,7 @@ function CustomChatList({ mobileView, setMobileView, deletedChats, setDeletedCha
     // Check if a chat with this member already exists
     const existingChat = chats.find(chat => 
       chat.type === 'individual' && 
-      chat.participants.includes(member.id) && 
-      chat.participants.length === 2
+      chat.participants.some(p => p === member.id)
     );
     
     if (existingChat) {
@@ -620,8 +646,9 @@ function CustomChatList({ mobileView, setMobileView, deletedChats, setDeletedCha
       
       try {
         // Create new chat
+        const chatId = `chat-${Date.now()}`;
         const newChat: Chat = {
-          id: `chat-${Date.now()}`,
+          id: chatId,
           type: 'individual',
           name: member.name,
           avatar: member.avatar,
@@ -636,15 +663,17 @@ function CustomChatList({ mobileView, setMobileView, deletedChats, setDeletedCha
         
         // Add new chat to chats list
         setChats(prev => {
-          console.log("Previous chats:", prev);
+          console.log("Previous chats count:", prev.length);
           const updatedChats = [newChat, ...prev];
-          console.log("Updated chats list:", updatedChats);
+          console.log("Updated chats list count:", updatedChats.length);
           return updatedChats;
         });
         
-        // Set as active chat
-        setActiveChat(newChat);
-        console.log("Set active chat to new chat");
+        // Set as active chat - IMPORTANT: this needs to happen after the chat is added
+        setTimeout(() => {
+          console.log("Setting active chat to new chat ID:", chatId);
+          setActiveChat(newChat);
+        }, 100);
         
         // Close modal
         setShowNewChatModal(false);
@@ -1457,12 +1486,39 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
     console.log(`Creating group '${groupChatName}' with ${selectedMembers.length} members:`, selectedMembers);
     
     try {
-      // Use the createGroup function from context to add the chat to the chat list
-      createGroup(
-        groupChatName,
-        selectedMembers,
-        generateGroupAvatar()
-      );
+      // Create a unique ID for the new group
+      const groupId = `group-${Date.now()}`;
+      
+      // Create the group chat directly
+      const newGroupChat: Chat = {
+        id: groupId,
+        name: groupChatName,
+        type: 'group',
+        participants: [...selectedMembers, 1], // Include current user
+        avatar: generateGroupAvatar(),
+        description: `Group chat with ${selectedMembers.length} members`,
+        unreadCount: 0,
+        isMuted: false,
+        isArchived: false,
+        isGroupAdmin: true, // Current user is admin
+        createdAt: new Date()
+      };
+      
+      console.log("New group chat object created in ChatWindow:", newGroupChat);
+      
+      // Add to chats list
+      setChats(prev => {
+        console.log("Previous chats count:", prev.length);
+        const updatedChats = [newGroupChat, ...prev];
+        console.log("Updated chats list count:", updatedChats.length);
+        return updatedChats;
+      });
+      
+      // Set as active chat - with slight delay to ensure state is updated
+      setTimeout(() => {
+        console.log("Setting active chat to new group ID:", groupId);
+        setActiveChat(newGroupChat);
+      }, 100);
       
       console.log(`Group chat created successfully in ChatWindow: ${groupChatName}`);
       
@@ -1493,8 +1549,7 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
     // Check if a chat with this member already exists
     const existingChat = chats.find(chat => 
       chat.type === 'individual' && 
-      chat.participants.includes(member.id) && 
-      chat.participants.length === 2
+      chat.participants.some(p => p === member.id)
     );
     
     if (existingChat) {
@@ -1507,8 +1562,9 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
       
       try {
         // Create new chat
+        const chatId = `chat-${Date.now()}`;
         const newChat: Chat = {
-          id: `chat-${Date.now()}`,
+          id: chatId,
           type: 'individual',
           name: member.name,
           avatar: member.avatar,
