@@ -59,7 +59,7 @@ export default function SignupPage() {
           {/* Left side - Image */}
           <div className="hidden md:block relative">
             <div className="absolute inset-0 bg-primary/10"></div>
-            <img src="/placeholder.svg?height=800&width=600" alt="Sign Up" className="h-full w-full object-cover" />
+            <img src="https://images.unsplash.com/photo-1461749280684-dccba630e2f6?auto=format&fit=crop&w=600&q=80" alt="Sign Up" className="h-full w-full object-cover" />
             <div className="absolute inset-0 flex flex-col justify-end p-8 bg-gradient-to-t from-black/60 to-transparent text-white">
               <h2 className="text-2xl font-bold mb-2">Join JiraVision</h2>
               <p className="text-white/80">
