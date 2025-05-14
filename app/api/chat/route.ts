@@ -7,17 +7,27 @@ import { getSession } from "@/lib/auth-actions";
 
 export async function GET(req: NextRequest) {
   try {
+    console.log("API: Fetching chats for user...");
+    
     // Get the current user from the session
     const session = await getSession();
+    
+    console.log("API: Session check result:", {
+      hasSession: !!session,
+      hasId: session ? !!session.id : false,
+      userId: session?.id
+    });
+    
     if (!session || !session.id) {
+      console.error("API: Unauthorized - No valid session found");
       return NextResponse.json(
-        { error: "Unauthorized" },
+        { error: "Unauthorized", details: "No valid session found" },
         { status: 401 }
       );
     }
     
     const userId = session.id;
-    console.log(`Fetching chats for user ${userId} (${session.name})`);
+    console.log(`API: Fetching chats for user ${userId} (${session.name || 'Unknown'})`);
     
     // Fetch chats where the current user is a participant
     const result = await db.query.chats.findMany({
@@ -57,7 +67,7 @@ export async function GET(req: NextRequest) {
       orderBy: (chats, { desc }) => [desc(chats.createdAt)],
     });
     
-    console.log(`Found ${result.length} chats for user ${userId}`);
+    console.log(`API: Found ${result.length} chats for user ${userId}`);
     
     // Transform the data to match the Chat type used in the frontend
     const transformedChats = result.map(chat => {
@@ -120,11 +130,12 @@ export async function GET(req: NextRequest) {
       };
     });
 
+    console.log(`API: Returning ${transformedChats.length} transformed chats`);
     return NextResponse.json(transformedChats);
   } catch (error) {
-    console.error("Error fetching chats:", error);
+    console.error("API Error fetching chats:", error);
     return NextResponse.json(
-      { error: "Failed to fetch chats" },
+      { error: "Failed to fetch chats", details: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     );
   }

@@ -35,7 +35,8 @@ app.prepare().then(() => {
   const io = new Server(server, {
     cors: {
       origin: "*",
-      methods: ["GET", "POST"]
+      methods: ["GET", "POST"],
+      credentials: true
     }
   });
 
@@ -80,8 +81,13 @@ app.prepare().then(() => {
             WHERE cp.user_id = ${userId}
           `;
           
+          if (userChats.length === 0) {
+            console.log(`User ${userId} has no chats yet.`);
+          }
+          
           // Join a room for each chat
           userChats.forEach(chat => {
+            console.log(`User ${userId} joining chat room: ${chat.id}`);
             socket.join(`chat:${chat.id}`);
           });
           
@@ -104,6 +110,7 @@ app.prepare().then(() => {
               SET status = 'online'
               WHERE id = ${userId}
             `;
+            console.log(`User ${userId} status updated to 'online' in database`);
           } catch (statusError) {
             console.error('Error updating user status:', statusError);
           }

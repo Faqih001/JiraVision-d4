@@ -32,27 +32,39 @@ export async function getSession() {
     // Use optional chaining to safely access the cookie value
     const sessionId = cookieStore.get("session_id")?.value;
     console.log(`getSession: Session ID found: ${sessionId ? 'yes' : 'no'}`);
-    if (!sessionId) return null;
+    if (!sessionId) {
+      console.log("getSession: No session ID cookie found");
+      return null;
+    }
 
     const userIdCookie = cookieStore.get("user_id")?.value;
     console.log(`getSession: User ID found: ${userIdCookie ? 'yes' : 'no'}`);
-    if (!userIdCookie) return null;
+    if (!userIdCookie) {
+      console.log("getSession: No user ID cookie found");
+      return null;
+    }
 
     // Parse the user ID safely
     let userId: number;
     try {
       userId = Number.parseInt(userIdCookie);
       console.log(`getSession: Parsed user ID: ${userId}`);
-      if (isNaN(userId) || userId <= 0) return null;
-    } catch {
-      console.log("getSession: Failed to parse user ID");
+      if (isNaN(userId) || userId <= 0) {
+        console.log("getSession: Invalid user ID value");
+        return null;
+      }
+    } catch (error) {
+      console.log("getSession: Failed to parse user ID:", error);
       return null;
     }
 
     console.log(`getSession: Looking up user with ID: ${userId}`);
     const user = await getUserById(userId);
     console.log(`getSession: User found: ${user ? 'yes' : 'no'}`);
-    if (!user) return null;
+    if (!user) {
+      console.log(`getSession: No user found with ID ${userId}`);
+      return null;
+    }
 
     const { passwordHash, ...userWithoutPassword } = user;
     console.log("getSession: Returning user session");

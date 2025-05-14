@@ -157,11 +157,23 @@ const generateId = () => {
 // Add function to fetch chats from API
 const fetchChats = async (): Promise<Chat[]> => {
   try {
-    const response = await fetch('/api/chat');
+    console.log('Fetching chats with credentials...');
+    const response = await fetch('/api/chat', {
+      credentials: 'include',
+      headers: {
+        'Cache-Control': 'no-cache',
+      }
+    });
+    
     if (!response.ok) {
-      throw new Error('Failed to fetch chats');
+      const errorText = await response.text();
+      console.error(`Failed to fetch chats: ${response.status} ${response.statusText}`, errorText);
+      throw new Error(`Failed to fetch chats: ${response.status}`);
     }
-    return await response.json();
+    
+    const data = await response.json();
+    console.log('Chats fetched successfully:', data.length, 'chats');
+    return data;
   } catch (error) {
     console.error('Error fetching chats:', error);
     return [];
@@ -171,11 +183,23 @@ const fetchChats = async (): Promise<Chat[]> => {
 // Add function to fetch messages for a chat
 const fetchMessages = async (chatId: string): Promise<Message[]> => {
   try {
-    const response = await fetch(`/api/chat/messages?chatId=${chatId}`);
+    console.log('Fetching messages for chat:', chatId);
+    const response = await fetch(`/api/chat/messages?chatId=${chatId}`, {
+      credentials: 'include',
+      headers: {
+        'Cache-Control': 'no-cache',
+      }
+    });
+    
     if (!response.ok) {
-      throw new Error('Failed to fetch messages');
+      const errorText = await response.text();
+      console.error(`Failed to fetch messages: ${response.status} ${response.statusText}`, errorText);
+      throw new Error(`Failed to fetch messages: ${response.status}`);
     }
-    return await response.json();
+    
+    const data = await response.json();
+    console.log('Messages fetched successfully:', data.length, 'messages');
+    return data;
   } catch (error) {
     console.error('Error fetching messages:', error);
     return [];

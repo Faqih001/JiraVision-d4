@@ -8,16 +8,27 @@ export function getSocket(): Socket | null {
 
 async function getCurrentUser() {
   try {
-    const response = await fetch('/api/user/current');
+    console.log('Fetching current user with credentials...');
+    const response = await fetch('/api/user/current', {
+      credentials: 'include',
+      headers: {
+        'Cache-Control': 'no-cache'
+      }
+    });
+    
     if (!response.ok) {
-      console.error('Failed to fetch current user:', response.statusText);
+      const errorText = await response.text();
+      console.error('Failed to fetch current user:', response.status, response.statusText, errorText);
       return null;
     }
+    
     const data = await response.json();
     if (!data.success || !data.user) {
       console.error('Invalid user data returned:', data);
       return null;
     }
+    
+    console.log('Current user fetched successfully:', data.user.id, data.user.name);
     return data.user;
   } catch (error) {
     console.error('Error fetching current user:', error);
@@ -28,10 +39,37 @@ async function getCurrentUser() {
 export async function initSocket(): Promise<Socket> {
   return new Promise(async (resolve, reject) => {
     try {
-      // Get current user
-      const user = await getCurrentUser();
+      console.log('Socket initialization starting...');
+      
+      // Get current user with retry
+      let user = null;
+      let retryCount = 0;
+      
+      while (!user && retryCount < 3) {
+        try {
+          user = await getCurrentUser();
+          if (user) {
+            console.log('Socket initialization: User authenticated:', user.id, user.name);
+          } else {
+            console.warn(`Socket initialization: User authentication failed (attempt ${retryCount + 1})`);
+            retryCount++;
+            if (retryCount < 3) {
+              // Wait before retrying
+              await new Promise(r => setTimeout(r, 1000 * retryCount));
+            }
+          }
+        } catch (authError) {
+          console.error('Socket initialization: Authentication error:', authError);
+          retryCount++;
+          if (retryCount < 3) {
+            // Wait before retrying
+            await new Promise(r => setTimeout(r, 1000 * retryCount));
+          }
+        }
+      }
+      
       if (!user) {
-        console.error('Socket initialization failed: No authenticated user found');
+        console.error('Socket initialization failed: No authenticated user found after multiple attempts');
         reject(new Error('No authenticated user found'));
         return;
       }
@@ -64,6 +102,7 @@ export async function initSocket(): Promise<Socket> {
         reconnectionDelay: 1000,
         timeout: 20000, // Increased timeout to 20 seconds
         transports: ['websocket', 'polling'],
+        withCredentials: true // This is important for cookies
       });
 
       // Handle connection events
