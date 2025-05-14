@@ -215,6 +215,146 @@ app.prepare().then(() => {
       });
     });
     
+    // Handle get_chat_list request (direct socket chat retrieval)
+    socket.on('get_chat_list', async () => {
+      try {
+        // Get user from authenticated users
+        const user = authenticatedUsers.get(socket.id);
+        if (!user) {
+          console.error('Chat list request rejected: User not authenticated');
+          socket.emit('error', { message: 'Not authenticated' });
+          return;
+        }
+        
+        console.log(`User ${user.userId} (${user.userName}) requesting chat list via socket`);
+        
+        const client = getDbClient();
+        try {
+          // Get user's chats with all necessary data
+          const userChats = await client`
+            WITH user_chats AS (
+              SELECT c.* 
+              FROM chats c
+              JOIN chat_participants cp ON c.id = cp.chat_id
+              WHERE cp.user_id = ${user.userId}
+            )
+            SELECT 
+              uc.id,
+              uc.type,
+              uc.name,
+              uc.avatar,
+              uc.created_at as "createdAt",
+              uc.updated_at as "updatedAt",
+              uc.is_pinned as "isPinned",
+              uc.is_muted as "isMuted",
+              uc.is_archived as "isArchived",
+              COALESCE(
+                jsonb_agg(
+                  DISTINCT jsonb_build_object(
+                    'userId', cp.user_id,
+                    'joinedAt', cp.joined_at
+                  )
+                ) FILTER (WHERE cp.user_id IS NOT NULL),
+                '[]'
+              ) as participants,
+              (
+                SELECT jsonb_build_object(
+                  'id', m.id,
+                  'content', m.content,
+                  'type', m.type,
+                  'senderId', m.sender_id,
+                  'timestamp', m.timestamp,
+                  'deleted', m.deleted
+                )
+                FROM messages m
+                WHERE m.chat_id = uc.id
+                ORDER BY m.timestamp DESC
+                LIMIT 1
+              ) as "lastMessage",
+              COUNT(DISTINCT m.id) FILTER (
+                WHERE m.is_read = false AND m.sender_id != ${user.userId}
+              ) as "unreadCount"
+            FROM 
+              user_chats uc
+            LEFT JOIN chat_participants cp ON uc.id = cp.chat_id
+            LEFT JOIN messages m ON uc.id = m.chat_id
+            GROUP BY uc.id
+            ORDER BY uc.updated_at DESC
+          `;
+          
+          // Transform the chats for the client
+          const transformedChats = await Promise.all(userChats.map(async (chat) => {
+            let chatName = chat.name;
+            let chatAvatar = chat.avatar;
+            
+            // For individual chats, use the other participant's name and avatar
+            if (chat.type === 'individual') {
+              // Get the other participant's ID
+              const otherParticipantData = chat.participants.find(p => p.userId !== user.userId);
+              if (otherParticipantData) {
+                // Get the other participant's details
+                const [otherUser] = await client`
+                  SELECT id, name, avatar, status FROM users WHERE id = ${otherParticipantData.userId}
+                `;
+                
+                if (otherUser) {
+                  chatName = otherUser.name;
+                  chatAvatar = otherUser.avatar;
+                  
+                  // Add online status
+                  chat.online = otherUser.status === 'online';
+                }
+              }
+            }
+            
+            // Add preview text for last message
+            let preview = 'Start a conversation';
+            if (chat.lastMessage) {
+              if (chat.lastMessage.deleted) {
+                preview = 'This message was deleted';
+              } else if (chat.lastMessage.type === 'text') {
+                preview = chat.lastMessage.content;
+              } else if (chat.lastMessage.type === 'image') {
+                preview = '📷 Photo';
+              } else if (chat.lastMessage.type === 'video') {
+                preview = '📹 Video';
+              } else if (chat.lastMessage.type === 'document') {
+                preview = '📄 Document';
+              } else if (chat.lastMessage.type === 'audio') {
+                preview = '🎵 Audio';
+              } else if (chat.lastMessage.type === 'voice') {
+                preview = '🎤 Voice message';
+              } else {
+                preview = 'Message';
+              }
+            }
+            
+            return {
+              ...chat,
+              name: chatName,
+              avatar: chatAvatar || '',
+              preview,
+              // Map participant IDs to numbers only (not objects)
+              participants: chat.participants.map(p => p.userId),
+              // Add timestamp string for easier client-side processing
+              lastMessageTime: chat.lastMessage ? chat.lastMessage.timestamp.toISOString() : undefined
+            };
+          }));
+          
+          console.log(`Sending ${transformedChats.length} chats to user ${user.userId} via socket`);
+          socket.emit('chat_list', transformedChats);
+        } catch (dbError) {
+          console.error('Database error fetching chat list:', dbError);
+          socket.emit('error', { message: 'Database error: ' + dbError.message });
+        } finally {
+          await client.end();
+        }
+      } catch (error) {
+        console.error('Error handling get_chat_list:', error);
+        socket.emit('error', { message: 'Failed to get chat list: ' + error.message });
+      }
+    });
+    
     // Handle mark as read
     socket.on('mark_read', async (data) => {
       try {
