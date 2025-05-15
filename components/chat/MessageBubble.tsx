@@ -37,6 +37,9 @@ import {
 import { 
   Dialog, 
   DialogContent, 
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
   DialogTrigger
 } from '@/components/ui/dialog'
 import { Message, useChat } from '@/app/context/chat/ChatContext'
@@ -202,6 +205,10 @@ export function MessageBubble({
                 </div>
               </DialogTrigger>
               <DialogContent className="max-w-3xl">
+                <DialogHeader>
+                  <DialogTitle className="sr-only">Image Preview</DialogTitle>
+                  <DialogDescription className="sr-only">Enlarged view of the shared image</DialogDescription>
+                </DialogHeader>
                 <div className="relative rounded overflow-hidden">
                   <img 
                     src={message.mediaUrl || '/placeholder-image.jpg'} 
