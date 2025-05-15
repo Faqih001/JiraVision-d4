@@ -1,27 +1,12 @@
 import { NextResponse } from "next/server"
-import { getSession } from "@/lib/auth-actions"
 import { createTask, getPaginatedTasks } from "@/lib/data-access"
 
-// For local development and testing - set to false in production
-const ENABLE_TEST_MODE = process.env.NODE_ENV === 'development' || process.env.ENABLE_TEST_MODE === 'true';
+// These are TEST endpoints for development purposes only
+// They do not require authentication and should NOT be used in production
 
-// GET handler for /api/tasks - Returns all tasks with pagination and filtering
+// GET handler for test tasks endpoint with pagination and filtering
 export async function GET(request: Request) {
   try {
-    // Check if user is authenticated
-    const session = await getSession()
-    
-    // In test mode, we allow requests without authentication
-    if (!session && !ENABLE_TEST_MODE) {
-      return NextResponse.json(
-        { success: false, message: "Unauthorized" },
-        { status: 401 }
-      )
-    }
-    
-    // Use default test user ID for operations if in test mode
-    const userId = session ? session.id : (ENABLE_TEST_MODE ? 1 : null)
-
     // Get query parameters
     const { searchParams } = new URL(request.url)
     
@@ -63,23 +48,9 @@ export async function GET(request: Request) {
   }
 }
 
-// POST handler for /api/tasks - Creates a new task
+// POST handler for test tasks endpoint
 export async function POST(request: Request) {
   try {
-    // Check if user is authenticated
-    const session = await getSession()
-    
-    // In test mode, we allow requests without authentication
-    if (!session && !ENABLE_TEST_MODE) {
-      return NextResponse.json(
-        { success: false, message: "Unauthorized" },
-        { status: 401 }
-      )
-    }
-    
-    // Use default test user ID for operations if in test mode
-    const userId = session ? session.id : (ENABLE_TEST_MODE ? 1 : null)
-
     // Get task data from request
     const data = await request.json()
     
@@ -98,9 +69,9 @@ export async function POST(request: Request) {
       status: data.status || "todo",
       priority: data.priority || "medium",
       storyPoints: data.storyPoints || 0,
-      assigneeId: data.assigneeId || (session ? session.id : 1), // Default to test user ID 1 if session is null
+      assigneeId: data.assigneeId || 1, // Use user ID 1 for testing
       sprintId: data.sprintId || null,
-      dueDate: data.dueDate ? data.dueDate : null, // Save as string, not Date object
+      dueDate: data.dueDate ? new Date(data.dueDate) : null,
       tags: data.tags || []
     }
     

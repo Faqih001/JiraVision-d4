@@ -45,7 +45,7 @@ Created the missing registration endpoint at `/app/api/auth/register/route.ts` t
 
 ## Next Steps
 
-1. ✅ Seed task data for testing dashboard tasks API with actual content
+1. ✅ Seed task data for testing dashboard tasks API with actual contentt
 2. ✅ Create a sprint and assign tasks to the sprint for testing sprint-related features
 3. ✅ Create and test sprint-related API endpoints
 4. Create and test additional API endpoints for:
