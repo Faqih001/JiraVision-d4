@@ -39,14 +39,13 @@ export const chats = pgTable("chats", {
 })
 
 export const chatParticipants = pgTable("chat_participants", {
-  id: uuid("id").defaultRandom().primaryKey(),
   chatId: uuid("chat_id").notNull().references(() => chats.id, { onDelete: "cascade" }),
   userId: integer("user_id").notNull().references(() => users.id),
   joinedAt: timestamp("joined_at").defaultNow(),
   lastRead: timestamp("last_read"),
 }, (table) => {
   return {
-    chatUserUnique: primaryKey({ columns: [table.chatId, table.userId] }),
+    pk: primaryKey({ columns: [table.chatId, table.userId] }),
   }
 })
 
@@ -66,13 +65,12 @@ export const messages = pgTable("messages", {
 })
 
 export const reactions = pgTable("reactions", {
-  id: uuid("id").defaultRandom().primaryKey(),
   emoji: text("emoji").notNull(),
   messageId: uuid("message_id").notNull().references(() => messages.id, { onDelete: "cascade" }),
   userId: integer("user_id").notNull().references(() => users.id),
 }, (table) => {
   return {
-    messageUserUnique: primaryKey({ columns: [table.messageId, table.userId] }),
+    pk: primaryKey({ columns: [table.messageId, table.userId] }),
   }
 })
 

@@ -6,7 +6,7 @@ const path = require('path');
 require('dotenv').config();
 
 // Get the migration SQL
-const MIGRATION_FILE = path.join(__dirname, 'migrations', '0000_wandering_edwin_jarvis.sql');
+const MIGRATION_FILE = path.join(__dirname, 'migrations', '0000_panoramic_baron_zemo.sql');
 
 async function applySchema() {
   // Get connection string from environment

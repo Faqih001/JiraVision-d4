@@ -1,5 +1,5 @@
 {
-  "id": "fb243355-905b-4cfa-bdfb-b436c4d6bf34",
+  "id": "a7df6200-635a-4e65-b77c-4912a55a9ada",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -65,13 +65,6 @@
       "name": "chat_participants",
       "schema": "",
       "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
         "chat_id": {
           "name": "chat_id",
           "type": "uuid",
@@ -938,13 +931,6 @@
       "name": "reactions",
       "schema": "",
       "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
         "emoji": {
           "name": "emoji",
           "type": "text",
