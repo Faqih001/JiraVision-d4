@@ -65,8 +65,8 @@ Fixed issues with task API endpoints:
    - User profile management
    - Team management
    - Wellbeing metrics
-5. Implement frontend integration with the API endpoints
-6. Add pagination to list endpoints for performance with larger datasets
+6. Implement frontend integration with the API endpoints
+7. Add pagination to list endpoints for performance with larger datasets
 
 ## Conclusion
 
