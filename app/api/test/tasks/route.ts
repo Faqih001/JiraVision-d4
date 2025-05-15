@@ -62,7 +62,7 @@ export async function POST(request: Request) {
       )
     }
     
-    // Prepare task data, ensuring proper date formatting for dueDate
+    // Prepare task data, ensuring proper date formatting for PostgreSQL
     const taskData = {
       title: data.title,
       description: data.description || "",
@@ -71,7 +71,7 @@ export async function POST(request: Request) {
       storyPoints: data.storyPoints || 0,
       assigneeId: data.assigneeId || 1, // Use user ID 1 for testing
       sprintId: data.sprintId || null,
-      dueDate: data.dueDate ? new Date(data.dueDate) : null,
+      dueDate: data.dueDate || null, // Keep as string for PostgreSQL compatibility
       tags: data.tags || []
     }
     

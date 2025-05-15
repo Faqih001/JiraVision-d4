@@ -9,11 +9,6 @@ import {
   ethicalMetrics,
   sprintAnalytics,
   aiInsights,
-}
-      createdAt: new Date(),
-      updatedAt: new Date()
-    },
-  aiInsights,
 } from "../drizzle/schema"
 
 // For local development and testing - set to false in production
