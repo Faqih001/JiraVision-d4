@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
     // First, get the chat IDs where the current user is a participant
     const userChatIds = await db
       .select({ chatId: chatParticipants.chatId })
-      .from(chatParticipants)
+          .from(chatParticipants)
       .where(eq(chatParticipants.userId, userId));
     
     if (userChatIds.length === 0) {
@@ -121,65 +121,65 @@ export async function GET(req: NextRequest) {
         const participants = chatParticipantsMap.get(chat.id) || [];
         const participantIds = participants.map(p => p.userId);
         const lastMessage = lastMessagesMap.get(chat.id);
-        
-        // Find the other participant(s) for individual chats to get the name/avatar
-        let chatName = chat.name;
-        let chatAvatar = chat.avatar;
-        
-        // For individual chats, use the other participant's name and avatar
-        if (chat.type === 'individual') {
+      
+      // Find the other participant(s) for individual chats to get the name/avatar
+      let chatName = chat.name;
+      let chatAvatar = chat.avatar;
+      
+      // For individual chats, use the other participant's name and avatar
+      if (chat.type === 'individual') {
           const otherParticipant = participants.find(p => p.userId !== userId)?.user;
-          if (otherParticipant) {
-            chatName = otherParticipant.name;
-            chatAvatar = otherParticipant.avatar;
-          }
+        if (otherParticipant) {
+          chatName = otherParticipant.name;
+          chatAvatar = otherParticipant.avatar;
         }
-        
-        return {
-          id: chat.id,
-          type: chat.type,
-          name: chatName,
-          avatar: chatAvatar || "",
+      }
+      
+      return {
+        id: chat.id,
+        type: chat.type,
+        name: chatName,
+        avatar: chatAvatar || "",
           participants: participantIds,
-          createdAt: chat.createdAt,
-          lastMessage: lastMessage ? {
-            id: lastMessage.id,
-            content: lastMessage.content,
-            timestamp: lastMessage.timestamp,
-            senderId: lastMessage.senderId,
-            type: lastMessage.type,
-            fileUrl: lastMessage.fileUrl || undefined,
-            fileName: lastMessage.fileName || undefined,
-            fileSize: lastMessage.fileSize || undefined,
-            deleted: lastMessage.deleted,
-          } : undefined,
-          unreadCount: 0, // Would need a separate query to calculate this
-          isPinned: chat.isPinned,
-          isMuted: chat.isMuted,
-          isArchived: chat.isArchived,
-          isGroupAdmin: chat.isGroupAdmin,
-          online: chat.type === 'individual' ? 
+        createdAt: chat.createdAt,
+        lastMessage: lastMessage ? {
+          id: lastMessage.id,
+          content: lastMessage.content,
+          timestamp: lastMessage.timestamp,
+          senderId: lastMessage.senderId,
+          type: lastMessage.type,
+          fileUrl: lastMessage.fileUrl || undefined,
+          fileName: lastMessage.fileName || undefined,
+          fileSize: lastMessage.fileSize || undefined,
+          deleted: lastMessage.deleted,
+        } : undefined,
+        unreadCount: 0, // Would need a separate query to calculate this
+        isPinned: chat.isPinned,
+        isMuted: chat.isMuted,
+        isArchived: chat.isArchived,
+        isGroupAdmin: chat.isGroupAdmin,
+        online: chat.type === 'individual' ? 
             false : // Always set to false since status field doesn't exist
-            false,
-          lastMessageTime: lastMessage ? 
-            lastMessage.timestamp.toISOString() : 
-            undefined,
-          preview: lastMessage ? 
-            (lastMessage.deleted ? 'This message was deleted' : 
-              lastMessage.type === 'text' ? lastMessage.content : 
-              lastMessage.type === 'image' ? '📷 Photo' : 
-              lastMessage.type === 'video' ? '📹 Video' : 
-              lastMessage.type === 'document' ? '📄 Document' : 
-              lastMessage.type === 'audio' ? '🎵 Audio' : 
-              lastMessage.type === 'voice' ? '🎤 Voice message' : 
-              'Message'
-            ) : 
-            'Start a conversation',
-        };
-      });
+          false,
+        lastMessageTime: lastMessage ? 
+          lastMessage.timestamp.toISOString() : 
+          undefined,
+        preview: lastMessage ? 
+          (lastMessage.deleted ? 'This message was deleted' : 
+            lastMessage.type === 'text' ? lastMessage.content : 
+            lastMessage.type === 'image' ? '📷 Photo' : 
+            lastMessage.type === 'video' ? '📹 Video' : 
+            lastMessage.type === 'document' ? '📄 Document' : 
+            lastMessage.type === 'audio' ? '🎵 Audio' : 
+            lastMessage.type === 'voice' ? '🎤 Voice message' : 
+            'Message'
+          ) : 
+          'Start a conversation',
+      };
+    });
 
-      console.log(`API: Returning ${transformedChats.length} transformed chats`);
-      return NextResponse.json(transformedChats);
+    console.log(`API: Returning ${transformedChats.length} transformed chats`);
+    return NextResponse.json(transformedChats);
     } catch (innerError) {
       console.error("API Inner error fetching chats:", innerError);
       
