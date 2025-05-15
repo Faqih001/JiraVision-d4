@@ -160,6 +160,144 @@ export async function getTasksByStatus(status: string) {
   }
 }
 
+export async function getTaskById(id: number) {
+  try {
+    const result = await db.select().from(tasks).where(eq(tasks.id, id)).limit(1)
+
+    return result[0] || null
+  } catch (error) {
+    console.error(`Error getting task with ID ${id}:`, error)
+    return null
+  }
+}
+
+export async function createTask(taskData: Omit<typeof tasks.$inferInsert, 'id' | 'createdAt' | 'updatedAt'>) {
+  try {
+    // Add current timestamps
+    const dataWithTimestamps = {
+      ...taskData,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }
+
+    const [newTask] = await db.insert(tasks).values(dataWithTimestamps).returning()
+    return newTask
+  } catch (error) {
+    console.error('Error creating task:', error)
+    throw error
+  }
+}
+
+export async function updateTask(id: number, taskData: Partial<typeof tasks.$inferUpdate>) {
+  try {
+    // Always update the updatedAt field
+    const dataWithTimestamp = {
+      ...taskData,
+      updatedAt: new Date()
+    }
+
+    const [updatedTask] = await db
+      .update(tasks)
+      .set(dataWithTimestamp)
+      .where(eq(tasks.id, id))
+      .returning()
+    
+    return updatedTask
+  } catch (error) {
+    console.error(`Error updating task with ID ${id}:`, error)
+    throw error
+  }
+}
+
+export async function deleteTask(id: number) {
+  try {
+    await db.delete(tasks).where(eq(tasks.id, id))
+    return true
+  } catch (error) {
+    console.error(`Error deleting task with ID ${id}:`, error)
+    throw error
+  }
+}
+
+export async function getPaginatedTasks(
+  page: number = 1, 
+  pageSize: number = 10, 
+  filters?: { 
+    status?: string, 
+    priority?: string, 
+    assigneeId?: number, 
+    sprintId?: number,
+    search?: string
+  }
+) {
+  try {
+    const offset = (page - 1) * pageSize
+    
+    // Build base query
+    let query = db.select().from(tasks)
+    
+    // Apply filters if they exist
+    if (filters) {
+      if (filters.status) {
+        query = query.where(eq(tasks.status, filters.status))
+      }
+      
+      if (filters.priority) {
+        query = query.where(eq(tasks.priority, filters.priority))
+      }
+      
+      if (filters.assigneeId) {
+        query = query.where(eq(tasks.assigneeId, filters.assigneeId))
+      }
+      
+      if (filters.sprintId) {
+        query = query.where(eq(tasks.sprintId, filters.sprintId))
+      }
+      
+      if (filters.search) {
+        const searchPattern = `%${filters.search}%`
+        query = query.where(
+          sql`(${tasks.title} ILIKE ${searchPattern} OR ${tasks.description} ILIKE ${searchPattern})`
+        )
+      }
+    }
+    
+    // Get total count for pagination
+    const countResult = await db
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(query.as('filtered_tasks'))
+      
+    const totalCount = Number(countResult[0]?.count || 0)
+    
+    // Get paginated results
+    const results = await query
+      .orderBy(desc(tasks.updatedAt))
+      .limit(pageSize)
+      .offset(offset)
+      
+    return {
+      tasks: results,
+      pagination: {
+        total: totalCount,
+        page,
+        pageSize,
+        pageCount: Math.ceil(totalCount / pageSize)
+      }
+    }
+  } catch (error) {
+    console.error('Error getting paginated tasks:', error)
+    return {
+      tasks: [],
+      pagination: {
+        total: 0,
+        page: page,
+        pageSize: pageSize,
+        pageCount: 0
+      }
+    }
+  }
+}
+
 // Wellbeing metrics functions
 export async function getTeamWellbeing() {
   try {
