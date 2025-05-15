@@ -1,0 +1,13 @@
+                                                 Table "public.ethical_metrics"
+           Column            |            Type             | Collation | Nullable |                   Default                   
+-----------------------------+-----------------------------+-----------+----------+---------------------------------------------
+ id                          | integer                     |           | not null | nextval('ethical_metrics_id_seq'::regclass)
+ date                        | date                        |           | not null | 
+ pay_equity_score            | integer                     |           | not null | 
+ workload_balance_score      | integer                     |           | not null | 
+ dei_task_distribution_score | integer                     |           | not null | 
+ overtime_compliance         | integer                     |           | not null | 
+ created_at                  | timestamp without time zone |           |          | now()
+Indexes:
+    "ethical_metrics_pkey" PRIMARY KEY, btree (id)
+

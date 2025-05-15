@@ -61,17 +61,17 @@ async function seedChats() {
       // Add participants
       await client`
         INSERT INTO chat_participants (
-          id, chat_id, user_id, joined_at
+          chat_id, user_id, joined_at
         ) VALUES (
-          ${randomUUID()}, ${chatId}, ${mainUser.id}, now()
+          ${chatId}, ${mainUser.id}, now()
         )
       `;
       
       await client`
         INSERT INTO chat_participants (
-          id, chat_id, user_id, joined_at
+          chat_id, user_id, joined_at
         ) VALUES (
-          ${randomUUID()}, ${chatId}, ${otherUser.id}, now()
+          ${chatId}, ${otherUser.id}, now()
         )
       `;
       
@@ -115,9 +115,9 @@ async function seedChats() {
       for (const member of groupMembers) {
         await client`
           INSERT INTO chat_participants (
-            id, chat_id, user_id, joined_at
+            chat_id, user_id, joined_at
           ) VALUES (
-            ${randomUUID()}, ${groupChatId}, ${member.id}, now()
+            ${groupChatId}, ${member.id}, now()
           )
         `;
       }
