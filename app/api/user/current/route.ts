@@ -11,6 +11,7 @@ interface UserProfile {
   role?: string;
   department?: string;
   status?: 'online' | 'offline' | 'away' | 'busy' | 'active';
+  preferences?: Record<string, any>;
 }
 
 export async function GET() {
