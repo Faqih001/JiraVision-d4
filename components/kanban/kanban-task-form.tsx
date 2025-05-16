@@ -46,12 +46,18 @@ const PRIORITY_OPTIONS = [
   { value: "high", label: "High" },
 ]
 
+type TeamMember = {
+  id: number
+  name: string
+  avatar: string
+}
+
 // Mock team members for demo
-const TEAM_MEMBERS = [
-  { id: "1", name: "John Doe", avatar: "" },
-  { id: "2", name: "Alice Smith", avatar: "" },
-  { id: "3", name: "Bob Johnson", avatar: "" },
-  { id: "4", name: "Carol Williams", avatar: "" },
+const TEAM_MEMBERS: TeamMember[] = [
+  { id: 1, name: "John Doe", avatar: "" },
+  { id: 2, name: "Alice Smith", avatar: "" },
+  { id: 3, name: "Bob Johnson", avatar: "" },
+  { id: 4, name: "Carol Williams", avatar: "" },
 ]
 
 // Mock tags for demo
@@ -73,7 +79,7 @@ export default function KanbanTaskForm({
   const [description, setDescription] = useState("")
   const [priority, setPriority] = useState("medium")
   const [dueDate, setDueDate] = useState<Date | undefined>(undefined)
-  const [assigneeId, setAssigneeId] = useState<string | undefined>(undefined)
+  const [assigneeId, setAssigneeId] = useState<number | undefined>(undefined)
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [tagInput, setTagInput] = useState("")
 
@@ -118,11 +124,11 @@ export default function KanbanTaskForm({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle>Add New Task</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-6 pt-4">
+        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
           <div className="space-y-4">
             {/* Title */}
             <div className="space-y-2">
@@ -153,7 +159,7 @@ export default function KanbanTaskForm({
             </div>
 
             {/* Column & Priority */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <label htmlFor="column" className="text-sm font-medium">
                   Column <span className="text-red-500">*</span>
@@ -166,7 +172,7 @@ export default function KanbanTaskForm({
                   <SelectTrigger>
                     <SelectValue placeholder="Select column" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent position="popper">
                     {columns.map((column) => (
                       <SelectItem key={column.id} value={column.id}>
                         {column.title}
@@ -183,7 +189,7 @@ export default function KanbanTaskForm({
                   <SelectTrigger>
                     <SelectValue placeholder="Select priority" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent position="popper">
                     {PRIORITY_OPTIONS.map((option) => (
                       <SelectItem key={option.value} value={option.value}>
                         {option.label}
@@ -195,7 +201,7 @@ export default function KanbanTaskForm({
             </div>
 
             {/* Due Date & Assignee */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <label htmlFor="dueDate" className="text-sm font-medium">
                   Due Date
@@ -241,8 +247,8 @@ export default function KanbanTaskForm({
                         "Unassigned"}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-full sm:w-[200px] p-0" align="start">
-                    <div className="p-2">
+                  <PopoverContent className="w-full max-w-[200px] p-0" align="start">
+                    <div className="p-2 max-h-[200px] overflow-y-auto">
                       <div
                         className="flex items-center gap-2 rounded-md p-2 cursor-pointer hover:bg-muted"
                         onClick={() => setAssigneeId(undefined)}
@@ -295,7 +301,7 @@ export default function KanbanTaskForm({
                     <button
                       type="button"
                       onClick={() => removeTag(tag)}
-                      className="ml-1 rounded-full"
+                      className="ml-1 rounded-full hover:bg-muted"
                       aria-label={`Remove ${tag} tag`}
                     >
                       <X className="h-3 w-3" />
@@ -303,24 +309,24 @@ export default function KanbanTaskForm({
                   </Badge>
                 ))}
               </div>
-              <div className="flex flex-col sm:flex-row gap-2">
+              <div className="flex flex-col gap-2">
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
                       type="button"
                       variant="outline"
-                      className="w-full sm:w-auto"
+                      className="w-full sm:w-auto justify-center sm:justify-start"
                     >
                       Select from common tags
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-[240px]" align="start">
-                    <div className="grid grid-cols-2 gap-1 p-1">
+                    <div className="grid grid-cols-2 gap-1 p-2">
                       {AVAILABLE_TAGS.map((tag) => (
                         <div
                           key={tag}
                           className={cn(
-                            "rounded-md px-2 py-1 text-sm cursor-pointer hover:bg-muted",
+                            "rounded-md px-2 py-1.5 text-sm cursor-pointer hover:bg-muted transition-colors",
                             selectedTags.includes(tag) && "bg-muted"
                           )}
                           onClick={() => {
@@ -343,8 +349,19 @@ export default function KanbanTaskForm({
                     onChange={(e) => setTagInput(e.target.value)}
                     placeholder="Custom tag"
                     className="flex-1"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        addTag()
+                      }
+                    }}
                   />
-                  <Button type="button" variant="secondary" onClick={addTag}>
+                  <Button 
+                    type="button" 
+                    variant="secondary" 
+                    onClick={addTag}
+                    className="shrink-0"
+                  >
                     Add
                   </Button>
                 </div>
@@ -352,11 +369,20 @@ export default function KanbanTaskForm({
             </div>
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button type="button" variant="outline" onClick={onClose} className="w-full sm:w-auto">
+          <DialogFooter className="sm:justify-end gap-2">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={onClose}
+              className="w-full sm:w-auto"
+            >
               Cancel
             </Button>
-            <Button type="submit" disabled={!title || !selectedColumnId} className="w-full sm:w-auto">
+            <Button 
+              type="submit" 
+              disabled={!title || !selectedColumnId}
+              className="w-full sm:w-auto"
+            >
               Create Task
             </Button>
           </DialogFooter>

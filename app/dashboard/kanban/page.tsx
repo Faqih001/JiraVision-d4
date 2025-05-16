@@ -561,26 +561,21 @@ export default function KanbanPage() {
       ) : (
         <div className="flex-1 w-full h-[calc(100vh-10rem)] pb-4">
           <div className="h-full w-full">
-            <div 
-              className={cn("flex flex-col md:flex-row gap-4 pb-4 md:preserve-horizontal-scroll", {
-                "md:min-w-[640px]": columns.length <= 2,
-                "md:min-w-[960px]": columns.length > 2 && columns.length <= 3,
-                "md:min-w-[1280px]": columns.length > 3 && columns.length <= 4,
-                "md:min-w-[1600px]": columns.length > 4 && columns.length <= 5,
-                "md:min-w-[1920px]": columns.length > 5,
-              })}
-            >
+            <div className="flex flex-col gap-4 pb-4 h-full overflow-y-auto snap-y snap-mandatory md:flex-row md:overflow-x-auto md:overflow-y-hidden md:snap-x">
               <DragDropContext onDragEnd={handleDragEnd}>
-                {filteredColumns.map((column) => (
-                  <KanbanColumn 
-                    key={column.id} 
-                    column={column} 
-                    onAddTask={() => {
-                      setSelectedColumn(column.id)
-                      setShowTaskForm(true)
-                    }}
-                  />
-                ))}
+                <div className="flex flex-col md:flex-row gap-4 min-h-[500px] md:min-h-0 w-full">
+                  {filteredColumns.map((column) => (
+                    <div key={column.id} className="w-full md:w-[300px] flex-shrink-0 snap-start bg-background/50 rounded-lg shadow-sm">
+                      <KanbanColumn 
+                        column={column} 
+                        onAddTask={() => {
+                          setSelectedColumn(column.id)
+                          setShowTaskForm(true)
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
               </DragDropContext>
             </div>
           </div>
