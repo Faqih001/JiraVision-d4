@@ -6,6 +6,21 @@ import { eq, ne } from "drizzle-orm";
 import { getSession } from "@/lib/auth-actions";
 import { type TeamMember } from "@/types/team";
 
+// Define the type for the database query result
+type TeamMemberDbResult = {
+  id: number;
+  name: string | null;
+  email: string | null;
+  role: string | null;
+  jobTitle: string | null;
+  department: string | null;
+  status: string | null;
+  avatar: string | null;
+  skills: any; // JSONB field can be string or object
+  currentSprint: { name: string; tasks: number } | null;
+  utilization: number;
+}
+
 export async function GET(request: Request) {
   try {
     // Get authenticated session
@@ -46,7 +61,7 @@ export async function GET(request: Request) {
     }
 
     // Transform and validate the data to match TeamMember type
-    const formattedTeamMembers = teamMembers.map(member => {
+    const formattedTeamMembers = teamMembers.map((member: TeamMemberDbResult) => {
       // Parse skills from JSON string if needed
       let skills: string[] = [];
       if (member.skills) {

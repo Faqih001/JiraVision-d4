@@ -83,7 +83,7 @@ export default function TeamPage() {
         
         if (data.success && Array.isArray(data.teamMembers)) {
           // Add utilization field if not present
-          const membersWithUtilization = data.teamMembers.map(member => ({
+          const membersWithUtilization = data.teamMembers.map((member: TeamMember) => ({
             ...member,
             utilization: member.utilization || Math.floor(Math.random() * 30) + 70, // Random utilization between 70-100 if not present
           }))

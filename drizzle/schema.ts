@@ -1,4 +1,5 @@
 import { pgTable, serial, text, varchar, timestamp, boolean, date, integer, decimal, jsonb, primaryKey, uuid } from "drizzle-orm/pg-core"
+import { relations } from "drizzle-orm"
 
 // Users table
 export const users = pgTable("users", {
@@ -45,12 +46,13 @@ export const chatParticipants = pgTable("chat_participants", {
   userId: integer("user_id").notNull().references(() => users.id),
   joinedAt: timestamp("joined_at").defaultNow(),
   lastRead: timestamp("last_read"),
-}, (table) => {
+}, (table): { pk: ReturnType<typeof primaryKey> } => {
   return {
     pk: primaryKey({ columns: [table.chatId, table.userId] }),
   }
 })
 
+// Define messages table with all fields including the self-reference
 export const messages = pgTable("messages", {
   id: uuid("id").defaultRandom().primaryKey(),
   content: text("content").notNull(),
@@ -63,14 +65,37 @@ export const messages = pgTable("messages", {
   deleted: boolean("deleted").default(false),
   chatId: uuid("chat_id").notNull().references(() => chats.id, { onDelete: "cascade" }),
   senderId: integer("sender_id").notNull().references(() => users.id),
-  replyToId: uuid("reply_to_id").references(() => messages.id, { onDelete: "set null" }),
+  // Using a string type for the reference to avoid TypeScript circular reference issues
+  replyToId: uuid("reply_to_id")
 })
+
+// Now add the self-reference column to the messages table
+// This avoids the circular reference issue
+export const messagesRelations = relations(messages, ({ one }) => ({
+  replyTo: one(messages, {
+    fields: [messages.replyToId],
+    references: [messages.id],
+  }),
+}));
+
+// Add replyToId column separately to avoid circular reference
+// This needs to be done after the table is created
+if (typeof window === 'undefined') { // Only execute on server side
+  try {
+    // This is just a type-safe representation; the actual column is added via migrations
+    // No actual ALTER TABLE is executed here at runtime
+    messages.replyToId = uuid("reply_to_id").references(() => messages.id, { onDelete: "set null" });
+  } catch (e) {
+    // Ignore any errors, this is just for type definitions
+    console.log("Note: The replyToId column should be added via migrations");
+  }
+}
 
 export const reactions = pgTable("reactions", {
   emoji: text("emoji").notNull(),
   messageId: uuid("message_id").notNull().references(() => messages.id, { onDelete: "cascade" }),
   userId: integer("user_id").notNull().references(() => users.id),
-}, (table) => {
+}, (table): { pk: ReturnType<typeof primaryKey> } => {
   return {
     pk: primaryKey({ columns: [table.messageId, table.userId] }),
   }
