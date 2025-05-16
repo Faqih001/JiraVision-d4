@@ -20,6 +20,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Switch } from "@/components/ui/switch"
 import { cn } from "@/lib/utils"
 import { TeamMember } from "@/types/team"
+import { socketUtil } from "@/utils/socketUtil"
 
 // Add missing properties to Chat type
 interface EnhancedChat extends Chat {
@@ -29,125 +30,48 @@ interface EnhancedChat extends Chat {
   id: string // Ensure id is string type
 }
 
-// Placeholder function to simulate fetching team members
+// Function to fetch team members from API
 const fetchTeamMembers = async (): Promise<TeamMember[]> => {
-  // In a real app, this would be an API call
-  return [
-    {
-      id: 1,
-      name: "You (Current User)",
-      role: "Product Manager",
-      email: "you@example.com",
-      department: "Product",
-      status: "active",
-      skills: ["Product Management", "UX", "Strategy"],
-      utilization: 80,
-      avatar: "https://randomuser.me/api/portraits/men/32.jpg"
-    },
-    {
-      id: 2,
-      name: "Herbert Strayhorn",
-      role: "Project Lead",
-      email: "herbert.strayhorn@example.com",
-      phone: "+1 (555) 234-5678",
-      department: "Management",
-      status: "busy",
-      skills: ["Leadership", "Strategy", "Project Management"],
-      utilization: 95,
-      avatar: "https://randomuser.me/api/portraits/men/32.jpg"
-    },
-    {
-      id: 3,
-      name: "Jitu Chauhan",
-      role: "Frontend Developer",
-      email: "jitu.chauhan@example.com",
-      department: "Engineering",
-      status: "online",
-      skills: ["React", "TypeScript", "CSS", "UI Design"],
-      utilization: 85,
-      avatar: "https://randomuser.me/api/portraits/men/44.jpg"
-    },
-    {
-      id: 4,
-      name: "Denise Reece",
-      role: "UX Designer",
-      email: "denise.reece@example.com",
-      department: "Design",
-      status: "active",
-      skills: ["Figma", "User Research", "Wireframing", "Prototyping"],
-      utilization: 90,
-      avatar: "https://randomuser.me/api/portraits/women/65.jpg"
-    },
-    {
-      id: 5,
-      name: "Kevin White",
-      role: "Backend Developer",
-      email: "kevin.white@example.com",
-      phone: "+1 (555) 987-6543",
-      department: "Engineering",
-      status: "active",
-      skills: ["Node.js", "Express", "PostgreSQL", "API Design"],
-      utilization: 100,
-      avatar: "https://randomuser.me/api/portraits/men/22.jpg"
-    },
-    {
-      id: 6,
-      name: "Mary Newton",
-      role: "Project Manager",
-      email: "mary.newton@example.com",
-      phone: "+1 (555) 456-7890",
-      department: "Product",
-      status: "active",
-      skills: ["Agile", "JIRA", "Roadmapping", "Stakeholder Management"],
-      utilization: 75,
-      avatar: "https://randomuser.me/api/portraits/women/45.jpg"
-    },
-    {
-      id: 7,
-      name: "Richard Sousa",
-      role: "QA Engineer",
-      email: "richard.sousa@example.com",
-      department: "Engineering",
-      status: "away",
-      skills: ["Test Automation", "Selenium", "Cypress", "Manual Testing"],
-      utilization: 60,
-      avatar: "https://randomuser.me/api/portraits/men/46.jpg"
-    },
-    {
-      id: 8,
-      name: "Melissa Westbrook",
-      role: "UI Designer",
-      email: "melissa.westbrook@example.com",
-      department: "Design",
-      status: "active",
-      skills: ["UI Design", "Wireframing", "Prototyping"],
-      utilization: 70,
-      avatar: "https://randomuser.me/api/portraits/women/28.jpg"
-    },
-    {
-      id: 9,
-      name: "Christy Obrien",
-      role: "UX Researcher",
-      email: "christy.obrien@example.com",
-      department: "Design",
-      status: "active",
-      skills: ["User Research", "User Testing", "Wireframing"],
-      utilization: 85,
-      avatar: "https://randomuser.me/api/portraits/women/36.jpg"
-    },
-    {
-      id: 10,
-      name: "Joe Lindahl",
-      role: "DevOps Engineer",
-      email: "joe.lindahl@example.com",
-      department: "Engineering",
-      status: "active",
-      skills: ["Docker", "Kubernetes", "AWS", "CI/CD"],
-      utilization: 90,
-      avatar: "https://randomuser.me/api/portraits/men/53.jpg"
-    },
-  ]
+  try {
+    const response = await fetch('/api/team/members')
+    if (!response.ok) {
+      throw new Error('Failed to fetch team members')
+    }
+
+    const data = await response.json()
+    if (!data.success) {
+      throw new Error(data.error || 'Failed to fetch team members')
+    }
+
+    return data.teamMembers
+  } catch (error) {
+    console.error('Error fetching team members:', error)
+    // Return an empty array on error
+    return []
+  }
 }
+
+// Function to check search query against member
+const memberMatchesSearch = (member: TeamMember, searchQuery: string): boolean => {
+  if (!searchQuery) return true;
+  
+  const query = searchQuery.toLowerCase();
+  return (
+    member.name.toLowerCase().includes(query) ||
+    member.role?.toLowerCase().includes(query) ||
+    member.email.toLowerCase().includes(query) ||
+    member.department?.toLowerCase().includes(query) ||
+    member.skills?.some(skill => skill.toLowerCase().includes(query)) ||
+    false
+  );
+};
+
+// Filter team members based on search query and department
+const filterTeamMembers = (members: TeamMember[], query: string): TeamMember[] => {
+  if (!query) return members;
+  
+  return members.filter(member => memberMatchesSearch(member, query));
+};
 
 // Mock profile data until we have a real profile context
 const useProfile = () => {
@@ -512,20 +436,37 @@ function CustomChatList({ mobileView, setMobileView, deletedChats, setDeletedCha
       setIsReconnecting(true);
       
       console.log("Manual reconnection initiated by user");
-      // First, try direct API access to see if server is reachable
-      try {
-        const response = await fetch('/api/chat');
-        if (response.ok) {
-          console.log("API is reachable, attempting socket reconnection");
-        } else {
-          console.error("API is not reachable:", response.status, response.statusText);
-        }
-      } catch (apiError) {
-        console.error("API test failed:", apiError);
+      
+      // First, verify session
+      const sessionResponse = await fetch('/api/auth/session');
+      if (!sessionResponse.ok) {
+        console.error("Session invalid, redirecting to login");
+        window.location.href = '/login';
+        return;
       }
       
-      // Force refresh the page to reconnect all systems
-      window.location.reload();
+      // Then test API connection
+      const response = await fetch('/api/chat');
+      if (response.ok) {
+        console.log("API is reachable, reinitializing chat");
+        
+        // Clear existing socket connection
+        socketUtil.closeSocket();
+        
+        // Reinitialize socket
+        const socket = await socketUtil.initSocket();
+        if (socket) {
+          console.log("Socket connection reestablished");
+          // Refresh the page to reset all states
+          window.location.reload();
+        } else {
+          console.error("Failed to reinitialize socket");
+        }
+      } else {
+        console.error("API is not reachable:", response.status, response.statusText);
+        const errorText = await response.text();
+        console.error("Error details:", errorText);
+      }
     } catch (error) {
       console.error('Reconnection failed:', error);
     } finally {
@@ -577,8 +518,7 @@ function CustomChatList({ mobileView, setMobileView, deletedChats, setDeletedCha
       .filter(member => member.id !== 1)
       .filter(member => 
         searchQuery ? 
-          member.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-          member.role.toLowerCase().includes(searchQuery.toLowerCase()) : 
+          memberMatchesSearch(member, searchQuery) : 
           true
       )
       .map(member => member.id);
@@ -1044,8 +984,7 @@ function CustomChatList({ mobileView, setMobileView, deletedChats, setDeletedCha
               {teamMembers
                 .filter(member => 
                   searchQuery ? 
-                    member.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                    member.role.toLowerCase().includes(searchQuery.toLowerCase()) : 
+                    memberMatchesSearch(member, searchQuery) : 
                     true
                 )
                 .map(member => (
@@ -1094,8 +1033,7 @@ function CustomChatList({ mobileView, setMobileView, deletedChats, setDeletedCha
                 {teamMembers
                   .filter(member => 
                     searchQuery ? 
-                      member.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                      member.role.toLowerCase().includes(searchQuery.toLowerCase()) : 
+                      memberMatchesSearch(member, searchQuery) : 
                       true
                   )
                   .map(member => (
@@ -1480,20 +1418,37 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
       setIsReconnecting(true);
       
       console.log("Manual reconnection initiated by user");
-      // First, try direct API access to see if server is reachable
-      try {
-        const response = await fetch('/api/chat');
-        if (response.ok) {
-          console.log("API is reachable, attempting socket reconnection");
-        } else {
-          console.error("API is not reachable:", response.status, response.statusText);
-        }
-      } catch (apiError) {
-        console.error("API test failed:", apiError);
+      
+      // First, verify session
+      const sessionResponse = await fetch('/api/auth/session');
+      if (!sessionResponse.ok) {
+        console.error("Session invalid, redirecting to login");
+        window.location.href = '/login';
+        return;
       }
       
-      // Force refresh the page to reconnect all systems
-      window.location.reload();
+      // Then test API connection
+      const response = await fetch('/api/chat');
+      if (response.ok) {
+        console.log("API is reachable, reinitializing chat");
+        
+        // Clear existing socket connection
+        socketUtil.closeSocket();
+        
+        // Reinitialize socket
+        const socket = await socketUtil.initSocket();
+        if (socket) {
+          console.log("Socket connection reestablished");
+          // Refresh the page to reset all states
+          window.location.reload();
+        } else {
+          console.error("Failed to reinitialize socket");
+        }
+      } else {
+        console.error("API is not reachable:", response.status, response.statusText);
+        const errorText = await response.text();
+        console.error("Error details:", errorText);
+      }
     } catch (error) {
       console.error('Reconnection failed:', error);
     } finally {
@@ -1555,8 +1510,7 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
       .filter(member => member.id !== 1)
       .filter(member => 
         searchQuery ? 
-          member.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-          member.role.toLowerCase().includes(searchQuery.toLowerCase()) : 
+          memberMatchesSearch(member, searchQuery) : 
           true
       )
       .map(member => member.id);
@@ -1967,8 +1921,7 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
                     {teamMembers
                       .filter(member => 
                         searchQuery ? 
-                          member.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          member.role.toLowerCase().includes(searchQuery.toLowerCase()) : 
+                          memberMatchesSearch(member, searchQuery) : 
                           true
                       )
                       .map(member => (
@@ -2017,8 +1970,7 @@ function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
                       {teamMembers
                         .filter(member => 
                           searchQuery ? 
-                            member.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                            member.role.toLowerCase().includes(searchQuery.toLowerCase()) : 
+                            memberMatchesSearch(member, searchQuery) : 
                             true
                         )
                         .map(member => (

@@ -1,6 +1,7 @@
 import { db } from "./db"
 import { sql } from "drizzle-orm"
 import { seedDatabase } from "./seed-data"
+import { seedTeamMembers } from "@/drizzle/seed-team"
 
 // A helper function to execute SQL with timeout
 async function executeSqlWithTimeout(sqlStatement: ReturnType<typeof sql>, timeoutMs = 30000) {
@@ -230,6 +231,10 @@ export async function initializeDatabase() {
       console.error("Error adding columns to users table:", alterError)
     }
 
+    // Seed team members
+    await seedTeamMembers()
+
+    console.log("Database initialization completed successfully!")
     return true
   } catch (error) {
     console.error("Error initializing database:", error)

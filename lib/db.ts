@@ -3,6 +3,7 @@ import postgres from 'postgres';
 import * as schema from '@/drizzle/schema';
 import { eq } from 'drizzle-orm';
 import { users, passwordResetTokens } from '@/drizzle/schema';
+import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 
 // User type for authentication
 export type User = {
@@ -11,20 +12,21 @@ export type User = {
   email: string;
   passwordHash: string;
   role: string;
-  avatar?: string;
+  avatar?: string | null;
   emailVerified: boolean;
+  createdAt?: Date;
 };
 
 // Use connection string from .env
 const connectionString = process.env.DATABASE_URL!;
 
-// Check database type to configure properly
-const isDatabaseTypePostgres = process.env.DATABASE_TYPE === 'postgres';
+// Always use PostgreSQL
+const isDatabaseTypePostgres = true;
 
 // Debug flag
 const DEBUG = process.env.NODE_ENV === 'development';
 
-console.log(`Database connection: Using ${isDatabaseTypePostgres ? 'PostgreSQL' : 'SQL Server'} connection`);
+console.log('Database connection: Using PostgreSQL connection');
 
 // Configure options based on database type
 const connectionOptions: postgres.Options<{}> = {
@@ -52,10 +54,10 @@ try {
 }
 
 // Export db OUTSIDE the try-catch
-export const db = drizzle(queryClient, { schema });
+export const db: PostgresJsDatabase<typeof schema> = drizzle(queryClient, { schema });
 
 // Create a separate connection for one-off operations that is immediately closed
-export async function withDb<T>(callback: (db: typeof db) => Promise<T>): Promise<T> {
+export async function withDb<T>(callback: (db: PostgresJsDatabase<typeof schema>) => Promise<T>): Promise<T> {
   const singleClient = postgres(connectionString, connectionOptions);
   const singleDb = drizzle(singleClient, { schema });
   
@@ -71,7 +73,7 @@ export async function withDb<T>(callback: (db: typeof db) => Promise<T>): Promis
 
 // Helper for database transactions
 export async function transaction<T>(
-  callback: (tx: typeof db) => Promise<T>
+  callback: (tx: PostgresJsDatabase<typeof schema>) => Promise<T>
 ): Promise<T> {
   return await withDb(async (db) => {
     try {
