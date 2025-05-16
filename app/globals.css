@@ -147,6 +147,25 @@
   }
 }
 
+/* Dashboard layout styles */
+.dashboard-layout-main {
+  max-width: 100vw;
+}
+
+.dashboard-grid {
+  display: grid;
+  gap: 1.5rem;
+  width: 100%;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+}
+
+/* Preserve horizontal scroll only for kanban */
+.preserve-horizontal-scroll {
+  overflow-x: auto;
+  max-width: 100%;
+  -webkit-overflow-scrolling: touch;
+}
+
 /* Kanban styles */
 
 /* Task chart bars */

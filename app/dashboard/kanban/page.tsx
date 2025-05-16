@@ -559,9 +559,9 @@ export default function KanbanPage() {
           </div>
         </div>
       ) : (
-        <div className="flex-1 overflow-x-auto">
+        <div className="flex-1 preserve-horizontal-scroll">
           <div 
-            className={cn("flex h-full gap-4 pb-4", {
+            className={cn("flex h-full gap-4 pb-4 min-w-fit", {
               "min-w-[640px]": columns.length <= 2,
               "min-w-[960px]": columns.length > 2 && columns.length <= 3,
               "min-w-[1280px]": columns.length > 3 && columns.length <= 4,
