@@ -440,10 +440,18 @@ export async function getTeamMembers() {
         email: users.email,
         role: users.role,
         avatar: users.avatar,
+        jobTitle: users.jobTitle,
+        department: users.department,
+        status: users.status,
+        skills: users.skills,
       })
       .from(users)
+      .where(sql`${users.role} IS NOT NULL`) // Only get users with roles assigned
 
-    return result
+    return result.map(user => ({
+      ...user,
+      skills: user.skills ? JSON.parse(user.skills as string) : []
+    }))
   } catch (error) {
     console.error("Error getting team members:", error)
     return []

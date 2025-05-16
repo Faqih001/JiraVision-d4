@@ -114,6 +114,26 @@ async function testDBConnection() {
         console.log(`⚠️ Table '${table}' does not exist!`);
       }
     }
+    
+    // Check if users table has the skills column
+    const checkSkillsColumn = await client.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_schema = 'public'
+      AND table_name = 'users' 
+      AND column_name = 'skills';
+    `);
+    
+    if (checkSkillsColumn.rows.length === 0) {
+      console.log("⚠️ Skills column does not exist in users table. Adding it now...");
+      await client.query(`
+        ALTER TABLE users 
+        ADD COLUMN IF NOT EXISTS skills JSONB DEFAULT '[]'::jsonb;
+      `);
+      console.log("✅ Skills column added successfully!");
+    } else {
+      console.log("✅ Skills column exists in users table.");
+    }
 
   } catch (err) {
     console.error("❌ Database connection error:", err);

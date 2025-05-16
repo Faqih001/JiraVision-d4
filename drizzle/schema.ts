@@ -19,6 +19,8 @@ export const users = pgTable("users", {
   preferences: jsonb("preferences").default({}),
   // User status for chat
   status: varchar("status", { length: 20 }).default("offline"),
+  // Team member skills
+  skills: jsonb("skills").default([]),
   // Timestamps
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
