@@ -24,21 +24,6 @@ export function NewChatModal({ onClose }: NewChatModalProps) {
   const [modalActiveTab, setModalActiveTab] = useState<'individual' | 'group'>('individual')
   const { toast } = useToast()
 
-  // Fetch team members when component mounts
-  useEffect(() => {
-    const loadTeamMembers = async () => {
-      // Mock team members for demo
-      const members: TeamMember[] = [
-        { id: 1, name: 'Current User', role: 'Admin', avatar: '' },
-        { id: 2, name: 'John Doe', role: 'Developer', avatar: '' },
-        { id: 3, name: 'Jane Smith', role: 'Designer', avatar: '' },
-        { id: 4, name: 'Mike Johnson', role: 'Project Manager', avatar: '' }
-      ]
-      setTeamMembers(members.filter(member => member.id !== 1)) // Exclude current user
-    }
-    loadTeamMembers()
-  }, [])
-
   // Handle member selection for group chat
   const toggleMemberSelection = (memberId: number) => {
     setSelectedMembers(prev => {
@@ -52,7 +37,6 @@ export function NewChatModal({ onClose }: NewChatModalProps) {
 
   // Handle select all for group chat
   const handleSelectAll = () => {
-    // Get all selectable team members (excluding current user)
     const selectableMembers = teamMembers
       .filter(member => 
         searchQuery ? 
@@ -73,6 +57,61 @@ export function NewChatModal({ onClose }: NewChatModalProps) {
   const generateGroupAvatar = () => {
     return "/placeholder-group-avatar.jpg"
   }
+
+  // Fetch team members when component mounts
+  useEffect(() => {
+    const loadTeamMembers = async () => {
+      // Mock team members for demo with complete TeamMember shape
+      const members: TeamMember[] = [
+        { 
+          id: 1, 
+          name: 'Current User',
+          email: 'user@example.com',
+          role: 'Admin',
+          department: 'Management',
+          status: 'active',
+          skills: ['Management', 'Leadership'],
+          avatar: '',
+          utilization: 100
+        },
+        { 
+          id: 2, 
+          name: 'John Doe',
+          email: 'john@example.com',
+          role: 'Developer',
+          department: 'Engineering',
+          status: 'active',
+          skills: ['React', 'TypeScript'],
+          avatar: '',
+          utilization: 80
+        },
+        { 
+          id: 3, 
+          name: 'Jane Smith',
+          email: 'jane@example.com',
+          role: 'Designer',
+          department: 'Design',
+          status: 'active',
+          skills: ['UI/UX', 'Figma'],
+          avatar: '',
+          utilization: 75
+        },
+        { 
+          id: 4, 
+          name: 'Mike Johnson',
+          email: 'mike@example.com',
+          role: 'Project Manager',
+          department: 'Management',
+          status: 'active',
+          skills: ['Project Management', 'Agile'],
+          avatar: '',
+          utilization: 90
+        }
+      ]
+      setTeamMembers(members.filter(member => member.id !== 1)) // Exclude current user
+    }
+    loadTeamMembers()
+  }, [])
 
   // Create new group chat
   const handleCreateGroupChat = async () => {
