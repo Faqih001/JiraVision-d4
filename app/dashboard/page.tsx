@@ -514,15 +514,15 @@ export default function Dashboard() {
         </div>
 
         {/* Top Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           {/* Upgrade Plan Card */}
           <Card className="overflow-hidden">
             <div className="relative">
               <div className="absolute inset-0 bg-gradient-to-br from-purple-600 to-blue-500"></div>
-              <CardContent className="p-6 relative z-10 text-white">
-                <h3 className="text-xl font-bold mb-4">Upgrade Your Plan</h3>
-                <p className="mb-6">Your free trial expires in 7 days</p>
-                <Button className="w-full bg-white text-purple-600 hover:bg-white/90" onClick={handleUpgradeNow}>Upgrade Now</Button>
+              <CardContent className="p-4 sm:p-6 relative z-10 text-white">
+                <h3 className="text-lg sm:text-xl font-bold mb-2 sm:mb-4">Upgrade Your Plan</h3>
+                <p className="mb-4 sm:mb-6 text-sm sm:text-base">Your free trial expires in 7 days</p>
+                <Button className="w-full bg-white text-purple-600 hover:bg-white/90 text-sm sm:text-base" onClick={handleUpgradeNow}>Upgrade Now</Button>
               </CardContent>
             </div>
           </Card>
@@ -717,7 +717,7 @@ export default function Dashboard() {
         </div>
 
         {/* Support Tracker and Daily Sales */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           {/* Support Tracker */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">

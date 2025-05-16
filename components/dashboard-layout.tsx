@@ -230,6 +230,7 @@ export default function DashboardLayout({
           "fixed inset-y-0 left-0 z-50 flex h-full flex-col border-r bg-white dark:bg-gray-900 transition-all duration-300 ease-in-out lg:relative",
           sidebarCollapsed ? "w-[70px]" : "w-[250px]",
           mobileSidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
+          "shadow-lg lg:shadow-none", // Added shadow for better visibility on mobile
         )}
       >
         {/* Sidebar Header */}
@@ -362,35 +363,35 @@ export default function DashboardLayout({
       {/* Main Content */}
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Top Navbar */}
-        <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-white dark:bg-gray-900 px-4 lg:px-6">
-          <div className="flex items-center gap-4">
+        <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-white dark:bg-gray-900 px-3 sm:px-4 lg:px-6">
+          <div className="flex items-center gap-2 sm:gap-4">
             <Button variant="ghost" size="icon" className="lg:hidden" onClick={toggleMobileSidebar}>
               <Menu className="h-5 w-5" />
             </Button>
             <div
               className={cn(
                 "relative flex items-center transition-all",
-                searchFocused ? "w-[300px] md:w-[400px]" : "w-[200px] md:w-[300px]",
+                searchFocused ? "w-[180px] sm:w-[250px] md:w-[300px] lg:w-[400px]" : "w-[150px] sm:w-[200px] md:w-[250px] lg:w-[300px]",
               )}
             >
               <Search className="absolute left-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 type="search"
                 placeholder="Search..."
-                className="pl-9 h-9 bg-gray-50 dark:bg-gray-800 border-0"
+                className="pl-9 h-9 bg-gray-50 dark:bg-gray-800 border-0 text-sm"
                 onFocus={() => setSearchFocused(true)}
                 onBlur={() => setSearchFocused(false)}
               />
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1 sm:gap-2 md:gap-3">
             <Button
               variant="ghost"
               size="icon"
-              className="text-muted-foreground hover:text-foreground rounded-full h-9 w-9"
+              className="text-muted-foreground hover:text-foreground rounded-full h-8 w-8 sm:h-9 sm:w-9"
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
             >
-              {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+              {theme === "dark" ? <Sun className="h-4 w-4 sm:h-5 sm:w-5" /> : <Moon className="h-4 w-4 sm:h-5 sm:w-5" />}
             </Button>
 
             <DropdownMenu>
@@ -398,9 +399,9 @@ export default function DashboardLayout({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="relative text-muted-foreground hover:text-foreground rounded-full h-9 w-9"
+                  className="relative text-muted-foreground hover:text-foreground rounded-full h-8 w-8 sm:h-9 sm:w-9 hidden sm:flex"
                 >
-                  <Globe className="h-5 w-5" />
+                  <Globe className="h-4 w-4 sm:h-5 sm:w-5" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
@@ -415,23 +416,23 @@ export default function DashboardLayout({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="relative text-muted-foreground hover:text-foreground rounded-full h-9 w-9"
+                  className="relative text-muted-foreground hover:text-foreground rounded-full h-8 w-8 sm:h-9 sm:w-9"
                 >
-                  <Bell className="h-5 w-5" />
+                  <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
                   {unreadCount > 0 && (
                     <Badge
                       variant="destructive"
-                      className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full p-0 text-xs"
+                      className="absolute -right-1 -top-1 flex h-4 w-4 sm:h-5 sm:w-5 items-center justify-center rounded-full p-0 text-[10px] sm:text-xs"
                     >
                       {unreadCount}
                     </Badge>
                   )}
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-80">
+              <DropdownMenuContent align="end" className="w-[280px] sm:w-80">
                 <div className="flex items-center justify-between p-2">
-                  <DropdownMenuLabel className="text-base">Notifications</DropdownMenuLabel>
-                  <Button variant="ghost" size="sm" onClick={markAllAsRead}>
+                  <DropdownMenuLabel className="text-sm sm:text-base">Notifications</DropdownMenuLabel>
+                  <Button variant="ghost" size="sm" onClick={markAllAsRead} className="text-xs sm:text-sm h-7 sm:h-8">
                     Mark all as read
                   </Button>
                 </div>
@@ -464,20 +465,21 @@ export default function DashboardLayout({
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="gap-2 h-9">
-                  <Avatar className="h-8 w-8 border-2 border-primary/20">
+                <Button variant="ghost" className="gap-2 h-8 sm:h-9 px-1 sm:px-2">
+                  <Avatar className="h-7 w-7 sm:h-8 sm:w-8 border-2 border-primary/20">
                     <AvatarImage src={user.avatar || "/placeholder.svg"} alt={user.name} />
                     <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
                   </Avatar>
+                  <span className="hidden md:inline text-sm">{user.name?.split(' ')[0]}</span>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+              <DropdownMenuContent align="end" className="w-48 sm:w-56">
+                <DropdownMenuLabel className="text-sm sm:text-base">My Account</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
                   <Link href="/dashboard/settings" className="flex items-center">
                     <Settings className="mr-2 h-4 w-4" />
-                    <span>Settings</span>
+                    <span className="text-sm">Settings</span>
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem
@@ -508,7 +510,7 @@ export default function DashboardLayout({
 
         {/* Page Content */}
         <main className="flex-1 overflow-y-auto">
-          <div className="container py-6">{children}</div>
+          <div className="container mx-auto px-2 py-4 sm:px-4 md:px-6 lg:px-8 max-w-full lg:max-w-7xl">{children}</div>
         </main>
       </div>
     </div>
