@@ -559,28 +559,30 @@ export default function KanbanPage() {
           </div>
         </div>
       ) : (
-        <div className="flex-1 preserve-horizontal-scroll">
-          <div 
-            className={cn("flex h-full gap-4 pb-4 min-w-fit", {
-              "min-w-[640px]": columns.length <= 2,
-              "min-w-[960px]": columns.length > 2 && columns.length <= 3,
-              "min-w-[1280px]": columns.length > 3 && columns.length <= 4,
-              "min-w-[1600px]": columns.length > 4 && columns.length <= 5,
-              "min-w-[1920px]": columns.length > 5,
-            })}
-          >
-            <DragDropContext onDragEnd={handleDragEnd}>
-              {filteredColumns.map((column) => (
-                <KanbanColumn 
-                  key={column.id} 
-                  column={column} 
-                  onAddTask={() => {
-                    setSelectedColumn(column.id)
-                    setShowTaskForm(true)
-                  }}
-                />
-              ))}
-            </DragDropContext>
+        <div className="flex-1 w-full h-[calc(100vh-10rem)] pb-4">
+          <div className="h-full w-full preserve-horizontal-scroll">
+            <div 
+              className={cn("flex h-full gap-4 pb-4", {
+                "min-w-[640px]": columns.length <= 2,
+                "min-w-[960px]": columns.length > 2 && columns.length <= 3,
+                "min-w-[1280px]": columns.length > 3 && columns.length <= 4,
+                "min-w-[1600px]": columns.length > 4 && columns.length <= 5,
+                "min-w-[1920px]": columns.length > 5,
+              })}
+            >
+              <DragDropContext onDragEnd={handleDragEnd}>
+                {filteredColumns.map((column) => (
+                  <KanbanColumn 
+                    key={column.id} 
+                    column={column} 
+                    onAddTask={() => {
+                      setSelectedColumn(column.id)
+                      setShowTaskForm(true)
+                    }}
+                  />
+                ))}
+              </DragDropContext>
+            </div>
           </div>
         </div>
       )}

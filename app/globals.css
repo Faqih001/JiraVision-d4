@@ -164,6 +164,13 @@
   overflow-x: auto;
   max-width: 100%;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  isolation: isolate;
+}
+
+/* Ensure Kanban board stays within bounds */
+.preserve-horizontal-scroll > * {
+  min-width: min-content;
 }
 
 /* Kanban styles */
@@ -260,4 +267,4 @@
   body {
     @apply bg-background text-foreground;
   }
-} 
+}

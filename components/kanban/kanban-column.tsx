@@ -28,7 +28,7 @@ export default function KanbanColumn({ column, onAddTask }: KanbanColumnProps) {
   return (
     <div className="w-[300px] flex-shrink-0">
       <Card className="h-full flex flex-col">
-        <CardHeader className="px-3 py-3 flex flex-row items-center justify-between space-y-0">
+        <CardHeader className="px-3 py-3 flex flex-row items-center justify-between space-y-0 flex-shrink-0">
           <div className="flex items-center gap-2">
             <div className={cn("h-3 w-3 rounded-full", column.color)}></div>
             <CardTitle className="text-sm font-medium">
@@ -60,7 +60,7 @@ export default function KanbanColumn({ column, onAddTask }: KanbanColumnProps) {
                 ref={provided.innerRef}
                 {...provided.droppableProps}
                 className={cn(
-                  "h-full overflow-y-auto space-y-3 pr-1",
+                  "h-full max-h-[calc(100vh-15rem)] overflow-y-auto space-y-3 pr-1",
                   snapshot.isDraggingOver && "bg-muted/50 rounded-md"
                 )}
               >
