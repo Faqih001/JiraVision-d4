@@ -79,6 +79,13 @@ export default function TeamPage() {
 
         // Fetch team members from API
         const response = await fetch('/api/team/members')
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`API error (${response.status}):`, errorText);
+          throw new Error(`API error: ${response.status} ${response.statusText}`);
+        }
+        
         const data = await response.json()
         
         if (data.success && Array.isArray(data.teamMembers)) {
@@ -89,12 +96,15 @@ export default function TeamPage() {
           }))
           setTeamMembers(membersWithUtilization)
         } else {
-          throw new Error("Failed to fetch team members")
+          console.error("Invalid data format from API:", data);
+          throw new Error("Failed to fetch team members: invalid data format")
         }
 
         // Set departments based on actual team members
         // Get unique departments and count members in each
-        const deptMap: Record<string, { count: number, members: TeamMember[] }> = data.teamMembers.reduce((acc: Record<string, { count: number, members: TeamMember[] }>, member: TeamMember) => {
+        // Make sure data.teamMembers is an array before attempting to reduce it
+        const teamMembersArray = Array.isArray(data.teamMembers) ? data.teamMembers : [];
+        const deptMap: Record<string, { count: number, members: TeamMember[] }> = teamMembersArray.reduce((acc: Record<string, { count: number, members: TeamMember[] }>, member: TeamMember) => {
           const dept = member.department || 'Other';
           if (!acc[dept]) {
             acc[dept] = { count: 0, members: [] };
