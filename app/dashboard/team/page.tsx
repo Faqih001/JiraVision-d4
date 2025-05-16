@@ -180,7 +180,7 @@ export default function TeamPage() {
   };
 
   // Filter team members based on search query
-  const filteredTeamMembers = teamMembers.filter(member => 
+  const filteredTeamMembers = teamMembers.filter((member: TeamMember) => 
     member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     member.role.toLowerCase().includes(searchQuery.toLowerCase()) ||
     member.department.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -249,7 +249,7 @@ export default function TeamPage() {
 
           {/* Team Members Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredTeamMembers.map((member) => (
+            {filteredTeamMembers.map((member: TeamMember) => (
               <Card key={member.id}>
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
@@ -374,7 +374,7 @@ export default function TeamPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {departments.map((department) => (
+            {departments.map((department: Department) => (
               <Card key={department.id}>
                 <CardHeader>
                   <div className="flex items-center gap-3">

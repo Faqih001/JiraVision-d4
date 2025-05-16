@@ -1,5 +1,4 @@
 import { pgTable, serial, text, varchar, timestamp, boolean, date, integer, decimal, jsonb, primaryKey, uuid } from "drizzle-orm/pg-core"
-import { relations } from "drizzle-orm"
 
 // Users table
 export const users = pgTable("users", {
@@ -68,14 +67,6 @@ export const messages = pgTable("messages", {
   // Handle replyToId separately with a plain UUID column
   replyToId: uuid("reply_to_id"),
 })
-
-// Define relations for the messages table
-export const messagesRelations = relations(messages, ({ one }) => ({
-  replyTo: one(messages, {
-    fields: [messages.replyToId],
-    references: [messages.id],
-  }),
-}));
 
 export const reactions = pgTable("reactions", {
   emoji: text("emoji").notNull(),
