@@ -28,7 +28,8 @@ export async function GET(request: Request) {
         department: users.department,
         status: users.status,
         avatar: users.avatar,
-        skills: sql<string[]>`ARRAY[]::text[]`, // Default empty array for skills
+        // Default values for fields that might be null or undefined
+        skills: sql<string[]>`COALESCE(ARRAY[]::text[], ARRAY[]::text[])`, // Ensure skills is always an array
         // Currently hardcoded - implement properly based on your sprint/tasks data model
         currentSprint: sql<{ name: string; tasks: number } | null>`NULL`,
         utilization: sql<number>`100` // Default utilization to 100%
@@ -36,7 +37,7 @@ export async function GET(request: Request) {
       .from(users)
       .where(ne(users.role, 'admin')); // Exclude admin users from team list
       
-    if (!teamMembers || !Array.isArray(teamMembers)) {
+    if (!teamMembers) {
       throw new Error("Failed to fetch team members");
     }
 

@@ -18,32 +18,7 @@ const nextConfig = {
   // You may want to keep this disabled in production and handle WebSockets separately
   useFileSystemPublicRoutes: true,
   webpack: (config, { isServer }) => {
-    // Add CSS extraction plugin but configure it to avoid conflict with Next.js font handling
-    config.plugins.push(new MiniCssExtractPlugin({
-      filename: 'static/css/[name].[contenthash].css',
-      chunkFilename: 'static/css/[id].[contenthash].css',
-    }));
-    
-    // Modify CSS rule to exclude font files
-    config.module.rules.push({
-      test: /\.css$/,
-      exclude: /next\/font/,  // Exclude Next.js font CSS files
-      use: [
-        MiniCssExtractPlugin.loader,
-        {
-          loader: 'css-loader',
-          options: {
-            importLoaders: 1,
-            modules: {
-              auto: true,
-              localIdentName: '[local]_[hash:base64:5]',
-            },
-          },
-        },
-        'postcss-loader',
-      ],
-    });
-
+    // Handle client-side polyfills for socket.io
     if (!isServer) {
       config.resolve.fallback = {
         ...config.resolve.fallback,
