@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react'
 import { TeamMember } from '@/types/team'
 import * as chatApi from '@/lib/api-chat'
-import * as socketUtil from '@/lib/socket'
+import * as socketUtil from '@/lib/socket-client'
 
 // Message status types
 export type MessageStatus = 'sent' | 'delivered' | 'read' | 'sending' | 'failed' | 'error'
