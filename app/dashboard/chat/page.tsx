@@ -1,82 +1,235 @@
-"use client";
+'use client'
 
-import React, { useEffect, useState, useRef } from "react";
-import { Shield, Info, Lock, Bell, Phone, Video, Search, MoreVertical, ArrowLeft, Send, Paperclip, Mic, Image as ImageIcon, FileIcon, X, Plus, Check, Reply, Edit2, Trash2, Download, MessageSquare, Archive, Forward, Copy, Save, ThumbsUp, AlertTriangle, Loader } from "lucide-react";
-import { ChatProvider, useChat, Message, Chat } from "@/app/context/chat/ChatContext";
-import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useState } from "react"
+import { MessageSquare, Plus, ArrowLeft, MoreVertical, Phone, Video, Shield, Bell } from "lucide-react"
+import { ChatProvider, useChat } from "@/app/context/chat/ChatContext"
+import { Button } from "@/components/ui/button"
+import { useToast } from "@/hooks/use-toast"
+import { cn } from "@/lib/utils"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
   DropdownMenuItem, 
-  DropdownMenuSeparator, 
   DropdownMenuTrigger 
-} from "@/components/ui/dropdown-menu";
-import { useToast } from "@/hooks/use-toast";
-import { Input } from "@/components/ui/input";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { cn } from "@/lib/utils";
-import { NewChatModal } from "@/components/chat/NewChatModal";
-import { useProfile } from "@/app/providers/profile";
+} from "@/components/ui/dropdown-menu"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import { NewChatModal } from "@/components/chat/NewChatModal"
+import { ChatMessageInput } from "@/components/chat/ChatMessageInput"
+import { MessageBubble } from "@/components/chat/MessageBubble"
+import { ChatList } from "@/components/chat/ChatList"
 
-interface ChatListProps {
-  mobileView: 'list' | 'chat';
-  setMobileView: (view: 'list' | 'chat') => void;
-  deletedChats: Chat[];
-  setDeletedChats: React.Dispatch<React.SetStateAction<Chat[]>>;
+interface Team {
+  id: number
+  name: string
+  email: string
+  role: string
+  department: string
+  status: string
+  skills: string[]
+  avatar: string
+  utilization: number
 }
 
-interface EnhancedChat extends Chat {
-  preview?: string;
-  lastMessageTime?: string;
-  online?: boolean;
-  id: string;
+function ChatWindow({ mobileView, setMobileView }: { 
+  mobileView: 'list' | 'chat'
+  setMobileView: (view: 'list' | 'chat') => void 
+}) {
+  const { activeChat, messages } = useChat()
+  const [showNotificationSettings, setShowNotificationSettings] = useState(false)
+  
+  if (!activeChat) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full p-4">
+        <div className="max-w-md text-center">
+          <div className="bg-primary/10 text-primary rounded-full p-6 mx-auto mb-6 w-24 h-24 flex items-center justify-center">
+            <MessageSquare className="h-12 w-12" />
+          </div>
+          <h2 className="text-2xl font-bold mb-3">No chat selected</h2>
+          <p className="text-muted-foreground mb-6">
+            Choose a chat from the list or start a new conversation
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* Chat Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b bg-card">
+        <div className="flex items-center gap-3">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9 rounded-full lg:hidden"
+            onClick={() => setMobileView('list')}
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+
+          <div className="flex items-center gap-3">
+            <Avatar className="h-10 w-10">
+              <AvatarImage src={activeChat.avatar} alt={activeChat.name} />
+              <AvatarFallback>
+                {activeChat.name.substring(0, 2).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <h3 className="font-semibold">{activeChat.name}</h3>
+              {activeChat.online && activeChat.type === 'individual' && (
+                <p className="text-xs text-muted-foreground">Online</p>
+              )}
+              {activeChat.type === 'group' && (
+                <p className="text-xs text-muted-foreground">
+                  {activeChat.participants.length} members
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-1">
+          {activeChat.type === 'individual' && (
+            <>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full">
+                      <Phone className="h-5 w-5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Start voice call</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full">
+                      <Video className="h-5 w-5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Start video call</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </>
+          )}
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full">
+                <MoreVertical className="h-5 w-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuItem>
+                View profile
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setShowNotificationSettings(true)}>
+                Notifications settings
+              </DropdownMenuItem>
+              <DropdownMenuItem>
+                Search messages
+              </DropdownMenuItem>
+              <DropdownMenuItem className="text-destructive">
+                Block contact
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+
+      {/* Chat Messages */}
+      <ScrollArea className="flex-1 p-4">
+        <div className="space-y-2">
+          {messages.map((message, i) => {
+            const isSequential = i > 0 && 
+              messages[i - 1].senderId === message.senderId && 
+              new Date(message.timestamp).getTime() - new Date(messages[i - 1].timestamp).getTime() < 120000
+
+            return (
+              <MessageBubble
+                key={message.id}
+                message={message}
+                showAvatar={!isSequential}
+                isSequential={isSequential}
+                isLast={i === messages.length - 1}
+                isGroupChat={activeChat.type === 'group'}
+              />
+            )
+          })}
+        </div>
+      </ScrollArea>
+
+      {/* Message Input */}
+      <ChatMessageInput disabled={activeChat.isBlocked} />
+
+      {/* Notification Settings Modal */}
+      {showNotificationSettings && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-card rounded-lg w-full max-w-md p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-semibold flex items-center gap-2">
+                <Bell className="h-5 w-5" />
+                Notification Settings
+              </h2>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => setShowNotificationSettings(false)}
+              >
+                <span className="sr-only">Close</span>
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="space-y-4">
+              {/* Add notification settings */}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
 }
 
-interface TeamMember {
-  id: number;
-  name: string;
-  email: string;
-  role: string;
-  department: string;
-  status: string;
-  skills: string[];
-  avatar: string;
-  utilization: number;
-}
-
-const defaultTeamMembers: TeamMember[] = [
+const defaultTeamMembers: Team[] = [
   { 
     id: 1, 
-    name: 'Current User', 
-    email: 'user@example.com',
-    role: 'Admin', 
-    department: 'Management',
-    status: 'active',
-    skills: ['Management', 'Leadership'],
-    avatar: '',
-    utilization: 100
-  },
-  { 
-    id: 2, 
-    name: 'John Doe', 
-    email: 'john@example.com',
-    role: 'Developer', 
+    name: 'Alice Smith', 
+    email: 'alice@example.com',
+    role: 'Frontend Developer',
     department: 'Engineering',
     status: 'active',
     skills: ['React', 'TypeScript'],
     avatar: '',
-    utilization: 80
+    utilization: 85
+  },
+  { 
+    id: 2, 
+    name: 'Bob Wilson', 
+    email: 'bob@example.com',
+    role: 'Backend Developer',
+    department: 'Engineering',
+    status: 'active',
+    skills: ['Node.js', 'Python'],
+    avatar: '',
+    utilization: 70
   },
   { 
     id: 3, 
-    name: 'Jane Smith', 
-    email: 'jane@example.com',
-    role: 'Designer', 
+    name: 'Carol Brown', 
+    email: 'carol@example.com',
+    role: 'UI/UX Designer',
     department: 'Design',
     status: 'active',
-    skills: ['UI/UX', 'Figma'],
+    skills: ['Figma', 'UI Design'],
     avatar: '',
     utilization: 75
   },
@@ -84,243 +237,67 @@ const defaultTeamMembers: TeamMember[] = [
     id: 4, 
     name: 'Mike Johnson', 
     email: 'mike@example.com',
-    role: 'Project Manager', 
+    role: 'Project Manager',
     department: 'Management',
     status: 'active',
     skills: ['Project Management', 'Agile'],
     avatar: '',
     utilization: 90
   }
-];
+]
 
-export default function Page() {
-  const [mobileView, setMobileView] = useState<'list' | 'chat'>('list');
-  const [showSecurityModal, setShowSecurityModal] = useState(false);
-  const [showNotificationModal, setShowNotificationModal] = useState(false);
-  const [showDeletedChatsModal, setShowDeletedChatsModal] = useState(false);
-  const [notificationSettings, setNotificationSettings] = useState({
-    all: true,
-    messages: true,
-    mentions: true,
-    groups: true,
-    sound: true
-  });
-  const [deletedChats, setDeletedChats] = useState<Chat[]>([]);
-  const { toast } = useToast();
-
+export default function ChatPage() {
+  const [mobileView, setMobileView] = useState<'list' | 'chat'>('list')
+  const [showNewChatModal, setShowNewChatModal] = useState(false)
+  
   return (
     <ChatProvider teamMembers={defaultTeamMembers}>
-      <div className="flex h-screen flex-col">
-        <div className="border-b p-4 flex items-center justify-between bg-background">
-          <h1 className="text-2xl font-bold">Chat</h1>
-          <div className="flex items-center gap-2">
-            {/* Header buttons */}
+      <div className="flex h-[calc(100vh-4rem)] overflow-hidden bg-background">
+        {/* Chat List Sidebar */}
+        <div className={cn(
+          "w-full lg:w-96 border-r lg:flex flex-col bg-card",
+          mobileView === 'list' ? 'flex' : 'hidden'
+        )}>
+          <div className="p-4 border-b">
+            <div className="flex items-center justify-between mb-4">
+              <h1 className="text-2xl font-bold">Chats</h1>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      size="icon"
+                      className="rounded-full"
+                      onClick={() => setShowNewChatModal(true)}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>New chat</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
           </div>
+
+          <ChatList />
         </div>
 
-        <main className="flex-1 flex w-full overflow-hidden">
-          <div className={cn(
-            "h-full flex-col border-r md:flex md:w-80",
-            mobileView === "list" ? "flex" : "hidden"
-          )}>
-            <CustomChatList 
-              mobileView={mobileView} 
-              setMobileView={setMobileView}
-              deletedChats={deletedChats}
-              setDeletedChats={setDeletedChats}
-            />
-          </div>
-          <div className={cn(
-            "flex-1 flex-col h-full overflow-hidden md:flex",
-            mobileView === "chat" ? "flex" : "hidden"
-          )}>
-            <ChatWindow 
-              mobileView={mobileView} 
-              setMobileView={setMobileView} 
-            />
-          </div>
-        </main>
-
-        {/* Modals */}
-        {showNotificationModal && (
-          <div className="chat-modal-layout">
-            {/* Notification modal content */}
-          </div>
-        )}
-
-        {showSecurityModal && (
-          <div className="chat-modal-layout">
-            {/* Security modal content */}
-          </div>
-        )}
-
-        {showDeletedChatsModal && (
-          <div className="chat-modal-layout">
-            {/* Deleted chats modal content */}
-          </div>
-        )}
-      </div>
-    </ChatProvider>
-  );
-}
-
-function CustomChatList({ mobileView, setMobileView, deletedChats, setDeletedChats }: ChatListProps) {
-  const { chats, activeChat, setActiveChat, connectionStatus, markAsRead, archiveChat, unarchiveChat, muteChat, unmuteChat } = useChat();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showNewChatModal, setShowNewChatModal] = useState(false);
-  const [activeTab, setActiveTab] = useState<'recent' | 'contacts'>('recent');
-  const [contextMenuPosition, setContextMenuPosition] = useState<{
-    x: number,
-    y: number,
-    chatId: string | null,
-    position: 'up' | 'down'
-  } | null>(null);
-  const profileData = useProfile();
-  const { toast } = useToast();
-
-  const handleContextMenuAction = (action: string, chatId: string) => {
-    switch (action) {
-      case 'archive':
-        archiveChat(chatId);
-        break;
-      case 'unarchive':
-        unarchiveChat(chatId);
-        break;
-      case 'mute':
-        muteChat(chatId);
-        break;
-      case 'read':
-        markAsRead(chatId);
-        break;
-    }
-    setContextMenuPosition(null);
-  };
-
-  // Handle context menu
-  const handleContextMenu = (e: React.MouseEvent, chatId: string) => {
-    e.preventDefault();
-    const position = e.clientY > window.innerHeight * 0.6 ? 'up' : 'down';
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    
-    setContextMenuPosition({
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
-      chatId,
-      position
-    });
-  };
-
-  return (
-    <div className="flex flex-col h-full w-full bg-background">
-      <div className="p-4 border-b sticky top-0 bg-background z-10">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="chat-search-container">
-            <Search className="chat-search-icon" />
-            <Input
-              placeholder="Search messages..."
-              className="pl-9 bg-muted/40 border rounded-full"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button 
-                  size="icon" 
-                  variant="outline"
-                  className="rounded-full flex-shrink-0"
-                  onClick={() => setShowNewChatModal(true)}
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Create New Chat</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+        {/* Chat Window */}
+        <div className={cn(
+          "flex-1 lg:flex flex-col",
+          mobileView === 'chat' ? 'flex' : 'hidden'
+        )}>
+          <ChatWindow 
+            mobileView={mobileView} 
+            setMobileView={setMobileView}
+          />
         </div>
       </div>
 
-      <div className="chat-list-scroll">
-        <Tabs 
-          defaultValue="recent" 
-          className="flex flex-col h-full"
-          onValueChange={(value) => setActiveTab(value as 'recent' | 'contacts')}
-        >
-          {/* Chat list content */}
-        </Tabs>
-      </div>
-
-      {contextMenuPosition && (
-        <DropdownMenu>
-          <DropdownMenuContent
-            className="chat-context-menu"
-            data-position={contextMenuPosition.position}
-            data-state="open"
-          >
-            <DropdownMenuItem
-              onClick={() => contextMenuPosition.chatId && handleContextMenuAction(
-                activeTab === 'recent' ? 'archive' : 'unarchive',
-                contextMenuPosition.chatId
-              )}
-            >
-              {activeTab === 'recent' ? 'Archive Chat' : 'Unarchive Chat'}
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => contextMenuPosition.chatId && handleContextMenuAction('read', contextMenuPosition.chatId)}
-            >
-              Mark as Read
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => contextMenuPosition.chatId && handleContextMenuAction('mute', contextMenuPosition.chatId)}
-            >
-              Mute Notifications
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+      {/* New Chat Modal */}
+      {showNewChatModal && (
+        <NewChatModal onClose={() => setShowNewChatModal(false)} />
       )}
-
-      {showNewChatModal && <NewChatModal onClose={() => setShowNewChatModal(false)} />}
-    </div>
-  );
-}
-
-function ChatWindow({ mobileView, setMobileView }: { mobileView: string, setMobileView: (view: 'list' | 'chat') => void }) {
-  const [showNewChatModal, setShowNewChatModal] = useState(false);
-  const { activeChat } = useChat();
-
-  if (!activeChat) {
-    return (
-      <div className="flex-1 flex flex-col items-center justify-center bg-background p-4 h-full w-full">
-        <div className="text-center max-w-md mx-auto">
-          <div className="bg-muted/30 rounded-full p-6 mx-auto mb-6 w-24 h-24 flex items-center justify-center">
-            <MessageSquare className="h-12 w-12 text-muted-foreground" />
-          </div>
-          <h2 className="text-2xl font-bold mb-3">No chat selected</h2>
-          <p className="text-muted-foreground mb-6 max-w-xs">
-            Select a chat from the list or start a new conversation to connect with your team
-          </p>
-          <Button
-            onClick={() => setShowNewChatModal(true)}
-            className="mx-auto"
-            size="lg"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            New Chat
-          </Button>
-        </div>
-
-        {showNewChatModal && <NewChatModal onClose={() => setShowNewChatModal(false)} />}
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex-1 flex flex-col h-full">
-      {/* Chat window content */}
-      {showNewChatModal && <NewChatModal onClose={() => setShowNewChatModal(false)} />}
-    </div>
-  );
+    </ChatProvider>
+  )
 }
