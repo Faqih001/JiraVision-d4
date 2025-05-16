@@ -104,29 +104,40 @@ export default function TeamPage() {
         // Get unique departments and count members in each
         // Make sure data.teamMembers is an array before attempting to reduce it
         const teamMembersArray = Array.isArray(data.teamMembers) ? data.teamMembers : [];
-        const deptMap: Record<string, { count: number, members: TeamMember[] }> = teamMembersArray.reduce((acc: Record<string, { count: number, members: TeamMember[] }>, member: TeamMember) => {
-          const dept = member.department || 'Other';
-          if (!acc[dept]) {
-            acc[dept] = { count: 0, members: [] };
-          }
-          acc[dept].count += 1;
-          acc[dept].members.push(member);
-          return acc;
-        }, {});
+        let deptMap: Record<string, { count: number, members: TeamMember[] }> = {};
         
-        // Convert to department objects
-        const departmentsData = Object.entries(deptMap).map(([name, info], index) => {
-          // Find a senior member to use as lead (could be improved with actual data)
-          const leadMember = info.members[0];
-          
-          return {
-            id: index + 1,
-            name,
-            memberCount: info.count,
-            lead: leadMember ? leadMember.name : "Not Assigned",
-            productivity: Math.floor(Math.random() * 15) + 80, // Random productivity between 80-95
-          };
-        });
+        try {
+          deptMap = teamMembersArray.reduce((acc: Record<string, { count: number, members: TeamMember[] }>, member: TeamMember) => {
+            if (!member) return acc; // Skip undefined/null members
+            
+            const dept = member.department || 'Other';
+            if (!acc[dept]) {
+              acc[dept] = { count: 0, members: [] };
+            }
+            acc[dept].count += 1;
+            acc[dept].members.push(member);
+            return acc;
+          }, {});
+        } catch (error) {
+          console.error("Error processing department data:", error);
+          deptMap = { 'Other': { count: teamMembersArray.length, members: teamMembersArray } };
+        }
+        
+        // Convert to department objects - safely handle the case where deptMap might be null/undefined
+        const departmentsData = deptMap && typeof deptMap === 'object' ? 
+          Object.entries(deptMap).map(([name, info], index) => {
+            // Find a senior member to use as lead (could be improved with actual data)
+            const leadMember = info && info.members && info.members.length > 0 ? info.members[0] : null;
+            
+            return {
+              id: index + 1,
+              name,
+              memberCount: info && typeof info.count === 'number' ? info.count : 0,
+              lead: leadMember ? leadMember.name : "Not Assigned",
+              productivity: Math.floor(Math.random() * 15) + 80, // Random productivity between 80-95
+            };
+          })
+        : [];
         
         setDepartments(departmentsData)
       } catch (error) {

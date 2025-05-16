@@ -79,8 +79,8 @@ export async function GET(request: Request) {
             // Parse JSON string safely
             try {
               const parsed = JSON.parse(member.skills);
-              skills = Array.isArray(parsed) ? parsed : [];
-              console.log('Parsed skills from string:', skills);
+              skills = Array.isArray(parsed) ? parsed.map(skill => String(skill)) : [];
+              console.log('Parsed skills from string (converted to strings):', skills);
             } catch (e) {
               console.warn(`Failed to parse skills string for user ${member.id}`);
             }
@@ -92,8 +92,8 @@ export async function GET(request: Request) {
             // Try to safely extract values from object
             try {
               const values = Object.values(member.skills);
-              skills = Array.isArray(values) ? values : [];
-              console.log('Extracted skills from object:', skills);
+              skills = Array.isArray(values) ? values.map(value => String(value)) : [];
+              console.log('Extracted skills from object (converted to strings):', skills);
             } catch (e) {
               console.warn(`Failed to extract skills from object for user ${member.id}`);
             }
