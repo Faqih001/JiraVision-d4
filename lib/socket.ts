@@ -1,4 +1,5 @@
-import { io, type Socket as ClientToServerSocket } from 'socket.io-client';
+import { Socket as ClientSocket } from 'socket.io-client';
+import io from 'socket.io-client';
 
 interface AuthSuccessData {
   userId: number;
@@ -9,9 +10,9 @@ interface AuthErrorData {
   message?: string;
 }
 
-let socket: ReturnType<typeof io> | null = null;
+let socket: typeof ClientSocket | null = null;
 
-export function getSocket(): ReturnType<typeof io> | null {
+export function getSocket(): typeof ClientSocket | null {
   return socket;
 }
 
@@ -45,7 +46,7 @@ async function getCurrentUser() {
   }
 }
 
-export async function initSocket(): Promise<ReturnType<typeof io>> {
+export async function initSocket(): Promise<typeof ClientSocket> {
   return new Promise(async (resolve, reject) => {
     try {
       console.log('Socket initialization starting...');
@@ -108,7 +109,6 @@ export async function initSocket(): Promise<ReturnType<typeof io>> {
         reconnectionDelayMax: 5000,
         timeout: 30000,
         transports: ['polling', 'websocket'],
-        withCredentials: true,
         auth: {
           userId: user.id,
           userName: user.name
