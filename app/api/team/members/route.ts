@@ -49,7 +49,7 @@ export async function GET(request: Request) {
       department: member.department || 'General',
       status: member.status || 'offline',
       avatar: member.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name || 'U')}&background=random`,
-      currentSprint: member.currentSprint || undefined,
+      currentSprint: member.currentSprint || null,
       skills: member.skills || [],
       utilization: member.utilization || 100
     })) as TeamMember[];

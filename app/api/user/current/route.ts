@@ -74,7 +74,8 @@ export async function GET() {
         role: userProfile.role || 'user',
         avatar: userProfile.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}`,
         department: userProfile.department || 'General',
-        status: userProfile.status || 'offline'
+        status: userProfile.status || 'offline',
+        preferences: userProfile.preferences || {},
       }
     });
   } catch (error) {

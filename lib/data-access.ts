@@ -38,7 +38,13 @@ export async function getUserProfile(userId: number) {
       createdAt: users.createdAt,
       updatedAt: users.updatedAt,
       preferences: users.preferences,
+      status: users.status,
     }).from(users).where(eq(users.id, userId)).limit(1)
+    
+    // Ensure preferences is always an object, not null
+    if (result[0] && result[0].preferences === null) {
+      result[0].preferences = {};
+    }
     
     // Log warning if user not found
     if (!result[0]) {
