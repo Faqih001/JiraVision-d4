@@ -18,9 +18,30 @@ const nextConfig = {
   // You may want to keep this disabled in production and handle WebSockets separately
   useFileSystemPublicRoutes: true,
   webpack: (config, { isServer }) => {
-    // Add mini-css-extract-plugin
-    config.plugins.push(new MiniCssExtractPlugin());
+    // Configure css extraction and modules
+    config.plugins.push(new MiniCssExtractPlugin({
+      filename: 'static/css/[name].[contenthash].css',
+      chunkFilename: 'static/css/[id].[contenthash].css',
+    }));
     
+    config.module.rules.push({
+      test: /\.css$/,
+      use: [
+        MiniCssExtractPlugin.loader,
+        {
+          loader: 'css-loader',
+          options: {
+            importLoaders: 1,
+            modules: {
+              auto: true,
+              localIdentName: '[local]_[hash:base64:5]',
+            },
+          },
+        },
+        'postcss-loader',
+      ],
+    });
+
     if (!isServer) {
       config.resolve.fallback = {
         ...config.resolve.fallback,

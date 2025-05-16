@@ -6,7 +6,16 @@ import { eq, ne } from 'drizzle-orm';
 
 export async function GET(request: Request) {
   try {
-    // Fetch team members from database
+    // Get authenticated session
+    const session = await getSession()
+    if (!session || !session.id) {
+      return NextResponse.json(
+        { error: "Unauthorized", details: "No valid session found" },
+        { status: 401 }
+      )
+    }
+
+    // Fetch team members from database with all required fields
     const teamMembers = await db
       .select({
         id: users.id,
@@ -16,21 +25,33 @@ export async function GET(request: Request) {
         department: users.department,
         status: users.status,
         avatar: users.avatar,
+        currentSprint: sql<{ name: string, tasks: number } | null>`NULL`, // You can implement this later if needed
+        skills: sql<string[]>`NULL`, // You can implement this later if needed
+        utilization: sql<number>`100` // Default utilization
       })
       .from(users)
-      // Exclude admin users
       .where(ne(users.role, 'admin'))
-    
-    // Transform the data to match the expected format
+      
+    if (!teamMembers || !Array.isArray(teamMembers)) {
+      throw new Error("Failed to fetch team members")
+    }
+
+    // Transform the data to match the expected format while handling null values
     const formattedTeamMembers = teamMembers.map(member => ({
       id: member.id,
-      name: member.name,
-      email: member.email,
+      name: member.name || 'Unknown User',
+      email: member.email || '',
       role: member.role || 'Team Member',
       department: member.department || 'General',
       status: member.status || 'offline',
-      avatar: member.avatar || `https://randomuser.me/api/portraits/men/${member.id}.jpg`,
+      avatar: member.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name || 'U')}&background=random`,
+      currentSprint: member.currentSprint,
+      skills: member.skills || [],
+      utilization: member.utilization,
     }))
+
+    // Log success
+    console.log(`Successfully fetched ${formattedTeamMembers.length} team members`)
 
     return NextResponse.json({ 
       success: true,
