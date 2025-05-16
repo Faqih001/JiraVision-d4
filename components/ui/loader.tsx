@@ -170,16 +170,7 @@ export function CircleJVLoader({ className, size = "md", showText = false }: Cir
         )}
       >
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="relative h-5/6 w-5/6">
-            <Image 
-              src="/jiravision_logo.png" 
-              alt="JiraVision"
-              width={64}
-              height={64}
-              className="object-contain"
-              sizes="(max-width: 768px) 64px, 96px"
-            />
-          </div>
+          <span className="text-primary font-bold text-2xl">JV</span>
         </div>
         {/* Inner pulsing circle */}
         <div className="absolute inset-1 rounded-full border-2 border-primary/30 animate-pulse" />

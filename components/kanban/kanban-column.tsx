@@ -26,7 +26,7 @@ type KanbanColumnProps = {
 
 export default function KanbanColumn({ column, onAddTask }: KanbanColumnProps) {
   return (
-    <div className="w-[300px] flex-shrink-0">
+    <div className="w-full md:w-[300px] flex-shrink-0">
       <Card className="h-full flex flex-col">
         <CardHeader className="px-3 py-3 flex flex-row items-center justify-between space-y-0 flex-shrink-0">
           <div className="flex items-center gap-2">

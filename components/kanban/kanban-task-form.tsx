@@ -90,28 +90,24 @@ export default function KanbanTaskForm({
     }
   }, [isOpen, user])
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    
-    const formData = {
+    if (!title || !selectedColumnId) return
+
+    onSubmit({
       title,
       description,
       priority,
-      dueDate: dueDate ? format(dueDate, "yyyy-MM-dd") : undefined,
-      assignee: assigneeId ? 
-        (assigneeId === user?.id ? 
-          { id: user?.id, name: user?.name, avatar: user?.avatar } : 
-          TEAM_MEMBERS.find(member => member.id === assigneeId)) : 
-        undefined,
+      dueDate: dueDate?.toISOString().split('T')[0],
+      assigneeId,
       tags: selectedTags,
-    }
-    
-    onSubmit(formData)
+      columnId: selectedColumnId,
+    })
   }
 
   const addTag = () => {
-    if (tagInput && !selectedTags.includes(tagInput)) {
-      setSelectedTags([...selectedTags, tagInput])
+    if (tagInput.trim() && !selectedTags.includes(tagInput.trim())) {
+      setSelectedTags([...selectedTags, tagInput.trim()])
       setTagInput("")
     }
   }
@@ -157,7 +153,7 @@ export default function KanbanTaskForm({
             </div>
 
             {/* Column & Priority */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label htmlFor="column" className="text-sm font-medium">
                   Column <span className="text-red-500">*</span>
@@ -199,7 +195,7 @@ export default function KanbanTaskForm({
             </div>
 
             {/* Due Date & Assignee */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label htmlFor="dueDate" className="text-sm font-medium">
                   Due Date
@@ -208,7 +204,6 @@ export default function KanbanTaskForm({
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
-                      size="sm"
                       className={cn(
                         "w-full justify-start text-left font-normal",
                         !dueDate && "text-muted-foreground"
@@ -236,7 +231,6 @@ export default function KanbanTaskForm({
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
-                      size="sm"
                       className="w-full justify-start text-left font-normal"
                     >
                       <Users className="mr-2 h-4 w-4" />
@@ -247,7 +241,7 @@ export default function KanbanTaskForm({
                         "Unassigned"}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-[200px] p-0" align="start">
+                  <PopoverContent className="w-full sm:w-[200px] p-0" align="start">
                     <div className="p-2">
                       <div
                         className="flex items-center gap-2 rounded-md p-2 cursor-pointer hover:bg-muted"
@@ -309,14 +303,13 @@ export default function KanbanTaskForm({
                   </Badge>
                 ))}
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
                       type="button"
                       variant="outline"
-                      size="sm"
-                      className="flex-1"
+                      className="w-full sm:w-auto"
                     >
                       Select from common tags
                     </Button>
@@ -344,14 +337,14 @@ export default function KanbanTaskForm({
                     </div>
                   </PopoverContent>
                 </Popover>
-                <div className="flex flex-1 gap-2">
+                <div className="flex gap-2">
                   <Input
                     value={tagInput}
                     onChange={(e) => setTagInput(e.target.value)}
                     placeholder="Custom tag"
                     className="flex-1"
                   />
-                  <Button type="button" size="sm" variant="secondary" onClick={addTag}>
+                  <Button type="button" variant="secondary" onClick={addTag}>
                     Add
                   </Button>
                 </div>
@@ -359,11 +352,11 @@ export default function KanbanTaskForm({
             </div>
           </div>
 
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button type="button" variant="outline" onClick={onClose} className="w-full sm:w-auto">
               Cancel
             </Button>
-            <Button type="submit" disabled={!title || !selectedColumnId}>
+            <Button type="submit" disabled={!title || !selectedColumnId} className="w-full sm:w-auto">
               Create Task
             </Button>
           </DialogFooter>
