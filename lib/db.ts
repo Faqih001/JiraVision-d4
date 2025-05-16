@@ -18,10 +18,11 @@ export type User = {
   department: string | null;
   location: string | null;
   bio: string | null;
-  skills: string[] | null;
+  language: string | null;
   timezone: string | null;
+  skills: string[] | null;
+  preferences: Record<string, unknown>;
   status: string | null;
-  lastActive: Date | null;
   createdAt: Date;
   updatedAt: Date | null;
 };
@@ -102,9 +103,10 @@ export async function getUserById(id: number): Promise<User | null> {
       location: user.location,
       bio: user.bio,
       skills: [], // TODO: Implement skills once schema is updated
+      language: user.language,
       timezone: user.timezone,
+      preferences: user.preferences as Record<string, unknown>,
       status: user.status,
-      lastActive: user.lastActive,
       createdAt: user.createdAt ?? new Date(),
       updatedAt: user.updatedAt
     };
@@ -134,9 +136,10 @@ export async function getUserByEmail(email: string): Promise<User | null> {
       location: user.location,
       bio: user.bio,
       skills: [], // TODO: Implement skills once schema is updated
+      language: user.language,
       timezone: user.timezone,
+      preferences: user.preferences as Record<string, unknown>,
       status: user.status,
-      lastActive: user.lastActive,
       createdAt: user.createdAt ?? new Date(),
       updatedAt: user.updatedAt
     };
@@ -178,12 +181,35 @@ export async function createUser(data: {
         avatar: data.avatar,
         role: "user",
         emailVerified: false,
+        language: "en-US",
+        timezone: "Africa/Nairobi",
+        preferences: {},
+        status: "offline",
         createdAt: new Date(),
         updatedAt: new Date()
       })
       .returning();
     
-    return newUser as User;
+    return {
+      id: newUser.id,
+      name: newUser.name,
+      email: newUser.email,
+      passwordHash: newUser.passwordHash,
+      role: newUser.role,
+      avatar: newUser.avatar,
+      emailVerified: newUser.emailVerified ?? false,
+      jobTitle: newUser.jobTitle,
+      department: newUser.department,
+      location: newUser.location,
+      bio: newUser.bio,
+      skills: [], // TODO: Implement skills once schema is updated
+      language: newUser.language,
+      timezone: newUser.timezone,
+      preferences: newUser.preferences as Record<string, unknown>,
+      status: newUser.status,
+      createdAt: newUser.createdAt ?? new Date(),
+      updatedAt: newUser.updatedAt
+    };
   } catch (error) {
     console.error("Error creating user:", error);
     throw error;
