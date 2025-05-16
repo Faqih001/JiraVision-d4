@@ -1,5 +1,7 @@
+'use client'
+
 import React from 'react';
-import { Bell, Shield, X } from 'lucide-react';
+import { Bell, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 

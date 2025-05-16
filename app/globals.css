@@ -326,6 +326,19 @@
   }
 }
 
+/* Context Menu Positioning */
+.context-menu {
+  @apply fixed bg-background shadow-lg border rounded-md py-1 z-50 w-48;
+}
+
+.context-menu-up {
+  transform: translateY(-180px);
+}
+
+.context-menu-down {
+  transform: translateY(0);
+}
+
 /* Mobile Navigation */
 .chat-mobile-nav {
   transition: transform 0.3s ease-in-out;
