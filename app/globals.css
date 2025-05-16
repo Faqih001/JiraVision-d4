@@ -163,8 +163,8 @@
 .preserve-horizontal-scroll {
   overflow-x: auto;
   max-width: 100%;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior-x: contain;
+  -ms-overflow-style: -ms-autohiding-scrollbar;
+  touch-action: pan-x pinch-zoom;
   isolation: isolate;
 }
 
@@ -267,4 +267,25 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Context Menu Positioning */
+.context-menu {
+  position: fixed;
+  background-color: var(--background);
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  border-radius: 0.375rem;
+  border-width: 1px;
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+  z-index: 50;
+  width: 12rem;
+}
+
+.context-menu[data-position='up'] {
+  transform: translateY(-180px);
+}
+
+.context-menu[data-position='down'] {
+  transform: translateY(0);
 }

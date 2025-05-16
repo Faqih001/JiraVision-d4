@@ -1378,63 +1378,49 @@ function CustomChatList({ mobileView, setMobileView, deletedChats, setDeletedCha
       {/* Context Menu - positioned up or down based on click position */}
       {contextMenu && (
         <div
-          className={`fixed bg-background shadow-lg border rounded-md py-1 z-50 w-48`}
-          style={{
-            left: `${contextMenu.x}px`,
-            top: contextMenu.position === 'up' 
-              ? `${contextMenu.y - 180}px` // Position above click point
-              : `${contextMenu.y}px`,      // Position below click point
-          }}
-          onClick={(e) => e.stopPropagation()}
+          className="context-menu"
+          data-position={contextMenu?.position}
+          style={{ left: `${contextMenu?.x}px`, top: `${contextMenu?.y}px` }}
+          onClick={(e: React.MouseEvent) => e.stopPropagation()}
         >
           <button 
             className="w-full text-left px-3 py-2 text-sm hover:bg-muted/50"
-            onClick={() => {
-              if (contextMenu.chatId) handleArchiveChat(contextMenu.chatId);
-            }}
+            onClick={() => contextMenu?.chatId && handleArchiveChat(contextMenu.chatId)}
           >
             {activeTab === 'recent' ? 'Archive Chat' : 'Unarchive Chat'}
           </button>
           <button 
             className="w-full text-left px-3 py-2 text-sm hover:bg-muted/50"
-            onClick={() => {
-              if (contextMenu.chatId) handleMarkAsRead(contextMenu.chatId);
-            }}
+            onClick={() => contextMenu?.chatId && handleMarkAsRead(contextMenu.chatId)}
           >
             Mark as Read
           </button>
           <button 
             className="w-full text-left px-3 py-2 text-sm hover:bg-muted/50"
-            onClick={() => {
-              if (contextMenu.chatId) handlePinChat(contextMenu.chatId);
-            }}
+            onClick={() => contextMenu?.chatId && handlePinChat(contextMenu.chatId)}
           >
             Pin Chat
           </button>
           <button 
             className="w-full text-left px-3 py-2 text-sm hover:bg-muted/50"
-            onClick={() => {
-              if (contextMenu.chatId) handleMuteChat(contextMenu.chatId);
-            }}
+            onClick={() => contextMenu?.chatId && handleMuteChat(contextMenu.chatId)}
           >
             Mute Notifications
           </button>
-          <div className="border-t my-1"></div>
+          <div className="border-t my-1" />
           <button 
             className="w-full text-left px-3 py-2 text-sm text-red-500 hover:bg-muted/50"
-            onClick={() => {
-              if (contextMenu.chatId) handleDeleteChat(contextMenu.chatId);
-            }}
+            onClick={() => contextMenu?.chatId && handleDeleteChat(contextMenu.chatId)}
           >
             Delete Chat
           </button>
-            </div>
+        </div>
       )}
       
-      {/* Use the fixed New Chat Modal */}
-      {showNewChatModal && renderNewChatModal()}
-          </div>
-  )
+      {/* New Chat Modal */}
+      {showNewChatModal && <NewChatModal onClose={() => setShowNewChatModal(false)} />}
+      </div>
+    )
 }
 
 interface ChatWindowProps {
