@@ -14,12 +14,12 @@ import {
   Ticket,
   Timer,
   Users,
-  Wallet,
   ChevronDown,
   CheckCircle,
   XCircle,
   Edit,
   Trash2,
+  Wallet,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -133,10 +133,13 @@ export default function Dashboard() {
           throw new Error(errorData.message || 'Failed to fetch dashboard data');
         }
         
-        const { data } = await response.json();
+        const result = await response.json();
+        if (!result.success) {
+          throw new Error(result.message || 'Failed to fetch dashboard data');
+        }
         
         // Set active sprint from API response
-        setActiveSprint(data.activeSprint || {
+        setActiveSprint(result.data.activeSprint || {
           id: 1,
           name: "Sprint 25.05",
           description: "AI-Powered Project Management Platform",
@@ -148,7 +151,7 @@ export default function Dashboard() {
         });
 
         // Set tasks from API response or fallback to default
-        setTasks(data.tasks && data.tasks.length > 0 ? data.tasks : [
+        setTasks(result.data.tasks && result.data.tasks.length > 0 ? result.data.tasks : [
           {
             id: 103,
             title: "Implement AI Scrum Master Dashboard",
@@ -176,7 +179,7 @@ export default function Dashboard() {
         ]);
 
         // Set AI insight from API response or fallback
-        setAIInsight(data.aiInsight || {
+        setAIInsight(result.data.aiInsight || {
           id: 1,
           type: "sprint_planning",
           title: "Sprint Planning Recommendation",
@@ -186,7 +189,7 @@ export default function Dashboard() {
         });
 
         // Set wellbeing metrics from API response or fallback
-        setWellbeing(data.wellbeing || {
+        setWellbeing(result.data.wellbeing || {
           teamHappiness: 85,
           teamMembers: [
             {
@@ -205,14 +208,14 @@ export default function Dashboard() {
         });
 
         // Set ethical metrics from API response or fallback
-        setEthicalMetrics(data.ethicalMetrics || {
+        setEthicalMetrics(result.data.ethicalMetrics || {
           workloadBalance: 92,
           deiTaskDistribution: 88,
           payEquityCompliance: 100,
         });
 
         // Set gamification progress from API response or fallback
-        setGamification(data.gamification || {
+        setGamification(result.data.gamification || {
           skillTrees: [
             {
               name: "Frontend Master",
@@ -237,7 +240,7 @@ export default function Dashboard() {
         });
 
         // Set transactions from API response or fallback
-        setTransactions(data.transactions || [
+        setTransactions(result.data.transactions || [
           {
             id: 1,
             type: "Team License",

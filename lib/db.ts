@@ -36,6 +36,10 @@ const isDatabaseTypePostgres = true;
 // Debug flag
 const DEBUG = process.env.NODE_ENV === 'development';
 
+if (!connectionString) {
+  throw new Error('DATABASE_URL environment variable is required');
+}
+
 console.log('Database connection: Using PostgreSQL connection');
 
 // Configure options based on database type
@@ -45,26 +49,19 @@ const connectionOptions: postgres.Options<{}> = {
   ssl: isDatabaseTypePostgres ? { rejectUnauthorized: false } : undefined,
   onnotice: msg => {
     if (DEBUG) console.log('Database notice:', msg);
-  }
+  },
+  idle_timeout: 20,
+  connect_timeout: 30
 };
 
-// Create a default client - will be replaced in the try block if successful
-let queryClient = postgres('postgres://localhost:5432/empty', { max: 0 });
+// Initialize a singleton Postgres client
+export const queryClient = postgres(connectionString, connectionOptions);
 
-try {
-  // For query purposes (not migrations)
-  queryClient = postgres(connectionString, connectionOptions);
-  
-  if (DEBUG) {
-    console.log('Database connection established successfully.');
-  }
-} catch (error) {
-  console.error('Failed to establish database connection:', error);
-  // We already have a fallback client defined above
-}
-
-// Export db OUTSIDE the try-catch
-export const db: PostgresJsDatabase<typeof schema> = drizzle(queryClient, { schema });
+// Initialize and export a singleton Drizzle instance
+export const db = drizzle(queryClient, {
+  schema,
+  logger: DEBUG,
+});
 
 // Create a separate connection for one-off operations that is immediately closed
 export async function withDb<T>(callback: (db: PostgresJsDatabase<typeof schema>) => Promise<T>): Promise<T> {
