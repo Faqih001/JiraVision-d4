@@ -1084,6 +1084,7 @@ function CustomChatList({ mobileView, setMobileView, deletedChats, setDeletedCha
                           checked={selectedMembers.includes(member.id)}
                           onChange={() => toggleMemberSelection(member.id)}
                           onClick={(e) => e.stopPropagation()}
+                          title={`Select ${member.name} for group chat`}
                         />
                         <Avatar className="h-8 w-8 mr-3">
                           <AvatarImage src={member.avatar} />

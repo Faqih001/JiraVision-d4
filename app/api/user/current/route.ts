@@ -1,16 +1,33 @@
 import { NextResponse } from "next/server"
 import { getSession } from "@/lib/auth-actions"
 import { getUserProfile } from "@/lib/data-access"
+import type { User } from "@/lib/db"
+
+interface UserProfile {
+  id: number;
+  name: string;
+  email: string;
+  avatar?: string;
+  role?: string;
+  department?: string;
+  status?: 'online' | 'offline' | 'away' | 'busy' | 'active';
+}
 
 export async function GET() {
   try {
-    // Get session with error handling
-    const session = await getSession().catch(error => {
-      console.error("Failed to get session:", error);
-      return null;
-    });
+    // Get session with error handling and timeout
+    const sessionPromise = getSession() as Promise<User>;
+    const timeoutPromise = new Promise<User>((_, reject) => 
+      setTimeout(() => reject(new Error('Session fetch timeout')), 5000)
+    );
+
+    const session = await Promise.race([sessionPromise, timeoutPromise])
+      .catch(error => {
+        console.error("Session error:", error);
+        return null;
+      });
     
-    if (!session || !session.id) {
+    if (!session?.id) {
       console.log("Current User API: No valid session found");
       return NextResponse.json(
         { error: "Unauthorized", details: "No valid session found" },
@@ -19,12 +36,12 @@ export async function GET() {
     }
 
     // Get user profile with timeout and error handling
-    const userProfilePromise = getUserProfile(session.id);
-    const timeoutPromise = new Promise((_, reject) => 
+    const userProfilePromise = getUserProfile(session.id) as Promise<UserProfile>;
+    const profileTimeoutPromise = new Promise<UserProfile>((_, reject) => 
       setTimeout(() => reject(new Error('Profile fetch timeout')), 5000)
     );
 
-    const userProfile = await Promise.race([userProfilePromise, timeoutPromise])
+    const userProfile = await Promise.race([userProfilePromise, profileTimeoutPromise])
       .catch(error => {
         console.error(`Error fetching user profile for ${session.id}:`, error);
         return null;
@@ -32,38 +49,39 @@ export async function GET() {
     
     if (!userProfile) {
       return NextResponse.json(
-        { error: "User profile not found" },
+        { error: "User profile not found", details: "Unable to retrieve user profile" },
         { status: 404 }
       );
     }
 
-    // Validate required fields
-    const { id, name, email, avatar, role } = userProfile;
+    // Validate and extract fields with type safety
+    const { id, name, email } = userProfile;
     if (!id || !name || !email) {
       console.error("Invalid user profile data:", userProfile);
       return NextResponse.json(
-        { error: "Invalid user profile data" },
+        { error: "Invalid user data", details: "User profile missing required fields" },
         { status: 500 }
       );
     }
 
-    // Return only necessary user data
+    // Return validated user profile with defaults for optional fields
     return NextResponse.json({
       success: true,
       user: {
         id,
         name,
         email,
-        avatar: avatar || null,
-        role: role || 'user'
+        role: userProfile.role || 'user',
+        avatar: userProfile.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}`,
+        department: userProfile.department || 'General',
+        status: userProfile.status || 'offline'
       }
     });
-    
   } catch (error) {
-    console.error("Current User API: Failed to fetch current user:", error)
+    console.error("Unexpected error in current user API:", error);
     return NextResponse.json(
-      { error: "Failed to fetch current user", details: error instanceof Error ? error.message : String(error) },
+      { error: "Server error", details: error instanceof Error ? error.message : String(error) },
       { status: 500 }
-    )
+    );
   }
-} 
+}
