@@ -510,7 +510,9 @@ export default function DashboardLayout({
 
         {/* Page Content */}
         <main className="flex-1 overflow-y-auto overflow-x-hidden">
-          <div className="container mx-auto px-2 py-4 sm:px-4 md:px-6 lg:px-8 max-w-full lg:max-w-7xl w-full relative">{children}</div>
+          <div className="container mx-auto py-4 px-2 sm:px-4 md:px-6 lg:px-8 w-full">
+            {children}
+          </div>
         </main>
       </div>
     </div>
