@@ -1,11 +1,11 @@
+// Load environment variables first
+require('dotenv').config();
+
 const { createServer } = require('http');
 const { parse } = require('url');
 const next = require('next');
 const postgres = require('postgres');
-const { setupWebSocketServer } = require('./lib/websocket-manager');
-
-// Load environment variables
-require('dotenv').config();
+const { setupWebSocketServer } = require('./lib/websocket-manager.js');
 
 const dev = process.env.NODE_ENV !== 'production';
 const app = next({ dev });

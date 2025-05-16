@@ -12,9 +12,18 @@ export type User = {
   email: string;
   passwordHash: string;
   role: string;
-  avatar?: string | null;
+  avatar: string | null;
   emailVerified: boolean;
-  createdAt?: Date;
+  jobTitle: string | null;
+  department: string | null;
+  location: string | null;
+  bio: string | null;
+  skills: string[] | null;
+  timezone: string | null;
+  status: string | null;
+  lastActive: Date | null;
+  createdAt: Date;
+  updatedAt: Date | null;
 };
 
 // Use connection string from .env
@@ -71,6 +80,72 @@ export async function withDb<T>(callback: (db: PostgresJsDatabase<typeof schema>
   }
 }
 
+// Helper functions for common database operations
+
+// Get user by ID
+export async function getUserById(id: number): Promise<User | null> {
+  try {
+    const result = await db.select().from(users).where(eq(users.id, id));
+    if (!result || result.length === 0) return null;
+    
+    const user = result[0];
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      passwordHash: user.passwordHash,
+      role: user.role,
+      avatar: user.avatar,
+      emailVerified: user.emailVerified ?? false,
+      jobTitle: user.jobTitle,
+      department: user.department,
+      location: user.location,
+      bio: user.bio,
+      skills: [], // TODO: Implement skills once schema is updated
+      timezone: user.timezone,
+      status: user.status,
+      lastActive: user.lastActive,
+      createdAt: user.createdAt ?? new Date(),
+      updatedAt: user.updatedAt
+    };
+  } catch (error) {
+    console.error('Error getting user by ID:', error);
+    return null;
+  }
+}
+
+// Get user by email
+export async function getUserByEmail(email: string): Promise<User | null> {
+  try {
+    const result = await db.select().from(users).where(eq(users.email, email));
+    if (!result || result.length === 0) return null;
+    
+    const user = result[0];
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      passwordHash: user.passwordHash,
+      role: user.role,
+      avatar: user.avatar,
+      emailVerified: user.emailVerified ?? false,
+      jobTitle: user.jobTitle,
+      department: user.department,
+      location: user.location,
+      bio: user.bio,
+      skills: [], // TODO: Implement skills once schema is updated
+      timezone: user.timezone,
+      status: user.status,
+      lastActive: user.lastActive,
+      createdAt: user.createdAt ?? new Date(),
+      updatedAt: user.updatedAt
+    };
+  } catch (error) {
+    console.error('Error getting user by email:', error);
+    return null;
+  }
+}
+
 // Helper for database transactions
 export async function transaction<T>(
   callback: (tx: PostgresJsDatabase<typeof schema>) => Promise<T>
@@ -88,54 +163,6 @@ export async function transaction<T>(
 }
 
 // Auth functions
-export async function getUserById(id: number): Promise<User | null> {
-  try {
-    const result = await db.query.users.findFirst({
-      where: eq(users.id, id),
-      columns: {
-        id: true,
-        name: true,
-        email: true, 
-        passwordHash: true,
-        role: true,
-        avatar: true,
-        emailVerified: true,
-        createdAt: true,
-        updatedAt: true
-      }
-    });
-    
-    return result as User | null;
-  } catch (error) {
-    console.error("Error getting user by ID:", error);
-    return null;
-  }
-}
-
-export async function getUserByEmail(email: string): Promise<User | null> {
-  try {
-    const result = await db.query.users.findFirst({
-      where: eq(users.email, email),
-      columns: {
-        id: true,
-        name: true,
-        email: true, 
-        passwordHash: true,
-        role: true,
-        avatar: true,
-        emailVerified: true,
-        createdAt: true,
-        updatedAt: true
-      }
-    });
-    
-    return result as User | null;
-  } catch (error) {
-    console.error("Error getting user by email:", error);
-    return null;
-  }
-}
-
 export async function createUser(data: {
   name: string;
   email: string;

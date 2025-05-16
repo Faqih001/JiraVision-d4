@@ -1,5 +1,5 @@
 const { db } = require("../lib/db");
-const { users } = require("./schema");
+const { users } = require("../drizzle/schema");
 const bcrypt = require("bcryptjs");
 
 async function seedTeamMembers() {
@@ -60,6 +60,7 @@ async function seedTeamMembers() {
 
     // Clear existing team members
     await db.delete(users);
+    console.log('Cleared existing team members');
 
     // Insert team members
     for (const member of teamMembers) {
@@ -73,6 +74,12 @@ async function seedTeamMembers() {
   }
 }
 
-module.exports = {
-  seedTeamMembers
-};
+seedTeamMembers()
+  .then(() => {
+    console.log('Seeding completed');
+    process.exit(0);
+  })
+  .catch((error) => {
+    console.error('Seeding failed:', error);
+    process.exit(1);
+  });
