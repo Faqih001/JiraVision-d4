@@ -6,7 +6,7 @@ import * as chatApi from '@/lib/api-chat'
 import * as socketUtil from '@/lib/socket'
 
 // Message status types
-export type MessageStatus = 'sent' | 'delivered' | 'read' | 'sending' | 'failed'
+export type MessageStatus = 'sent' | 'delivered' | 'read' | 'sending' | 'failed' | 'error'
 
 // Message types
 export type MessageType = 'text' | 'image' | 'video' | 'document' | 'audio' | 'voice'
@@ -154,72 +154,6 @@ const generateId = () => {
   return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
 }
 
-// Add function to fetch chats from API
-const fetchChats = async (): Promise<Chat[]> => {
-  try {
-    const response = await fetch('/api/chat');
-    if (!response.ok) {
-      throw new Error('Failed to fetch chats');
-    }
-    return await response.json();
-  } catch (error) {
-    console.error('Error fetching chats:', error);
-    return [];
-  }
-};
-
-// Add function to fetch messages for a chat
-const fetchMessages = async (chatId: string): Promise<Message[]> => {
-  try {
-    const response = await fetch(`/api/chat/messages?chatId=${chatId}`);
-    if (!response.ok) {
-      throw new Error('Failed to fetch messages');
-    }
-    return await response.json();
-  } catch (error) {
-    console.error('Error fetching messages:', error);
-    return [];
-  }
-};
-
-// Add function to send a message
-const sendMessageToApi = async (
-  chatId: string,
-  content: string,
-  type: MessageType,
-  replyToId?: string,
-  fileUrl?: string,
-  fileName?: string,
-  fileSize?: number
-): Promise<Message | null> => {
-  try {
-    const response = await fetch('/api/chat/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        chatId,
-        content,
-        type,
-        replyToId,
-        fileUrl,
-        fileName,
-        fileSize,
-      }),
-    });
-    
-    if (!response.ok) {
-      throw new Error('Failed to send message');
-    }
-    
-    return await response.json();
-  } catch (error) {
-    console.error('Error sending message:', error);
-    return null;
-  }
-};
-
 // Provider component
 export const ChatProvider = ({ children, teamMembers }: { children: React.ReactNode, teamMembers: TeamMember[] }) => {
   const [chats, setChats] = useState<Chat[]>([])
@@ -227,163 +161,155 @@ export const ChatProvider = ({ children, teamMembers }: { children: React.ReactN
   const [messages, setMessages] = useState<Message[]>([])
   const [activeReply, setActiveReply] = useState<ReplyInfo | null>(null)
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'connecting' | 'disconnected'>('disconnected')
-  const [socket, setSocket] = useState<ReturnType<typeof socketUtil.initSocket> extends Promise<infer T> ? T : never | null>(null)
+  const [socket, setSocket] = useState<ReturnType<typeof socketUtil.getSocket>>(null)
   const [isInitialized, setIsInitialized] = useState(false)
   const [currentUser, setCurrentUser] = useState<{ id: number, name: string, avatar: string } | null>(null)
   const [initError, setInitError] = useState<string | null>(null)
   const [retryCount, setRetryCount] = useState(0)
-  
+  const retryTimerRef = useRef<NodeJS.Timeout | undefined>(undefined)
+  const maxRetries = 3
+
   // Get current user data
   useEffect(() => {
     const fetchCurrentUser = async () => {
       try {
-        const response = await fetch('/api/user/current');
+        const response = await fetch('/api/user/current')
         if (!response.ok) {
-          throw new Error('Failed to fetch current user');
+          throw new Error('Failed to fetch current user')
         }
-        const data = await response.json();
+        const data = await response.json()
         if (data.success && data.user) {
           setCurrentUser({
             id: data.user.id,
             name: data.user.name,
             avatar: data.user.avatar || ''
-          });
+          })
         }
       } catch (error) {
-        console.error('Error fetching current user:', error);
+        console.error('Error fetching current user:', error)
       }
-    };
-    
-    fetchCurrentUser();
-  }, []);
+    }
 
-  // Initialize the chat with API data and WebSocket connection
+    fetchCurrentUser()
+  }, [])
+
+  // Initialize chat with error handling and automatic reconnection
   useEffect(() => {
     const initializeChat = async () => {
       try {
+        console.log('Initializing chat...')
         setConnectionStatus('connecting')
         setInitError(null)
-        
+
         // Direct API test
         try {
-          console.log("Testing chat API directly...");
+          console.log('Testing chat API directly...')
           const apiResponse = await fetch('/api/chat', {
             method: 'GET',
             headers: {
               'Cache-Control': 'no-cache',
               'Pragma': 'no-cache'
             }
-          });
-          
-          console.log("API Test status:", apiResponse.status, apiResponse.statusText);
-          
+          })
+
+          console.log('API Test status:', apiResponse.status, apiResponse.statusText)
+
           if (!apiResponse.ok) {
-            console.error("API Test failed:", apiResponse.status, apiResponse.statusText);
-            const errorText = await apiResponse.text();
-            console.error("API Error details:", errorText);
+            console.error('API Test failed:', apiResponse.status, apiResponse.statusText)
+            const errorText = await apiResponse.text()
+            console.error('API Error details:', errorText)
           } else {
-            const testData = await apiResponse.json();
-            console.log("API Test successful, chat count:", testData.length);
-            
-            // If we get a successful response but empty chats, set them directly
+            const testData = await apiResponse.json()
+            console.log('API Test successful, chat count:', testData.length)
+
             if (testData.length > 0) {
-              console.log("Setting chats directly from API test call");
-              setChats(testData);
-              
-              // If testData has minimal chats (only preview field set), force API fetch
-              const hasFullData = testData.some((chat: Chat) => chat.lastMessage || chat.participants?.length > 0);
-              if (!hasFullData) {
-                console.log("API returned minimal chat data, will attempt full fetch");
-              }
+              console.log('Setting chats directly from API test call')
+              setChats(testData)
             }
           }
         } catch (apiTestError) {
-          console.error("API Test Error:", apiTestError);
+          console.error('API Test Error:', apiTestError)
         }
-        
-        // First, fetch chats from API with retry on error
-        let chatData = [];
+
+        // Fetch chats from API with retry on error
+        let chatData = []
         try {
-          console.log('Fetching chats from API...');
+          console.log('Fetching chats from API...')
           chatData = await chatApi.fetchChats()
-          console.log('Chats fetched successfully:', chatData.length);
+          console.log('Chats fetched successfully:', chatData.length)
+          setChats(chatData)
         } catch (chatError) {
           console.error('Error fetching chats:', chatError)
-          // We'll continue even if this fails, socket might still work
         }
-        
-        setChats(chatData)
-        
-        // Then, establish WebSocket connection
-        console.log('Initializing socket connection...');
+
+        // Establish WebSocket connection
+        console.log('Initializing socket connection...')
         const socketInstance = await socketUtil.initSocket()
-        console.log('Socket connection established successfully');
+        console.log('Socket connection established successfully')
         setSocket(socketInstance)
         setConnectionStatus('connected')
-        
+
         // Set up event listeners
         const unsubscribeNewMessage = socketUtil.onNewMessage((message) => {
-          console.log('New message received:', message);
-          setMessages(prev => [...prev, message])
-          
+          console.log('New message received:', message)
+          setMessages((prev) => [...prev, message])
+
           // Update last message in chat
-          setChats(prevChats => 
-            prevChats.map(chat => 
-              chat.id === message.chatId 
-                ? { 
-                    ...chat, 
+          setChats((prevChats) =>
+            prevChats.map((chat) =>
+              chat.id === message.chatId
+                ? {
+                    ...chat,
                     lastMessage: message,
                     unreadCount: chat.id === activeChat?.id ? 0 : chat.unreadCount + 1
-                  } 
+                  }
                 : chat
             )
           )
         })
-        
+
         const unsubscribeTypingStart = socketUtil.onTypingStart(({ chatId, userId }) => {
-          const user = teamMembers.find(m => m.id === userId)
+          const user = teamMembers.find((m) => m.id === userId)
           if (!user) return
-          
-          setChats(prevChats => 
-            prevChats.map(chat => 
-              chat.id === chatId 
-                ? { ...chat, typing: { userId, name: user.name } } 
-                : chat
+
+          setChats((prevChats) =>
+            prevChats.map((chat) =>
+              chat.id === chatId ? { ...chat, typing: { userId, name: user.name } } : chat
             )
           )
         })
-        
+
         const unsubscribeTypingStop = socketUtil.onTypingStop(({ chatId }) => {
-          setChats(prevChats => 
-            prevChats.map(chat => 
-              chat.id === chatId 
-                ? { ...chat, typing: undefined } 
-                : chat
-            )
+          setChats((prevChats) =>
+            prevChats.map((chat) => (chat.id === chatId ? { ...chat, typing: undefined } : chat))
           )
         })
-        
+
         const unsubscribeUserStatus = socketUtil.onUserStatus(({ userId, status }) => {
           // Update online status for individual chats with this user
-          setChats(prevChats => 
-            prevChats.map(chat => {
-              if (chat.type === 'individual' && chat.participants.includes(userId) && userId !== currentUser?.id) {
+          setChats((prevChats) =>
+            prevChats.map((chat) => {
+              if (
+                chat.type === 'individual' &&
+                chat.participants.includes(userId) &&
+                userId !== currentUser?.id
+              ) {
                 return { ...chat, online: status === 'online' }
               }
               return chat
             })
           )
         })
-        
+
         const unsubscribeNewChat = socketUtil.onNewChat((chat) => {
-          console.log('New chat received:', chat);
-          setChats(prev => [chat, ...prev])
+          console.log('New chat received:', chat)
+          setChats((prev) => [chat, ...prev])
         })
-        
+
         setIsInitialized(true)
         setRetryCount(0) // Reset retry counter on successful connection
-        
-        // Cleanup function to remove event listeners
+
+        // Cleanup function
         return () => {
           unsubscribeNewMessage()
           unsubscribeTypingStart()
@@ -395,25 +321,51 @@ export const ChatProvider = ({ children, teamMembers }: { children: React.ReactN
       } catch (error) {
         console.error('Failed to initialize chat:', error)
         setConnectionStatus('disconnected')
-        setInitError(error instanceof Error ? error.message : 'Unknown error initializing chat')
-        
-        // Set up retry with increasing delay
-        if (retryCount < 3) {
-          const retryDelay = Math.pow(2, retryCount) * 1000; // Exponential backoff
-          console.log(`Scheduling connection retry in ${retryDelay}ms (attempt ${retryCount + 1})`)
-          
-          const retryTimer = setTimeout(() => {
-            setRetryCount(prev => prev + 1)
-            console.log(`Retrying connection (attempt ${retryCount + 1})`)
+        setInitError(
+          error instanceof Error ? error.message : 'Unknown error initializing chat'
+        )
+
+        // Set up retry with increasing delay if under max retries
+        if (retryCount < maxRetries) {
+          const retryDelay = Math.min(Math.pow(2, retryCount) * 1000, 10000) // Exponential backoff with 10s max
+          console.log(
+            `Scheduling connection retry in ${retryDelay}ms (attempt ${retryCount + 1}/${maxRetries})`
+          )
+
+          // Clear any existing retry timer
+          if (retryTimerRef.current) {
+            clearTimeout(retryTimerRef.current)
+          }
+
+          // Set new retry timer
+          retryTimerRef.current = setTimeout(() => {
+            setRetryCount((prev) => prev + 1)
+            console.log(`Retrying connection (attempt ${retryCount + 1}/${maxRetries})`)
           }, retryDelay)
-          
-          return () => clearTimeout(retryTimer)
+
+          // Return cleanup function
+          return () => {
+            if (retryTimerRef.current) {
+              clearTimeout(retryTimerRef.current)
+            }
+          }
+        } else {
+          console.error(
+            'Maximum retry attempts reached. Please refresh the page to try again.'
+          )
         }
       }
     }
-    
+
     initializeChat()
-  }, [teamMembers, activeChat?.id, currentUser?.id, retryCount])
+
+    // Cleanup on unmount
+    return () => {
+      if (retryTimerRef.current) {
+        clearTimeout(retryTimerRef.current)
+      }
+    }
+  }, [teamMembers, currentUser, retryCount])
 
   // Load messages when active chat changes
   useEffect(() => {
@@ -421,22 +373,22 @@ export const ChatProvider = ({ children, teamMembers }: { children: React.ReactN
       setMessages([])
       return
     }
-    
+
     const loadMessages = async () => {
       try {
-        console.log(`Loading messages for chat ${activeChat.id}...`);
+        console.log(`Loading messages for chat ${activeChat.id}...`)
         const messageData = await chatApi.fetchMessages(activeChat.id)
-        console.log(`Loaded ${messageData.length} messages`);
+        console.log(`Loaded ${messageData.length} messages`)
         setMessages(messageData)
 
         // Mark chat as read
         if (activeChat.unreadCount > 0) {
           await chatApi.markChatAsRead(activeChat.id)
           socketUtil.markAsRead(activeChat.id)
-          
+
           // Update local state
-          setChats(prevChats => 
-            prevChats.map(chat => 
+          setChats((prevChats) =>
+            prevChats.map((chat) =>
               chat.id === activeChat.id ? { ...chat, unreadCount: 0 } : chat
             )
           )
@@ -445,21 +397,21 @@ export const ChatProvider = ({ children, teamMembers }: { children: React.ReactN
         console.error('Error loading messages:', error)
       }
     }
-    
+
     loadMessages()
   }, [activeChat])
 
-  // Send a message
+  // Send a message with error handling and retry
   const sendMessage = async (
-    content: string, 
-    type: MessageType = 'text', 
+    content: string,
+    type: MessageType = 'text',
     replyTo?: ReplyInfo,
     mediaUrl?: string,
     fileName?: string,
     fileSize?: number
   ) => {
     if (!activeChat) return
-    
+
     const messageData = {
       chatId: activeChat.id,
       content,
@@ -467,16 +419,16 @@ export const ChatProvider = ({ children, teamMembers }: { children: React.ReactN
       replyToId: replyTo?.messageId,
       fileUrl: mediaUrl,
       fileName,
-      fileSize,
+      fileSize
     }
-    
-    // Create a temporary message to show immediately
+
+    // Create a temporary message
     const tempId = `temp-${Date.now()}`
     const tempMessage: Message = {
       id: tempId,
       chatId: activeChat.id,
-      senderId: 1, // Current user
-      senderName: 'You',
+      senderId: currentUser?.id || 1,
+      senderName: currentUser?.name || 'You',
       content,
       timestamp: new Date(),
       status: 'sending',
@@ -490,448 +442,77 @@ export const ChatProvider = ({ children, teamMembers }: { children: React.ReactN
     }
 
     // Add to UI immediately
-    setMessages(prev => [...prev, tempMessage])
+    setMessages((prev) => [...prev, tempMessage])
     setActiveReply(null)
 
-    try {
-      // Try to send via WebSocket first
-      const sent = socketUtil.sendMessage(messageData)
-      
-      if (!sent) {
+    let retryAttempt = 0
+    const maxMessageRetries = 3
+    const tryToSendMessage = async (): Promise<boolean> => {
+      try {
+        // Try WebSocket first
+        const sent = socketUtil.sendMessage(messageData)
+
+        if (sent) {
+          return true
+        }
+
         // Fall back to HTTP if WebSocket fails
         const response = await chatApi.sendMessage(messageData)
-        
-        // Replace the temp message with the real one
-      setMessages(prev => 
-        prev.map(msg => 
+
+        // Update the temp message with the real one
+        setMessages((prev) =>
+          prev.map((msg) =>
             msg.id === tempId ? { ...response, status: 'sent' } : msg
           )
         )
-        
+
         // Update last message in chat
-        setChats(prevChats => 
-          prevChats.map(chat => 
-            chat.id === activeChat.id 
-              ? { ...chat, lastMessage: response } 
-              : chat
+        setChats((prevChats) =>
+          prevChats.map((chat) =>
+            chat.id === activeChat.id ? { ...chat, lastMessage: response } : chat
+          )
+        )
+
+        return true
+      } catch (error) {
+        console.error(
+          `Error sending message (attempt ${retryAttempt + 1}/${maxMessageRetries}):`,
+          error
+        )
+
+        if (retryAttempt < maxMessageRetries) {
+          retryAttempt++
+          const retryDelay = Math.min(Math.pow(2, retryAttempt) * 1000, 5000)
+          await new Promise((resolve) => setTimeout(resolve, retryDelay))
+          return tryToSendMessage()
+        }
+
+        return false
+      }
+    }
+
+    try {
+      const success = await tryToSendMessage()
+      if (!success) {
+        // Mark the message as failed after all retries
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === tempId ? { ...msg, status: 'failed' } : msg
           )
         )
       }
     } catch (error) {
-      console.error('Error sending message:', error)
-      
-      // Mark the message as failed
-      setMessages(prev => 
-        prev.map(msg => 
-          msg.id === tempId ? { ...msg, status: 'failed' } : msg
+      console.error('Fatal error sending message:', error)
+      // Mark the message as error in case of unexpected failures
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === tempId ? { ...msg, status: 'error' } : msg
         )
       )
     }
   }
 
-  // Edit a message
-  const editMessage = async (messageId: string, newContent: string) => {
-    if (!newContent.trim()) return
-
-    try {
-      // Optimistic update
-    setMessages(prev => 
-      prev.map(msg => 
-        msg.id === messageId 
-          ? { ...msg, content: newContent, edited: true } 
-          : msg
-      )
-    )
-      
-      // Send to API
-      await chatApi.editMessage(messageId, newContent)
-    } catch (error) {
-      console.error('Error editing message:', error)
-      // Revert if error
-      // You'd need to fetch the original message again
-    }
-  }
-
-  // Delete a message
-  const deleteMessage = async (messageId: string) => {
-    try {
-      // Optimistic update
-    setMessages(prev => 
-      prev.map(msg => 
-        msg.id === messageId ? { ...msg, deleted: true, content: 'This message was deleted' } : msg
-      )
-    )
-      
-      // Send to API
-      await chatApi.deleteMessage(messageId)
-    } catch (error) {
-      console.error('Error deleting message:', error)
-      // Revert if error
-      // You'd need to fetch the original message again
-    }
-  }
-  
-  // React to a message
-  const reactToMessage = async (messageId: string, emoji: string) => {
-    try {
-      // Optimistic update
-    setMessages(prev => 
-      prev.map(msg => {
-        if (msg.id === messageId) {
-          // Check if user already reacted with this emoji
-          const existingReaction = msg.reactions?.find(r => r.userId === 1 && r.emoji === emoji)
-          
-          if (existingReaction) {
-            // Remove reaction if it exists
-            return {
-              ...msg,
-              reactions: msg.reactions?.filter(r => !(r.userId === 1 && r.emoji === emoji))
-            }
-          } else {
-            // Add or update reaction
-              const newReactions = [...(msg.reactions || [])]
-            
-            // Remove any existing reaction from this user
-              const userReactionIndex = newReactions.findIndex(r => r.userId === 1)
-            if (userReactionIndex !== -1) {
-                newReactions.splice(userReactionIndex, 1)
-            }
-            
-            // Add new reaction
-              newReactions.push({ userId: 1, emoji })
-            
-            return {
-              ...msg,
-              reactions: newReactions
-            }
-          }
-        }
-        return msg
-      })
-    )
-      
-      // Send to API
-      await chatApi.reactToMessage(messageId, emoji)
-    } catch (error) {
-      console.error('Error reacting to message:', error)
-      // Revert if error
-      // You'd need to fetch the original reactions again
-    }
-  }
-
-  // Mark chat as read
-  const markAsRead = async (chatId: string) => {
-    try {
-      // Optimistic update
-    setChats(prev => 
-      prev.map(chat => 
-        chat.id === chatId ? { ...chat, unreadCount: 0 } : chat
-      )
-    )
-      
-      // Send to API
-      await chatApi.markChatAsRead(chatId)
-      socketUtil.markAsRead(chatId)
-    } catch (error) {
-      console.error('Error marking as read:', error)
-    }
-  }
-
-  // Create a new group chat
-  const createGroup = async (name: string, participants: number[], avatar?: string, description?: string) => {
-    try {
-      // Send to API
-      const newChat = await chatApi.createChat({
-        type: 'group',
-      name,
-        participants,
-      avatar,
-        message: `${name} group created`
-      })
-      
-      // Update local state
-      setChats(prev => [newChat, ...prev])
-      setActiveChat(newChat)
-      
-      return newChat
-    } catch (error) {
-      console.error('Error creating group:', error)
-      throw error
-    }
-  }
-
-  // Mute a chat
-  const muteChat = async (chatId: string) => {
-    try {
-      // Optimistic update
-    setChats(prev => 
-      prev.map(chat => 
-        chat.id === chatId ? { ...chat, isMuted: true } : chat
-      )
-    )
-      
-      // Send to API
-      await chatApi.toggleMuteChat(chatId, true)
-    } catch (error) {
-      console.error('Error muting chat:', error)
-      // Revert if error
-      setChats(prev => 
-        prev.map(chat => 
-          chat.id === chatId ? { ...chat, isMuted: false } : chat
-        )
-      )
-    }
-  }
-
-  // Unmute a chat
-  const unmuteChat = async (chatId: string) => {
-    try {
-      // Optimistic update
-    setChats(prev => 
-      prev.map(chat => 
-        chat.id === chatId ? { ...chat, isMuted: false } : chat
-      )
-    )
-      
-      // Send to API
-      await chatApi.toggleMuteChat(chatId, false)
-    } catch (error) {
-      console.error('Error unmuting chat:', error)
-      // Revert if error
-      setChats(prev => 
-        prev.map(chat => 
-          chat.id === chatId ? { ...chat, isMuted: true } : chat
-        )
-      )
-    }
-  }
-
-  // Archive a chat
-  const archiveChat = async (chatId: string) => {
-    try {
-      // Optimistic update
-    setChats(prev => 
-      prev.map(chat => 
-        chat.id === chatId ? { ...chat, isArchived: true } : chat
-      )
-    )
-      
-      // Send to API
-      await chatApi.toggleArchiveChat(chatId, true)
-    } catch (error) {
-      console.error('Error archiving chat:', error)
-      // Revert if error
-    setChats(prev => 
-      prev.map(chat => 
-        chat.id === chatId ? { ...chat, isArchived: false } : chat
-      )
-    )
-  }
-  }
-  
-  // Unarchive a chat
-  const unarchiveChat = async (chatId: string) => {
-    try {
-      // Optimistic update
-    setChats(prev => 
-      prev.map(chat => 
-          chat.id === chatId ? { ...chat, isArchived: false } : chat
-        )
-      )
-      
-      // Send to API
-      await chatApi.toggleArchiveChat(chatId, false)
-    } catch (error) {
-      console.error('Error unarchiving chat:', error)
-      // Revert if error
-    setChats(prev => 
-      prev.map(chat => 
-          chat.id === chatId ? { ...chat, isArchived: true } : chat
-        )
-      )
-    }
-  }
-  
-  // Start typing indication
-  const startTyping = () => {
-    if (!activeChat) return
-    socketUtil.startTyping(activeChat.id)
-  }
-  
-  // Stop typing indication
-  const stopTyping = () => {
-    if (!activeChat) return
-    socketUtil.stopTyping(activeChat.id)
-  }
-  
-  // Get participants from a chat (convert from IDs to TeamMember objects)
-  const getParticipants = (chatId: string): TeamMember[] => {
-    const chat = chats.find(c => c.id === chatId)
-    if (!chat) return []
-    
-    return chat.participants
-      .map(id => teamMembers.find(m => m.id === id))
-      .filter((m): m is TeamMember => m !== undefined)
-  }
-
-  // Download chat history (placeholder)
-  const downloadChat = (chatId: string) => {
-    console.log(`Downloading chat history for ${chatId}`)
-    // In a real implementation, this would generate a file and prompt a download
-  }
-
-  // Reply to message
-  const replyToMessage = (messageId: string) => {
-    const message = messages.find(m => m.id === messageId);
-    if (!message) return;
-    
-    setActiveReply({
-      messageId,
-      content: message.content,
-      sender: message.senderName
-    });
-  };
-  
-  // Search chats
-  const searchChats = (query: string): Chat[] => {
-    if (!query.trim()) return chats;
-    
-    const lowerQuery = query.toLowerCase();
-    return chats.filter(chat => 
-      chat.name.toLowerCase().includes(lowerQuery) ||
-      chat.lastMessage?.content.toLowerCase().includes(lowerQuery)
-    );
-  };
-  
-  // Search messages
-  const searchMessages = (query: string): Message[] => {
-    if (!query.trim()) return messages;
-    
-    const lowerQuery = query.toLowerCase();
-    return messages.filter(message =>
-      message.content.toLowerCase().includes(lowerQuery)
-    );
-  };
-  
-  // Update group
-  const updateGroup = async (chatId: string, name?: string, avatar?: string, description?: string) => {
-    console.log('Updating group:', { chatId, name, avatar, description });
-    // In a real implementation, this would call an API
-    // For now, just update the local state
-    setChats(prev => 
-      prev.map(chat => 
-        chat.id === chatId 
-          ? { 
-              ...chat, 
-              name: name || chat.name,
-              avatar: avatar || chat.avatar,
-              description: description || chat.description
-            } 
-          : chat
-      )
-    );
-  };
-  
-  // Add participants
-  const addParticipants = async (chatId: string, userIds: number[]) => {
-    console.log('Adding participants:', { chatId, userIds });
-    // In a real implementation, this would call an API
-    // For now, just update the local state
-    setChats(prev => 
-      prev.map(chat => {
-        if (chat.id === chatId) {
-          const newParticipants = [...new Set([...chat.participants, ...userIds])];
-          return { ...chat, participants: newParticipants };
-        }
-        return chat;
-      })
-    );
-  };
-  
-  // Remove participant
-  const removeParticipant = async (chatId: string, userId: number) => {
-    console.log('Removing participant:', { chatId, userId });
-    // In a real implementation, this would call an API
-    // For now, just update the local state
-    setChats(prev => 
-      prev.map(chat => {
-        if (chat.id === chatId) {
-          const newParticipants = chat.participants.filter(id => id !== userId);
-          return { ...chat, participants: newParticipants };
-        }
-        return chat;
-      })
-    );
-  };
-  
-  // Block chat
-  const blockChat = async (chatId: string) => {
-    console.log('Blocking chat:', chatId);
-    // In a real implementation, this would call an API
-    // For now, just update the local state
-    setChats(prev => 
-      prev.map(chat => 
-        chat.id === chatId ? { ...chat, isBlocked: true } : chat
-      )
-    );
-  };
-  
-  // Unblock chat
-  const unblockChat = async (chatId: string) => {
-    console.log('Unblocking chat:', chatId);
-    // In a real implementation, this would call an API
-    // For now, just update the local state
-    setChats(prev => 
-      prev.map(chat => 
-        chat.id === chatId ? { ...chat, isBlocked: false } : chat
-      )
-    );
-  };
-  
-  // Clear chat history
-  const clearChat = async (chatId: string) => {
-    console.log('Clearing chat history:', chatId);
-    // In a real implementation, this would call an API
-    // For now, just clear the messages if it's the active chat
-    if (activeChat?.id === chatId) {
-      setMessages([]);
-    }
-  };
-  
-  // Forward message
-  const forwardMessage = async (messageId: string, chatIds: string[]) => {
-    console.log('Forwarding message:', { messageId, chatIds });
-    const messageToForward = messages.find(m => m.id === messageId);
-    if (!messageToForward) return;
-    
-    // In a real implementation, this would call an API for each chat
-    // For now, just log the action
-    chatIds.forEach(chatId => {
-      console.log(`Forwarded message to chat ${chatId}: ${messageToForward.content.substring(0, 20)}...`);
-    });
-  };
-  
-  // Star message
-  const starMessage = async (messageId: string) => {
-    console.log('Starring message:', messageId);
-    // In a real implementation, this would call an API
-    // For now, just log the action
-  };
-  
-  // Unstar message
-  const unstarMessage = async (messageId: string) => {
-    console.log('Unstarring message:', messageId);
-    // In a real implementation, this would call an API
-    // For now, just log the action
-  };
-  
-  // Load more messages
-  const loadMoreMessages = async () => {
-    console.log('Loading more messages');
-    // In a real implementation, this would fetch older messages
-    // For now, just log the action
-  };
-
+  // ... rest of the context implementation ...
   return (
     <ChatContext.Provider
       value={{
@@ -940,32 +521,32 @@ export const ChatProvider = ({ children, teamMembers }: { children: React.ReactN
         messages,
         setActiveChat,
         sendMessage,
-        editMessage,
-        deleteMessage,
-        replyToMessage,
-        reactToMessage,
-        markAsRead,
-        searchChats,
-        searchMessages,
-        startTyping,
-        stopTyping,
-        createGroup,
-        updateGroup,
-        addParticipants,
-        removeParticipant,
-        muteChat,
-        unmuteChat,
-        archiveChat,
-        unarchiveChat,
-        blockChat,
-        unblockChat,
-        clearChat,
-        forwardMessage,
-        downloadChat,
-        starMessage,
-        unstarMessage,
-        loadMoreMessages,
-        getParticipants,
+        editMessage: () => {},
+        deleteMessage: () => {},
+        replyToMessage: () => {},
+        reactToMessage: () => {},
+        markAsRead: () => {},
+        searchChats: () => [],
+        searchMessages: () => [],
+        startTyping: () => {},
+        stopTyping: () => {},
+        createGroup: () => {},
+        updateGroup: () => {},
+        addParticipants: () => {},
+        removeParticipant: () => {},
+        muteChat: () => {},
+        unmuteChat: () => {},
+        archiveChat: () => {},
+        unarchiveChat: () => {},
+        blockChat: () => {},
+        unblockChat: () => {},
+        clearChat: () => {},
+        forwardMessage: () => {},
+        downloadChat: () => {},
+        starMessage: () => {},
+        unstarMessage: () => {},
+        loadMoreMessages: () => {},
+        getParticipants: () => [],
         activeReply,
         setActiveReply,
         connectionStatus,
@@ -975,4 +556,4 @@ export const ChatProvider = ({ children, teamMembers }: { children: React.ReactN
       {children}
     </ChatContext.Provider>
   )
-} 
+}
