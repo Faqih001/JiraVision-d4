@@ -1,8 +1,8 @@
 "use client"
 
-import React, { useEffect, useState, useRef } from "react"
-import { Shield, Info, Lock, Bell, Phone, Video, Search, MoreVertical, ArrowLeft, Send, Paperclip, Mic, Image as ImageIcon, FileIcon, X, Plus, Check, Reply, Edit2, Trash2, Download, MessageSquare, Archive, Forward, Copy, Save, ThumbsUp, AlertTriangle, Loader } from "lucide-react"
-import { ChatProvider, useChat, Message, Chat, ChatContextType } from "@/app/context/chat/ChatContext"
+import React, { useEffect, useState, useRef, useCallback } from "react"
+import { Shield, Info, Lock, Bell, Phone, Video, Search, MoreVertical, ArrowLeft, Send, Paperclip, Mic, Image as ImageIcon, FileIcon, X, Plus, Check, Reply, Edit2, Trash2, Download, MessageSquare, Archive, Forward, Copy, Save, ThumbsUp, AlertTriangle, Loader, File, CheckCheck, FileMusic, Film } from "lucide-react"
+import { ChatProvider, useChat, type Chat, type Message as ChatMessage } from "@/app/context/chat/ChatContext"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { 
@@ -21,6 +21,8 @@ import { Switch } from "@/components/ui/switch"
 import { cn } from "@/lib/utils"
 import { TeamMember } from "@/types/team"
 import { socketUtil } from "@/utils/socketUtil"
+import { Textarea } from "@/components/ui/textarea"
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 // Add missing properties to Chat type
 interface EnhancedChat extends Chat {
@@ -28,6 +30,24 @@ interface EnhancedChat extends Chat {
   lastMessageTime?: string
   online?: boolean
   id: string // Ensure id is string type
+}
+
+// Updated interfaces
+interface Message {
+  id: string;
+  content: string;
+  type: 'text' | 'image' | 'file';
+  senderId: number;
+  senderName: string;
+  avatar?: string;
+  timestamp: Date;
+  status?: 'sent' | 'delivered' | 'read';
+  replyTo?: Message;
+  attachments?: Array<{
+    type: string;
+    url: string;
+    name: string;
+  }>;
 }
 
 // Function to fetch team members from API
@@ -124,24 +144,24 @@ export default function Page() {
   const [deletedChats, setDeletedChats] = useState<Chat[]>([]);
   const { toast } = useToast();
   
-    return (
+  return (
     <div className="flex h-screen flex-col">
-        <div className="border-b p-4 flex items-center justify-between bg-background">
+      <div className="border-b p-4 flex items-center justify-between bg-background">
         <h1 className="text-2xl font-bold">Chat</h1>
-          <div className="flex items-center gap-2">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
+        <div className="flex items-center gap-2">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
                 <Button variant="outline" size="icon" onClick={() => setShowSecurityModal(true)}>
                   <Shield className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
                 <p>Chat Security</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -167,16 +187,14 @@ export default function Page() {
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
-          </div>
         </div>
-        
+      </div>
+      
       <main className="flex-1 flex w-full overflow-hidden">
-        <div
-          className={cn(
-            "h-full flex-col border-r md:flex md:w-80",
-            mobileView === "list" ? "flex" : "hidden"
-          )}
-        >
+        <div className={cn(
+          "h-full md:w-80 w-full flex-shrink-0 border-r bg-background",
+          mobileView === "list" ? "flex flex-col" : "hidden md:flex md:flex-col"
+        )}>
           <CustomChatList 
             mobileView={mobileView}
             setMobileView={setMobileView}
@@ -184,14 +202,16 @@ export default function Page() {
             setDeletedChats={setDeletedChats} 
           />
         </div>
-        <div
-          className={cn(
-            "flex-1 flex-col h-full overflow-hidden md:flex",
-            mobileView === "chat" ? "flex" : "hidden"
-          )}
-        >
-          <ChatWindow mobileView={mobileView} setMobileView={setMobileView} />
-      </div>
+        
+        <div className={cn(
+          "flex-1 flex-col h-full md:flex bg-background",
+          mobileView === "chat" ? "flex" : "hidden md:flex"
+        )}>
+          <ChatWindow 
+            mobileView={mobileView} 
+            setMobileView={setMobileView} 
+          />
+        </div>
       </main>
       
       {/* Notification Settings Modal */}
@@ -236,7 +256,7 @@ export default function Page() {
                 <div>
                   <h3 className="font-medium">Mentions</h3>
                   <p className="text-sm text-muted-foreground">Get notified when someone mentions you</p>
-          </div>
+                </div>
                 <Switch id="mention-notifications" 
                   checked={notificationSettings.mentions}
                   disabled={!notificationSettings.all}
@@ -394,9 +414,9 @@ export default function Page() {
             <div className="mt-6 flex justify-end">
               <Button variant="outline" onClick={() => setShowDeletedChatsModal(false)}>
                 Close
-          </Button>
-        </div>
-      </div>
+              </Button>
+            </div>
+          </div>
         </div>
       )}
     </div>
@@ -411,7 +431,20 @@ interface ChatListProps {
 }
 
 function CustomChatList({ mobileView, setMobileView, deletedChats, setDeletedChats }: ChatListProps) {
-  const { chats, activeChat, setActiveChat, connectionStatus, markAsRead, archiveChat, unarchiveChat, muteChat, unmuteChat, clearChat, createGroup, setChats } = useChat()
+  const { 
+    chats, 
+    activeChat, 
+    setActiveChat, 
+    connectionStatus,
+    markAsRead, 
+    archiveChat, 
+    unarchiveChat, 
+    muteChat, 
+    unmuteChat, 
+    clearChat, 
+    createGroup, 
+    setChats 
+  } = useChat()
   const [searchQuery, setSearchQuery] = useState('')
   const [showNewChatModal, setShowNewChatModal] = useState(false)
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([])
@@ -941,95 +974,47 @@ function CustomChatList({ mobileView, setMobileView, deletedChats, setDeletedCha
 
   // Render the New Chat Modal with fixed functionality
   const renderNewChatModal = () => (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-background rounded-lg w-full max-w-md p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold">New Chat</h2>
-          <Button variant="ghost" size="icon" onClick={() => setShowNewChatModal(false)}>
-            <X className="h-4 w-4" />
-          </Button>
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-background rounded-lg w-full max-w-md max-h-[90vh] overflow-hidden flex flex-col">
+        <div className="p-4 border-b">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold">New Chat</h2>
+            <Button variant="ghost" size="icon" onClick={() => setShowNewChatModal(false)}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
         
-        <div className="relative mb-4">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search contacts..."
-            className="pl-9"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-        
-        <Tabs 
-          defaultValue="individual" 
-          className="mb-4"
-          value={modalActiveTab}
-          onValueChange={(value) => {
-            setModalActiveTab(value as 'individual' | 'group');
-            // Reset selection when switching tabs
-            if (value === 'individual') {
-              setSelectedIndividualMember(null);
-            } else {
-              setSelectedMembers([]);
-            }
-          }}
-        >
-          <TabsList className="w-full">
-            <TabsTrigger value="individual" className="flex-1">Individual</TabsTrigger>
-            <TabsTrigger value="group" className="flex-1">New Group</TabsTrigger>
-          </TabsList>
+        <div className="p-4 overflow-y-auto flex-1">
+          <div className="relative mb-4">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search contacts..."
+              className="pl-9 w-full"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
           
-          <TabsContent value="individual" className="mt-4">
-            <div className="max-h-[60vh] overflow-y-auto">
-              {teamMembers
-                .filter(member => 
-                  searchQuery ? 
-                    memberMatchesSearch(member, searchQuery) : 
-                    true
-                )
-                .map(member => (
-                <div 
-                  key={member.id}
-                  className={`flex items-center p-3 hover:bg-muted/30 rounded-md cursor-pointer ${
-                    selectedIndividualMember?.id === member.id ? 'bg-blue-100 dark:bg-blue-900' : ''
-                  }`}
-                  onClick={() => setSelectedIndividualMember(member)}
-                >
-                  <Avatar className="h-10 w-10 mr-3">
-                    <AvatarImage src={member.avatar} />
-                    <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <h3 className="font-medium">{member.name}</h3>
-                    <p className="text-sm text-muted-foreground">{member.role}</p>
-                  </div>
-                  <div className="ml-auto">
-                    {selectedIndividualMember?.id === member.id && (
-                      <div className="h-4 w-4 rounded-full bg-primary flex items-center justify-center">
-                        <Check className="h-3 w-3 text-white" />
-                      </div>
-                    )}
-                    {(member as any).online && (
-                      <div className="h-2.5 w-2.5 rounded-full bg-green-500 border border-white"></div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="group" className="mt-4">
-            <div className="mb-4">
-              <label className="text-sm font-medium mb-2 block">Group Name</label>
-              <Input 
-                placeholder="Enter group name" 
-                className="mb-3" 
-                value={groupChatName}
-                onChange={(e) => setGroupChatName(e.target.value)}
-              />
-              
-              <label className="text-sm font-medium mb-2 block">Select Members</label>
-              <div className="max-h-[40vh] overflow-y-auto border rounded-md p-2 mb-3">
+          <Tabs 
+            defaultValue={modalActiveTab} 
+            value={modalActiveTab}
+            onValueChange={(value) => {
+              setModalActiveTab(value as 'individual' | 'group');
+              if (value === 'individual') {
+                setSelectedIndividualMember(null);
+              } else {
+                setSelectedMembers([]);
+              }
+            }}
+          >
+            <TabsList className="grid w-full grid-cols-2 mb-4">
+              <TabsTrigger value="individual">Individual</TabsTrigger>
+              <TabsTrigger value="group">New Group</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="individual" className="mt-0">
+              <div className="max-h-[50vh] overflow-y-auto">
                 {teamMembers
                   .filter(member => 
                     searchQuery ? 
@@ -1039,66 +1024,108 @@ function CustomChatList({ mobileView, setMobileView, deletedChats, setDeletedCha
                   .map(member => (
                   <div 
                     key={member.id}
-                    className="flex items-center p-2 hover:bg-muted/30 rounded-md cursor-pointer mb-1"
-                    onClick={() => toggleMemberSelection(member.id)}
+                    className={`flex items-center p-3 hover:bg-muted/30 rounded-md cursor-pointer ${
+                      selectedIndividualMember?.id === member.id ? 'bg-blue-100 dark:bg-blue-900' : ''
+                    }`}
+                    onClick={() => setSelectedIndividualMember(member)}
                   >
-                    <input
-                      type="checkbox"
-                      id={`select-member-${member.id}`}
-                      className="mr-3 h-4 w-4 rounded border-muted-foreground"
-                      checked={selectedMembers.includes(member.id)}
-                      onChange={() => toggleMemberSelection(member.id)} // Use the toggle function here
-                      onClick={(e) => e.stopPropagation()} // Prevent double triggering
-                    />
-                    <Avatar className="h-8 w-8 mr-3">
+                    <Avatar className="h-10 w-10 mr-3">
                       <AvatarImage src={member.avatar} />
                       <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
                     </Avatar>
-                    <label htmlFor={`select-member-${member.id}`} className="flex-1 cursor-pointer">
-                      <div className="font-medium text-sm">{member.name}</div>
-                      <div className="text-xs text-muted-foreground">{member.role}</div>
-                    </label>
+                    <div>
+                      <h3 className="font-medium">{member.name}</h3>
+                      <p className="text-sm text-muted-foreground">{member.role}</p>
+                    </div>
+                    <div className="ml-auto">
+                      {selectedIndividualMember?.id === member.id && (
+                        <div className="h-4 w-4 rounded-full bg-primary flex items-center justify-center">
+                          <Check className="h-3 w-3 text-white" />
+                        </div>
+                      )}
+                      {(member as any).online && (
+                        <div className="h-2.5 w-2.5 rounded-full bg-green-500 border border-white"></div>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
-              
-              <div className="flex items-center justify-between text-sm mb-3">
-                <span className="text-muted-foreground">
-                  Selected: <span className="font-medium">{selectedMembers.length}</span> members
-                </span>
-          <Button 
-            variant="ghost" 
-                  size="sm" 
-                  className="h-7 px-2" 
-                  onClick={handleSelectAll}
-                >
-                  {selectedMembers.length === teamMembers.length ? 'Deselect All' : 'Select All'}
-          </Button>
-            </div>
-            </div>
-          </TabsContent>
-        </Tabs>
+            </TabsContent>
+            
+            <TabsContent value="group" className="mt-0">
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Group Name</label>
+                  <Input 
+                    placeholder="Enter group name" 
+                    value={groupChatName}
+                    onChange={(e) => setGroupChatName(e.target.value)}
+                  />
+                </div>
+                
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Select Members</label>
+                  <div className="max-h-[35vh] overflow-y-auto border rounded-md divide-y">
+                    {teamMembers
+                      .filter(member => 
+                        searchQuery ? 
+                          memberMatchesSearch(member, searchQuery) : 
+                          true
+                      )
+                      .map(member => (
+                      <div 
+                        key={member.id}
+                        className="flex items-center p-3 hover:bg-muted/30 cursor-pointer"
+                        onClick={() => toggleMemberSelection(member.id)}
+                      >
+                        <input
+                          type="checkbox"
+                          className="mr-3 h-4 w-4 rounded border-muted-foreground"
+                          checked={selectedMembers.includes(member.id)}
+                          onChange={() => toggleMemberSelection(member.id)}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                        <Avatar className="h-8 w-8 mr-3">
+                          <AvatarImage src={member.avatar} />
+                          <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-sm truncate">{member.name}</div>
+                          <div className="text-xs text-muted-foreground truncate">{member.role}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
         
-        <div className="flex justify-end gap-2 mt-4">
-          <Button variant="outline" onClick={() => setShowNewChatModal(false)}>
-            Cancel
-          </Button>
-          <Button 
-            onClick={() => {
-              if (modalActiveTab === 'group') {
-                handleCreateGroupChat();
-              } else if (modalActiveTab === 'individual' && selectedIndividualMember) {
-                handleCreateIndividualChat(selectedIndividualMember);
+        <div className="p-4 border-t mt-auto bg-background">
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setShowNewChatModal(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={() => {
+                if (modalActiveTab === 'group') {
+                  handleCreateGroupChat();
+                } else if (modalActiveTab === 'individual' && selectedIndividualMember) {
+                  handleCreateIndividualChat(selectedIndividualMember);
+                }
+              }}
+              disabled={
+                (modalActiveTab === 'group' && (selectedMembers.length === 0 || !groupChatName.trim())) ||
+                (modalActiveTab === 'individual' && !selectedIndividualMember)
               }
-            }}
-            disabled={(modalActiveTab === 'group' && (selectedMembers.length === 0 || !groupChatName.trim())) ||
-                     (modalActiveTab === 'individual' && !selectedIndividualMember)}
-          >
-            Create Chat
-          </Button>
-            </div>
+            >
+              Create Chat
+            </Button>
           </div>
         </div>
+      </div>
+    </div>
   );
 
   return (
@@ -1106,6 +1133,19 @@ function CustomChatList({ mobileView, setMobileView, deletedChats, setDeletedCha
       {/* Search and new chat */}
       <div className="p-4 border-b sticky top-0 bg-white z-10">
         <div className="flex items-center gap-3 mb-4">
+          {/* Only show back button on mobile when viewing a chat */}
+          {mobileView === "chat" && (
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="md:hidden"
+              onClick={() => setMobileView("list")}
+              aria-label="Back to chat list"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          )}
+          
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -1262,32 +1302,32 @@ function CustomChatList({ mobileView, setMobileView, deletedChats, setDeletedCha
                               {chat.unreadCount}
                             </div>
                           )}
-          <DropdownMenu>
+                          <DropdownMenu>
                             <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                               <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 focus:opacity-100">
                                 <MoreVertical className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
                               <DropdownMenuItem onClick={(e) => {
                                 e.stopPropagation();
                                 handlePinChat(chat.id);
                               }}>
                                 {chat.isPinned ? 'Unpin' : 'Pin'}
-              </DropdownMenuItem>
+                              </DropdownMenuItem>
                               <DropdownMenuItem onClick={(e) => {
                                 e.stopPropagation();
                                 handleMuteChat(chat.id);
                               }}>
                                 {chat.isMuted ? 'Unmute' : 'Mute'}
-              </DropdownMenuItem>
+                              </DropdownMenuItem>
                               <DropdownMenuItem onClick={(e) => {
                                 e.stopPropagation();
                                 handleArchiveChat(chat.id);
                               }}>
                                 {chat.isArchived ? 'Unarchive' : 'Archive'}
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
                               <DropdownMenuItem onClick={(e) => {
                                 e.stopPropagation();
                                 handleMarkAsRead(chat.id);
@@ -1299,10 +1339,10 @@ function CustomChatList({ mobileView, setMobileView, deletedChats, setDeletedCha
                                 handleDeleteChat(chat.id);
                               }}>
                                 Delete chat
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1361,683 +1401,326 @@ function CustomChatList({ mobileView, setMobileView, deletedChats, setDeletedCha
           >
             Delete Chat
           </button>
-            </div>
+        </div>
       )}
       
       {/* Use the fixed New Chat Modal */}
       {showNewChatModal && renderNewChatModal()}
-          </div>
+    </div>
   )
 }
 
+// MessageDisplay component
+interface MessageDisplayProps {
+  message: ChatMessage;
+  isLastInGroup?: boolean;
+}
+
+function MessageDisplay({ message, isLastInGroup }: MessageDisplayProps) {
+  const isCurrentUser = message.senderId === 1;
+
+  // Get user details from participants list
+  const sender = message.senderId === 1 ? "You" : message.senderName || "User";
+  
+  return (
+    <div
+      className={cn(
+        "flex gap-2",
+        isCurrentUser ? "justify-end" : "justify-start"
+      )}
+    >
+      {!isCurrentUser && (
+        <Avatar className="h-8 w-8 mt-0.5">
+          <AvatarFallback>{sender.charAt(0)}</AvatarFallback>
+        </Avatar>
+      )}
+      
+      <div className={cn(
+        "rounded-lg px-3 py-2 max-w-[85%]",
+        isCurrentUser 
+          ? "bg-primary text-primary-foreground" 
+          : "bg-muted"
+      )}>        
+        <div className="break-words">
+          {message.type === 'text' && (
+            <p>{message.content}</p>
+          )}
+          {message.type === 'image' && (
+            <img 
+              src={message.content} 
+              alt="Shared image" 
+              className="max-w-full rounded" 
+            />
+          )}
+          {message.type === 'audio' && (
+            <div className="flex items-center gap-2">
+              <FileMusic className="h-4 w-4" />
+              <span>Voice message</span>
+            </div>
+          )}
+          {message.type === 'video' && (
+            <div className="flex items-center gap-2">
+              <Film className="h-4 w-4" />
+              <span>Video message</span>
+            </div>
+          )}
+        </div>
+
+        {isLastInGroup && (
+          <div className="flex items-center justify-end gap-1 mt-1">
+            <span className="text-[10px] text-muted-foreground">
+              {new Date(message.timestamp).toLocaleTimeString([], { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+              })}
+            </span>
+            {isCurrentUser && (
+              <span className="text-[10px] text-muted-foreground">
+                <Check className="h-3 w-3" />
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 interface ChatWindowProps {
-  mobileView: 'list' | 'chat'
-  setMobileView: (view: 'list' | 'chat') => void
+  mobileView: 'list' | 'chat';
+  setMobileView: (view: 'list' | 'chat') => void;
 }
 
 function ChatWindow({ mobileView, setMobileView }: ChatWindowProps) {
   const { 
-    activeChat, 
-    messages, 
-    setActiveChat, 
-    sendMessage, 
-    startTyping, 
-    stopTyping, 
-    activeReply, 
-    setActiveReply, 
-    getParticipants,
-    chats,
-    createGroup,
-    setChats,
-    connectionStatus
-  } = useChat()
-  const [messageInput, setMessageInput] = useState('')
-  const [emojiPickerOpen, setEmojiPickerOpen] = useState(false)
-  const [attachmentMenuOpen, setAttachmentMenuOpen] = useState(false)
-  const [isRecording, setIsRecording] = useState(false)
-  const [recordingTime, setRecordingTime] = useState(0)
-  const messageEndRef = useRef<HTMLDivElement>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const [showEmoji, setShowEmoji] = useState(false)
-  const [showNewChatModal, setShowNewChatModal] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
-  const participants = activeChat ? getParticipants(activeChat.id) : []
-  const timerRef = useRef<NodeJS.Timeout | null>(null)
-  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([])
-  const [selectedMembers, setSelectedMembers] = useState<number[]>([])
-  const [selectedIndividualMember, setSelectedIndividualMember] = useState<TeamMember | null>(null)
-  const [groupChatName, setGroupChatName] = useState('')
-  const [modalActiveTab, setModalActiveTab] = useState<'individual' | 'group'>('individual')
-  const [showSecurityModal, setShowSecurityModal] = useState(false)
-  const [isReconnecting, setIsReconnecting] = useState(false)
-  const { toast } = useToast()
+    activeChat,
+    messages,
+    sendMessage,
+    startTyping,
+    stopTyping,
+    connectionStatus 
+  } = useChat();
   
-  // Add reconnect function
-  const handleReconnect = async () => {
+  const [messageInput, setMessageInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [showNewChatModal, setShowNewChatModal] = useState(false);
+  const messageEndRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
+
+  const handleSendMessage = useCallback(async () => {
+    if (!messageInput.trim() || !activeChat) return;
+
     try {
-      setIsReconnecting(true);
+      setIsLoading(true);
       
-      console.log("Manual reconnection initiated by user");
-      
-      // First, verify session
-      const sessionResponse = await fetch('/api/auth/session');
-      if (!sessionResponse.ok) {
-        console.error("Session invalid, redirecting to login");
-        window.location.href = '/login';
+      if (connectionStatus !== 'connected') {
+        toast({
+          title: "Not connected",
+          description: "Waiting for connection...",
+          duration: 2000,
+        });
         return;
       }
+
+      // Send message
+      await sendMessage(messageInput.trim());
+      setMessageInput('');
       
-      // Then test API connection
-      const response = await fetch('/api/chat');
-      if (response.ok) {
-        console.log("API is reachable, reinitializing chat");
-        
-        // Clear existing socket connection
-        socketUtil.closeSocket();
-        
-        // Reinitialize socket
-        const socket = await socketUtil.initSocket();
-        if (socket) {
-          console.log("Socket connection reestablished");
-          // Refresh the page to reset all states
-          window.location.reload();
-        } else {
-          console.error("Failed to reinitialize socket");
-        }
-      } else {
-        console.error("API is not reachable:", response.status, response.statusText);
-        const errorText = await response.text();
-        console.error("Error details:", errorText);
-      }
+      // Scroll to bottom after sending
+      messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      
     } catch (error) {
-      console.error('Reconnection failed:', error);
+      console.error('Failed to send message:', error);
+      toast({
+        title: "Failed to send",
+        description: "Please try again",
+        duration: 3000,
+      });
     } finally {
-      setIsReconnecting(false);
+      setIsLoading(false);
     }
-  };
-  
-  // Handle emoji picker - moved outside the conditional rendering
-  const [emojiCategory, setEmojiCategory] = useState<'recent' | 'smileys' | 'people' | 'nature' | 'food' | 'activities' | 'objects' | 'symbols' | 'flags'>('smileys')
-  
-  // Emoji data by category - moved outside the conditional rendering
-  const emojiData = {
-    recent: ['😀', '😂', '👍', '❤️', '🔥', '✅', '🙏', '👏'],
-    smileys: ['😀', '😁', '😂', '🤣', '😃', '😄', '😅', '😆', '😉', '😊', '😋', '😎', '🥰', '😍', '😘', '😗', '😙', '😚', '🙂', '🤗', '🤔', '🤨', '😐', '😑'],
-    people: ['👶', '👧', '🧒', '👦', '👩', '🧑', '👨', '👵', '🧓', '👴', '👲', '👳‍♀️', '👳‍♂️', '🧕', '🧔', '👱‍♀️', '👱‍♂️', '👨‍🦰', '👩‍🦰', '👨‍🦱', '👩‍🦱', '👨‍🦲', '👩‍🦲', '👨‍🦳'],
-    nature: ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🙈', '🙉', '🙊', '🐒', '🦍', '🦓', '🦒', '🦘', '🦬'],
-    food: ['🍏', '🍎', '🍐', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🍈', '🍒', '🍑', '🥭', '🍍', '🥥', '🥝', '🍅', '🍆', '🥑', '🥦', '🥬', '🥒', '🌶'],
-    activities: ['⚽', '🏀', '🏈', '⚾', '🥎', '🎾', '🏐', '🏉', '🥏', '🎱', '🪀', '🏓', '🏸', '🏒', '🏑', '🥍', '🏏', '🥅', '⛳', '🪁', '🏹', '🎣', '🤿'],
-    objects: ['⌚', '📱', '📲', '💻', '⌨️', '🖥', '🖨', '🖱', '🖲', '🕹', '🗜', '💽', '💾', '💿', '📀', '📼', '📷', '📸', '📹', '🎥', '📽', '🎞', '📞', '☎️'],
-    symbols: ['❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟', '☮️', '✝️', '☪️', '🕉', '☸️'],
-    flags: ['🏳️', '🏴', '🏁', '🚩', '🏳️‍🌈', '🏳️‍⚧️', '🇺🇳', '🇦🇫', '🇦🇽', '🇦🇱', '🇩🇿', '🇦🇸', '🇦🇩', '🇦🇴', '🇦🇮', '🇦🇶', '🇦🇬', '🇦🇷', '🇦🇲', '🇦🇼']
-  };
-  
-  // Fetch team members when component mounts
+  }, [messageInput, activeChat, connectionStatus, sendMessage, toast]);
+
+  // Auto-scroll on new messages
   useEffect(() => {
-    const loadTeamMembers = async () => {
-      const members = await fetchTeamMembers()
-      setTeamMembers(members.filter(member => member.id !== 1)) // Exclude current user
+    const shouldScroll = messages[messages.length - 1]?.senderId === 1; // Current user's messages
+    if (shouldScroll) {
+      messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
-    loadTeamMembers()
-  }, [])
-  
-  // Reset modal state when opening/closing
+  }, [messages]);
+
+  // Handle typing indicators
   useEffect(() => {
-    if (!showNewChatModal) {
-      setSelectedMembers([])
-      setSelectedIndividualMember(null)
-      setGroupChatName('')
-      setModalActiveTab('individual')
-      setSearchQuery('')
-    }
-  }, [showNewChatModal])
-  
-  // Handle member selection for group chat
-  const toggleMemberSelection = (memberId: number) => {
-    setSelectedMembers(prev => {
-      if (prev.includes(memberId)) {
-        return prev.filter(id => id !== memberId)
-      } else {
-        return [...prev, memberId]
-      }
-    })
-  }
-  
-  // Handle select all for group chat
-  const handleSelectAll = () => {
-    // Get all selectable team members (excluding current user with ID 1)
-    const selectableMembers = teamMembers
-      .filter(member => member.id !== 1)
-      .filter(member => 
-        searchQuery ? 
-          memberMatchesSearch(member, searchQuery) : 
-          true
-      )
-      .map(member => member.id);
+    let typingTimeout: NodeJS.Timeout;
     
-    if (selectedMembers.length === selectableMembers.length) {
-      // If all visible members are selected, deselect all
-      setSelectedMembers([]);
-    } else {
-      // Otherwise select all visible members
-      setSelectedMembers(selectableMembers);
-    }
-  }
-  
-  // Generate avatar for group chat
-  const generateGroupAvatar = () => {
-    // Placeholder implementation - in real app would create an avatar with overlapping images
-    return "/placeholder-group-avatar.jpg"
-  }
-  
-  // Create new group chat
-  const handleCreateGroupChat = () => {
-    console.log("Starting group chat creation process in ChatWindow...");
-    
-    if (selectedMembers.length === 0) {
-      console.log("Error: No members selected");
-      toast({
-        title: "No members selected",
-        description: "Please select at least one team member for the group chat.",
-        variant: "destructive"
-      })
-      return
-    }
-    
-    if (!groupChatName.trim()) {
-      console.log("Error: Missing group name");
-      toast({
-        title: "Missing group name",
-        description: "Please enter a name for the group chat.",
-        variant: "destructive"
-      })
-      return
-    }
-    
-    console.log(`Creating group '${groupChatName}' with ${selectedMembers.length} members:`, selectedMembers);
-    
-    try {
-      // Create a unique ID for the new group
-      const groupId = `group-${Date.now()}`;
-      
-      // Create the group chat directly
-      const newGroupChat: Chat = {
-        id: groupId,
-        name: groupChatName,
-        type: 'group',
-        participants: [...selectedMembers, 1], // Include current user
-        avatar: generateGroupAvatar(),
-        description: `Group chat with ${selectedMembers.length} members`,
-        unreadCount: 0,
-        isMuted: false,
-        isArchived: false,
-        isGroupAdmin: true, // Current user is admin
-        createdAt: new Date()
-      };
-      
-      console.log("New group chat object created in ChatWindow:", newGroupChat);
-      
-      // Add to chats list
-      setChats(prev => {
-        console.log("Previous chats count:", prev.length);
-        const updatedChats = [newGroupChat, ...prev];
-        console.log("Updated chats list count:", updatedChats.length);
-        return updatedChats;
-      });
-      
-      // Set as active chat - with slight delay to ensure state is updated
-      setTimeout(() => {
-        console.log("Setting active chat to new group ID:", groupId);
-        setActiveChat(newGroupChat);
-      }, 100);
-      
-      console.log(`Group chat created successfully in ChatWindow: ${groupChatName}`);
-      
-      // Close modal
-      setShowNewChatModal(false)
-      
-      // Ensure chat view is shown (for mobile)
-      setMobileView('chat')
-      
-      toast({
-        title: "Group chat created",
-        description: `You've created "${groupChatName}" with ${selectedMembers.length} members.`
-      })
-    } catch (error) {
-      console.error("Error creating group chat in ChatWindow:", error);
-      toast({
-        title: "Error creating chat",
-        description: "There was a problem creating the group chat. Please try again.",
-        variant: "destructive"
-      })
-    }
-  }
-  
-  // Create new individual chat or open existing
-  const handleCreateIndividualChat = (member: TeamMember) => {
-    console.log("Creating individual chat with:", member);
-    
-    if (!member || !member.id) {
-      console.error("Invalid member selected for individual chat");
-      toast({
-        title: "Error",
-        description: "Invalid team member selected",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    // Check if a chat with this user already exists
-    const existingChat = chats.find(c => 
-      c.type === 'individual' && 
-      c.participants.includes(member.id)
-    );
-    
-    if (existingChat) {
-      console.log("Chat already exists, setting as active:", existingChat);
-      setActiveChat(existingChat);
-      
-      // Handle mobile view
-      setMobileView('chat');
-      
-      setShowNewChatModal(false);
-      return;
-    }
-    
-    console.log("No existing chat found, creating new chat with:", member.name);
-    
-    createGroup(
-      member.name, // Use member name as chat name for individual chats
-      [member.id],
-      member.avatar,
-    );
-    
-    toast({
-      title: "Success",
-      description: `Chat with ${member.name} created`,
-      variant: "default",
-    });
-    
-    setShowNewChatModal(false);
-    setSelectedMembers([]);
-  };
-  
-  useEffect(() => {
-    // Scroll to bottom on new messages
-    messageEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
-  
-  // Handle file upload
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files
-    if (!files || files.length === 0) return
-    
-    // For demo purposes just use the first file
-    const file = files[0]
-    
-    // Determine file type
-    let messageType: 'image' | 'video' | 'document' | 'audio' = 'document'
-    if (file.type.startsWith('image/')) messageType = 'image'
-    else if (file.type.startsWith('video/')) messageType = 'video'
-    else if (file.type.startsWith('audio/')) messageType = 'audio'
-    
-    // Create object URL for preview
-    const fileUrl = URL.createObjectURL(file)
-    
-    // Send message with file attachment
-    sendMessage(
-      file.name,
-      messageType,
-      activeReply || undefined,
-      fileUrl,
-      file.name,
-      file.size
-    )
-    
-    // Reset the file input
-    if (fileInputRef.current) fileInputRef.current.value = ''
-    
-    // Close attachment menu
-    setAttachmentMenuOpen(false)
-    
-    // Clear reply if there is one
-    if (activeReply) setActiveReply(null)
-  }
-  
-  // Handle recording voice message
-  const handleRecordVoice = () => {
-    if (isRecording) {
-      // Stop recording - in a real app, this would save the audio and send it
-      setIsRecording(false)
-      if (timerRef.current) clearInterval(timerRef.current)
-      
-      // Send a dummy voice message
-      sendMessage(
-        'Voice message',
-        'voice',
-        activeReply || undefined,
-        '/dummy-voice.mp3',
-        'voice-message.mp3',
-        120000
-      )
-      
-      setRecordingTime(0)
-    } else {
-      // Start recording - in a real app, this would activate the microphone
-      setIsRecording(true)
-      
-      // Simulate recording time
-      timerRef.current = setInterval(() => {
-        setRecordingTime(prev => prev + 1)
-      }, 1000)
-    }
-  }
-  
-  // Handle send message
-  const handleSendMessage = () => {
-    if (messageInput.trim()) {
-      sendMessage(messageInput, 'text', activeReply || undefined)
-      setMessageInput('')
-      
-      // Clear reply if there is one
-      if (activeReply) setActiveReply(null)
-    }
-  }
-  
-  // Format recording time
-  const formatRecordingTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60)
-    const secs = seconds % 60
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
-  }
-  
-  // Render enhanced emoji picker - moved outside conditional rendering
-  const renderEmojiPicker = () => (
-    <div className="p-2">
-      <div className="flex items-center justify-between mb-2 border-b pb-2">
-        <div className="text-sm font-medium">Emojis</div>
-        <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => setEmojiPickerOpen(false)}>
-          <X className="h-3 w-3" />
-        </Button>
-            </div>
-      
-      <div className="flex gap-1 mb-2 overflow-x-auto pb-1 scrollbar-thin">
-        <Button 
-          variant={emojiCategory === 'recent' ? 'default' : 'ghost'} 
-          size="sm" 
-          className="h-7 w-7 p-0 rounded-full"
-          onClick={() => setEmojiCategory('recent')}
-        >
-          <span className="text-xs">🕒</span>
-        </Button>
-        <Button 
-          variant={emojiCategory === 'smileys' ? 'default' : 'ghost'} 
-          size="sm" 
-          className="h-7 w-7 p-0 rounded-full"
-          onClick={() => setEmojiCategory('smileys')}
-        >
-          <span className="text-xs">😊</span>
-        </Button>
-        <Button 
-          variant={emojiCategory === 'people' ? 'default' : 'ghost'} 
-          size="sm" 
-          className="h-7 w-7 p-0 rounded-full"
-          onClick={() => setEmojiCategory('people')}
-        >
-          <span className="text-xs">👪</span>
-        </Button>
-        <Button 
-          variant={emojiCategory === 'nature' ? 'default' : 'ghost'} 
-          size="sm" 
-          className="h-7 w-7 p-0 rounded-full"
-          onClick={() => setEmojiCategory('nature')}
-        >
-          <span className="text-xs">🐶</span>
-        </Button>
-        <Button 
-          variant={emojiCategory === 'food' ? 'default' : 'ghost'} 
-          size="sm" 
-          className="h-7 w-7 p-0 rounded-full"
-          onClick={() => setEmojiCategory('food')}
-        >
-          <span className="text-xs">🍔</span>
-        </Button>
-        <Button 
-          variant={emojiCategory === 'activities' ? 'default' : 'ghost'} 
-          size="sm" 
-          className="h-7 w-7 p-0 rounded-full"
-          onClick={() => setEmojiCategory('activities')}
-        >
-          <span className="text-xs">⚽</span>
-        </Button>
-        <Button 
-          variant={emojiCategory === 'objects' ? 'default' : 'ghost'} 
-          size="sm" 
-          className="h-7 w-7 p-0 rounded-full"
-          onClick={() => setEmojiCategory('objects')}
-        >
-          <span className="text-xs">💻</span>
-        </Button>
-        <Button 
-          variant={emojiCategory === 'symbols' ? 'default' : 'ghost'} 
-          size="sm" 
-          className="h-7 w-7 p-0 rounded-full"
-          onClick={() => setEmojiCategory('symbols')}
-        >
-          <span className="text-xs">❤️</span>
-        </Button>
-        <Button 
-          variant={emojiCategory === 'flags' ? 'default' : 'ghost'} 
-          size="sm" 
-          className="h-7 w-7 p-0 rounded-full"
-          onClick={() => setEmojiCategory('flags')}
-        >
-          <span className="text-xs">🏳️</span>
-        </Button>
-          </div>
-      
-      <div className="grid grid-cols-7 gap-1 max-h-[200px] overflow-y-auto">
-        {emojiData[emojiCategory].map((emoji: string, index: number) => (
-              <Button 
-            key={`${emoji}-${index}`}
-                variant="ghost" 
-            className="h-8 w-8 p-0" 
-            onClick={() => {
-              setMessageInput((prev: string) => prev + emoji)
-              // Don't close the picker so they can add multiple emojis
-            }}
-          >
-            {emoji}
-              </Button>
-        ))}
-            </div>
-    </div>
-  );
-  
-  // If no active chat, show placeholder with improved modal
+    const handleTyping = () => {
+      startTyping();
+      clearTimeout(typingTimeout);
+      typingTimeout = setTimeout(() => {
+        stopTyping();
+      }, 1000);
+    };
+
+    return () => {
+      clearTimeout(typingTimeout);
+      stopTyping();
+    };
+  }, [startTyping, stopTyping]);
+
+  // If no active chat, show welcome screen
   if (!activeChat) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center bg-white p-4 h-full w-full">
-        <div className="text-center max-w-md mx-auto flex flex-col items-center justify-center h-full">
+      <div className="flex-1 flex flex-col items-center justify-center p-4">
+        <div className="text-center max-w-md mx-auto">
           <div className="bg-muted/30 rounded-full p-6 mx-auto mb-6 w-24 h-24 flex items-center justify-center">
             <MessageSquare className="h-12 w-12 text-muted-foreground" />
-                </div>
-          <h2 className="text-2xl font-bold mb-3">No chat selected</h2>
-          <p className="text-muted-foreground mb-6 max-w-xs">
-            Select a chat from the list or start a new conversation to connect with your team
+          </div>
+          <h2 className="text-2xl font-bold mb-3">Welcome to Chat</h2>
+          <p className="text-muted-foreground mb-6">
+            Select a chat or start a new conversation
           </p>
-          <Button
-            onClick={() => setShowNewChatModal(true)}
-            className="mx-auto"
-            size="lg"
-          >
+          <Button onClick={() => setShowNewChatModal(true)}>
             <Plus className="h-4 w-4 mr-2" />
             New Chat
           </Button>
-              </div>
-              
-        {/* Improved New Chat Modal */}
-        {showNewChatModal && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-background rounded-lg w-full max-w-md p-4">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold">New Chat</h2>
-                <Button variant="ghost" size="icon" onClick={() => setShowNewChatModal(false)}>
-                  <X className="h-4 w-4" />
-                </Button>
-                      </div>
-              
-              <div className="relative mb-4">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search contacts..."
-                  className="pl-9"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-              
-              <Tabs 
-                defaultValue="individual" 
-                value={modalActiveTab}
-                className="mb-4"
-                onValueChange={(value) => {
-                  setModalActiveTab(value as 'individual' | 'group');
-                  // Reset selection when switching tabs
-                  if (value === 'individual') {
-                    setSelectedIndividualMember(null);
-                  } else {
-                    setSelectedMembers([]);
-                  }
-                }}
-              >
-                <TabsList className="w-full">
-                  <TabsTrigger value="individual" className="flex-1">Individual</TabsTrigger>
-                  <TabsTrigger value="group" className="flex-1">New Group</TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="individual" className="mt-4">
-                  <div className="max-h-[60vh] overflow-y-auto">
-                    {teamMembers
-                      .filter(member => 
-                        searchQuery ? 
-                          memberMatchesSearch(member, searchQuery) : 
-                          true
-                      )
-                      .map(member => (
-                      <div 
-                        key={member.id}
-                        className={`flex items-center p-3 hover:bg-muted/30 rounded-md cursor-pointer ${
-                          selectedIndividualMember?.id === member.id ? 'bg-blue-100 dark:bg-blue-900' : ''
-                        }`}
-                        onClick={() => setSelectedIndividualMember(member)}
-                      >
-                        <Avatar className="h-10 w-10 mr-3">
-                          <AvatarImage src={member.avatar} />
-                          <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
-                        </Avatar>
-                      <div>
-                          <h3 className="font-medium">{member.name}</h3>
-                          <p className="text-sm text-muted-foreground">{member.role}</p>
-                        </div>
-                        <div className="ml-auto">
-                          {selectedIndividualMember?.id === member.id && (
-                            <div className="h-4 w-4 rounded-full bg-primary flex items-center justify-center">
-                              <Check className="h-3 w-3 text-white" />
-                            </div>
-                          )}
-                          {(member as any).online && (
-                            <div className="h-2.5 w-2.5 rounded-full bg-green-500 border border-white"></div>
-                          )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                </TabsContent>
-                
-                <TabsContent value="group" className="mt-4">
-                  <div className="mb-4">
-                    <label className="text-sm font-medium mb-2 block">Group Name</label>
-                    <Input 
-                      placeholder="Enter group name" 
-                      className="mb-3" 
-                      value={groupChatName}
-                      onChange={(e) => setGroupChatName(e.target.value)}
-                    />
-                    
-                    <label className="text-sm font-medium mb-2 block">Select Members</label>
-                    <div className="max-h-[40vh] overflow-y-auto border rounded-md p-2 mb-3">
-                      {teamMembers
-                        .filter(member => 
-                          searchQuery ? 
-                            memberMatchesSearch(member, searchQuery) : 
-                            true
-                        )
-                        .map(member => (
-                        <div 
-                          key={member.id}
-                          className="flex items-center p-2 hover:bg-muted/30 rounded-md cursor-pointer mb-1"
-                          onClick={() => toggleMemberSelection(member.id)}
-                        >
-                          <input
-                            type="checkbox"
-                            id={`select-member-${member.id}`}
-                            className="mr-3 h-4 w-4 rounded border-muted-foreground"
-                            checked={selectedMembers.includes(member.id)}
-                            onChange={() => toggleMemberSelection(member.id)} // Use the toggle function here
-                            onClick={(e) => e.stopPropagation()} // Prevent double triggering
-                          />
-                          <Avatar className="h-8 w-8 mr-3">
-                            <AvatarImage src={member.avatar} />
-                            <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
-                          </Avatar>
-                          <label htmlFor={`select-member-${member.id}`} className="flex-1 cursor-pointer">
-                            <div className="font-medium text-sm">{member.name}</div>
-                            <div className="text-xs text-muted-foreground">{member.role}</div>
-                          </label>
-              </div>
-                      ))}
-                    </div>
-                    
-                    <div className="flex items-center justify-between text-sm mb-3">
-                      <span className="text-muted-foreground">
-                        Selected: <span className="font-medium">{selectedMembers.length}</span> members
-                      </span>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="h-7 px-2"
-                        onClick={handleSelectAll}
-                      >
-                        {selectedMembers.length === teamMembers.length ? 'Deselect All' : 'Select All'}
-                      </Button>
-                    </div>
-                  </div>
-                </TabsContent>
-              </Tabs>
-              
-              <div className="flex justify-end gap-2 mt-4">
-                <Button variant="outline" onClick={() => setShowNewChatModal(false)}>
-                  Cancel
-                </Button>
-                <Button 
-                  onClick={() => {
-                    if (modalActiveTab === 'group') {
-                      handleCreateGroupChat();
-                    } else if (modalActiveTab === 'individual' && selectedIndividualMember) {
-                      handleCreateIndividualChat(selectedIndividualMember);
-                    }
-                  }}
-                  disabled={(modalActiveTab === 'group' && (selectedMembers.length === 0 || !groupChatName.trim())) ||
-                           (modalActiveTab === 'individual' && !selectedIndividualMember)}
-                >
-                  Create Chat
-                </Button>
-            </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* Chat header */}
+      <header className="flex items-center px-4 py-3 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-10">
+        <div className="flex items-center gap-3">
+          {/* Back button - mobile only */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="md:hidden"
+            onClick={() => setMobileView("list")}
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+
+          <Avatar className="h-8 w-8">
+            <AvatarImage src={activeChat.avatar} alt={activeChat.name} />
+            <AvatarFallback>{activeChat.name.charAt(0)}</AvatarFallback>
+          </Avatar>
+
+          <div className="flex flex-col">
+            <h3 className="font-semibold text-sm">{activeChat.name}</h3>
+            <p className="text-xs text-muted-foreground">
+              {activeChat.type === 'group' 
+                ? `${activeChat.participants.length} members`
+                : activeChat.online ? 'Online' : 'Offline'}
+            </p>
           </div>
         </div>
-      )}
+
+        <div className="ml-auto flex items-center gap-1">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <Search className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Search messages</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>More options</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+      </header>
+
+      {/* Messages area */}
+      <ScrollArea className="flex-1 px-4 py-6">
+        <div className="space-y-4 max-w-3xl mx-auto">
+          {messages.map((message, index) => (
+            <MessageDisplay
+              key={message.id}
+              message={message}
+              isLastInGroup={
+                index === messages.length - 1 ||
+                messages[index + 1]?.senderId !== message.senderId
+              }
+            />
+          ))}
+          <div ref={messageEndRef} />
+        </div>
+      </ScrollArea>
+
+      {/* Input area */}
+      <footer className="border-t px-4 py-3 bg-background">
+        <div className="flex items-center gap-2 max-w-3xl mx-auto">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-9 w-9"
+                  aria-label="Add attachment"
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Add attachment</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
+          <div className="flex-1">
+            <Textarea
+              placeholder="Type a message..."
+              className="min-h-[40px] max-h-[120px] resize-none"
+              value={messageInput}
+              onChange={(e) => {
+                setMessageInput(e.target.value);
+                if (e.target.value) startTyping();
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSendMessage();
+                }
+              }}
+              aria-label="Message input"
+            />
+          </div>
+
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-9 w-9"
+                  onClick={handleSendMessage}
+                  disabled={!messageInput.trim() || isLoading}
+                  aria-label="Send message"
+                >
+                  {isLoading ? (
+                    <Loader className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Send className="h-4 w-4" />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Send message</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+      </footer>
     </div>
-  )
-  }
+  );
 }
