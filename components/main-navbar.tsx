@@ -185,7 +185,7 @@ export function MainNavbar() {
                 width={32}
                 height={32}
                 className="object-contain"
-                priority
+                loading="eager" 
               />
             </div>
             <span>JiraVision</span>
@@ -321,7 +321,7 @@ export function MainNavbar() {
                       width={32}
                       height={32}
                       className="object-contain"
-                      priority
+                      loading="eager"
                     />
                   </div>
                   <span>JiraVision</span>

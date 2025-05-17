@@ -17,6 +17,17 @@ const nextConfig = {
   // NOTE: This disables automatic static optimization
   // You may want to keep this disabled in production and handle WebSockets separately
   useFileSystemPublicRoutes: true,
+  // Add async rewrites to proxy aitopia.ai requests
+  async rewrites() {
+    return [
+      {
+        source: '/api/aitopia/:path*',
+        destination: 'https://extensions.aitopia.ai/:path*',
+      },
+    ];
+  },
+  // Configure font optimization
+  optimizeFonts: true,
   webpack: (config, { isServer }) => {
     // Handle client-side polyfills for socket.io
     if (!isServer) {

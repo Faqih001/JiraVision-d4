@@ -243,7 +243,7 @@ export default function DashboardLayout({
                 width={32}
                 height={32}
                 className="object-contain"
-                priority
+                loading="eager"
               />
             </div>
             {!sidebarCollapsed && <span className="font-bold text-xl">JiraVision</span>}

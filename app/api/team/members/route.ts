@@ -91,10 +91,11 @@ export async function GET(request: Request) {
       console.log("Basic team query successful, got", result.length, "members");
         
       // Then get skills separately to avoid the Object.entries() error
+      // Use COALESCE to ensure skills is never NULL which caused the original error
       const skillsResult = await db
         .select({
           id: users.id,
-          // Ensure a valid default if skills is null/undefined
+          // Ensure a valid default if skills is null/undefined - this fixes the Object.entries() error
           skills: sql`COALESCE(${users.skills}, '[]'::jsonb)`
         })
         .from(users)
