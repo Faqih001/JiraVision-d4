@@ -242,3 +242,22 @@ export const kanbanTaskAttachments = pgTable("kanban_task_attachments", {
   fileType: varchar("file_type", { length: 100 }).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 })
+
+// Calendar Events table
+export const calendarEvents = pgTable("calendar_events", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  description: text("description"),
+  startTime: timestamp("start_time").notNull(),
+  endTime: timestamp("end_time").notNull(),
+  location: text("location"),
+  eventType: varchar("event_type", { length: 50 }).notNull().default("meeting"), // meeting, sprint, demo, etc
+  organizerId: integer("organizer_id").references(() => users.id).notNull(),
+  isAllDay: boolean("is_all_day").default(false),
+  isRecurring: boolean("is_recurring").default(false),
+  recurringPattern: jsonb("recurring_pattern").default({}),
+  attendees: jsonb("attendees").default([]),
+  color: varchar("color", { length: 50 }).default("blue"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+})
