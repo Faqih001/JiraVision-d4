@@ -24,9 +24,7 @@ function runSqlFile(filePath) {
     const sql = fs.readFileSync(filePath, 'utf8');
     
     // Use psql to execute the SQL (assumes psql is installed)
-    // For larger SQL files, it's better to use the -f flag to execute the file directly
-    // rather than passing it as a command string
-    execSync(`psql "${databaseUrl}" -f "${filePath}"`);
+    execSync(`psql "${databaseUrl}" -c "${sql.replace(/"/g, '\\"')}"`);
     console.log(`SQL file ${filePath} executed successfully`);
     return true;
   } catch (error) {
@@ -35,17 +33,11 @@ function runSqlFile(filePath) {
   }
 }
 
-// Use existing SQL file for kanban tables
-let kanbanTablesSql = path.join(__dirname, 'kanban-tables-pg.sql');
-
-// If the PostgreSQL-specific file doesn't exist, use the regular one
-if (!fs.existsSync(kanbanTablesSql)) {
-  console.log('PostgreSQL-specific SQL file not found, using regular file');
-  kanbanTablesSql = path.join(__dirname, 'kanban-tables.sql');
-}
+// Path to the PostgreSQL-specific SQL file
+const sqlFilePath = path.join(__dirname, 'kanban-tables-pg.sql');
 
 // Run the SQL file
-if (runSqlFile(kanbanTablesSql)) {
+if (runSqlFile(sqlFilePath)) {
   console.log('Kanban tables created and seeded successfully!');
 } else {
   console.error('Failed to create or seed Kanban tables.');

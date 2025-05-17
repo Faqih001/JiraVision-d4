@@ -1,3 +1,4 @@
+// filepath: /home/amirul/Desktop/Career/MERN/2025 Projects/JiraVision-d4/scripts/fix-kanban-tables.js
 // Script to fix Kanban tables in the database
 const { execSync } = require('child_process');
 const path = require('path');
@@ -20,13 +21,9 @@ function runSqlFile(filePath) {
       }
     }
     
-    // Read SQL file
-    const sql = fs.readFileSync(filePath, 'utf8');
-    
-    // Use psql to execute the SQL (assumes psql is installed)
-    // For larger SQL files, it's better to use the -f flag to execute the file directly
-    // rather than passing it as a command string
-    execSync(`psql "${databaseUrl}" -f "${filePath}"`);
+    // Execute the SQL file directly using the -f flag
+    // This is more reliable for larger SQL files than passing content via -c
+    execSync(`psql "${databaseUrl}" -f "${filePath}"`, { stdio: 'inherit' });
     console.log(`SQL file ${filePath} executed successfully`);
     return true;
   } catch (error) {
