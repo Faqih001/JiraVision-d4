@@ -466,14 +466,18 @@ export default function KanbanPage() {
     router.push('/dashboard/calendar?view=tasks');
   };
 
-  const filteredColumns = columns.map(column => ({
-    ...column,
-    tasks: column.tasks.filter(task => 
-      task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      task.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      task.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
-    )
-  }))
+  const filteredColumns = useMemo(() => {
+    if (!searchQuery.trim()) return columns
+    
+    return columns.map(column => ({
+      ...column,
+      tasks: column.tasks.filter(task => 
+        task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        task.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        task.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
+      )
+    }))
+  }, [columns, searchQuery])
 
   return (
     <div className="h-full flex flex-col">
@@ -559,25 +563,23 @@ export default function KanbanPage() {
           </div>
         </div>
       ) : (
-        <div className="flex-1 w-full h-[calc(100vh-10rem)] pb-4">
+        <div className="flex-1 w-full h-[calc(100vh-12rem)] pb-4">
           <div className="h-full w-full">
-            <div className="flex flex-col gap-4 pb-4 h-full overflow-y-auto snap-y snap-mandatory md:flex-row md:overflow-x-auto md:overflow-y-hidden md:snap-x">
-              <DragDropContext onDragEnd={handleDragEnd}>
-                <div className="flex flex-col md:flex-row gap-4 min-h-[500px] md:min-h-0 w-full">
-                  {filteredColumns.map((column) => (
-                    <div key={column.id} className="w-full md:w-[300px] flex-shrink-0 snap-start bg-background/50 rounded-lg shadow-sm">
-                      <KanbanColumn 
-                        column={column} 
-                        onAddTask={() => {
-                          setSelectedColumn(column.id)
-                          setShowTaskForm(true)
-                        }}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </DragDropContext>
-            </div>
+            <DragDropContext onDragEnd={handleDragEnd}>
+              <div className="flex flex-col md:flex-row gap-4 h-full overflow-y-auto md:overflow-x-auto md:overflow-y-hidden">
+                {filteredColumns.map((column) => (
+                  <div key={column.id} className="w-full md:w-[300px] flex-shrink-0 snap-start bg-background/50 rounded-lg shadow-sm">
+                    <KanbanColumn 
+                      column={column} 
+                      onAddTask={() => {
+                        setSelectedColumn(column.id)
+                        setShowTaskForm(true)
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+            </DragDropContext>
           </div>
         </div>
       )}

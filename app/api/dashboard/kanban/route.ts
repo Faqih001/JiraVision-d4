@@ -73,14 +73,35 @@ export async function GET(request: NextRequest) {
         // Format subtasks if it exists as JSON
         let subtasksFormatted = null;
         if (task.subtasks) {
-          // Assuming subtasks is stored as JSON with total and completed properties
-          const parsed = typeof task.subtasks === 'string' 
-            ? JSON.parse(task.subtasks) 
-            : task.subtasks;
-          
-          subtasksFormatted = {
-            total: parsed.total || 0,
-            completed: parsed.completed || 0,
+          try {
+            // Assuming subtasks is stored as JSON with total and completed properties
+            const parsed = typeof task.subtasks === 'string' 
+              ? JSON.parse(task.subtasks) 
+              : task.subtasks;
+            
+            subtasksFormatted = {
+              total: parsed.total || 0,
+              completed: parsed.completed || 0,
+            }
+          } catch (error) {
+            console.error('Error parsing subtasks JSON:', error);
+            // Provide default values if parsing fails
+            subtasksFormatted = {
+              total: 0,
+              completed: 0,
+            }
+          }
+        }
+
+        // Format due date if it exists
+        let formattedDueDate;
+        if (task.dueDate) {
+          // Check if it's a Date object by seeing if it has toISOString function
+          if (typeof task.dueDate === 'object' && task.dueDate !== null && 'toISOString' in task.dueDate) {
+            formattedDueDate = (task.dueDate as Date).toISOString().split('T')[0];
+          } else {
+            // Otherwise, use it as is (assuming it's already formatted or a string)
+            formattedDueDate = String(task.dueDate);
           }
         }
         
@@ -90,7 +111,7 @@ export async function GET(request: NextRequest) {
           title: task.title,
           description: task.description || "",
           priority: task.priority as 'low' | 'medium' | 'high',
-          dueDate: task.dueDate ? task.dueDate.toISOString().split('T')[0] : undefined,
+          dueDate: formattedDueDate,
           assignee: assignee,
           tags: task.tags || [],
           attachments: task.attachments || 0,

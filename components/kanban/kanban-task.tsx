@@ -78,10 +78,10 @@ export default function KanbanTask({ task, index }: KanbanTaskProps) {
           <Card className="border overflow-hidden">
             <CardContent className="p-3">
               <div className="flex justify-between items-start mb-2">
-                <h3 className="font-medium text-sm">{task.title}</h3>
+                <h3 className="font-medium text-sm line-clamp-2">{task.title}</h3>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-6 w-6 -mr-2 -mt-1">
+                    <Button variant="ghost" size="icon" className="h-6 w-6 -mr-2 -mt-1 flex-shrink-0">
                       <MoreHorizontal className="h-3.5 w-3.5" />
                     </Button>
                   </DropdownMenuTrigger>
@@ -103,7 +103,7 @@ export default function KanbanTask({ task, index }: KanbanTaskProps) {
               {task.tags?.length > 0 && (
                 <div className="flex flex-wrap gap-1 mb-3">
                   {task.tags.map((tag, i) => (
-                    <Badge key={i} variant="outline" className="text-xs py-0">
+                    <Badge key={i} variant="outline" className="text-xs py-0 truncate max-w-[120px]">
                       {tag}
                     </Badge>
                   ))}
@@ -126,7 +126,7 @@ export default function KanbanTask({ task, index }: KanbanTaskProps) {
             </CardContent>
             
             <CardFooter className="p-3 pt-0 flex justify-between items-center">
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-2.5 flex-wrap">
                 {task.attachments ? (
                   <div className="flex items-center text-xs text-muted-foreground">
                     <Paperclip className="h-3.5 w-3.5 mr-0.5" />
@@ -150,7 +150,7 @@ export default function KanbanTask({ task, index }: KanbanTaskProps) {
               </div>
               
               {task.assignee && (
-                <Avatar className="h-6 w-6">
+                <Avatar className="h-6 w-6 flex-shrink-0">
                   <AvatarImage src={task.assignee.avatar || "/placeholder-user.jpg"} />
                   <AvatarFallback className="text-xs">
                     {task.assignee.name.charAt(0)}
