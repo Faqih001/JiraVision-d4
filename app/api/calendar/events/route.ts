@@ -93,6 +93,9 @@ export async function GET(request: Request) {
       query = query.where(
         sql`${calendarEvents.startTime} >= ${startDate} AND ${calendarEvents.endTime} <= ${endDate}`
       );
+    } else {
+      // Adding an empty where clause to satisfy TypeScript
+      query = query.where(sql`1=1`);
     }
 
     const events = await query;

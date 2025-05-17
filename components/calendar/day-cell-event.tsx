@@ -4,7 +4,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 
 interface DayCellEventProps {
   event: CalendarEvent
-  onEventClick: (event: CalendarEvent) => void
+  onEventClick: (event: React.MouseEvent) => void
 }
 
 export default function DayCellEvent({ event, onEventClick }: DayCellEventProps) {
@@ -22,7 +22,7 @@ export default function DayCellEvent({ event, onEventClick }: DayCellEventProps)
         <TooltipTrigger asChild>
           <div 
             className={`${colorClasses.bgClass} ${colorClasses.textClass} text-xs rounded p-1 mb-1 truncate cursor-pointer hover:opacity-80`}
-            onClick={() => onEventClick(event)}
+            onClick={(e) => onEventClick(e)}
           >
             {event.title}
           </div>

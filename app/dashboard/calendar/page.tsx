@@ -363,7 +363,7 @@ export default function CalendarPage() {
                     <DayCellEvent 
                       key={event.id} 
                       event={event} 
-                      onEventClick={(e) => {
+                      onEventClick={(e: React.MouseEvent) => {
                         e.stopPropagation();
                         handleEventClick(event);
                       }} 
@@ -478,7 +478,7 @@ export default function CalendarPage() {
                           <AvatarImage src={member.avatar} alt={member.name} />
                         ) : (
                           <AvatarFallback>
-                            {member.name.split(" ").map(n => n[0]).join("").toUpperCase()}
+                            {member.name.split(" ").map((n: string) => n[0]).join("").toUpperCase()}
                           </AvatarFallback>
                         )}
                       </Avatar>
