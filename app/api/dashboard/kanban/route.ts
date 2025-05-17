@@ -93,10 +93,13 @@ export async function GET(request: NextRequest) {
             let subtasksFormatted = null;
             if (task.subtasks) {
               try {
-                // Assuming subtasks is stored as JSON with total and completed properties
-                const parsed = typeof task.subtasks === 'string' 
-                  ? JSON.parse(task.subtasks) 
-                  : task.subtasks;
+                // Safely parse subtasks depending on its type
+                let parsed;
+                if (typeof task.subtasks === 'string') {
+                  parsed = JSON.parse(task.subtasks);
+                } else if (typeof task.subtasks === 'object') {
+                  parsed = task.subtasks;
+                }
                 
                 subtasksFormatted = {
                   total: parsed?.total || 0,
@@ -120,10 +123,8 @@ export async function GET(request: NextRequest) {
                 if (Object.prototype.toString.call(task.dueDate) === '[object Date]') {
                   formattedDueDate = new Date(task.dueDate).toISOString().split('T')[0];
                 } else if (typeof task.dueDate === 'string') {
-                  // If it's already a string, use it directly
                   formattedDueDate = task.dueDate;
                 } else {
-                  // For any other case, convert to string
                   formattedDueDate = String(task.dueDate);
                 }
               } catch (error) {

@@ -125,7 +125,7 @@ export default function KanbanTask({ task, index }: KanbanTaskProps) {
               </div>
             </CardContent>
             
-            <CardFooter className="p-3 pt-0 flex justify-between items-center">
+            <CardFooter className="p-3 pt-0 flex justify-between items-center flex-wrap gap-2">
               <div className="flex items-center gap-2.5 flex-wrap">
                 {task.attachments ? (
                   <div className="flex items-center text-xs text-muted-foreground">

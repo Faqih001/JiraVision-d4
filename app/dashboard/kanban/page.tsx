@@ -482,38 +482,39 @@ export default function KanbanPage() {
   return (
     <div className="h-full flex flex-col">
       {/* Kanban Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4 sm:mb-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <Layers className="h-6 w-6 text-primary" />
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight flex items-center gap-2">
+            <Layers className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
             Kanban Board
           </h1>
-          <p className="text-muted-foreground">Manage and organize your tasks visually</p>
+          <p className="text-sm sm:text-base text-muted-foreground">Manage and organize your tasks visually</p>
         </div>
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" className="gap-1" onClick={handleAnalytics}>
+        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+          <div className="flex items-center gap-1 sm:gap-2">
+            <Button variant="outline" size="sm" className="h-8 w-8 sm:h-9 sm:w-auto sm:px-3 p-0 sm:gap-1" onClick={handleAnalytics}>
               <BarChart3 className="h-4 w-4" />
               <span className="hidden sm:inline">Analytics</span>
             </Button>
-            <Button variant="outline" size="sm" className="gap-1" onClick={handleConfigure}>
+            <Button variant="outline" size="sm" className="h-8 w-8 sm:h-9 sm:w-auto sm:px-3 p-0 sm:gap-1" onClick={handleConfigure}>
               <Settings className="h-4 w-4" />
               <span className="hidden sm:inline">Configure</span>
             </Button>
-            <Button variant="outline" size="sm" className="gap-1" onClick={handleCalendarView}>
+            <Button variant="outline" size="sm" className="h-8 w-8 sm:h-9 sm:w-auto sm:px-3 p-0 sm:gap-1" onClick={handleCalendarView}>
               <CalendarDays className="h-4 w-4" />
               <span className="hidden sm:inline">Calendar</span>
             </Button>
           </div>
-          <Button onClick={handleAddTask} className="gap-1">
-            <CirclePlus className="h-4 w-4" />
-            Add Task
+          <Button size="sm" className="sm:gap-1" onClick={handleAddTask}>
+            <CirclePlus className="h-4 w-4 mr-1 sm:mr-0" />
+            <span className="hidden sm:inline">Add Task</span>
+            <span className="sm:hidden">Add</span>
           </Button>
         </div>
       </div>
 
       {/* Kanban Filters */}
-      <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+      <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="w-full sm:w-80">
           <div className="relative">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -529,13 +530,13 @@ export default function KanbanPage() {
         <div className="flex items-center gap-2 flex-wrap">
           <Button variant="outline" size="sm" className="gap-1">
             <Filter className="h-4 w-4" />
-            Filter
+            <span className="hidden sm:inline">Filter</span>
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" className="gap-1">
                 <Users className="h-4 w-4" />
-                Assignee
+                <span className="hidden sm:inline">Assignee</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
@@ -566,9 +567,9 @@ export default function KanbanPage() {
         <div className="flex-1 w-full h-[calc(100vh-12rem)] pb-4">
           <div className="h-full w-full">
             <DragDropContext onDragEnd={handleDragEnd}>
-              <div className="flex flex-col md:flex-row gap-4 h-full overflow-y-auto md:overflow-x-auto md:overflow-y-hidden">
+              <div className="flex flex-col md:flex-row gap-4 h-full overflow-x-auto md:overflow-y-hidden">
                 {filteredColumns.map((column) => (
-                  <div key={column.id} className="w-full md:w-[300px] flex-shrink-0 snap-start bg-background/50 rounded-lg shadow-sm">
+                  <div key={column.id} className="w-full md:w-[300px] md:flex-shrink-0 md:snap-start bg-background/50 rounded-lg shadow-sm">
                     <KanbanColumn 
                       column={column} 
                       onAddTask={() => {

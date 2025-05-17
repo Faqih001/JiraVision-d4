@@ -9,6 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -124,9 +125,12 @@ export default function KanbanTaskForm({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto p-4 sm:p-6">
+      <DialogContent className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto p-4 sm:p-6 w-[95%]">
         <DialogHeader>
           <DialogTitle>Add New Task</DialogTitle>
+          <DialogDescription>
+            Create a new task for your kanban board.
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
           <div className="space-y-4">
@@ -247,8 +251,8 @@ export default function KanbanTaskForm({
                         "Unassigned"}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-full max-w-[200px] p-0" align="start">
-                    <div className="p-2 max-h-[200px] overflow-y-auto">
+                  <PopoverContent className="w-full p-0 max-h-[250px] overflow-y-auto" align="start">
+                    <div className="p-2">
                       <div
                         className="flex items-center gap-2 rounded-md p-2 cursor-pointer hover:bg-muted"
                         onClick={() => setAssigneeId(undefined)}
@@ -309,7 +313,7 @@ export default function KanbanTaskForm({
                   </Badge>
                 ))}
               </div>
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
@@ -343,7 +347,7 @@ export default function KanbanTaskForm({
                     </div>
                   </PopoverContent>
                 </Popover>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-1">
                   <Input
                     value={tagInput}
                     onChange={(e) => setTagInput(e.target.value)}
@@ -369,7 +373,7 @@ export default function KanbanTaskForm({
             </div>
           </div>
 
-          <DialogFooter className="sm:justify-end gap-2">
+          <DialogFooter className="flex flex-col sm:flex-row sm:justify-end gap-2">
             <Button 
               type="button" 
               variant="outline" 
