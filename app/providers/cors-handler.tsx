@@ -29,20 +29,10 @@ export default function CorsHandler() {
             return originalFetch(proxyPath, init);
           }
           
-          // Specially handle calendar events API
+          // Don't modify API requests for calendar events
           if (url.includes('/api/calendar/events')) {
-            const modifiedInit = { ...(init || {}) } as RequestInit;
-            if (!modifiedInit.headers) {
-              modifiedInit.headers = {};
-            }
-            
-            // Add headers to help with CORS
-            modifiedInit.headers = {
-              ...(modifiedInit.headers as Record<string, string>),
-              'Accept': 'application/json'
-            };
-            
-            return originalFetch(input, modifiedInit);
+            console.log(`[Development] Calendar API request: ${url}`);
+            return originalFetch(input, init);
           }
           
           // Proceed with the original fetch for other requests

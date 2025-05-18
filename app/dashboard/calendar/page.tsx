@@ -21,8 +21,8 @@ import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/hooks/use-toast"
 import { useCalendar } from "@/hooks/use-calendar"
-import AddEventModal from "@/components/calendar/add-event-modal"
-import EventDetailsModal from "@/components/calendar/event-details-modal"
+import AddEventModal from "@/components/calendar/add-event-modal-accessible"
+import EventDetailsModal from "@/components/calendar/event-details-modal-accessible"
 import DayCellEvent from "@/components/calendar/day-cell-event"
 import { CalendarEvent, CreateEventInput, CalendarViewType, eventColors } from "@/types/calendar"
 
@@ -58,12 +58,16 @@ export default function CalendarPage() {
   const fetchEvents = async () => {
     try {
       setIsRefreshing(true)
+      console.log("Fetching calendar events...")
       const response = await fetch('/api/calendar/events')
+      
       if (!response.ok) {
+        console.error(`Server responded with status: ${response.status}`)
         throw new Error(`Server responded with status: ${response.status}`)
       }
       
       const data = await response.json()
+      console.log("Received calendar data:", data)
       
       if (data.success && Array.isArray(data.events)) {
         // Ensure all events have required properties with fallbacks
@@ -83,6 +87,7 @@ export default function CalendarPage() {
           color: event.color || "blue"
         }));
         setEvents(safeEvents)
+        console.log(`Successfully loaded ${safeEvents.length} events`)
       } else {
         console.error('Error fetching events:', data.error || 'Unknown error')
         toast({
@@ -93,11 +98,33 @@ export default function CalendarPage() {
       }
     } catch (error) {
       console.error('Exception fetching events:', error)
+      // Show more detailed error message
       toast({
-        title: "Error",
-        description: "Could not connect to the server",
+        title: "Error loading calendar",
+        description: error instanceof Error ? error.message : "Could not connect to the server",
         variant: "destructive"
       })
+      
+      // Provide some sample data so the UI doesn't break
+      setEvents([
+        {
+          id: 999,
+          title: "Example Event (Offline Mode)",
+          description: "The application is currently in offline mode.",
+          startTime: new Date().toISOString(),
+          endTime: new Date(Date.now() + 3600000).toISOString(),
+          location: "Office",
+          eventType: "other",
+          organizer: { id: 0, name: "System", avatar: null },
+          isAllDay: false,
+          isRecurring: false,
+          recurringPattern: {},
+          attendees: [],
+          color: "gray",
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        }
+      ])
     } finally {
       setIsLoading(false)
       setIsRefreshing(false)

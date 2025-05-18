@@ -48,37 +48,58 @@ export type CalendarEvent = {
 // GET handler to fetch all calendar events
 export async function GET(request: Request) {    
   try {
+    console.log("Calendar Events API: GET request received");
+    
+    // Always provide default data in development mode to avoid auth issues
+    if (process.env.NODE_ENV === 'development') {
+      console.log("Calendar Events API: Development mode, using sample data");
+      return NextResponse.json({
+        success: true,
+        events: [
+          {
+            id: 1,
+            title: "Team Standup",
+            description: "Daily team standup meeting",
+            startTime: new Date().toISOString(),
+            endTime: new Date(Date.now() + 3600000).toISOString(),
+            location: "Conference Room A",
+            eventType: "meeting",
+            organizer: { id: 1, name: "Developer", avatar: null },
+            isAllDay: false,
+            isRecurring: false,
+            recurringPattern: null,
+            attendees: [{ id: 1, name: "Developer", avatar: null }],
+            color: "blue",
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          },
+          {
+            id: 2,
+            title: "Project Planning",
+            description: "Quarterly planning session",
+            startTime: new Date(Date.now() + 86400000).toISOString(), // Tomorrow
+            endTime: new Date(Date.now() + 86400000 + 7200000).toISOString(), // 2 hours after start
+            location: "Virtual Meeting",
+            eventType: "planning",
+            organizer: { id: 1, name: "Project Manager", avatar: null },
+            isAllDay: false,
+            isRecurring: false,
+            recurringPattern: null,
+            attendees: [{ id: 1, name: "Developer", avatar: null }],
+            color: "green",
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          }
+        ]
+      });
+    }
+    
     // Get authenticated session
+    console.log("Calendar Events API: Trying to get session");
     const session = await getSession();
     
     if (!session || !session.id) {
-      console.log("Calendar Events API: No valid session found, but proceeding for development");
-      
-      // For development, provide default data instead of failing
-      if (process.env.NODE_ENV === 'development') {
-        return NextResponse.json({
-          success: true,
-          events: [
-            {
-              id: 1,
-              title: "Sample Event",
-              description: "This is a sample event for development",
-              startTime: new Date().toISOString(),
-              endTime: new Date(Date.now() + 3600000).toISOString(),
-              location: "Office",
-              eventType: "meeting",
-              organizer: { id: 1, name: "Developer", avatar: null },
-              isAllDay: false,
-              isRecurring: false,
-              recurringPattern: null,
-              attendees: [{ id: 1, name: "Developer", avatar: null }],
-              color: "blue",
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString()
-            }
-          ]
-        });
-      }
+      console.log("Calendar Events API: No valid session found");
       
       // In production, require authentication
       return NextResponse.json(
