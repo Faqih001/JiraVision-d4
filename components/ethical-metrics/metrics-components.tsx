@@ -8,7 +8,7 @@ import { AlertCircle, BarChart3, Check, Download, FileText, LineChart, RefreshCw
 
 // Type definitions for our components
 interface TeamMember {
-  id: number;
+  userId: number;
   name: string;
   avatar: string | null;
   workloadPercentage: number;
@@ -52,7 +52,7 @@ export function WorkloadCard({ teamMembers }: { teamMembers: TeamMember[] }) {
 
           <div className="space-y-4">
             {teamMembers.map((member) => (
-              <div key={member.id}>
+              <div key={member.userId}>
                 <div className="flex justify-between mb-1 text-sm">
                   <div className="flex items-center gap-2">
                     <Avatar className="h-6 w-6">
@@ -294,7 +294,7 @@ export function OvertimeCard({ onSetLimits, teamMembers }: { onSetLimits: () => 
 
           <div className="space-y-4">
             {teamMembers.map((member) => (
-              <div key={member.id}>
+              <div key={member.userId}>
                 <div className="flex justify-between mb-1 text-sm">
                   <div className="flex items-center gap-2">
                     <Avatar className="h-6 w-6">

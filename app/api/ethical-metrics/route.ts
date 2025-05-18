@@ -92,32 +92,46 @@ export async function GET(request: Request) {
     
     console.log(`Ethical Metrics API: Fetching metrics with date range - startDate: ${startDate}, endDate: ${endDate}`);
     
-    // Query ethical metrics data
-    let query = db
-      .select({
-        id: ethicalMetrics.id,
-        date: ethicalMetrics.date,
-        payEquityScore: ethicalMetrics.payEquityScore,
-        workloadBalanceScore: ethicalMetrics.workloadBalanceScore,
-        deiTaskDistributionScore: ethicalMetrics.deiTaskDistributionScore,
-        overtimeCompliance: ethicalMetrics.overtimeCompliance,
-        createdAt: ethicalMetrics.createdAt,
-      })
-      .from(ethicalMetrics)
-      .orderBy(desc(ethicalMetrics.date));
-
-    // Apply date filters if provided
+    // Build our query
+    let metricsData;
+    
+    // If date filters are provided, use them, otherwise get the most recent metrics
     if (startDate && endDate) {
-      query = query.where(
-        and(
-          gte(ethicalMetrics.date, startDate),
-          lte(ethicalMetrics.date, endDate)
+      metricsData = await db
+        .select({
+          id: ethicalMetrics.id,
+          date: ethicalMetrics.date,
+          payEquityScore: ethicalMetrics.payEquityScore,
+          workloadBalanceScore: ethicalMetrics.workloadBalanceScore,
+          deiTaskDistributionScore: ethicalMetrics.deiTaskDistributionScore,
+          overtimeCompliance: ethicalMetrics.overtimeCompliance,
+          createdAt: ethicalMetrics.createdAt,
+        })
+        .from(ethicalMetrics)
+        .where(
+          and(
+            gte(ethicalMetrics.date, startDate),
+            lte(ethicalMetrics.date, endDate)
+          )
         )
-      );
+        .orderBy(desc(ethicalMetrics.date))
+        .limit(30);
+    } else {
+      metricsData = await db
+        .select({
+          id: ethicalMetrics.id,
+          date: ethicalMetrics.date,
+          payEquityScore: ethicalMetrics.payEquityScore,
+          workloadBalanceScore: ethicalMetrics.workloadBalanceScore,
+          deiTaskDistributionScore: ethicalMetrics.deiTaskDistributionScore,
+          overtimeCompliance: ethicalMetrics.overtimeCompliance,
+          createdAt: ethicalMetrics.createdAt,
+        })
+        .from(ethicalMetrics)
+        .orderBy(desc(ethicalMetrics.date))
+        .limit(30);
     }
 
-    const metricsData = await query.limit(30);
-    
     if (metricsData.length === 0) {
       console.log("No ethical metrics data found, returning sample data");
       return NextResponse.json({
