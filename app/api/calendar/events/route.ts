@@ -66,6 +66,8 @@ export async function GET(request: Request) {    try {
       const startDate = searchParams.get('startDate');
       const endDate = searchParams.get('endDate');
       
+      console.log(`Calendar Events API: Fetching events with date range - startDate: ${startDate}, endDate: ${endDate}`);
+      
       // First, fetch all users to use for attendee information
       const allUsers = await db
         .select({
@@ -114,6 +116,12 @@ export async function GET(request: Request) {    try {
     const queryWithWhere = query.where(whereCondition);
 
     const events = await queryWithWhere;
+    console.log(`Retrieved ${events.length} events from database`);
+    
+    // Log the first event to see its structure (if available)
+    if (events.length > 0) {
+      console.log('First event structure:', JSON.stringify(events[0], null, 2));
+    }
 
     // Format the events to match CalendarEvent type
     const formattedEvents = events.map(event => {
@@ -134,26 +142,50 @@ export async function GET(request: Request) {    try {
         console.error("Error parsing attendees:", e);
       }
 
+      // Make sure we have a valid organizer object
+      const organizer = {
+        id: event.organizerId !== null && event.organizerId !== undefined ? event.organizerId : 0,
+        name: event.organizerName || "Unknown",
+        avatar: event.organizerAvatar || null
+      };
+
+      // Ensure timestamps are properly formatted as ISO strings
+      const formatTimestamp = (timestamp: any): string => {
+        if (!timestamp) return new Date().toISOString();
+        
+        if (timestamp instanceof Date) {
+          return timestamp.toISOString();
+        }
+        
+        if (typeof timestamp === 'string') {
+          try {
+            // Try to parse the string as a date
+            return new Date(timestamp).toISOString();
+          } catch (error) {
+            console.error(`Error parsing timestamp: ${timestamp}`, error);
+            return new Date().toISOString();
+          }
+        }
+        
+        return new Date().toISOString();
+      };
+
       return {
         id: event.id,
-        title: event.title,
+        title: event.title || "Untitled Event",
         description: event.description,
-        startTime: event.startTime,
-        endTime: event.endTime,
+        startTime: formatTimestamp(event.startTime),
+        endTime: formatTimestamp(event.endTime),
         location: event.location,
-        eventType: event.eventType,
-        organizer: {
-          id: event.organizerId || 0, // Provide a default ID if null
-          name: event.organizerName || "Unknown",
-          avatar: event.organizerAvatar || null
-        },
-        isAllDay: event.isAllDay,
-        isRecurring: event.isRecurring,
-        recurringPattern: event.recurringPattern,
+        eventType: event.eventType || "meeting",
+        organizer,
+        isAllDay: event.isAllDay || false,
+        isRecurring: event.isRecurring || false,
+        recurringPattern: event.recurringPattern || {},
         attendees: attendeesList,
-        color: event.color,
-        createdAt: event.createdAt,
-        updatedAt: event.updatedAt
+        color: event.color || "blue",
+        createdAt: formatTimestamp(event.createdAt),
+        updatedAt: formatTimestamp(event.updatedAt)
       };
     });
 
