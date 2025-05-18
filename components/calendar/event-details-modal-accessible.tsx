@@ -63,7 +63,10 @@ export default function EventDetailsModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-[95vw] sm:max-w-md md:max-w-lg overflow-y-auto max-h-[90vh]">
+      <DialogContent 
+        className="max-w-[95vw] sm:max-w-md md:max-w-lg overflow-y-auto max-h-[90vh]"
+        aria-describedby="event-details-description"
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between">
             <span className="flex items-center gap-2">

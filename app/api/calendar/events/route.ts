@@ -272,9 +272,11 @@ export async function POST(request: Request) {
 
     // Parse request body
     const body = await request.json();
+    console.log("Calendar Events API: Received POST data:", JSON.stringify(body, null, 2));
     
     // Validate required fields
     if (!body.title || !body.startTime || !body.endTime || !body.eventType) {
+      console.log("Calendar Events API: Missing required fields in POST data");
       return NextResponse.json(
         { success: false, error: "Missing required fields" },
         { status: 400 }
@@ -284,20 +286,66 @@ export async function POST(request: Request) {
     // Use session.id if available, or use a default (1) for development
     const organizerId = session?.id || 1;
 
-    // Insert the event into the database
+    console.log("Attempting to insert calendar event with data:", {
+      title: body.title,
+      description: body.description,
+      startTime: body.startTime,
+      endTime: body.endTime,
+      location: body.location,
+      eventType: body.eventType,
+      organizerId: organizerId,
+      isAllDay: !!body.isAllDay,
+      attendees: body.attendees,
+      color: body.color
+    });
+    
+    // Convert times to valid Date objects with error handling
+    let startTime, endTime;
+    try {
+      startTime = new Date(body.startTime);
+      if (isNaN(startTime.getTime())) {
+        throw new Error("Invalid start time format");
+      }
+    } catch (error) {
+      console.error("Invalid start time:", body.startTime);
+      return NextResponse.json(
+        { success: false, error: "Invalid start time format" },
+        { status: 400 }
+      );
+    }
+
+    try {
+      endTime = new Date(body.endTime);
+      if (isNaN(endTime.getTime())) {
+        throw new Error("Invalid end time format");
+      }
+    } catch (error) {
+      console.error("Invalid end time:", body.endTime);
+      return NextResponse.json(
+        { success: false, error: "Invalid end time format" },
+        { status: 400 }
+      );
+    }
+    
+    // Ensure attendees is a valid array
+    const safeAttendees = Array.isArray(body.attendees) ? body.attendees : [];
+    
+    // Insert the event into the database with proper null handling and type conversions
     const result = await db.insert(calendarEvents).values({
       title: body.title,
       description: body.description || null,
-      startTime: new Date(body.startTime),
-      endTime: new Date(body.endTime),
+      startTime: startTime,
+      endTime: endTime,
       location: body.location || null,
       eventType: body.eventType,
       organizerId: organizerId,
-      isAllDay: body.isAllDay || false,
-      isRecurring: body.isRecurring || false,
+      isAllDay: !!body.isAllDay,
+      isRecurring: !!body.isRecurring,
       recurringPattern: body.recurringPattern || {},
-      attendees: body.attendees || [],
+      attendees: safeAttendees,
       color: body.color || "blue",
+      createdAt: new Date(),
+      updatedAt: new Date()
     }).returning();
 
     return NextResponse.json({ 
@@ -306,11 +354,26 @@ export async function POST(request: Request) {
     });
   } catch (error: any) {
     console.error("Error creating calendar event:", error);
+    
+    // Log more detailed information about the error
+    if (error.code) {
+      console.error("Database error code:", error.code);
+    }
+    
+    if (error.message) {
+      console.error("Error message:", error.message);
+    }
+    
+    if (error.stack) {
+      console.error("Error stack:", error.stack);
+    }
+    
     return NextResponse.json(
       { 
         success: false, 
         error: error?.message || "Unknown error creating event",
-        details: error?.stack?.toString() || ""
+        details: error?.stack?.toString() || "",
+        code: error?.code
       },
       { status: 500 }
     );

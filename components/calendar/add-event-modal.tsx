@@ -1,31 +1,36 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useId } from "react"
 import { X } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
-import { Checkbox } from "@/components/ui/checkbox"
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
+import { Switch } from "@/components/ui/switch"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select"
-import { 
-  Command, 
-  CommandEmpty, 
-  CommandGroup, 
-  CommandInput, 
-  CommandItem, 
-  CommandList 
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
 } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Switch } from "@/components/ui/switch"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
 import { CreateEventInput, eventColors } from "@/types/calendar"
@@ -39,9 +44,9 @@ interface AddEventModalProps {
   isEditing?: boolean
   initialEvent?: CreateEventInput & { id?: number }
   teamMembers?: Array<{
-    id: number;
-    name: string;
-    avatar: string | null;
+    id: number
+    name: string
+    avatar: string | null
   }>
 }
 
@@ -53,7 +58,7 @@ const eventTypeOptions = [
   { value: "planning", label: "Planning" },
   { value: "workshop", label: "Workshop" },
   { value: "holiday", label: "Holiday" },
-  { value: "other", label: "Other" }
+  { value: "other", label: "Other" },
 ]
 
 export default function AddEventModal({
@@ -63,8 +68,10 @@ export default function AddEventModal({
   defaultDate,
   isEditing = false,
   initialEvent,
-  teamMembers = []
+  teamMembers = [],
 }: AddEventModalProps) {
+  const descriptionId = useId()
+
   const [event, setEvent] = useState<CreateEventInput>({
     title: "",
     description: "",
@@ -74,69 +81,53 @@ export default function AddEventModal({
     eventType: "meeting",
     isAllDay: false,
     color: "blue",
-    attendees: []
+    attendees: [],
   })
+
   const [attendeeDropdownOpen, setAttendeeDropdownOpen] = useState(false)
 
-  // Initialize form with default date or initial event data when modal opens
   useEffect(() => {
     if (isOpen) {
       if (initialEvent) {
         setEvent({
           ...initialEvent,
-          // Ensure dates are formatted correctly
           startTime: initialEvent.startTime,
-          endTime: initialEvent.endTime
+          endTime: initialEvent.endTime,
         })
       } else if (defaultDate) {
         const dateStr = defaultDate.toISOString().slice(0, 10)
         setEvent({
           title: "",
           description: "",
-          // Set default times (9 AM to 10 AM on the selected date)
           startTime: `${dateStr}T09:00:00`,
           endTime: `${dateStr}T10:00:00`,
           location: "",
           eventType: "meeting",
           isAllDay: false,
           color: "blue",
-          attendees: []
+          attendees: [],
         })
       }
     }
   }, [isOpen, initialEvent, defaultDate])
 
   const handleChange = (field: keyof CreateEventInput, value: any) => {
-    setEvent(prev => ({ ...prev, [field]: value }))
+    setEvent((prev) => ({ ...prev, [field]: value }))
   }
 
   const handleSubmit = () => {
-    // Basic validation
     if (!event.title.trim()) {
-      toast({
-        title: "Error",
-        description: "Event title is required",
-        variant: "destructive"
-      })
+      toast({ title: "Error", description: "Event title is required", variant: "destructive" })
       return
     }
 
     if (!event.startTime || !event.endTime) {
-      toast({
-        title: "Error",
-        description: "Start and end times are required",
-        variant: "destructive"
-      })
+      toast({ title: "Error", description: "Start and end times are required", variant: "destructive" })
       return
     }
 
-    // Check if end time is after start time
     if (new Date(event.endTime) <= new Date(event.startTime)) {
-      toast({
-        title: "Error",
-        description: "End time must be after start time",
-        variant: "destructive"
-      })
+      toast({ title: "Error", description: "End time must be after start time", variant: "destructive" })
       return
     }
 
@@ -146,7 +137,10 @@ export default function AddEventModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-[95vw] sm:max-w-md md:max-w-lg overflow-y-auto max-h-[90vh]" aria-describedby="event-form-description">
+      <DialogContent
+        className="max-w-[95vw] sm:max-w-md md:max-w-lg overflow-y-auto max-h-[90vh]"
+        aria-describedby={descriptionId}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between">
             <span>{isEditing ? "Edit Event" : "Add New Event"}</span>
@@ -156,79 +150,45 @@ export default function AddEventModal({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="grid gap-4 py-4" id="event-form-description">
+        <div className="grid gap-4 py-4" id={descriptionId}>
           <div className="grid gap-2">
             <Label htmlFor="title">Title</Label>
-            <Input
-              id="title"
-              placeholder="Event title"
-              value={event.title}
-              onChange={(e) => handleChange("title", e.target.value)}
-              autoFocus
-            />
+            <Input id="title" placeholder="Event title" value={event.title} onChange={(e) => handleChange("title", e.target.value)} autoFocus />
           </div>
 
           <div className="grid gap-2">
             <Label htmlFor="description">Description</Label>
-            <Textarea
-              id="description"
-              placeholder="Event description"
-              value={event.description}
-              onChange={(e) => handleChange("description", e.target.value)}
-              rows={3}
-            />
+            <Textarea id="description" placeholder="Event description" value={event.description} onChange={(e) => handleChange("description", e.target.value)} rows={3} />
           </div>
 
           <div className="grid gap-2">
             <div className="flex items-center gap-2">
               <Label htmlFor="isAllDay">All day</Label>
-              <Switch
-                id="isAllDay"
-                checked={event.isAllDay}
-                onCheckedChange={(checked) => handleChange("isAllDay", checked)}
-              />
+              <Switch id="isAllDay" checked={event.isAllDay} onCheckedChange={(checked) => handleChange("isAllDay", checked)} />
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="grid gap-2">
               <Label htmlFor="startTime">Start Time</Label>
-              <Input
-                id="startTime"
-                type={event.isAllDay ? "date" : "datetime-local"}
-                value={event.isAllDay ? event.startTime.split("T")[0] : event.startTime}
-                onChange={(e) => handleChange("startTime", e.target.value)}
-              />
+              <Input id="startTime" type={event.isAllDay ? "date" : "datetime-local"} value={event.isAllDay ? event.startTime.split("T")[0] : event.startTime} onChange={(e) => handleChange("startTime", e.target.value)} />
             </div>
 
             <div className="grid gap-2">
               <Label htmlFor="endTime">End Time</Label>
-              <Input
-                id="endTime"
-                type={event.isAllDay ? "date" : "datetime-local"}
-                value={event.isAllDay ? event.endTime.split("T")[0] : event.endTime}
-                onChange={(e) => handleChange("endTime", e.target.value)}
-              />
+              <Input id="endTime" type={event.isAllDay ? "date" : "datetime-local"} value={event.isAllDay ? event.endTime.split("T")[0] : event.endTime} onChange={(e) => handleChange("endTime", e.target.value)} />
             </div>
           </div>
 
           <div className="grid gap-2">
             <Label htmlFor="location">Location</Label>
-            <Input
-              id="location"
-              placeholder="Event location"
-              value={event.location}
-              onChange={(e) => handleChange("location", e.target.value)}
-            />
+            <Input id="location" placeholder="Event location" value={event.location} onChange={(e) => handleChange("location", e.target.value)} />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="grid gap-2">
               <Label htmlFor="eventType">Event Type</Label>
-              <Select
-                value={event.eventType}
-                onValueChange={(value) => handleChange("eventType", value)}
-              >
+              <Select value={event.eventType} onValueChange={(value) => handleChange("eventType", value)}>
                 <SelectTrigger id="eventType">
                   <SelectValue placeholder="Select type" />
                 </SelectTrigger>
@@ -244,10 +204,7 @@ export default function AddEventModal({
 
             <div className="grid gap-2">
               <Label htmlFor="color">Color</Label>
-              <Select
-                value={event.color}
-                onValueChange={(value) => handleChange("color", value)}
-              >
+              <Select value={event.color} onValueChange={(value) => handleChange("color", value)}>
                 <SelectTrigger id="color">
                   <SelectValue placeholder="Select color" />
                 </SelectTrigger>
@@ -265,50 +222,33 @@ export default function AddEventModal({
             </div>
           </div>
 
-          {/* Attendees Selector */}
           {teamMembers.length > 0 && (
             <div className="grid gap-2">
               <Label htmlFor="attendees">Attendees</Label>
               <div className="flex flex-wrap gap-1 mb-2">
-                {event.attendees?.map(attendeeId => {
-                  const attendee = teamMembers.find(m => m.id === attendeeId)
+                {event.attendees?.map((attendeeId) => {
+                  const attendee = teamMembers.find((m) => m.id === attendeeId)
                   if (!attendee) return null
                   return (
                     <Badge key={attendee.id} variant="secondary" className="flex items-center gap-1">
                       <Avatar className="h-5 w-5">
                         {attendee.avatar && <AvatarImage src={attendee.avatar} alt={attendee.name} />}
                         <AvatarFallback className="text-xs">
-                          {attendee.name.split(" ").map((n: string) => n[0]).join("").toUpperCase()}
+                          {attendee.name.split(" ").map((n) => n[0]).join("").toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
                       <span>{attendee.name}</span>
-                      <Button 
-                        type="button" 
-                        variant="ghost" 
-                        size="sm" 
-                        className="h-4 w-4 p-0 ml-1"
-                        onClick={() => {
-                          handleChange(
-                            "attendees", 
-                            (event.attendees || []).filter(id => id !== attendee.id)
-                          )
-                        }}
-                      >
+                      <Button type="button" variant="ghost" size="sm" className="h-4 w-4 p-0 ml-1" onClick={() => handleChange("attendees", (event.attendees || []).filter((id) => id !== attendee.id))}>
                         <X className="h-3 w-3" />
                       </Button>
                     </Badge>
                   )
                 })}
               </div>
-              
+
               <Popover open={attendeeDropdownOpen} onOpenChange={setAttendeeDropdownOpen}>
                 <PopoverTrigger asChild>
-                  <Button 
-                    variant="outline" 
-                    role="combobox" 
-                    aria-expanded={attendeeDropdownOpen}
-                    className="w-full justify-between"
-                  >
+                  <Button variant="outline" role="combobox" aria-expanded={attendeeDropdownOpen} className="w-full justify-between">
                     Add attendees
                   </Button>
                 </PopoverTrigger>
@@ -319,31 +259,22 @@ export default function AddEventModal({
                       <CommandEmpty>No results found.</CommandEmpty>
                       <CommandGroup>
                         <ScrollArea className="h-60">
-                          {teamMembers
-                            .filter(member => !(event.attendees || []).includes(member.id))
-                            .map(member => (
-                              <CommandItem
-                                key={member.id}
-                                value={member.name}
-                                onSelect={() => {
-                                  handleChange(
-                                    "attendees", 
-                                    [...(event.attendees || []), member.id]
-                                  )
-                                  setAttendeeDropdownOpen(false)
-                                }}
-                              >
-                                <div className="flex items-center gap-2">
-                                  <Avatar className="h-6 w-6">
-                                    {member.avatar && <AvatarImage src={member.avatar} alt={member.name} />}
-                                    <AvatarFallback>
-                                      {member.name.split(" ").map((n: string) => n[0]).join("").toUpperCase()}
-                                    </AvatarFallback>
-                                  </Avatar>
-                                  <span>{member.name}</span>
-                                </div>
-                              </CommandItem>
-                            ))}
+                          {teamMembers.filter((member) => !(event.attendees || []).includes(member.id)).map((member) => (
+                            <CommandItem key={member.id} value={member.name} onSelect={() => {
+                              handleChange("attendees", [...(event.attendees || []), member.id])
+                              setAttendeeDropdownOpen(false)
+                            }}>
+                              <div className="flex items-center gap-2">
+                                <Avatar className="h-6 w-6">
+                                  {member.avatar && <AvatarImage src={member.avatar} alt={member.name} />}
+                                  <AvatarFallback>
+                                    {member.name.split(" ").map((n) => n[0]).join("").toUpperCase()}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <span>{member.name}</span>
+                              </div>
+                            </CommandItem>
+                          ))}
                         </ScrollArea>
                       </CommandGroup>
                     </CommandList>
