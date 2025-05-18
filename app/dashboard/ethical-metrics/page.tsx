@@ -1,4 +1,5 @@
 "use client"
+import { useState, useEffect } from "react"
 import { useTheme } from "next-themes"
 import {
   AlertCircle,
@@ -21,6 +22,19 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useMobile } from "@/hooks/use-mobile"
 import { toast } from "@/components/ui/use-toast"
+import { ConfigureEthicalMetricsModal } from "@/components/ethical-metrics/configure-metrics-modal"
+import { OvertimeLimitsModal } from "@/components/ethical-metrics/overtime-limits-modal"
+import { ComplianceReportModal } from "@/components/ethical-metrics/compliance-report-modal"
+import { 
+  WorkloadCard, 
+  PayEquityCard,
+  DeiTaskCard,
+  OvertimeCard,
+  RecommendationsCard,
+  GovernancePoliciesCard,
+  ComplianceHistoryCard,
+  ComplianceOverviewCard
+} from "@/components/ethical-metrics/metrics-components"
 
 export default function EthicalMetricsPage() {
   const { theme, setTheme } = useTheme()
