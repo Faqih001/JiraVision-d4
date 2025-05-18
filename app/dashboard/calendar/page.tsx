@@ -59,14 +59,25 @@ export default function CalendarPage() {
     try {
       setIsRefreshing(true)
       const response = await fetch('/api/calendar/events')
+      if (!response.ok) {
+        throw new Error(`Server responded with status: ${response.status}`)
+      }
+      
       const data = await response.json()
       
       if (data.success && Array.isArray(data.events)) {
         // Ensure all events have required properties with fallbacks
         const safeEvents = data.events.map((event: any) => ({
           ...event,
+          id: event.id || Math.floor(Math.random() * 10000), // Ensure there's always an ID
           // Ensure organizer exists and has required properties
-          organizer: event.organizer || { id: 0, name: "Unknown", avatar: null },
+          organizer: event.organizer && typeof event.organizer === 'object' 
+            ? {
+                id: event.organizer.id || 0,
+                name: event.organizer.name || "Unknown",
+                avatar: event.organizer.avatar || null
+              }
+            : { id: 0, name: "Unknown", avatar: null },
           // Ensure other critical properties exist
           attendees: Array.isArray(event.attendees) ? event.attendees : [],
           color: event.color || "blue"

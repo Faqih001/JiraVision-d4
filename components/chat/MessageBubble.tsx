@@ -201,7 +201,8 @@ export function MessageBubble({
                   />
                 </div>
               </DialogTrigger>
-              <DialogContent className="max-w-3xl">
+              <DialogContent className="max-w-3xl" aria-describedby="image-dialog-description">
+                <span id="image-dialog-description" className="sr-only">Enlarged view of shared image</span>
                 <img 
                   src={message.mediaUrl}
                   alt="Full size image"

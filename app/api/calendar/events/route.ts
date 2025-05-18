@@ -46,63 +46,89 @@ export type CalendarEvent = {
 };
 
 // GET handler to fetch all calendar events
-export async function GET(request: Request) {    try {
-      // Get authenticated session
-      const session = await getSession();
-      if (!session || !session.id) {
-        console.log("Calendar Events API: No valid session found, but proceeding for development");
-        // For development, we'll continue without authentication
-        // In production, you might want to uncomment the following code:
-        /* 
-        return NextResponse.json(
-          { success: false, error: "Authentication required" },
-          { status: 401 }
-        );
-        */
+export async function GET(request: Request) {    
+  try {
+    // Get authenticated session
+    const session = await getSession();
+    
+    if (!session || !session.id) {
+      console.log("Calendar Events API: No valid session found, but proceeding for development");
+      
+      // For development, provide default data instead of failing
+      if (process.env.NODE_ENV === 'development') {
+        return NextResponse.json({
+          success: true,
+          events: [
+            {
+              id: 1,
+              title: "Sample Event",
+              description: "This is a sample event for development",
+              startTime: new Date().toISOString(),
+              endTime: new Date(Date.now() + 3600000).toISOString(),
+              location: "Office",
+              eventType: "meeting",
+              organizer: { id: 1, name: "Developer", avatar: null },
+              isAllDay: false,
+              isRecurring: false,
+              recurringPattern: null,
+              attendees: [{ id: 1, name: "Developer", avatar: null }],
+              color: "blue",
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString()
+            }
+          ]
+        });
       }
+      
+      // In production, require authentication
+      return NextResponse.json(
+        { success: false, error: "Authentication required" },
+        { status: 401 }
+      );
+    }
 
-      // Parse query parameters
-      const { searchParams } = new URL(request.url);
-      const startDate = searchParams.get('startDate');
-      const endDate = searchParams.get('endDate');
+    // Parse query parameters
+    const { searchParams } = new URL(request.url);
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
+    
+    console.log(`Calendar Events API: Fetching events with date range - startDate: ${startDate}, endDate: ${endDate}`);
+    
+    // First, fetch all users to use for attendee information
+    const allUsers = await db
+      .select({
+        id: users.id,
+        name: users.name,
+        avatar: users.avatar
+      })
+      .from(users);
       
-      console.log(`Calendar Events API: Fetching events with date range - startDate: ${startDate}, endDate: ${endDate}`);
-      
-      // First, fetch all users to use for attendee information
-      const allUsers = await db
-        .select({
-          id: users.id,
-          name: users.name,
-          avatar: users.avatar
-        })
-        .from(users);
-        
-      console.log(`Fetched ${allUsers.length} users for attendee information`);
-      
-      let query = db
-        .select({
-          id: calendarEvents.id,
-          title: calendarEvents.title,
-          description: calendarEvents.description,
-          startTime: calendarEvents.startTime,
-          endTime: calendarEvents.endTime,
-          location: calendarEvents.location,
-          eventType: calendarEvents.eventType,
-          isAllDay: calendarEvents.isAllDay,
-          isRecurring: calendarEvents.isRecurring,
-          recurringPattern: calendarEvents.recurringPattern,
-          attendees: calendarEvents.attendees,
-          color: calendarEvents.color,
-          createdAt: calendarEvents.createdAt,
-          updatedAt: calendarEvents.updatedAt,
-          // Get organizer info
-          organizerId: calendarEvents.organizerId,
-          organizerName: users.name,
-          organizerAvatar: users.avatar,
-        })
-        .from(calendarEvents)
-        .leftJoin(users, eq(calendarEvents.organizerId, users.id))
-        .orderBy(desc(calendarEvents.startTime));
+    console.log(`Fetched ${allUsers.length} users for attendee information`);
+    
+    let query = db
+      .select({
+        id: calendarEvents.id,
+        title: calendarEvents.title,
+        description: calendarEvents.description,
+        startTime: calendarEvents.startTime,
+        endTime: calendarEvents.endTime,
+        location: calendarEvents.location,
+        eventType: calendarEvents.eventType,
+        isAllDay: calendarEvents.isAllDay,
+        isRecurring: calendarEvents.isRecurring,
+        recurringPattern: calendarEvents.recurringPattern,
+        attendees: calendarEvents.attendees,
+        color: calendarEvents.color,
+        createdAt: calendarEvents.createdAt,
+        updatedAt: calendarEvents.updatedAt,
+        // Get organizer info
+        organizerId: calendarEvents.organizerId,
+        organizerName: users.name,
+        organizerAvatar: users.avatar,
+      })
+      .from(calendarEvents)
+      .leftJoin(users, eq(calendarEvents.organizerId, users.id))
+      .orderBy(desc(calendarEvents.startTime));
 
     // First define an initial where condition
     let whereCondition = sql`1=1`;
