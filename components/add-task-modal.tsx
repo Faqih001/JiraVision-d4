@@ -9,6 +9,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
 import { Task } from "@/types/task"
+import { AlertCircle, ArrowRight, CalendarIcon, Clock, Hash, ListTodo, TriangleAlert } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 type AddTaskModalProps = {
   isOpen: boolean
@@ -113,111 +115,199 @@ export default function AddTaskModal({ isOpen, onClose, onAddTask, sprintId }: A
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px] w-[95%] max-h-[90vh] overflow-y-auto">
-        <form onSubmit={handleSubmit}>
-          <DialogHeader>
-            <DialogTitle>Create New Task</DialogTitle>
-            <DialogDescription>Create a new task for your sprint.</DialogDescription>
+      <DialogContent 
+        className="sm:max-w-[550px] md:max-w-[600px] w-[95%] max-h-[90vh] overflow-y-auto p-0" 
+        aria-describedby="task-modal-description"
+      >
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <DialogHeader className="px-6 pt-6 pb-2 border-b sticky top-0 bg-background z-10">
+            <DialogTitle className="text-xl font-bold flex items-center gap-2">
+              <span className="bg-primary/10 p-1.5 rounded-md">
+                <ListTodo className="h-5 w-5 text-primary" />
+              </span>
+              Create New Task
+            </DialogTitle>
+            <DialogDescription id="task-modal-description" className="text-sm text-muted-foreground pt-1">
+              Create a new task to track work in your sprint.
+            </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="title">Title</Label>
+          
+          <div className="px-6 py-2 space-y-6">
+            {/* Title field with visual emphasis */}
+            <div className="space-y-2">
+              <Label htmlFor="title" className="text-sm font-medium flex items-center gap-1.5">
+                Title <span className="text-destructive">*</span>
+              </Label>
               <Input
                 id="title"
                 name="title"
                 value={task.title}
                 onChange={handleChange}
-                placeholder="Enter task title"
+                placeholder="Enter a descriptive task title"
                 required
+                className="h-11 text-base"
               />
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="description">Description</Label>
+            
+            {/* Description field */}
+            <div className="space-y-2">
+              <Label htmlFor="description" className="text-sm font-medium flex items-center gap-1.5">
+                Description
+              </Label>
               <Textarea
                 id="description"
                 name="description"
                 value={task.description}
                 onChange={handleChange}
-                placeholder="Enter task description"
+                placeholder="Provide details about what needs to be accomplished"
                 rows={4}
+                className="resize-none text-base"
               />
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="priority">Priority</Label>
-                <Select
-                  value={task.priority}
-                  onValueChange={(value) => handleSelectChange("priority", value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select priority" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="low">Low</SelectItem>
-                    <SelectItem value="medium">Medium</SelectItem>
-                    <SelectItem value="high">High</SelectItem>
-                    <SelectItem value="urgent">Urgent</SelectItem>
-                  </SelectContent>
-                </Select>
+            
+            {/* Task details section */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-medium text-muted-foreground">Task Details</h3>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Priority selector with colored indicators */}
+                <div className="space-y-2">
+                  <Label htmlFor="priority" className="text-sm font-medium flex items-center gap-1.5">
+                    <TriangleAlert className="h-3.5 w-3.5" />
+                    Priority
+                  </Label>
+                  <Select
+                    value={task.priority}
+                    onValueChange={(value) => handleSelectChange("priority", value)}
+                  >
+                    <SelectTrigger className="h-10">
+                      <SelectValue placeholder="Select priority" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="low" className="flex items-center gap-2">
+                        <div className="h-2 w-2 rounded-full bg-green-500" />
+                        Low
+                      </SelectItem>
+                      <SelectItem value="medium" className="flex items-center gap-2">
+                        <div className="h-2 w-2 rounded-full bg-blue-500" />
+                        Medium
+                      </SelectItem>
+                      <SelectItem value="high" className="flex items-center gap-2">
+                        <div className="h-2 w-2 rounded-full bg-orange-500" />
+                        High
+                      </SelectItem>
+                      <SelectItem value="urgent" className="flex items-center gap-2">
+                        <div className="h-2 w-2 rounded-full bg-red-500" />
+                        Urgent
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                {/* Status selector */}
+                <div className="space-y-2">
+                  <Label htmlFor="status" className="text-sm font-medium flex items-center gap-1.5">
+                    <ArrowRight className="h-3.5 w-3.5" />
+                    Status
+                  </Label>
+                  <Select
+                    value={task.status}
+                    onValueChange={(value) => handleSelectChange("status", value)}
+                  >
+                    <SelectTrigger className="h-10">
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todo">To Do</SelectItem>
+                      <SelectItem value="in_progress">In Progress</SelectItem>
+                      <SelectItem value="done">Done</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="status">Status</Label>
-                <Select
-                  value={task.status}
-                  onValueChange={(value) => handleSelectChange("status", value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="todo">To Do</SelectItem>
-                    <SelectItem value="in_progress">In Progress</SelectItem>
-                    <SelectItem value="done">Done</SelectItem>
-                  </SelectContent>
-                </Select>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Story Points */}
+                <div className="space-y-2">
+                  <Label htmlFor="storyPoints" className="text-sm font-medium flex items-center gap-1.5">
+                    <Clock className="h-3.5 w-3.5" />
+                    Story Points
+                  </Label>
+                  <Input
+                    id="storyPoints"
+                    name="storyPoints"
+                    type="number"
+                    value={task.storyPoints}
+                    onChange={handleNumberChange}
+                    min={1}
+                    max={21}
+                    className="h-10"
+                  />
+                </div>
+                
+                {/* Due Date */}
+                <div className="space-y-2">
+                  <Label htmlFor="dueDate" className="text-sm font-medium flex items-center gap-1.5">
+                    <CalendarIcon className="h-3.5 w-3.5" />
+                    Due Date
+                  </Label>
+                  <Input
+                    id="dueDate"
+                    name="dueDate"
+                    type="date"
+                    value={task.dueDate}
+                    onChange={handleChange}
+                    className="h-10"
+                  />
+                </div>
               </div>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="storyPoints">Story Points</Label>
+              
+              {/* Tags */}
+              <div className="space-y-2">
+                <Label htmlFor="tags" className="text-sm font-medium flex items-center gap-1.5">
+                  <Hash className="h-3.5 w-3.5" />
+                  Tags
+                </Label>
                 <Input
-                  id="storyPoints"
-                  name="storyPoints"
-                  type="number"
-                  value={task.storyPoints}
-                  onChange={handleNumberChange}
-                  min={1}
-                  max={21}
+                  id="tags"
+                  name="tags"
+                  value={task.tags.join(", ")}
+                  onChange={handleTagsChange}
+                  placeholder="Frontend, Bug, High Priority"
+                  className="h-10"
                 />
+                <p className="text-xs text-muted-foreground">Separate tags with commas</p>
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="dueDate">Due Date</Label>
-                <Input
-                  id="dueDate"
-                  name="dueDate"
-                  type="date"
-                  value={task.dueDate}
-                  onChange={handleChange}
-                />
-              </div>
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="tags">Tags (comma separated)</Label>
-              <Input
-                id="tags"
-                name="tags"
-                value={task.tags.join(", ")}
-                onChange={handleTagsChange}
-                placeholder="Frontend, Bug, High Priority"
-              />
             </div>
           </div>
-          <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:gap-0">
-            <Button type="button" variant="outline" onClick={onClose} disabled={loading} className="w-full sm:w-auto">
+          
+          <DialogFooter className="px-6 py-4 border-t sticky bottom-0 bg-background z-10 flex flex-col sm:flex-row items-center gap-2">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={onClose} 
+              disabled={loading} 
+              className="w-full sm:w-auto h-10"
+            >
               Cancel
             </Button>
-            <Button type="submit" disabled={loading} className="w-full sm:w-auto">
-              {loading ? "Creating..." : "Create Task"}
+            <Button 
+              type="submit" 
+              disabled={loading} 
+              className={cn(
+                "w-full sm:w-auto h-10 transition-all",
+                loading ? "bg-primary/80" : ""
+              )}
+            >
+              {loading ? (
+                <span className="flex items-center gap-2">
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Creating...
+                </span>
+              ) : "Create Task"}
             </Button>
           </DialogFooter>
         </form>
