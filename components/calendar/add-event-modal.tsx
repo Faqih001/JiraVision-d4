@@ -354,11 +354,11 @@ export default function AddEventModal({
           )}
         </div>
 
-        <DialogFooter className="flex justify-between">
-          <Button variant="outline" onClick={onClose}>
+        <DialogFooter className="flex flex-col gap-3 sm:flex-row sm:justify-between">
+          <Button variant="outline" onClick={onClose} className="w-full sm:w-auto">
             Cancel
           </Button>
-          <Button onClick={handleSubmit}>
+          <Button onClick={handleSubmit} className="w-full sm:w-auto">
             {isEditing ? "Update Event" : "Add Event"}
           </Button>
         </DialogFooter>
