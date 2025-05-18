@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { format, parseISO } from "date-fns"
-import { X, MapPin, Clock, Calendar, Edit, Trash, Users } from "lucide-react"
+import { X, MapPin, Clock, Calendar, Edit, Trash, Users, Loader2 } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/accessible-dialog"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
