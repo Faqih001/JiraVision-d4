@@ -5,7 +5,7 @@ import { CalendarEvent, eventColors } from "@/types/calendar"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { X, Edit, Trash2, Clock, MapPin, Calendar, Users } from "lucide-react"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 
@@ -26,6 +26,9 @@ export default function EventDetailsModal({
 }: EventDetailsModalProps) {
   if (!event) return null
 
+  // Make sure organizer exists and has required properties with fallbacks
+  const organizer = event.organizer || { id: 0, name: "Unknown", avatar: null };
+  
   const colorClasses = eventColors[event.color || "blue"] || eventColors.blue
 
   // Format the start and end times for display
@@ -48,7 +51,7 @@ export default function EventDetailsModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md md:max-w-lg">
+      <DialogContent className="max-w-[95vw] sm:max-w-md md:max-w-lg overflow-y-auto max-h-[90vh]" aria-describedby="event-details-description">
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -63,7 +66,7 @@ export default function EventDetailsModal({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 py-2">
+        <div className="space-y-4 py-2" id="event-details-description">
           {/* Time information */}
           <div className="flex items-start gap-3">
             <Clock className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
@@ -103,8 +106,9 @@ export default function EventDetailsModal({
               <p className="font-medium">Organizer</p>
               <div className="flex items-center gap-2 mt-1">
                 <Avatar className="h-6 w-6">
+                  {event.organizer.avatar && <AvatarImage src={event.organizer.avatar} alt={event.organizer.name} />}
                   <AvatarFallback>
-                    {event.organizer.name.split(" ").map(n => n[0]).join("").toUpperCase()}
+                    {event.organizer.name.split(" ").map((n: string) => n[0]).join("").toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
                 <span className="text-sm">{event.organizer.name}</span>
@@ -120,13 +124,14 @@ export default function EventDetailsModal({
                 <p className="font-medium">Attendees</p>
                 <div className="flex flex-wrap gap-2 mt-1">
                   {event.attendees.map((attendee) => (
-                    <div key={attendee.id} className="flex items-center gap-1">
+                    <div key={attendee.id} className="flex items-center gap-1 bg-secondary rounded-full pl-1 pr-2 py-0.5">
                       <Avatar className="h-6 w-6">
+                        {attendee.avatar && <AvatarImage src={attendee.avatar} alt={attendee.name} />}
                         <AvatarFallback>
-                          {attendee.name.split(" ").map(n => n[0]).join("").toUpperCase()}
+                          {attendee.name.split(" ").map((n: string) => n[0]).join("").toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
-                      <span className="text-sm">{attendee.name}</span>
+                      <span className="text-sm whitespace-nowrap">{attendee.name}</span>
                     </div>
                   ))}
                 </div>

@@ -8,13 +8,19 @@ interface DayCellEventProps {
 }
 
 export default function DayCellEvent({ event, onEventClick }: DayCellEventProps) {
+  // Safety check - ensure event is not null or undefined
+  if (!event) {
+    console.warn("DayCellEvent received undefined or null event");
+    return null;
+  }
+  
   // Get the color classes for this event
   const colorClasses = eventColors[event.color || "blue"] || eventColors.blue
   
-  // Format start time for display
+  // Format start time for display with safety check
   const timeDisplay = event.isAllDay 
     ? "All day" 
-    : format(new Date(event.startTime), "h:mm a")
+    : format(new Date(event.startTime || new Date()), "h:mm a")
 
   return (
     <TooltipProvider>

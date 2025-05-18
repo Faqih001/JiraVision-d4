@@ -61,10 +61,19 @@ export default function CalendarPage() {
       const response = await fetch('/api/calendar/events')
       const data = await response.json()
       
-      if (data.success) {
-        setEvents(data.events)
+      if (data.success && Array.isArray(data.events)) {
+        // Ensure all events have required properties with fallbacks
+        const safeEvents = data.events.map((event: any) => ({
+          ...event,
+          // Ensure organizer exists and has required properties
+          organizer: event.organizer || { id: 0, name: "Unknown", avatar: null },
+          // Ensure other critical properties exist
+          attendees: Array.isArray(event.attendees) ? event.attendees : [],
+          color: event.color || "blue"
+        }));
+        setEvents(safeEvents)
       } else {
-        console.error('Error fetching events:', data.error)
+        console.error('Error fetching events:', data.error || 'Unknown error')
         toast({
           title: "Error fetching events",
           description: data.error || "Could not load calendar events",
@@ -84,17 +93,27 @@ export default function CalendarPage() {
     }
   }
 
-  // Fetch team members for the availability section
+  // Fetch team members for the availability section and event attendees
   const fetchTeamMembers = async () => {
     try {
+      setIsLoading(true)
       const response = await fetch('/api/team/members')
       const data = await response.json()
       
       if (data.success) {
         setTeamMembers(data.teamMembers)
+      } else {
+        console.error('Error fetching team members:', data.error)
+        toast({
+          title: "Warning",
+          description: "Could not load team members for attendee selection",
+          variant: "destructive"
+        })
       }
     } catch (error) {
       console.error('Error fetching team members:', error)
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -181,6 +200,17 @@ export default function CalendarPage() {
 
   // Delete an event
   const handleDeleteEvent = async (eventId: number) => {
+    // Safety check - ensure we have a valid ID
+    if (!eventId || typeof eventId !== 'number' || eventId <= 0) {
+      console.warn("Attempted to delete an event with invalid ID:", eventId);
+      toast({
+        title: "Error",
+        description: "Cannot delete event: Invalid event ID",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     if (!confirm("Are you sure you want to delete this event?")) {
       return
     }
@@ -227,12 +257,24 @@ export default function CalendarPage() {
 
   // Open the event details modal when clicking on an event
   const handleEventClick = (event: CalendarEvent) => {
+    // Safety check - don't process if event is invalid
+    if (!event || typeof event.id === 'undefined') {
+      console.warn("Attempted to click on an invalid event:", event);
+      return;
+    }
+    
     setSelectedEvent(event)
     setIsEventDetailsModalOpen(true)
   }
 
   // Edit an existing event
   const handleEditEvent = (event: CalendarEvent) => {
+    // Safety check - don't process if event is invalid
+    if (!event || typeof event.id === 'undefined') {
+      console.warn("Attempted to edit an invalid event:", event);
+      return;
+    }
+    
     // Close the details modal
     setIsEventDetailsModalOpen(false)
     
@@ -548,6 +590,7 @@ export default function CalendarPage() {
             }
           : undefined
         }
+        teamMembers={teamMembers}
       />
 
       {/* Event Details Modal */}

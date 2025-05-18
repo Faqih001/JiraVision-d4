@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { calendarEvents } from "@/drizzle/schema";
+import { calendarEvents, users } from "@/drizzle/schema";
 import { eq } from "drizzle-orm";
 import { getSession } from "@/lib/auth-actions";
+import { CreateEventInput } from "../route";
 
+// GET handler for a specific calendar event
 export async function GET(
   request: Request,
   { params }: { params: { id: string } }
@@ -19,19 +21,50 @@ export async function GET(
       );
     }
 
-    const eventId = parseInt(params.id);
-    if (isNaN(eventId)) {
+    const id = parseInt(params.id, 10);
+    if (isNaN(id)) {
       return NextResponse.json(
         { success: false, error: "Invalid event ID" },
         { status: 400 }
       );
     }
 
-    // Fetch the event
+    // First, fetch all users to use for attendee information
+    const allUsers = await db
+      .select({
+        id: users.id,
+        name: users.name,
+        avatar: users.avatar
+      })
+      .from(users);
+      
+    console.log(`Fetched ${allUsers.length} users for attendee information`);
+
+    // Query for the specific event with organizer info
     const event = await db
-      .select()
+      .select({
+        id: calendarEvents.id,
+        title: calendarEvents.title,
+        description: calendarEvents.description,
+        startTime: calendarEvents.startTime,
+        endTime: calendarEvents.endTime,
+        location: calendarEvents.location,
+        eventType: calendarEvents.eventType,
+        isAllDay: calendarEvents.isAllDay,
+        isRecurring: calendarEvents.isRecurring,
+        recurringPattern: calendarEvents.recurringPattern,
+        attendees: calendarEvents.attendees,
+        color: calendarEvents.color,
+        createdAt: calendarEvents.createdAt,
+        updatedAt: calendarEvents.updatedAt,
+        // Get organizer info
+        organizerId: calendarEvents.organizerId,
+        organizerName: users.name,
+        organizerAvatar: users.avatar,
+      })
       .from(calendarEvents)
-      .where(eq(calendarEvents.id, eventId))
+      .leftJoin(users, eq(calendarEvents.organizerId, users.id))
+      .where(eq(calendarEvents.id, id))
       .limit(1);
 
     if (!event || event.length === 0) {
@@ -41,9 +74,41 @@ export async function GET(
       );
     }
 
+    // Format the event to match CalendarEvent type
+    const formattedEvent = {
+      id: event[0].id,
+      title: event[0].title,
+      description: event[0].description,
+      startTime: event[0].startTime,
+      endTime: event[0].endTime,
+      location: event[0].location,
+      eventType: event[0].eventType,
+      organizer: {
+        id: event[0].organizerId,
+        name: event[0].organizerName || "Unknown",
+        avatar: event[0].organizerAvatar
+      },
+      isAllDay: event[0].isAllDay,
+      isRecurring: event[0].isRecurring,
+      recurringPattern: event[0].recurringPattern,
+      attendees: Array.isArray(event[0].attendees) 
+        ? event[0].attendees.map((id: number) => {
+            const user = allUsers.find(u => u.id === id);
+            return {
+              id,
+              name: user?.name || `Attendee ${id}`,  // Use real name if found
+              avatar: user?.avatar || null
+            };
+          })
+        : [],
+      color: event[0].color,
+      createdAt: event[0].createdAt,
+      updatedAt: event[0].updatedAt
+    };
+
     return NextResponse.json({ 
       success: true, 
-      event: event[0] 
+      event: formattedEvent 
     });
   } catch (error: any) {
     console.error("Error fetching calendar event:", error);

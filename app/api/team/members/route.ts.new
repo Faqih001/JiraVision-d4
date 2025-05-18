@@ -34,7 +34,7 @@ export async function GET(request: Request) {
     
     try {
       // More simplified query with fewer potential error sources
-      const queryResult = await db
+      teamMembers = await db
         .select({
           id: users.id,
           name: users.name,
@@ -45,16 +45,11 @@ export async function GET(request: Request) {
           status: users.status,
           avatar: users.avatar,
           skills: sql`COALESCE(${users.skills}, '[]'::jsonb)`,
+          currentSprint: null,
           utilization: sql<number>`80`
         })
         .from(users)
         .where(ne(users.role, 'admin')); // Exclude admin users from team list
-      
-      // Transform query result to match TeamMemberDbResult type
-      teamMembers = queryResult.map(member => ({
-        ...member,
-        currentSprint: null // Add the missing currentSprint property
-      }));
       
       console.log(`Successfully fetched ${teamMembers.length} team members`);
     } catch (dbError: any) {
