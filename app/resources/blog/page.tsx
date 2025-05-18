@@ -261,7 +261,7 @@ export default function BlogPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
               <Link href="/resources/blog/category/ai-scrum-master">
-                <div className="border border-slate-100 rounded-xl p-6 hover:border-primary hover:bg-primary/5 transition-colors shadow-lg transform transition-all duration-300 hover:-translate-y-1 hover:shadow-xl bg-white">
+                <div className="border border-slate-100 rounded-xl p-6 hover:border-primary hover:bg-primary/5 shadow-lg transform transition-all duration-300 hover:-translate-y-1 hover:shadow-xl bg-white">
                   <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
                     <BookOpen className="h-6 w-6 text-primary" />
                   </div>
@@ -275,7 +275,7 @@ export default function BlogPage() {
               </Link>
 
               <Link href="/resources/blog/category/team-wellbeing">
-                <div className="border border-slate-100 rounded-xl p-6 hover:border-primary hover:bg-primary/5 transition-colors shadow-lg transform transition-all duration-300 hover:-translate-y-1 hover:shadow-xl bg-white">
+                <div className="border border-slate-100 rounded-xl p-6 hover:border-primary hover:bg-primary/5 shadow-lg transform transition-all duration-300 hover:-translate-y-1 hover:shadow-xl bg-white">
                   <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
                     <Users className="h-6 w-6 text-primary" />
                   </div>
@@ -289,7 +289,7 @@ export default function BlogPage() {
               </Link>
 
               <Link href="/resources/blog/category/gamification">
-                <div className="border border-slate-100 rounded-xl p-6 hover:border-primary hover:bg-primary/5 transition-colors shadow-lg transform transition-all duration-300 hover:-translate-y-1 hover:shadow-xl bg-white">
+                <div className="border border-slate-100 rounded-xl p-6 hover:border-primary hover:bg-primary/5 shadow-lg transform transition-all duration-300 hover:-translate-y-1 hover:shadow-xl bg-white">
                   <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
                     <Star className="h-6 w-6 text-primary" />
                   </div>
@@ -303,7 +303,7 @@ export default function BlogPage() {
               </Link>
 
               <Link href="/resources/blog/category/ethical-metrics">
-                <div className="border border-slate-100 rounded-xl p-6 hover:border-primary hover:bg-primary/5 transition-colors shadow-lg transform transition-all duration-300 hover:-translate-y-1 hover:shadow-xl bg-white">
+                <div className="border border-slate-100 rounded-xl p-6 hover:border-primary hover:bg-primary/5 shadow-lg transform transition-all duration-300 hover:-translate-y-1 hover:shadow-xl bg-white">
                   <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
                     <Shield className="h-6 w-6 text-primary" />
                   </div>

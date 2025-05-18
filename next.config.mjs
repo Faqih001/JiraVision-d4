@@ -26,8 +26,7 @@ const nextConfig = {
       },
     ];
   },
-  // Configure font optimization
-  optimizeFonts: true,
+  // Font optimization is now handled automatically by Next.js
   webpack: (config, { isServer }) => {
     // Handle client-side polyfills for socket.io
     if (!isServer) {

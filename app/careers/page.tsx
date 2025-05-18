@@ -262,7 +262,9 @@ export default function CareersPage() {
                     className="w-full pl-10 pr-4 py-2 rounded-full border border-input bg-background"
                   />
                 </div>
-                <select className="px-4 py-2 rounded-full border border-input bg-background">
+                <select 
+                  aria-label="Filter by department"
+                  className="px-4 py-2 rounded-full border border-input bg-background">
                   <option value="all">All Departments</option>
                   <option value="engineering">Engineering</option>
                   <option value="product">Product</option>
