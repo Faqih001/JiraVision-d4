@@ -49,15 +49,15 @@ NODE_ENV=production
 # App URL (replace with your actual Vercel URL)
 NEXT_PUBLIC_APP_URL=https://v0-jiravision-dashboard.vercel.app
 
-# JWT Secret (use this secure generated one)
-JWT_SECRET=98a15a4bf8acd8e5ad657a615de8a87a9b8d5e67fbce8fa74bec6b612639349a
+# JWT Secret (generate with: openssl rand -hex 32)
+JWT_SECRET=your-generated-jwt-secret-here
 ```
 
 #### Optional Variables:
 
 ```bash
 # Email (if using Resend)
-RESEND_API_KEY=re_VzSvAhNQ_EqLmewA7ftWEeAedNTa6eZjR
+RESEND_API_KEY=your-resend-api-key-here
 
 # WebSocket (if using)
 NEXT_PUBLIC_SOCKET_URL=https://your-app.vercel.app
@@ -99,7 +99,7 @@ Copy these exact values to Vercel (update DATABASE_URL with your new password):
 DATABASE_URL=postgresql://neondb_owner:NEW_PASSWORD_HERE@ep-late-sky-ahc686x6-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require
 NODE_ENV=production
 NEXT_PUBLIC_APP_URL=https://v0-jiravision-dashboard.vercel.app
-JWT_SECRET=98a15a4bf8acd8e5ad657a615de8a87a9b8d5e67fbce8fa74bec6b612639349a
+JWT_SECRET=your-generated-jwt-secret-here
 ```
 
 ## 🎯 Quick Commands

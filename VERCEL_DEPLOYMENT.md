@@ -59,7 +59,7 @@ JWT_SECRET='your-generated-secure-secret-here'
 ### Optional Variables:
 
 ```bash
-RESEND_API_KEY='re_VzSvAhNQ_EqLmewA7ftWEeAedNTa6eZjR'
+RESEND_API_KEY='your-resend-api-key-here'
 
 NEXT_PUBLIC_SOCKET_URL='https://your-socket-server.com'
 ```
