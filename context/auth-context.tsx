@@ -45,11 +45,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     async function loadUser() {
       try {
         setIsLoading(true)
-        const response = await fetch("/api/auth/session")
+        const response = await fetch("/api/auth/session", {
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        })
 
         // If the response is not ok, just set user to null and continue
         if (!response.ok) {
-          console.error("Session API error:", response.status)
+          // Silently handle error - user is just not logged in
           setUser(null)
           setIsLoading(false)
           return
@@ -63,7 +68,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(null)
         }
       } catch (error) {
-        console.error("Failed to load user session:", error)
+        // Silently handle fetch errors (e.g., dev server not running, network issues)
+        // Don't log to console to avoid cluttering user's console
         setUser(null)
       } finally {
         setIsLoading(false)
@@ -83,7 +89,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const response = await fetch("/api/auth/login", {
         method: "POST",
         body: formData,
+        credentials: "include",
       })
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}))
+        return { success: false, message: data.message || "Login failed. Please check your credentials." }
+      }
 
       const data = await response.json()
 
@@ -94,8 +106,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       return { success: false, message: data.message || "Login failed" }
     } catch (error) {
-      console.error("Login error:", error)
-      return { success: false, message: "An unexpected error occurred" }
+      return { success: false, message: "Unable to connect to server. Please check your connection." }
     } finally {
       setIsLoading(false)
     }
@@ -113,7 +124,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const response = await fetch("/api/auth/signup", {
         method: "POST",
         body: formData,
+        credentials: "include",
       })
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}))
+        return { success: false, message: data.message || "Signup failed. Please try again." }
+      }
 
       const data = await response.json()
 
@@ -124,8 +141,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       return { success: false, message: data.message || "Signup failed" }
     } catch (error) {
-      console.error("Signup error:", error)
-      return { success: false, message: "An unexpected error occurred" }
+      return { success: false, message: "Unable to connect to server. Please check your connection." }
     } finally {
       setIsLoading(false)
     }
@@ -133,11 +149,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     try {
-      await fetch("/api/auth/logout", { method: "POST" })
+      await fetch("/api/auth/logout", { 
+        method: "POST",
+        credentials: "include",
+      })
+    } catch (error) {
+      // Silently handle error - still log out locally
+    } finally {
       setUser(null)
       router.push("/")
-    } catch (error) {
-      console.error("Logout error:", error)
     }
   }
 
