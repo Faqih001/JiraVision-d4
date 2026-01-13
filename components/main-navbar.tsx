@@ -212,8 +212,8 @@ export function MainNavbar() {
           </Link>
         </div>
 
-        {/* Desktop Navigation */}
-        <NavigationMenu className="hidden md:flex">
+        {/* Desktop Navigation (visible on large screens) */}
+        <NavigationMenu className="hidden lg:flex">
           <NavigationMenuList>
             <NavigationMenuItem>
               <NavigationMenuTrigger>Products</NavigationMenuTrigger>
@@ -318,8 +318,8 @@ export function MainNavbar() {
           </NavigationMenuList>
         </NavigationMenu>
 
-        {/* Mobile Navigation */}
-        <div className="md:hidden">
+        {/* Mobile / Tablet Navigation (hamburger for lg and below) */}
+        <div className="lg:hidden">
           <Sheet open={isOpen} onOpenChange={setIsOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" className="mr-2">
@@ -381,7 +381,7 @@ export function MainNavbar() {
           </Sheet>
         </div>
 
-        <div className="hidden md:flex items-center gap-4">
+        <div className="hidden lg:flex items-center gap-4">
           <Link href="/login">
             <Button variant="ghost">Login</Button>
           </Link>
