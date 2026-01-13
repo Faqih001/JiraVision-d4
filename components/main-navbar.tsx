@@ -3,6 +3,7 @@ import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
+import { useTheme } from "next-themes"
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -14,7 +15,7 @@ import {
 } from "@/components/ui/navigation-menu"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet"
-import { Menu, ChevronDown, ChevronUp } from "lucide-react"
+import { Menu, ChevronDown, ChevronUp, Moon, Sun } from "lucide-react"
 
 // Define interfaces for navigation items
 interface NavItem {
@@ -169,9 +170,10 @@ const resourceItems = [
 
 export function MainNavbar() {
   const [isOpen, setIsOpen] = useState(false);
+  const { theme, setTheme } = useTheme();
 
   return (
-    <div role="banner" className="sticky top-0 z-50 w-full bg-blue-50 border-b">
+    <div role="banner" className="sticky top-0 z-50 w-full bg-blue-50 dark:bg-slate-900 border-b border-border">
       <div className="container flex h-9 items-center justify-between px-4 md:px-6 text-xs">
 
         {/* Left: Announcement */}
@@ -179,7 +181,7 @@ export function MainNavbar() {
           <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] text-primary-foreground">
             NEW
           </span>
-          <a href="/changelog" className="hover:underline">
+          <a href="/changelog" className="hover:underline text-foreground">
             AI reports just launched →
           </a>
         </div>
@@ -366,6 +368,18 @@ export function MainNavbar() {
                 >
                   Contact
                 </Link>
+                
+                <div className="border-t border-border my-2 pt-2">
+                  <button
+                    onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                    className="flex items-center gap-2 px-2 py-3 w-full font-medium hover:bg-muted rounded-md transition-colors"
+                  >
+                    <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                    <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                    <span className="ml-6">Toggle {theme === "dark" ? "Light" : "Dark"} Mode</span>
+                  </button>
+                </div>
+
                 <div className="flex flex-col gap-2 mt-4">
                   <Link href="/login" onClick={() => setIsOpen(false)}>
                     <Button variant="outline" className="w-full">
@@ -382,6 +396,16 @@ export function MainNavbar() {
         </div>
 
         <div className="hidden lg:flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            className="mr-2"
+          >
+            <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+            <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+            <span className="sr-only">Toggle theme</span>
+          </Button>
           <Link href="/login">
             <Button variant="ghost">Login</Button>
           </Link>
