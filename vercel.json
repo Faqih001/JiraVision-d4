@@ -1,0 +1,25 @@
+{
+  "buildCommand": "npm run build",
+  "devCommand": "npm run dev",
+  "installCommand": "npm install",
+  "framework": "nextjs",
+  "outputDirectory": ".next",
+  "env": {
+    "DATABASE_URL": {
+      "description": "Neon PostgreSQL connection string with pooling and SSL",
+      "value": ""
+    },
+    "NODE_ENV": {
+      "description": "Application environment (production, development)",
+      "value": "production"
+    },
+    "NEXT_PUBLIC_APP_URL": {
+      "description": "Your application URL (e.g., https://your-app.vercel.app)",
+      "value": ""
+    },
+    "JWT_SECRET": {
+      "description": "Secure random string for JWT token signing (64+ characters)",
+      "value": ""
+    }
+  }
+}
