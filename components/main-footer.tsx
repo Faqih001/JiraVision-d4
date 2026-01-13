@@ -1,5 +1,6 @@
 import Link from "next/link"
 import Image from "next/image"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ArrowRight, Twitter, Linkedin, Github, Facebook, Instagram } from "lucide-react"
@@ -9,7 +10,55 @@ export function MainFooter() {
     <footer className="bg-background border-t">
       <div className="container py-16">
         {/* Top Section */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-12 mb-12">
+        {/* Mobile: accordion lists */}
+        <div className="md:hidden mb-6">
+          {/** Simple accordion for mobile footers **/}
+          {/** FooterAccordion component inline **/}
+          <FooterAccordion title="Products">
+            <ul className="space-y-3 px-1">
+              <li>
+                <Link href="/products/ai-scrum-master" className="text-muted-foreground hover:text-foreground transition-colors">AI Scrum Master</Link>
+              </li>
+              <li>
+                <Link href="/products/team-wellbeing" className="text-muted-foreground hover:text-foreground transition-colors">Team Wellbeing</Link>
+              </li>
+              <li>
+                <Link href="/products/gamification" className="text-muted-foreground hover:text-foreground transition-colors">Gamification</Link>
+              </li>
+              <li>
+                <Link href="/products/ethical-metrics" className="text-muted-foreground hover:text-foreground transition-colors">Ethical Metrics</Link>
+              </li>
+              <li>
+                <Link href="/pricing" className="text-muted-foreground hover:text-foreground transition-colors">Pricing</Link>
+              </li>
+            </ul>
+          </FooterAccordion>
+
+          <FooterAccordion title="Company">
+            <ul className="space-y-3 px-1">
+              <li><Link href="/about" className="text-muted-foreground hover:text-foreground transition-colors">About Us</Link></li>
+              <li><Link href="/careers" className="text-muted-foreground hover:text-foreground transition-colors">Careers</Link></li>
+              <li><Link href="/contact" className="text-muted-foreground hover:text-foreground transition-colors">Contact</Link></li>
+              <li><Link href="/faq" className="text-muted-foreground hover:text-foreground transition-colors">FAQ</Link></li>
+              <li><Link href="/legal-notice" className="text-muted-foreground hover:text-foreground transition-colors">Legal Notice</Link></li>
+            </ul>
+          </FooterAccordion>
+
+          <FooterAccordion title="Subscribe">
+            <div className="px-1">
+              <p className="text-sm text-muted-foreground mb-2">Stay updated with the latest features, tips, and insights from our team.</p>
+              <div className="flex gap-2">
+                <Input type="email" placeholder="Enter your email" className="rounded-full" />
+                <Button size="icon" className="rounded-full h-10 w-10">
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </FooterAccordion>
+        </div>
+
+        {/* Desktop / Tablet: grid layout */}
+        <div className="hidden md:grid md:grid-cols-12 gap-8 md:gap-12 mb-12">
           {/* Company Info */}
           <div className="md:col-span-5">
             <div className="flex items-center gap-2 font-bold text-xl mb-6">
@@ -181,5 +230,23 @@ export function MainFooter() {
         </div>
       </div>
     </footer>
+  )
+}
+
+function FooterAccordion({ title, children }: { title: string; children: React.ReactNode }) {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <div className="border-b border-muted/10 py-3">
+      <button
+        className="flex w-full items-center justify-between text-sm font-medium"
+        onClick={() => setOpen(!open)}
+        aria-expanded={open}
+      >
+        <span>{title}</span>
+        <span className="text-muted-foreground">{open ? "−" : "+"}</span>
+      </button>
+      {open && <div className="mt-3">{children}</div>}
+    </div>
   )
 }
