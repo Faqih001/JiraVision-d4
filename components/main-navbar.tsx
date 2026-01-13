@@ -25,15 +25,13 @@ interface NavItem {
 }
 
 // Add this new component for mobile navigation
-function MobileNavAccordion({ 
-  title, 
-  items, 
-  setIsOpen 
-}: { 
-  title: string; 
-  items: NavItem[]; 
-  setIsOpen: React.Dispatch<React.SetStateAction<boolean>> 
-}) {
+type MobileNavAccordionProps = {
+  title: string
+  items: NavItem[]
+  setIsOpen: (open: boolean) => void
+}
+
+function MobileNavAccordion({ title, items, setIsOpen }: MobileNavAccordionProps) {
   const [isExpanded, setIsExpanded] = useState(false)
 
   return (
@@ -170,12 +168,30 @@ const resourceItems = [
 ]
 
 export function MainNavbar() {
-  const pathname = usePathname()
-  const [isOpen, setIsOpen] = useState(false)
+  const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center justify-between px-4 md:px-6">
+    <div role="banner" className="sticky top-0 z-50 w-full">
+      {/* Top bar */}
+      <div className="w-full bg-muted/80 border-b text-sm text-muted-foreground">
+        <div className="container flex items-center justify-between px-4 md:px-6 h-8">
+          <div className="hidden md:flex items-center gap-4">
+            <span>🚀 Free 14-day trial — no credit card required</span>
+            <Link href="/pricing" className="underline">See plans</Link>
+          </div>
+          <div className="flex items-center gap-4">
+            <a href="/contact" className="hidden sm:inline hover:underline">Contact</a>
+            <a href="/about" className="hidden sm:inline hover:underline">About</a>
+            <Link href="/login" className="ml-2 sm:ml-0">
+              <Button variant="ghost" size="sm">Login</Button>
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      {/* Main navbar */}
+      <div className="w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container flex h-16 items-center justify-between px-4 md:px-6">
         <div className="flex items-center gap-2 font-bold text-xl">
           <Link href="/" className="flex items-center gap-2">
             <div className="relative">
@@ -370,6 +386,7 @@ export function MainNavbar() {
           </Link>
         </div>
       </div>
-    </header>
+      </div>
+    </div>
   )
 }
