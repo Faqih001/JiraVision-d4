@@ -171,22 +171,26 @@ export function MainNavbar() {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div role="banner" className="sticky top-0 z-50 w-full">
-      {/* Top bar */}
-      <div className="w-full bg-muted/80 border-b text-sm text-muted-foreground">
-        <div className="container flex items-center justify-between px-4 md:px-6 h-8">
-          <div className="hidden md:flex items-center gap-4">
-            <span>🚀 Free 14-day trial — no credit card required</span>
-            <Link href="/pricing" className="underline">See plans</Link>
-          </div>
-          <div className="flex items-center gap-4">
-            <a href="/contact" className="hidden sm:inline hover:underline">Contact</a>
-            <a href="/about" className="hidden sm:inline hover:underline">About</a>
-            <Link href="/login" className="ml-2 sm:ml-0">
-              <Button variant="ghost" size="sm">Login</Button>
-            </Link>
-          </div>
+    <div role="banner" className="sticky top-0 z-50 w-full bg-muted/80 border-b">
+      <div className="container flex h-9 items-center justify-between px-4 md:px-6 text-xs">
+
+        {/* Left: Announcement */}
+        <div className="flex items-center gap-2">
+          <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] text-primary-foreground">
+            NEW
+          </span>
+          <a href="/changelog" className="hover:underline">
+            AI reports just launched →
+          </a>
         </div>
+
+        {/* Right: Social Proof */}
+        <div className="hidden sm:flex items-center gap-3 text-muted-foreground">
+          <span>Trusted by 5,000+ teams</span>
+          <span>•</span>
+          <span>99.9% uptime</span>
+        </div>
+
       </div>
 
       {/* Main navbar */}
