@@ -27,6 +27,7 @@ const nextConfig = {
     ];
   },
   // Font optimization is now handled automatically by Next.js
+  turbopack: {},
   webpack: (config, { isServer }) => {
     // Handle client-side polyfills for socket.io
     if (!isServer) {
