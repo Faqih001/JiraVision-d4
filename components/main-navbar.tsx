@@ -171,7 +171,7 @@ export function MainNavbar() {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div role="banner" className="sticky top-0 z-50 w-full bg-muted/80 border-b">
+    <div role="banner" className="sticky top-0 z-50 w-full bg-blue-50 border-b">
       <div className="container flex h-9 items-center justify-between px-4 md:px-6 text-xs">
 
         {/* Left: Announcement */}
