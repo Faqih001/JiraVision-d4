@@ -1,3 +1,5 @@
+"use client"
+
 import { useTheme } from "@/components/ui/use-theme"
 import { useMobile } from "@/hooks/use-mobile"
 import { useToast } from "@/components/ui/use-toast"
