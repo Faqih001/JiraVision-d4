@@ -16,9 +16,11 @@
     "db:apply": "node -r dotenv/config ./drizzle/apply-schema.js",
     "db:fix": "node -r dotenv/config ./drizzle/create-missing-tables.js",
     "db:seed": "node -r dotenv/config ./drizzle/add-sample-data.js",
-    "db:test": "node -r dotenv/config ./app/api/db-test/test-connect.js",
+    "db:test": "node -r dotenv/config ./test-neon-connection.js",
     "db:check": "curl http://localhost:3000/api/db-migrations-check",
-    "seed:chats": "node drizzle/seed-chats.js"
+    "seed:chats": "node drizzle/seed-chats.js",
+    "neon:test": "node -r dotenv/config test-neon-connection.js",
+    "neon:setup": "echo 'Run the neon-setup.sql file in your Neon SQL Editor'"
   },
   "dependencies": {
     "@aws-sdk/client-rds-data": "latest",
