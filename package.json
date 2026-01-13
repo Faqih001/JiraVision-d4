@@ -20,7 +20,8 @@
     "db:check": "curl http://localhost:3000/api/db-migrations-check",
     "seed:chats": "node drizzle/seed-chats.js",
     "neon:test": "node -r dotenv/config test-neon-connection.js",
-    "neon:setup": "echo 'Run the neon-setup.sql file in your Neon SQL Editor'"
+    "neon:setup": "echo 'Run the neon-setup.sql file in your Neon SQL Editor'",
+    "production:check": "node -r dotenv/config production-readiness-check.js"
   },
   "dependencies": {
     "@aws-sdk/client-rds-data": "latest",
