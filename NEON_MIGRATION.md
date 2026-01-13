@@ -18,13 +18,13 @@ This guide will help you transition from Supabase to Neon database for JiraVisio
 
 ## Step 2: Update Environment Variables
 
-Your `.env` file has been updated with the Neon connection string:
+Your `.env` file should contain your Neon connection string:
 
 ```env
-DATABASE_URL='postgresql://neondb_owner:npg_doa9QCN8tnrP@ep-late-sky-ahc686x6-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require'
+DATABASE_URL='postgresql://[username]:[password]@[host].neon.tech/[database]?sslmode=require'
 ```
 
-**Security Note:** Never commit the `.env` file to version control. Keep your database credentials secure.
+**Security Note:** Never commit the `.env` file to version control. Keep your database credentials secure and never share them publicly.
 
 ## Step 3: Create Database Tables
 
@@ -39,7 +39,7 @@ Run the SQL script to create all tables in your Neon database:
 
 ### Option B: Using psql Command Line
 ```bash
-psql "postgresql://neondb_owner:npg_doa9QCN8tnrP@ep-late-sky-ahc686x6-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require" < neon-setup.sql
+psql "$DATABASE_URL" < neon-setup.sql
 ```
 
 ### Option C: Using Drizzle Kit
