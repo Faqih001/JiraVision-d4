@@ -27,34 +27,32 @@ export type User = {
   updatedAt: Date | null;
 };
 
-// Use connection string from .env
+// Use Neon connection string from .env
 const connectionString = process.env.DATABASE_URL!;
-
-// Always use PostgreSQL
-const isDatabaseTypePostgres = true;
 
 // Debug flag
 const DEBUG = process.env.NODE_ENV === 'development';
 
 if (!connectionString) {
-  throw new Error('DATABASE_URL environment variable is required');
+  throw new Error('DATABASE_URL environment variable is required. Please set it in your .env file.');
 }
 
-console.log('Database connection: Using PostgreSQL connection');
+console.log('Database connection: Using Neon PostgreSQL Database');
 
-// Configure options based on database type
+// Configure connection options for Neon
 const connectionOptions: postgres.Options<{}> = {
-  max: 1,
-  debug: DEBUG,
-  ssl: isDatabaseTypePostgres ? { rejectUnauthorized: false } : undefined,
-  onnotice: msg => {
-    if (DEBUG) console.log('Database notice:', msg);
-  },
+  max: 10, // Maximum pool size for Neon
   idle_timeout: 20,
-  connect_timeout: 30
+  connect_timeout: 10,
+  // Neon requires SSL
+  ssl: 'require',
+  // Connection pooling for better performance
+  connection: {
+    application_name: 'jiravision'
+  }
 };
 
-// Initialize a singleton Postgres client
+// Initialize a singleton Postgres client for Neon
 export const queryClient = postgres(connectionString, connectionOptions);
 
 // Initialize and export a singleton Drizzle instance
