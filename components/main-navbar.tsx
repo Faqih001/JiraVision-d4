@@ -308,14 +308,14 @@ export function MainNavbar() {
               </NavigationMenuContent>
             </NavigationMenuItem>
             <NavigationMenuItem>
-              <Link href="/pricing" legacyBehavior passHref>
-                <NavigationMenuLink className={navigationMenuTriggerStyle()}>Pricing</NavigationMenuLink>
-              </Link>
+              <NavigationMenuLink asChild>
+                <Link href="/pricing" className={navigationMenuTriggerStyle()}>Pricing</Link>
+              </NavigationMenuLink>
             </NavigationMenuItem>
             <NavigationMenuItem>
-              <Link href="/contact" legacyBehavior passHref>
-                <NavigationMenuLink className={navigationMenuTriggerStyle()}>Contact</NavigationMenuLink>
-              </Link>
+              <NavigationMenuLink asChild>
+                <Link href="/contact" className={navigationMenuTriggerStyle()}>Contact</Link>
+              </NavigationMenuLink>
             </NavigationMenuItem>
           </NavigationMenuList>
         </NavigationMenu>
@@ -406,12 +406,12 @@ export function MainNavbar() {
             <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
             <span className="sr-only">Toggle theme</span>
           </Button>
-          <Link href="/login">
-            <Button variant="ghost">Login</Button>
-          </Link>
-          <Link href="/signup">
-            <Button>Sign Up</Button>
-          </Link>
+          <Button asChild variant="ghost">
+            <Link href="/login">Login</Link>
+          </Button>
+          <Button asChild>
+            <Link href="/signup">Sign Up</Link>
+          </Button>
         </div>
       </div>
       </div>
