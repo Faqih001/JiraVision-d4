@@ -174,7 +174,7 @@ export function MainNavbar() {
 
   return (
     <div role="banner" className="sticky top-0 z-50 w-full bg-blue-50 dark:bg-slate-900 border-b border-border">
-      <div className="container flex h-9 items-center justify-between px-4 md:px-6 text-xs">
+      <div className="container flex h-12 items-center justify-between px-4 md:px-6 text-xs">
 
         {/* Left: Announcement */}
         <div className="flex items-center gap-2">
@@ -197,15 +197,15 @@ export function MainNavbar() {
 
       {/* Main navbar */}
       <div className="w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center justify-between px-4 md:px-6">
-        <div className="flex items-center gap-2 font-bold text-xl">
-          <Link href="/" className="flex items-center gap-2">
+        <div className="container flex h-20 items-center justify-between px-4 md:px-6">
+        <div className="flex items-center gap-3 font-bold text-2xl">
+          <Link href="/" className="flex items-center gap-3">
             <div className="relative">
               <Image 
                 src="/jiravision_logo.png" 
                 alt="JiraVision"
-                width={32}
-                height={32}
+                width={40}
+                height={40}
                 className="object-contain"
                 loading="eager" 
               />
@@ -334,14 +334,14 @@ export function MainNavbar() {
                 <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
                 <SheetDescription className="sr-only">Navigation links and options</SheetDescription>
               </SheetHeader>
-              <div className="flex items-center gap-2 font-bold text-xl mb-6">
-                <Link href="/" className="flex items-center gap-2" onClick={() => setIsOpen(false)}>
+              <div className="flex items-center gap-3 font-bold text-2xl mb-6">
+                <Link href="/" className="flex items-center gap-3" onClick={() => setIsOpen(false)}>
                   <div className="relative">
                     <Image 
                       src="/jiravision_logo.png" 
                       alt="JiraVision"
-                      width={32}
-                      height={32}
+                      width={40}
+                      height={40}
                       className="object-contain"
                       loading="eager"
                     />
