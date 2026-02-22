@@ -1,5 +1,5 @@
 "use client"
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
@@ -171,9 +171,32 @@ const resourceItems = [
 export function MainNavbar() {
   const [isOpen, setIsOpen] = useState(false);
   const { theme, setTheme } = useTheme();
+  const [showHeader, setShowHeader] = useState(true);
+  const lastScrollY = useRef(0);
+
+  useEffect(() => {
+    const threshold = 50;
+    const handleScroll = () => {
+      const current = window.scrollY || 0;
+      if (current <= 0) {
+        setShowHeader(true);
+      } else if (current - lastScrollY.current > 10 && current > threshold) {
+        setShowHeader(false);
+      } else if (lastScrollY.current - current > 10) {
+        setShowHeader(true);
+      }
+      lastScrollY.current = current;
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   return (
-    <div role="banner" className="sticky top-0 z-50 w-full bg-blue-50 dark:bg-slate-900 border-b border-border">
+    <div
+      role="banner"
+      className={`sticky top-0 z-50 w-full bg-blue-50 dark:bg-slate-900 border-b border-border transform transition-transform duration-300 ${showHeader ? "translate-y-0" : "-translate-y-full"}`}
+    >
       <div className="container flex h-12 items-center justify-between px-4 md:px-6 text-xs">
 
         {/* Left: Announcement */}
