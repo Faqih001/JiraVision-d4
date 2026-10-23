@@ -3,9 +3,6 @@
 import { useEffect, useRef, useState } from "react"
 import { Loader2 } from "lucide-react"
 
-// Default API key
-const DEFAULT_API_KEY = "AIzaSyDPgttFbKx3V_mzD-UMAV0fWHDyU-QBk3c"
-
 interface GoogleMapProps {
   apiKey?: string
   center: {
@@ -15,12 +12,38 @@ interface GoogleMapProps {
   zoom?: number
 }
 
-export function GoogleMap({ apiKey = DEFAULT_API_KEY, center, zoom = 15 }: GoogleMapProps) {
+export function GoogleMap({ apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY, center, zoom = 15 }: GoogleMapProps) {
   const mapRef = useRef<HTMLDivElement>(null)
   const [isLoaded, setIsLoaded] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
 
+  const initializeMap = () => {
+    if (!mapRef.current) return
+
+    try {
+      const map = new window.google.maps.Map(mapRef.current, {
+        center,
+        zoom,
+        mapTypeControl: true,
+        streetViewControl: true,
+        fullscreenControl: true,
+        zoomControl: true,
+      })
+
+      // Add a marker
+      new window.google.maps.Marker({
+        position: center,
+        map,
+        title: "JiraVision",
+      })
+    } catch (error) {
+      console.error("Error initializing map:", error)
+      setLoadError("Error initializing map")
+    }
+  }
+
   useEffect(() => {
+    if (!apiKey) return
     // Check if Google Maps API is already loaded
     if (window.google && window.google.maps) {
       initializeMap()
@@ -48,31 +71,6 @@ export function GoogleMap({ apiKey = DEFAULT_API_KEY, center, zoom = 15 }: Googl
       }
     }
   }, [apiKey, center, zoom])
-
-  const initializeMap = () => {
-    if (!mapRef.current) return
-
-    try {
-      const map = new window.google.maps.Map(mapRef.current, {
-        center,
-        zoom,
-        mapTypeControl: true,
-        streetViewControl: true,
-        fullscreenControl: true,
-        zoomControl: true,
-      })
-
-      // Add a marker
-      new window.google.maps.Marker({
-        position: center,
-        map,
-        title: "JiraVision",
-      })
-    } catch (error) {
-      console.error("Error initializing map:", error)
-      setLoadError("Error initializing map")
-    }
-  }
 
   if (loadError) {
     return (
