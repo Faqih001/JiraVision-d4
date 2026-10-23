@@ -84,7 +84,7 @@ export function WellbeingMock() {
     <MockFrame label="Team load · this week">
       <div className="flex h-32 items-end gap-3 px-1">
         {bars.map((b) => (
-          <div key={b.name} className="flex flex-1 flex-col items-center gap-1">
+          <div key={b.name} className="flex h-full flex-1 flex-col items-center justify-end gap-1">
             <div className={`w-full rounded-t-sm ${b.tone}`} style={{ height: `${b.h}%` }} />
             <span className="text-[10px] text-muted-foreground">{b.name}</span>
           </div>
