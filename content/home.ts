@@ -271,6 +271,16 @@ export const pricingTeaser = {
   cta: { label: "Compare all features", href: "/pricing" },
 }
 
+// Numeric mirror of pricingTeaser for the interactive seat slider (components/sections/pricing-seats.tsx).
+export const seatModel = {
+  annualDiscountPct: 20,
+  trialDays: 14,
+  perUserMonthly: { Starter: 9, Professional: 19, Enterprise: 49 } as Record<string, number>,
+  defaultSeats: 12,
+  minSeats: 5,
+  maxSeats: 100,
+}
+
 export const faqTeaser = {
   title: "Questions teams ask us",
   items: [

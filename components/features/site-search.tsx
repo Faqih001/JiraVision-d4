@@ -22,6 +22,7 @@ import { searchIndex, type SearchEntry, type SearchGroup } from "@/content/searc
 import { track } from "@/lib/analytics"
 
 export const OPEN_SEARCH_EVENT = "jv-open-search"
+export const OPEN_HELP_EVENT = "jv-open-help"
 
 const RECENT_KEY = "jv-recent-searches"
 const RECENT_MAX = 5
@@ -95,6 +96,7 @@ export function SiteSearch() {
   const gPending = useRef(false)
 
   const openPalette = useCallback(() => setOpen(true), [])
+  const openHelp = useCallback(() => setHelpOpen(true), [])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -126,11 +128,13 @@ export function SiteSearch() {
     }
     window.addEventListener("keydown", onKey)
     window.addEventListener(OPEN_SEARCH_EVENT, openPalette)
+    window.addEventListener(OPEN_HELP_EVENT, openHelp)
     return () => {
       window.removeEventListener("keydown", onKey)
       window.removeEventListener(OPEN_SEARCH_EVENT, openPalette)
+      window.removeEventListener(OPEN_HELP_EVENT, openHelp)
     }
-  }, [openPalette, router])
+  }, [openPalette, openHelp, router])
 
   const select = (entry: SearchEntry) => {
     pushRecent(entry)
@@ -156,6 +160,7 @@ export function SiteSearch() {
     <>
       <CommandDialog
         open={open}
+        aria-describedby={undefined}
         onOpenChange={(v) => {
           setOpen(v)
           if (!v) setQuery("")

@@ -1,10 +1,18 @@
 import type { Metadata } from "next"
 import { Hero } from "@/components/sections/hero"
-import { ProblemSolution, HowItWorks, Integrations, ResponsibleAi, Outcomes, PricingTeaser, CtaBand } from "@/components/sections/home-misc"
+import { ProblemSolution, HowItWorks, Integrations, ResponsibleAi, Outcomes } from "@/components/sections/home-misc"
 import { Pillars } from "@/components/sections/pillars"
 import { ProductTour, UseCases } from "@/components/sections/home-tabs"
+import { SandboxDemo } from "@/components/sections/demo-sandbox"
+import { GamificationDemo } from "@/components/sections/demo-gamification"
+import { EquityExplorer } from "@/components/sections/demo-equity"
+import { CalculatorsDemo } from "@/components/sections/demo-calculators"
+import { TemplatesCarousel } from "@/components/sections/templates-carousel"
+import { KeyboardFirst } from "@/components/sections/keyboard-first"
+import { PricingSeats } from "@/components/sections/pricing-seats"
 import { Testimonials } from "@/components/sections/testimonials"
 import { FaqTeaser } from "@/components/sections/faq-teaser"
+import { CtaBand } from "@/components/sections/home-misc"
 import { hero } from "@/content/home"
 
 export const metadata: Metadata = {
@@ -28,12 +36,18 @@ export default function LandingPage() {
       <Pillars />
       <HowItWorks />
       <ProductTour />
-      <Integrations />
+      <SandboxDemo />
+      <GamificationDemo />
+      <EquityExplorer />
       <ResponsibleAi />
       <UseCases />
+      <Integrations />
       <Outcomes />
+      <CalculatorsDemo />
+      <TemplatesCarousel />
       <Testimonials />
-      <PricingTeaser />
+      <KeyboardFirst />
+      <PricingSeats />
       <FaqTeaser />
       <CtaBand />
     </>

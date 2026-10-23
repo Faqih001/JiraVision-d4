@@ -4,7 +4,7 @@ import { testimonials } from "@/content/home"
 
 export function Testimonials() {
   return (
-    <Section bg="band-sage">
+    <Section bg="dots">
       <SectionHeading eyebrow="Testimonials" title={testimonials.title} />
       <div className="grid gap-5 md:grid-cols-3">
         {testimonials.items.map((t) => (

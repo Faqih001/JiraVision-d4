@@ -9,7 +9,6 @@ import {
   integrations,
   outcomes,
   problem,
-  pricingTeaser,
   responsibleAi,
 } from "@/content/home"
 
@@ -116,7 +115,7 @@ export function ResponsibleAi() {
 
 export function Outcomes() {
   return (
-    <Section bg="shapes" className="border-y bg-surface">
+    <Section bg="band-sage" className="border-y bg-surface">
       <SectionHeading eyebrow="Results" title={outcomes.title} intro={outcomes.intro} />
       <ul className="grid gap-4 md:grid-cols-3">
         {outcomes.qualitative.map((line) => (
@@ -131,45 +130,6 @@ export function Outcomes() {
           Measured outcomes coming soon — we publish numbers only after we can verify them.
         </p>
       )}
-    </Section>
-  )
-}
-
-export function PricingTeaser() {
-  return (
-    <Section bg="dots">
-      <SectionHeading eyebrow="Pricing" title={pricingTeaser.title} intro={pricingTeaser.intro} className="mx-auto text-center" />
-      <div className="grid gap-5 md:grid-cols-3">
-        {pricingTeaser.plans.map((plan) => (
-          <div
-            key={plan.name}
-            className={
-              "flex flex-col rounded-lg border bg-card p-6 " +
-              (plan.featured ? "border-primary shadow-soft-md" : "shadow-soft")
-            }
-          >
-            {plan.featured && (
-              <span className="mb-2 self-start rounded-full bg-primary/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
-                Most popular
-              </span>
-            )}
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">{plan.name}</h3>
-            <p className="mt-2">
-              <span className="font-display text-4xl font-medium">{plan.price}</span>
-              <span className="ml-1 text-sm text-muted-foreground">{plan.cadence}</span>
-            </p>
-            <p className="mt-3 flex-1 text-sm text-muted-foreground">{plan.blurb}</p>
-          </div>
-        ))}
-      </div>
-      <div className="mt-8 text-center">
-        <Button asChild variant="outline" size="lg">
-          <Link href={pricingTeaser.cta.href}>
-            {pricingTeaser.cta.label}
-            <ArrowRight className="h-4 w-4" />
-          </Link>
-        </Button>
-      </div>
     </Section>
   )
 }

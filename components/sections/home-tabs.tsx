@@ -38,7 +38,7 @@ export function ProductTour() {
 
 export function UseCases() {
   return (
-    <Section bg="contour">
+    <Section bg="contour" className="border-y bg-surface">
       <SectionHeading eyebrow="Use cases" title={useCases.title} className="mx-auto text-center" />
       <Tabs defaultValue={useCases.tabs[0].id} className="mx-auto max-w-3xl">
         <TabsList className="mx-auto flex w-full max-w-xl flex-wrap justify-center">
