@@ -70,38 +70,44 @@ export function markAsRead(chatId: string) {
 // Socket event listeners
 export function onNewMessage(callback: (message: any) => void) {
   if (!socket) return () => {};
-  socket.on('message', callback);
-  return () => socket.off('message', callback);
+  const s = socket;
+  s.on('message', callback);
+  return () => s.off('message', callback);
 }
 
 export function onTypingStart(callback: (data: { chatId: string, userId: number }) => void) {
   if (!socket) return () => {};
-  socket.on('typing_start', callback);
-  return () => socket.off('typing_start', callback);
+  const s = socket;
+  s.on('typing_start', callback);
+  return () => s.off('typing_start', callback);
 }
 
 export function onTypingStop(callback: (data: { chatId: string, userId: number }) => void) {
   if (!socket) return () => {};
-  socket.on('typing_stop', callback);
-  return () => socket.off('typing_stop', callback);
+  const s = socket;
+  s.on('typing_stop', callback);
+  return () => s.off('typing_stop', callback);
 }
 
 export function onMessageRead(callback: (data: { chatId: string, userId: number, timestamp: Date }) => void) {
   if (!socket) return () => {};
-  socket.on('message_read', callback);
-  return () => socket.off('message_read', callback);
+  const s = socket;
+  s.on('message_read', callback);
+  return () => s.off('message_read', callback);
 }
 
 export function onUserStatus(callback: (data: { userId: number, status: string }) => void) {
   if (!socket) return () => {};
-  socket.on('user_status', callback);
-  return () => socket.off('user_status', callback);
+  const s = socket;
+  s.on('user_status', callback);
+  return () => s.off('user_status', callback);
 }
 
 export function onNewChat(callback: (chat: any) => void) {
   if (!socket) return () => {};
-  socket.on('chat_new', callback);
-  return () => socket.off('chat_new', callback);
+  const s = socket;
+  s.on('chat_new', callback);
+  return () => s.off('chat_new', callback);
 }
 
 export function authenticate(userId: number, token: string) {

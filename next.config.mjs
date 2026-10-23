@@ -1,8 +1,7 @@
-import MiniCssExtractPlugin from 'mini-css-extract-plugin';
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   typescript: {
+    // TODO(redesign phase F): pre-existing type debt (~100 errors); remove this once `npm run typecheck` is clean
     ignoreBuildErrors: true,
   },
   images: {

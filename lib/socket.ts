@@ -10,9 +10,9 @@ interface AuthErrorData {
   message?: string;
 }
 
-let socket: typeof ClientSocket | null = null;
+let socket: ClientSocket | null = null;
 
-export function getSocket(): typeof ClientSocket | null {
+export function getSocket(): ClientSocket | null {
   return socket;
 }
 
@@ -46,7 +46,7 @@ async function getCurrentUser() {
   }
 }
 
-export async function initSocket(): Promise<typeof ClientSocket> {
+export async function initSocket(): Promise<ClientSocket> {
   return new Promise(async (resolve, reject) => {
     try {
       console.log('Socket initialization starting...');
