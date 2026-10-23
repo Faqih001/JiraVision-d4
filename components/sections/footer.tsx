@@ -122,12 +122,6 @@ export function Footer() {
               </ul>
             </nav>
           ))}
-
-          {newsletter.enabled && (
-            <div>
-              <NewsletterForm />
-            </div>
-          )}
         </div>
 
         <div className="mt-12 flex flex-col items-start justify-between gap-3 border-t border-border pt-6 text-sm text-muted-foreground sm:flex-row sm:items-center">
