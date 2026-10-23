@@ -41,18 +41,16 @@ export function HowItWorks() {
         {howItWorks.steps.map((step, i) => {
           const Icon = stepIcons[i]
           return (
-            <Reveal key={step.title} as-child>
-              <li className="relative">
-                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
-                  <Icon className="h-5 w-5" aria-hidden="true" />
-                </span>
-                <h3 className="mt-4 text-base font-semibold">
-                  <span className="mr-1.5 text-muted-foreground">{i + 1}.</span>
-                  {step.title}
-                </h3>
-                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{step.body}</p>
-              </li>
-            </Reveal>
+            <li key={step.title} className="relative">
+              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <Icon className="h-5 w-5" aria-hidden="true" />
+              </span>
+              <h3 className="mt-4 text-base font-semibold">
+                <span className="mr-1.5 text-muted-foreground">{i + 1}.</span>
+                {step.title}
+              </h3>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{step.body}</p>
+            </li>
           )
         })}
       </ol>
@@ -177,8 +175,8 @@ export function PricingTeaser() {
 
 export function FaqMoreLink() {
   return (
-    <Link href={faqMoreLink.href} className="mt-8 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline">
-      {faqMoreLink.label}
+    <Link href={faqTeaser.moreLink.href} className="mt-8 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline">
+      {faqTeaser.moreLink.label}
       <ArrowRight className="h-4 w-4" />
     </Link>
   )
