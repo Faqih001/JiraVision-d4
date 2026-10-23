@@ -152,7 +152,7 @@ export default function TemplatesPage() {
           "After-hours recovery — load-drop schedule and a meeting blackout block",
           "Mid-sprint rebalance — signal list, moves menu, and a script for how to say it",
         ]}
-        visual={<PhotoCard photoId="photo-1560250097" alt="A team taking a restorative break together" />}
+        visual={<PhotoCard photoId="photo-1600880292203-757bb62b4baf" alt="Teammates celebrating a win over a shared laptop" />}
       />
 
       <StepsSection
@@ -190,7 +190,7 @@ export default function TemplatesPage() {
           "AI suggestions review log — decision log, reason codes, monthly digest",
           "Predictability review — commit vs finish sheet, drift chart spec, agenda",
         ]}
-        visual={<PhotoCard photoId="photo-1460925895917" alt="A magnifying glass over printed figures" />}
+        visual={<PhotoCard photoId="photo-1460925895917-afdab827c52f" alt="A dashboard of figures on a laptop screen" />}
         flip
         bg="hatch"
       />

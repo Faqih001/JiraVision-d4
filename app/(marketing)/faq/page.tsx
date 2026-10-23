@@ -130,7 +130,7 @@ export default async function FaqPage({
           "Individual signals are aggregated to team level before anyone sees them",
           "Every metric card prints its formula, sources and exclusions",
         ]}
-        visual={<PhotoCard photoId="photo-1531482615713" alt="A hand approving a checklist on screen" />}
+        visual={<PhotoCard photoId="photo-1531482615713-2afd69097998" alt="Two colleagues approving items on a shared screen" />}
         bg="grid"
       />
 
