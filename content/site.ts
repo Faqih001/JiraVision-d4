@@ -156,3 +156,13 @@ export const footerColumns: FooterColumn[] = [
 
 // TODO(owner): add real profile URLs to enable social links; empty array hides the section.
 export const socialLinks: { label: string; href: string; icon: "twitter" | "linkedin" | "github" }[] = []
+
+// PLACEHOLDER: no email-provider backend exists yet. Set enabled to true only after
+// wiring the form to a real subscription endpoint; until then the block stays hidden
+// instead of collecting emails into a dead input.
+export const newsletter = {
+  enabled: false,
+  title: "Newsletter",
+  description: "Occasional notes on AI-native project management. No spam.",
+  endpoint: "/api/newsletter",
+}
