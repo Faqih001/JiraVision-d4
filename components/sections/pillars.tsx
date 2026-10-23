@@ -6,7 +6,7 @@ import { pillars } from "@/content/home"
 
 export function Pillars() {
   return (
-    <Section>
+    <Section bg="grain">
       <SectionHeading
         eyebrow="The four pillars"
         title="One system for planning, people and fairness"

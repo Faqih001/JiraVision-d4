@@ -15,7 +15,7 @@ import {
 
 export function ProblemSolution() {
   return (
-    <Section className="border-y bg-surface">
+    <Section bg="dots" className="border-y bg-surface">
       <SectionHeading eyebrow="The problem" title={problem.title} intro={problem.intro} />
       <div className="grid gap-6 md:grid-cols-3">
         {problem.items.map((item, i) => (
@@ -36,7 +36,7 @@ const stepIcons = [Plug, CircleDot, CalendarClock, TrendingUp]
 
 export function HowItWorks() {
   return (
-    <Section id={howItWorks.id}>
+    <Section id={howItWorks.id} bg="grid">
       <SectionHeading eyebrow="How it works" title={howItWorks.title} intro={howItWorks.intro} />
       <ol className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
         {howItWorks.steps.map((step, i) => {
@@ -61,7 +61,7 @@ export function HowItWorks() {
 
 export function Integrations() {
   return (
-    <Section className="border-y bg-surface">
+    <Section bg="band-clay">
       <SectionHeading eyebrow="Integrations" title={integrations.title} intro={integrations.intro} />
       <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {integrations.items.map((item) => (
@@ -91,7 +91,7 @@ export function Integrations() {
 
 export function ResponsibleAi() {
   return (
-    <Section>
+    <Section bg="inverse" watermark="J">
       <SectionHeading eyebrow="Trust" title={responsibleAi.title} intro={responsibleAi.intro} />
       <div className="grid gap-6 md:grid-cols-2">
         {responsibleAi.points.map((point) => (
@@ -116,7 +116,7 @@ export function ResponsibleAi() {
 
 export function Outcomes() {
   return (
-    <Section className="border-y bg-surface">
+    <Section bg="shapes" className="border-y bg-surface">
       <SectionHeading eyebrow="Results" title={outcomes.title} intro={outcomes.intro} />
       <ul className="grid gap-4 md:grid-cols-3">
         {outcomes.qualitative.map((line) => (
@@ -137,7 +137,7 @@ export function Outcomes() {
 
 export function PricingTeaser() {
   return (
-    <Section>
+    <Section bg="dots">
       <SectionHeading eyebrow="Pricing" title={pricingTeaser.title} intro={pricingTeaser.intro} className="mx-auto text-center" />
       <div className="grid gap-5 md:grid-cols-3">
         {pricingTeaser.plans.map((plan) => (

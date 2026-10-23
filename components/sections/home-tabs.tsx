@@ -7,7 +7,7 @@ import { tour, useCases } from "@/content/home"
 
 export function ProductTour() {
   return (
-    <Section className="border-y bg-surface">
+    <Section bg="hatch" className="border-y bg-surface">
       <SectionHeading eyebrow="Product tour" title="See the working views" className="mx-auto text-center" />
       <Tabs defaultValue={tour[0].id}>
         <TabsList className="mx-auto flex w-full max-w-xl flex-wrap justify-center">
@@ -38,7 +38,7 @@ export function ProductTour() {
 
 export function UseCases() {
   return (
-    <Section>
+    <Section bg="contour">
       <SectionHeading eyebrow="Use cases" title={useCases.title} className="mx-auto text-center" />
       <Tabs defaultValue={useCases.tabs[0].id} className="mx-auto max-w-3xl">
         <TabsList className="mx-auto flex w-full max-w-xl flex-wrap justify-center">

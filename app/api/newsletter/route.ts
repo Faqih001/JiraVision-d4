@@ -5,8 +5,8 @@ import { subscriberStore } from "@/lib/data/subscribers"
 const schema = z.object({
   email: z.string().trim().email().max(254),
   source: z.string().max(64).default("footer"),
-  // Honeypot: real users never fill this; bots do.
-  company: z.string().max(0).optional(),
+  // Honeypot: real users never fill this; bots do. Any non-empty value is treated as spam.
+  company: z.string().max(255).optional(),
 })
 
 // Naive in-memory rate limit (per instance). Swap for KV/Upstash when deployed multi-instance.

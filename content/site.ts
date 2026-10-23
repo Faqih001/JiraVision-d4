@@ -135,7 +135,6 @@ export interface FooterColumn {
   title: string
   links: { label: string; href: string }[]
 }
-
 export const footerColumns: FooterColumn[] = [
   {
     title: "Product",
@@ -173,6 +172,7 @@ export const footerColumns: FooterColumn[] = [
       { label: "Case Studies", href: "/resources/case-studies" },
       { label: "Webinars", href: "/resources/webinars" },
       { label: "FAQ", href: "/faq" },
+      { label: "Status", href: "/status" },
     ],
   },
   {
@@ -190,12 +190,18 @@ export const footerColumns: FooterColumn[] = [
 // TODO(owner): add real profile URLs to enable social links; empty array hides the section.
 export const socialLinks: { label: string; href: string; icon: "twitter" | "linkedin" | "github" }[] = []
 
-// PLACEHOLDER: no email-provider backend exists yet. Set enabled to true only after
-// wiring the form to a real subscription endpoint; until then the block stays hidden
-// instead of collecting emails into a dead input.
+// Submissions are stored via /api/newsletter (lib/data/subscribers).
+// TODO(V2-2): send the double opt-in confirmation email once the provider adapter exists.
 export const newsletter = {
-  enabled: false,
+  enabled: true,
   title: "Newsletter",
   description: "Occasional notes on AI-native project management. No spam.",
   endpoint: "/api/newsletter",
+}
+
+export const footerClosing = {
+  title: "Plan sprints your team can sustain.",
+  body: "Wellbeing-aware capacity planning, explainable AI drafts and fairness metrics — in one calm workspace.",
+  cta: { label: "Get started free", href: "/signup" },
+  backToTop: "Back to top",
 }

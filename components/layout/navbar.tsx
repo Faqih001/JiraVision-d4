@@ -23,6 +23,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet"
 import { AnnouncementBar } from "@/components/layout/announcement-bar"
+import { OPEN_MOBILE_NAV_EVENT } from "@/components/layout/bottom-bar"
 import { ThemeToggle } from "@/components/layout/theme-toggle"
 import {
   menuFeatures,
@@ -137,6 +138,16 @@ export function Navbar() {
     }
     window.addEventListener("scroll", onScroll, { passive: true })
     return () => window.removeEventListener("scroll", onScroll)
+  }, [])
+
+  // The mobile bottom bar's "Menu" tab opens this drawer.
+  useEffect(() => {
+    const openNav = () => {
+      setOpen(true)
+      setHidden(false)
+    }
+    window.addEventListener(OPEN_MOBILE_NAV_EVENT, openNav)
+    return () => window.removeEventListener(OPEN_MOBILE_NAV_EVENT, openNav)
   }, [])
 
   // Never leave the bar half-hidden mid-page: the drawer opening reveals it.

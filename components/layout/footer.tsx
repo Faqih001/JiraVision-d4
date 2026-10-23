@@ -1,17 +1,39 @@
 "use client"
 
-import Link from "next/link"
 import Image from "next/image"
+import Link from "next/link"
 import { useState } from "react"
-import { ArrowRight, Github, Linkedin, Twitter } from "lucide-react"
+import { ArrowRight, ArrowUp, ChevronDown, Github, Linkedin, Twitter } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { footerColumns, newsletter, socialLinks } from "@/content/site"
+import { ThemeToggle } from "@/components/layout/theme-toggle"
+import { overallStatus, services } from "@/content/status"
+import {
+  footerClosing,
+  footerColumns,
+  newsletter,
+  socialLinks,
+  type FooterColumn,
+} from "@/content/site"
+import { cn } from "@/lib/utils"
 
 const socialIcons = {
   twitter: Twitter,
   linkedin: Linkedin,
   github: Github,
+}
+
+function StatusChip() {
+  const allOk = services.every((s) => s.status === "operational")
+  return (
+    <Link
+      href="/status"
+      className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors duration-150 hover:text-foreground"
+    >
+      <span className={cn("h-2 w-2 rounded-full", allOk ? "bg-success" : "bg-warning")} aria-hidden="true" />
+      {overallStatus}
+    </Link>
+  )
 }
 
 function NewsletterForm() {
@@ -20,23 +42,28 @@ function NewsletterForm() {
   return (
     <div>
       <h3 className="mb-2 text-sm font-semibold">{newsletter.title}</h3>
-      <p className="mb-3 text-sm text-muted-foreground">{newsletter.description}</p>
+      <p className="mb-4 text-sm text-muted-foreground">{newsletter.description}</p>
       {status === "success" ? (
         <p className="text-sm text-success" role="status">
-          Thanks — you&apos;re on the list.
+          Thanks &mdash; you&apos;re on the list.
         </p>
       ) : (
         <form
           className="flex gap-2"
           onSubmit={async (e) => {
             e.preventDefault()
-            const email = new FormData(e.currentTarget).get("email")
+            const data = new FormData(e.currentTarget)
             setStatus("loading")
             try {
               const res = await fetch(newsletter.endpoint, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email }),
+                body: JSON.stringify({
+                  email: data.get("email"),
+                  source: "footer",
+                  // Honeypot: real users never fill this; bots do.
+                  company: data.get("company") ?? "",
+                }),
               })
               setStatus(res.ok ? "success" : "error")
             } catch {
@@ -44,13 +71,21 @@ function NewsletterForm() {
             }
           }}
         >
+          <input
+            type="text"
+            name="company"
+            tabIndex={-1}
+            autoComplete="off"
+            aria-hidden="true"
+            className="absolute left-[-9999px] h-0 w-0 opacity-0"
+          />
           <Input
             type="email"
             name="email"
             required
             placeholder="you@company.com"
             aria-label="Email address"
-            className="min-w-0 flex-1"
+            className="min-w-0 flex-1 bg-background"
             disabled={status === "loading"}
           />
           <Button type="submit" size="icon" aria-label="Subscribe" disabled={status === "loading"}>
@@ -67,11 +102,78 @@ function NewsletterForm() {
   )
 }
 
+function FooterColumnNav({ column }: { column: FooterColumn }) {
+  return (
+    <>
+      <details className="group border-b border-border/60 lg:hidden">
+        <summary className="flex min-h-[48px] cursor-pointer list-none items-center justify-between py-2 text-sm font-semibold [&::-webkit-details-marker]:hidden">
+          {column.title}
+          <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform duration-200 motion-reduce:transition-none group-open:rotate-180" />
+        </summary>
+        <ul className="space-y-2 pb-4">
+          {column.links.map((link) => (
+            <li key={link.href}>
+              <Link
+                href={link.href}
+                className="block py-1 text-sm text-muted-foreground transition-colors duration-150 hover:text-foreground"
+              >
+                {link.label}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </details>
+      <nav aria-label={column.title} className="hidden lg:block">
+        <h3 className="mb-3 text-sm font-semibold">{column.title}</h3>
+        <ul className="space-y-2">
+          {column.links.map((link) => (
+            <li key={link.href}>
+              <Link
+                href={link.href}
+                className="text-sm text-muted-foreground transition-colors duration-150 hover:text-foreground"
+              >
+                {link.label}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </nav>
+    </>
+  )
+}
+
 export function Footer() {
+  const backToTop = () => {
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    window.scrollTo({ top: 0, behavior: reduced ? "auto" : "smooth" })
+  }
+
   return (
     <footer className="border-t bg-surface">
-      <div className="container py-14">
-        <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr]">
+      <div className="container pt-14 md:pt-16">
+        {/* Closing statement + email capture */}
+        <div className="grid gap-10 border-b border-border pb-12 lg:grid-cols-[1.2fr_1fr] lg:items-start">
+          <div className="max-w-xl">
+            <h2 className="font-display text-3xl font-medium tracking-tight md:text-4xl">
+              {footerClosing.title}
+            </h2>
+            <p className="prose-body mt-3">{footerClosing.body}</p>
+            <Button asChild className="mt-6">
+              <Link href={footerClosing.cta.href}>
+                {footerClosing.cta.label}
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
+          </div>
+          {newsletter.enabled && (
+            <div className="rounded-lg border border-border bg-background p-6">
+              <NewsletterForm />
+            </div>
+          )}
+        </div>
+
+        {/* Brand + link grid */}
+        <div className="grid gap-8 py-12 lg:grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr] lg:gap-10">
           <div className="max-w-sm">
             <Link href="/" className="mb-4 flex items-center gap-2.5" aria-label="JiraVision home">
               <Image src="/jiravision_logo.png" alt="" width={30} height={30} className="object-contain" />
@@ -80,6 +182,10 @@ export function Footer() {
             <p className="text-sm leading-relaxed text-muted-foreground">
               AI-native project management that puts team wellbeing and ethical metrics first.
             </p>
+            <div className="mt-5 flex flex-wrap items-center gap-3">
+              <StatusChip />
+              <ThemeToggle className="h-8 w-8" />
+            </div>
             {socialLinks.length > 0 && (
               <ul className="mt-5 flex gap-2">
                 {socialLinks.map((link) => {
@@ -98,39 +204,45 @@ export function Footer() {
                 })}
               </ul>
             )}
-            {newsletter.enabled && (
-              <div className="mt-6">
-                <NewsletterForm />
-              </div>
-            )}
           </div>
 
           {footerColumns.map((column) => (
-            <nav key={column.title} aria-label={column.title}>
-              <h3 className="mb-3 text-sm font-semibold">{column.title}</h3>
-              <ul className="space-y-2">
-                {column.links.map((link) => (
+            <FooterColumnNav key={column.title} column={column} />
+          ))}
+        </div>
+
+        {/* Outlined wordmark flourish */}
+        <div aria-hidden="true" className="select-none overflow-hidden pt-6">
+          <span className="block whitespace-nowrap text-center font-display text-[clamp(4rem,15vw,11rem)] font-bold leading-[1.1] tracking-tight text-transparent [-webkit-text-stroke:1px_hsl(var(--border))]">
+            JiraVision
+          </span>
+        </div>
+
+        {/* Compliance row */}
+        <div className="mt-6 flex flex-col gap-4 border-t border-border py-6 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
+          <p>&copy; {new Date().getFullYear()} JiraVision. All rights reserved.</p>
+          {/* TODO(V2-2): cookie-preferences link once the consent manager exists. */}
+          <nav aria-label="Legal links">
+            <ul className="flex flex-wrap gap-x-5 gap-y-2 text-xs">
+              {footerColumns
+                .find((c) => c.title === "Legal")!
+                .links.map((link) => (
                   <li key={link.href}>
-                    <Link
-                      href={link.href}
-                      className="text-sm text-muted-foreground transition-colors duration-150 hover:text-foreground"
-                    >
+                    <Link href={link.href} className="transition-colors duration-150 hover:text-foreground">
                       {link.label}
                     </Link>
                   </li>
                 ))}
-              </ul>
-            </nav>
-          ))}
-        </div>
-
-        <div className="mt-12 flex flex-col items-start justify-between gap-3 border-t border-border pt-6 text-sm text-muted-foreground sm:flex-row sm:items-center">
-          <p>&copy; {new Date().getFullYear()} JiraVision. All rights reserved.</p>
-          <p>
-            <Link href="/legal-notice" className="transition-colors duration-150 hover:text-foreground">
-              Legal Notice
-            </Link>
-          </p>
+            </ul>
+          </nav>
+          <button
+            type="button"
+            onClick={backToTop}
+            className="inline-flex min-h-[40px] items-center gap-1.5 self-start text-sm font-medium transition-colors duration-150 hover:text-foreground md:self-auto lg:mr-16"
+          >
+            <ArrowUp className="h-4 w-4" />
+            {footerClosing.backToTop}
+          </button>
         </div>
       </div>
     </footer>

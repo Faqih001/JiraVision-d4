@@ -589,4 +589,8 @@
   --surface: 60 5% 11%;
   --surface-2: 60 5% 14%;
   --ring: 148 17% 52%;
+  --clay: 18 42% 62%;
+  --clay-foreground: 15 40% 12%;
+  /* Re-resolve the inherited body color against the remapped tokens. */
+  color: hsl(var(--foreground));
 }

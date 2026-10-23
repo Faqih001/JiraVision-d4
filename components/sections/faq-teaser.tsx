@@ -7,7 +7,7 @@ import { faqTeaser } from "@/content/home"
 
 export function FaqTeaser() {
   return (
-    <Section className="border-t bg-surface">
+    <Section bg="hatch" className="border-t bg-surface">
       <SectionHeading eyebrow="FAQ" title={faqTeaser.title} />
       <Accordion type="single" collapsible className="max-w-3xl divide-y divide-border border-y">
         {faqTeaser.items.map((item, i) => (

@@ -30,3 +30,5 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+# Runtime data-layer storage (created by lib/data adapters; never commit user submissions)
+data/

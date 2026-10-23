@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { BottomBar } from "@/components/layout/bottom-bar"
 import { Footer } from "@/components/layout/footer"
 import { Navbar } from "@/components/layout/navbar"
 
@@ -16,6 +17,9 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
         {children}
       </main>
       <Footer />
+      {/* Spacer so the fixed mobile bottom bar never covers the compliance row. */}
+      <div aria-hidden="true" className="h-[calc(4.5rem+env(safe-area-inset-bottom))] bg-surface lg:hidden" />
+      <BottomBar />
     </div>
   )
 }
