@@ -1,5 +1,3 @@
-import { MainNavbar } from "@/components/main-navbar"
-import { MainFooter } from "@/components/main-footer"
 import { Button } from "@/components/ui/button"
 import { ArrowRight, Check, Building2, Shield, BarChart3, Users, Layers, Lock, Zap, Globe } from "lucide-react"
 import Link from "next/link"
@@ -8,7 +6,6 @@ import Image from "next/image"
 export default function EnterprisePage() {
   return (
     <div className="flex min-h-screen flex-col">
-      <MainNavbar />
 
       <main className="flex-1">
         {/* Hero Section */}
@@ -512,7 +509,6 @@ export default function EnterprisePage() {
         </section>
       </main>
 
-      <MainFooter />
     </div>
   )
 }

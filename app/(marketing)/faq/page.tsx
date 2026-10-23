@@ -1,5 +1,3 @@
-import { MainNavbar } from "@/components/main-navbar"
-import { MainFooter } from "@/components/main-footer"
 import { Button } from "@/components/ui/button"
 import { ArrowRight, HelpCircle, Search } from "lucide-react"
 import Link from "next/link"
@@ -8,7 +6,6 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 export default function FAQPage() {
   return (
     <div className="flex min-h-screen flex-col">
-      <MainNavbar />
 
       <main className="flex-1">
         {/* Hero Section */}
@@ -301,7 +298,6 @@ export default function FAQPage() {
         </section>
       </main>
 
-      <MainFooter />
     </div>
   )
 }

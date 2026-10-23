@@ -1,5 +1,3 @@
-import { MainNavbar } from "@/components/main-navbar"
-import { MainFooter } from "@/components/main-footer"
 import { Button } from "@/components/ui/button"
 import { ArrowRight, FileText } from "lucide-react"
 import Link from "next/link"
@@ -7,7 +5,6 @@ import Link from "next/link"
 export default function TermsPage() {
   return (
     <div className="flex min-h-screen flex-col">
-      <MainNavbar />
 
       <main className="flex-1">
         {/* Hero Section */}
@@ -135,7 +132,6 @@ export default function TermsPage() {
         </section>
       </main>
 
-      <MainFooter />
     </div>
   )
 }

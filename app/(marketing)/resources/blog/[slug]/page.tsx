@@ -1,5 +1,3 @@
-import { MainNavbar } from "@/components/main-navbar"
-import { MainFooter } from "@/components/main-footer"
 import { Button } from "@/components/ui/button"
 import {
   Calendar,
@@ -153,7 +151,6 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
   if (!post) {
     return (
       <div className="flex min-h-screen flex-col">
-        <MainNavbar />
         <main className="flex-1 container py-20">
           <h1 className="text-3xl font-bold">Blog post not found</h1>
           <p className="mt-4">The blog post you're looking for doesn't exist.</p>
@@ -161,14 +158,12 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
             <Link href="/resources/blog">Back to Blog</Link>
           </Button>
         </main>
-        <MainFooter />
       </div>
     )
   }
 
   return (
     <div className="flex min-h-screen flex-col">
-      <MainNavbar />
 
       <main className="flex-1">
         {/* Hero Section */}
@@ -437,7 +432,6 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
         </section>
       </main>
 
-      <MainFooter />
     </div>
   )
 }

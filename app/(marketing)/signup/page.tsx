@@ -11,8 +11,6 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Loader2, User, Mail, Lock, Eye, EyeOff } from "lucide-react"
-import { MainNavbar } from "@/components/main-navbar"
-import { MainFooter } from "@/components/main-footer"
 
 export default function SignupPage() {
   const [name, setName] = useState("")
@@ -53,7 +51,6 @@ export default function SignupPage() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <MainNavbar />
       <div className="flex-1 flex items-center justify-center bg-gray-50 p-4 md:p-8">
         <div className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-2 gap-8 bg-white rounded-xl overflow-hidden shadow-lg">
           {/* Left side - Image */}
@@ -194,7 +191,6 @@ export default function SignupPage() {
           </div>
         </div>
       </div>
-      <MainFooter />
     </div>
   )
 }

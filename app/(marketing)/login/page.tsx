@@ -12,8 +12,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { MainNavbar } from "@/components/main-navbar"
-import { MainFooter } from "@/components/main-footer"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
@@ -47,7 +45,6 @@ export default function LoginPage() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <MainNavbar />
       <div className="flex-1 flex items-center justify-center bg-gray-50 p-4 md:p-8">
         <div className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-2 gap-8 bg-white rounded-xl overflow-hidden shadow-lg">
           {/* Left side - Image */}
@@ -146,7 +143,6 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
-      <MainFooter />
     </div>
   )
 }

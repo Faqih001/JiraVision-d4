@@ -10,8 +10,6 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Lock, Eye, EyeOff, ArrowLeft, CheckCircle } from "lucide-react"
-import { MainNavbar } from "@/components/main-navbar"
-import { MainFooter } from "@/components/main-footer"
 import { useAuth } from "@/context/auth-context"
 
 export default function ResetPasswordPage() {
@@ -88,7 +86,6 @@ export default function ResetPasswordPage() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <MainNavbar />
       <div className="flex-1 flex items-center justify-center bg-gray-50 p-4 md:p-8">
         <div className="w-full max-w-md">
           <div className="bg-white rounded-xl shadow-lg p-8">
@@ -217,7 +214,6 @@ export default function ResetPasswordPage() {
           </div>
         </div>
       </div>
-      <MainFooter />
     </div>
   )
 }

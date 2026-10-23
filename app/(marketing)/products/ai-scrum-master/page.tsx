@@ -1,5 +1,3 @@
-import { MainNavbar } from "@/components/main-navbar"
-import { MainFooter } from "@/components/main-footer"
 import { Button } from "@/components/ui/button"
 import { Brain, Check, ArrowRight, Zap, BarChart3, Users, Calendar, MessageSquare } from "lucide-react"
 import Link from "next/link"
@@ -8,7 +6,6 @@ import Image from "next/image"
 export default function AiScrumMasterPage() {
   return (
     <div className="flex min-h-screen flex-col">
-      <MainNavbar />
 
       <main className="flex-1">
         {/* Hero Section - Modern Split Design with 3D Elements */}
@@ -587,7 +584,6 @@ export default function AiScrumMasterPage() {
         </section>
       </main>
 
-      <MainFooter />
     </div>
   )
 }

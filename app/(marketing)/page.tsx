@@ -1,5 +1,3 @@
-import { MainNavbar } from "@/components/main-navbar"
-import { MainFooter } from "@/components/main-footer"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { ArrowRight, BarChart3, Brain, Gamepad2, Heart, Shield, Check, ArrowUpRight } from "lucide-react"
@@ -8,7 +6,6 @@ export default function LandingPage() {
   return (
     <div className="flex min-h-screen flex-col">
       {/* Header */}
-      <MainNavbar />
 
       {/* Hero Section */}
       <section className="relative py-20 md:py-28 overflow-hidden">
@@ -464,7 +461,6 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <MainFooter />
     </div>
   )
 }

@@ -1,5 +1,3 @@
-import { MainNavbar } from "@/components/main-navbar"
-import { MainFooter } from "@/components/main-footer"
 import { Button } from "@/components/ui/button"
 import { Check, X, Zap, HelpCircle } from "lucide-react"
 import Link from "next/link"
@@ -8,7 +6,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 export default function PricingPage() {
   return (
     <div className="flex min-h-screen flex-col">
-      <MainNavbar />
 
       <main className="flex-1">
         <section className="py-20 md:py-28 container">
@@ -536,7 +533,6 @@ export default function PricingPage() {
         </section>
       </main>
 
-      <MainFooter />
     </div>
   )
 }

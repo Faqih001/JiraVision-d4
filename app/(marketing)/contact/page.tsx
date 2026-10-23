@@ -1,5 +1,3 @@
-import { MainNavbar } from "@/components/main-navbar"
-import { MainFooter } from "@/components/main-footer"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -13,7 +11,6 @@ import { WhatsAppButton } from "@/components/whatsapp-button"
 export default function ContactPage() {
   return (
     <div className="flex min-h-screen flex-col">
-      <MainNavbar />
 
       <main className="flex-1">
         {/* Hero Section */}
@@ -379,7 +376,6 @@ export default function ContactPage() {
         </section>
       </main>
 
-      <MainFooter />
     </div>
   )
 }
