@@ -7,6 +7,7 @@ import {
   faqTeaser,
   howItWorks,
   integrations,
+  outcomes,
   problem,
   pricingTeaser,
   responsibleAi,
