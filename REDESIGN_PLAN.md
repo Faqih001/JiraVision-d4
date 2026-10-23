@@ -153,3 +153,17 @@ New `content/` directory (TS data files, typed): `site.ts` (nav/footer/socials),
 - **D6 — `images.unoptimized`**: kept `true` while remote images remain in dashboard code; revisit in Phase F.
 
 Deliverables: this file (updated at the end), DESIGN_SYSTEM.md, redesigned routes, final summary with placeholder list + QA checklist.
+
+---
+
+## 7. Phase results log
+
+### Phase 0 — repo hygiene & dependency cleanup (done 2026-10-23)
+- Deleted junk: all `*.new` files (7, incl. drizzle schema + api routes), `local.db`, `db-debug.json`, the SQL-named stray file, root debug scripts (`chat-api-debug.js`, `socket-debug.js`, `production-readiness-check.js`, `test-neon-connection.js`) + their dead package.json scripts, duplicate `pnpm-lock.yaml`. (All recoverable from git history.) `generate-jwt-secret.js` kept (owner utility).
+- Removed 21 verified-unused dependencies (the v0 DB-driver bundle + `framer-motion`, `@types/socket.io-client`, `mini-css-extract-plugin`, `postcss-loader`); `postgres`, `pg`, `@types/pg` were initially removed by mistake and **restored** — they are used by `lib/db.ts` and drizzle/scripts. Net: package.json 96 → ~60 deps; renamed `my-v0-project` → `jiravision`.
+- Lockfile + node_modules fully regenerated (old one was npm/pnpm mixed). Peer conflict `react-day-picker@8` vs `date-fns@4` handled via new `.npmrc` (`legacy-peer-deps=true`) — matches previous behavior; Vercel build unaffected (uses committed lockfile).
+- `next lint` no longer exists in Next 16 → added ESLint 9 via `eslint.config.mjs` (`eslint-config-next` flat config). 0 errors / 355 warnings; legacy dashboard files have a scoped exceptions block (TODO: removed in Phase F).
+- Fixed real bugs: `lib/socket.ts` mistyped singleton (`typeof Socket` → `Socket`, 51 type errors); `lib/socket-client.ts` listener cleanup closures null-safety; `components/google-map.tsx` map container was unmounted during load (ref null → map never rendered) **and its committed leaked API key removed from source** — key now `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` (owner: revoke the old one!).
+- `.env.example` created documenting all env vars. `typecheck` script added.
+- Type debt: 165 → ~87 unique errors (rest are pre-existing in API routes, drizzle scripts, landing-chatbot, generated route validators incl. hrefs to the missing `/changelog` route — fixed as phases proceed). `ignoreBuildErrors` kept temporarily with TODO; removed in Phase F.
+- Verified: `npm run lint` exit 0, `npm run build` exit 0.

@@ -27,6 +27,7 @@ export default [
       "components/chat/**",
       "components/ui/**",
       "components/landing-chatbot.tsx",
+      "components/google-map.tsx",
       "hooks/use-calendar.ts",
     ],
     rules: {
