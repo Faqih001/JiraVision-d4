@@ -2,6 +2,144 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * JiraVision design tokens — single source of truth.
+ * Warm stone + pine palette, WCAG AA verified in both themes.
+ * Values are HSL channels for use via hsl(var(--token)).
+ */
+@layer base {
+  :root {
+    /* surfaces */
+    --background: 45 27% 96%; /* #F7F5F0 warm off-white */
+    --surface: 44 22% 92%; /* #F1EEE6 */
+    --surface-2: 42 18% 88%; /* #E7E2D8 */
+    --card: 45 27% 96%;
+    --card-foreground: 40 9% 10%;
+    --popover: 45 30% 97%;
+    --popover-foreground: 40 9% 10%;
+
+    /* ink */
+    --foreground: 40 9% 10%; /* #1C1B19 warm near-black */
+    --ink-muted: 41 11% 30%; /* #49453D — AA on background (8.5:1) */
+    --muted: 43 19% 90%;
+    --muted-foreground: 40 9% 36%; /* #63605A */
+
+    /* brand */
+    --primary: 160 23% 24%; /* #2F4A3F deep pine */
+    --primary-foreground: 45 27% 96%;
+    --accent: 153 18% 52%; /* #6E9A85 — hover/tint only, not text on light bg */
+    --accent-foreground: 158 22% 11%;
+    --secondary: 42 13% 77%; /* #C6C0B2 stone */
+    --secondary-foreground: 40 9% 16%;
+    --clay: 20 34% 46%; /* #9D5F44 muted terracotta */
+    --clay-foreground: 45 27% 96%;
+
+    /* lines & rings */
+    --border: 43 20% 84%; /* #DFD9CD */
+    --input: 43 20% 84%;
+    --ring: 160 23% 24%;
+
+    /* semantic (AA on background) */
+    --success: 88 29% 28%; /* #485F2D */
+    --success-foreground: 45 27% 96%;
+    --warning: 64 25% 25%; /* #40401F ochre-dark */
+    --warning-foreground: 45 27% 96%;
+    --destructive: 10 47% 33%; /* #7E3B2D brick */
+    --destructive-foreground: 45 27% 96%;
+
+    --radius: 0.5rem; /* 8px */
+
+    /* shadows (warm-tinted) */
+    --shadow-sm: 0 1px 2px hsl(40 9% 10% / 0.06);
+    --shadow-md: 0 4px 12px hsl(40 9% 10% / 0.08);
+
+    /* chart series */
+    --chart-pine: 160 23% 24%;
+    --chart-stone: 40 9% 36%;
+    --chart-clay: 20 34% 46%;
+    --chart-moss: 88 29% 28%;
+  }
+
+  .dark {
+    --background: 60 6% 9%; /* #181715 warm charcoal */
+    --surface: 45 8% 14%; /* #24231F */
+    --surface-2: 44 9% 19%; /* #33312C */
+    --card: 45 8% 12%; /* #201F1C */
+    --card-foreground: 41 18% 87%;
+    --popover: 45 8% 12%;
+    --popover-foreground: 41 18% 87%;
+
+    --foreground: 41 18% 87%; /* #E3DFD6 softened, not white */
+    --ink-muted: 42 17% 57%; /* #928A78 */
+    --muted: 44 9% 19%;
+    --muted-foreground: 42 17% 57%;
+
+    --primary: 148 17% 52%; /* #6E9A85 lightened pine */
+    --primary-foreground: 158 22% 11%; /* dark ink on light pine */
+    --accent: 148 25% 68%;
+    --accent-foreground: 158 22% 11%;
+    --secondary: 44 9% 19%;
+    --secondary-foreground: 41 18% 87%;
+    --clay: 18 42% 62%; /* #C68163 */
+    --clay-foreground: 15 40% 12%;
+
+    --border: 44 8% 22%; /* #3A3833 */
+    --input: 44 8% 22%;
+    --ring: 148 17% 52%;
+
+    --success: 86 27% 58%; /* #93AB69 */
+    --success-foreground: 88 30% 12%;
+    --warning: 43 52% 52%; /* #C2913B ochre */
+    --warning-foreground: 40 60% 12%;
+    --destructive: 14 47% 55%; /* #C26F55 */
+    --destructive-foreground: 10 45% 12%;
+
+    --shadow-sm: 0 1px 2px hsl(0 0% 0% / 0.3);
+    --shadow-md: 0 4px 12px hsl(0 0% 0% / 0.35);
+
+    --chart-pine: 148 17% 52%;
+    --chart-stone: 42 17% 57%;
+    --chart-clay: 18 42% 62%;
+    --chart-moss: 86 27% 58%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    text-rendering: optimizeLegibility;
+  }
+  /* Display face for headings until pages are rebuilt per-phase */
+  h1,
+  h2 {
+    font-family: var(--font-display), var(--font-sans), ui-serif, Georgia, serif;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+  }
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: var(--font-display), var(--font-sans), ui-serif, Georgia, serif;
+  }
+  .prose-body {
+    max-width: 65ch;
+  }
+  .shadow-soft-sm {
+    box-shadow: var(--shadow-sm);
+  }
+  .shadow-soft-md {
+    box-shadow: var(--shadow-md);
+  }
+}
+
 /* Loading animation styles */
 @keyframes dash {
   0% {
@@ -36,114 +174,32 @@
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes zoomIn {
-  from { transform: scale(0.95); }
-  to { transform: scale(1); }
-}
-
-/* Kanban styles */
-
-/* Task chart bars */
-.task-chart-bar {
-  width: 100%;
-  transition: height 0.3s ease, opacity 0.3s ease;
-}
-
-.task-chart-bar-blue {
-  background: linear-gradient(to top, #4f46e5, #818cf8);
-}
-
-/* Heights for chart bars */
-.height-60 { height: 60px; }
-.height-70 { height: 70px; }
-.height-90 { height: 90px; }
-.height-110 { height: 110px; }
-.height-120 { height: 120px; }
-.height-130 { height: 130px; }
-.height-180 { height: 180px; }
-
-/* Column chart */
-.bar-chart-column {
-  width: 16px;
-  border-radius: 4px;
-}
-
-.bar-chart-column-blue {
-  background: linear-gradient(to top, #4f46e5, #818cf8);
-}
-
-.bar-chart-column-purple {
-  background: linear-gradient(to top, #8b5cf6, #c4b5fd);
-}
-
-/* Smooth dragging animation */
-.react-beautiful-dnd-dragging {
-  transition: transform 0.2s;
-}
-
-@layer base {
-  :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 262 83% 58%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 262 83% 58%;
-    --radius: 0.5rem;
-    
-    /* Color variables for charts */
-    --blue-500: rgb(59, 130, 246);
-    --blue-600: rgb(37, 99, 235);
-    --purple-500: rgb(139, 92, 246);
-    --purple-600: rgb(124, 58, 237);
+  from {
+    transform: scale(0.95);
   }
-
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 263 70% 50%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 263 70% 50%;
+  to {
+    transform: scale(1);
   }
 }
 
-@layer base {
-  * {
-    @apply border-border;
-  }
-  body {
-    @apply bg-background text-foreground;
+/* Restrained motion: honour user preference globally */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 
@@ -173,8 +229,6 @@
   min-width: min-content;
 }
 
-/* Kanban styles */
-
 /* Task chart bars */
 .task-chart-bar {
   width: 100%;
@@ -182,7 +236,7 @@
 }
 
 .task-chart-bar-blue {
-  background: linear-gradient(to top, #4f46e5, #818cf8);
+  background: linear-gradient(to top, hsl(var(--chart-pine)), hsl(var(--chart-pine) / 0.65));
 }
 
 /* Heights for chart bars */
@@ -201,11 +255,11 @@
 }
 
 .bar-chart-column-blue {
-  background: linear-gradient(to top, #4f46e5, #818cf8);
+  background: linear-gradient(to top, hsl(var(--chart-pine)), hsl(var(--chart-pine) / 0.65));
 }
 
 .bar-chart-column-purple {
-  background: linear-gradient(to top, #8b5cf6, #c4b5fd);
+  background: linear-gradient(to top, hsl(var(--chart-clay)), hsl(var(--chart-clay) / 0.55));
 }
 
 /* Smooth dragging animation */
@@ -213,67 +267,11 @@
   transition: transform 0.2s;
 }
 
-@layer base {
-  :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 262 83% 58%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 262 83% 58%;
-    --radius: 0.5rem;
-  }
-
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 263 70% 50%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 263 70% 50%;
-  }
-}
-
-@layer base {
-  * {
-    @apply border-border;
-  }
-  body {
-    @apply bg-background text-foreground;
-  }
-}
-
-/* Context Menu Styles */
+/* Context Menu Styles (dashboard chat) */
 .chat-context-menu {
   padding: 0.5rem;
-  background-color: var(--background);
-  border: 1px solid var(--border);
+  background-color: hsl(var(--background));
+  border: 1px solid hsl(var(--border));
   border-radius: 0.5rem;
   box-shadow: var(--shadow-md);
   z-index: 50;
@@ -302,17 +300,17 @@
 }
 
 .chat-context-menu-item:hover {
-  background-color: var(--accent);
-  color: var(--accent-foreground);
+  background-color: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
 }
 
 .chat-context-menu-item[data-destructive] {
-  color: var(--destructive);
+  color: hsl(var(--destructive));
 }
 
 .chat-context-menu-item[data-destructive]:hover {
-  background-color: var(--destructive);
-  color: var(--destructive-foreground);
+  background-color: hsl(var(--destructive));
+  color: hsl(var(--destructive-foreground));
 }
 
 @keyframes slideIn {
@@ -376,7 +374,7 @@
 .new-chat-modal {
   position: fixed;
   inset: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: hsl(40 9% 10% / 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -384,7 +382,7 @@
 }
 
 .new-chat-modal-content {
-  background-color: var(--background);
+  background-color: hsl(var(--background));
   border-radius: 0.5rem;
   width: 100%;
   max-width: 28rem;
@@ -408,7 +406,7 @@
 .chat-modal-layout {
   position: fixed;
   inset: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: hsl(40 9% 10% / 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -416,7 +414,7 @@
 }
 
 .chat-modal-container {
-  background-color: var(--background);
+  background-color: hsl(var(--background));
   border-radius: 0.5rem;
   width: 100%;
   max-width: 28rem;
@@ -434,7 +432,7 @@
   left: 0.75rem;
   top: 50%;
   transform: translateY(-50%);
-  color: var(--muted-foreground);
+  color: hsl(var(--muted-foreground));
   height: 1rem;
   width: 1rem;
 }

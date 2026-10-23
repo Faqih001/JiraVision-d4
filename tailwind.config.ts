@@ -13,9 +13,9 @@ const config = {
   theme: {
     container: {
       center: true,
-      padding: "2rem",
+      padding: "1.5rem",
       screens: {
-        "2xl": "1400px",
+        "2xl": "1240px",
       },
     },
     screens: {
@@ -27,12 +27,36 @@ const config = {
       '2xl': '1536px',
     },
     extend: {
+      fontFamily: {
+        sans: ["var(--font-sans)", "system-ui", "sans-serif"],
+        display: ["var(--font-display)", "var(--font-sans)", "serif"],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
+        surface: {
+          DEFAULT: "hsl(var(--surface))",
+          2: "hsl(var(--surface-2))",
+        },
+        ink: {
+          DEFAULT: "hsl(var(--foreground))",
+          muted: "hsl(var(--ink-muted))",
+        },
+        clay: {
+          DEFAULT: "hsl(var(--clay))",
+          foreground: "hsl(var(--clay-foreground))",
+        },
+        success: {
+          DEFAULT: "hsl(var(--success))",
+          foreground: "hsl(var(--success-foreground))",
+        },
+        warning: {
+          DEFAULT: "hsl(var(--warning))",
+          foreground: "hsl(var(--warning-foreground))",
+        },
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
@@ -61,6 +85,16 @@ const config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        chart: {
+          pine: "hsl(var(--chart-pine))",
+          stone: "hsl(var(--chart-stone))",
+          clay: "hsl(var(--chart-clay))",
+          moss: "hsl(var(--chart-moss))",
+        },
+      },
+      boxShadow: {
+        soft: "var(--shadow-sm)",
+        "soft-md": "var(--shadow-md)",
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -76,10 +110,15 @@ const config = {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
+        "reveal-up": {
+          from: { opacity: "0", transform: "translateY(12px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "reveal-up": "reveal-up 0.5s ease-out both",
       },
     },
   },

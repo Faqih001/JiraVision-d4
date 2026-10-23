@@ -147,7 +147,7 @@ New `content/` directory (TS data files, typed): `site.ts` (nav/footer/socials),
 
 - **D1 — Fake AI chatbot**: KEEP on all pages, but fix bugs (stale-closure races, keyword matching), restyle to the new tokens, add proper aria-label/focus, resolve the /contact FAB overlap, replace `👋` emoji with a lucide icon.
 - **D2 — Dashboard**: OUT of restyle scope; inherits new tokens only.
-- **D3 — Images**: after removing stock photos, login/signup side panels get code-built mockup art instead. No new photography.
+- **D3 — Images (REVISED by owner 2026-10-23)**: KEEP Unsplash photography across pages, but only *relevant, on-tone* imagery (calm, professional, muted; no neon) served via `next/image` with `images.unsplash.com` in remotePatterns. Replace the current mismatched/broken hotlinks (incl. the FAANG/Wikimedia logo bar) with curated on-topic photos; code-built UI mockups remain for product-UI sections.
 - **D4 — Maps API key (security)**: owner to revoke/rotate in Google Cloud Console; code moves the key to env var.
 - **D5 — Social links**: none exist → removed by default; re-add when real URLs are provided.
 - **D6 — `images.unoptimized`**: kept `true` while remote images remain in dashboard code; revisit in Phase F.

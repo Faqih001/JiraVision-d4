@@ -6,6 +6,12 @@ const nextConfig = {
   },
   images: {
     unoptimized: true,
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+      },
+    ],
   },
   // Make sure modules used for WebSockets are correctly bundled
   serverExternalPackages: ['socket.io', 'socket.io-client'],
