@@ -143,13 +143,13 @@ New `content/` directory (TS data files, typed): `site.ts` (nav/footer/socials),
 
 ---
 
-## 6. Decisions needing owner input
+## 6. Owner decisions (approved 2026-10-23)
 
-- **D1 — Fake AI chatbot**: recommend *deleting it from the marketing site* (it's keyword-matched, buggy, and damages the "calm, credible" tone). Keep dashboard chat untouched.
-- **D2 — Dashboard**: recommend *out of scope* for restyling; it only inherits the new tokens (functional, still readable). A dashboard redesign is a separate project.
+- **D1 — Fake AI chatbot**: KEEP on all pages, but fix bugs (stale-closure races, keyword matching), restyle to the new tokens, add proper aria-label/focus, resolve the /contact FAB overlap, replace `👋` emoji with a lucide icon.
+- **D2 — Dashboard**: OUT of restyle scope; inherits new tokens only.
 - **D3 — Images**: after removing stock photos, login/signup side panels get code-built mockup art instead. No new photography.
-- **D4 — Maps API key (security)**: revoke it in Google Cloud Console regardless of what we do in code; /contact will use an env-var key or a plain "open in Google Maps" link if none is provided.
-- **D5 — Social links**: point to real profile URLs or remove them. None are known → removed by default.
-- **D6 — `images.unoptimized`**: recommend keeping `true` while any remote images remain in dashboard code, and reverting to optimized + `remotePatterns` once none are left. Low urgency on Vercel.
+- **D4 — Maps API key (security)**: owner to revoke/rotate in Google Cloud Console; code moves the key to env var.
+- **D5 — Social links**: none exist → removed by default; re-add when real URLs are provided.
+- **D6 — `images.unoptimized`**: kept `true` while remote images remain in dashboard code; revisit in Phase F.
 
 Deliverables: this file (updated at the end), DESIGN_SYSTEM.md, redesigned routes, final summary with placeholder list + QA checklist.
