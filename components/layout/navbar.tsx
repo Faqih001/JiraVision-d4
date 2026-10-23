@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
@@ -24,11 +24,18 @@ import {
 } from "@/components/ui/sheet"
 import { AnnouncementBar } from "@/components/layout/announcement-bar"
 import { ThemeToggle } from "@/components/layout/theme-toggle"
-import { productItems, resourceItems, solutionItems, type NavItem } from "@/content/site"
+import {
+  menuFeatures,
+  productItems,
+  resourceItems,
+  solutionItems,
+  type MenuFeature,
+  type NavItem,
+} from "@/content/site"
 import { ChevronDown, Menu } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-const menuGroups = [
+const menuGroups: { title: keyof typeof menuFeatures; items: NavItem[] }[] = [
   { title: "Products", items: productItems },
   { title: "Solutions", items: solutionItems },
   { title: "Resources", items: resourceItems },
@@ -38,6 +45,9 @@ const directLinks = [
   { title: "Pricing", href: "/pricing" },
   { title: "Contact", href: "/contact" },
 ]
+
+const triggerInk =
+  "relative after:absolute after:inset-x-3 after:-bottom-0.5 after:h-0.5 after:origin-left after:rounded-full after:bg-primary after:transition-transform after:duration-200 after:ease-out hover:after:scale-x-100 data-[state=open]:after:scale-x-100 motion-reduce:after:transition-none"
 
 function BrandMark() {
   return (
@@ -70,6 +80,17 @@ function MenuCard({ item, onNavigate }: { item: NavItem; onNavigate?: () => void
   )
 }
 
+function FeaturedCard({ feature }: { feature: MenuFeature }) {
+  return (
+    <Link href={feature.href} className="group flex h-full flex-col rounded-lg border bg-surface p-4 transition-shadow duration-150 hover:shadow-soft">
+      <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-clay">{feature.eyebrow}</span>
+      <span className="mt-1.5 text-sm font-semibold">{feature.title}</span>
+      <span className="mt-1 flex-1 text-xs leading-relaxed text-muted-foreground">{feature.body}</span>
+      <span className="mt-3 text-xs font-medium text-primary group-hover:underline">{feature.cta} &rarr;</span>
+    </Link>
+  )
+}
+
 function MobileGroup({ title, items, onNavigate }: { title: string; items: NavItem[]; onNavigate: () => void }) {
   const [open, setOpen] = useState(false)
   return (
@@ -78,7 +99,7 @@ function MobileGroup({ title, items, onNavigate }: { title: string; items: NavIt
         type="button"
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between px-3 py-3 text-sm font-medium"
+        className="flex min-h-[48px] w-full items-center justify-between px-4 py-3 text-sm font-medium"
       >
         {title}
         <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform duration-200", open && "rotate-180")} />
@@ -96,99 +117,150 @@ function MobileGroup({ title, items, onNavigate }: { title: string; items: NavIt
 
 export function Navbar() {
   const [open, setOpen] = useState(false)
+  const [hidden, setHidden] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
+  const lastScrollY = useRef(0)
   const pathname = usePathname()
 
+  useEffect(() => {
+    const onScroll = () => {
+      const y = window.scrollY
+      setScrolled(y > 8)
+      if (y <= 0) {
+        setHidden(false)
+      } else if (y - lastScrollY.current > 8) {
+        setHidden(true)
+      } else if (lastScrollY.current - y > 8) {
+        setHidden(false)
+      }
+      lastScrollY.current = y
+    }
+    window.addEventListener("scroll", onScroll, { passive: true })
+    return () => window.removeEventListener("scroll", onScroll)
+  }, [])
+
+  // Never leave the bar half-hidden mid-page: the drawer opening reveals it.
+  const setDrawerOpen = (v: boolean) => {
+    setOpen(v)
+    if (v) setHidden(false)
+  }
+
   return (
-    <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+    <header
+      className={cn(
+        "sticky top-0 z-50 transition-transform duration-300 ease-out motion-reduce:transition-none",
+        hidden && !open ? "-translate-y-full" : "translate-y-0",
+      )}
+    >
       <AnnouncementBar />
-      <div className="container flex h-16 items-center justify-between gap-4">
-        <BrandMark />
+      <div
+        className={cn(
+          "border-b bg-background/95 backdrop-blur transition-[height,box-shadow,border-color] duration-200 motion-reduce:transition-none",
+          scrolled ? "border-border shadow-soft" : "border-transparent",
+        )}
+      >
+        <div
+          className={cn(
+            "container flex items-center justify-between gap-4 transition-[height] duration-200 motion-reduce:transition-none",
+            scrolled ? "h-14" : "h-16 md:h-20",
+          )}
+        >
+          <BrandMark />
 
-        <NavigationMenu className="hidden lg:flex">
-          <NavigationMenuList>
-            {menuGroups.map((group) => (
-              <NavigationMenuItem key={group.title}>
-                <NavigationMenuTrigger>{group.title}</NavigationMenuTrigger>
-                <NavigationMenuContent>
-                  <div className="w-[560px] p-2">
-                    <div className="grid grid-cols-2 gap-1">
-                      {group.items.map((item) => (
-                        <MenuCard key={item.href} item={item} />
-                      ))}
+          <NavigationMenu className="hidden lg:flex">
+            <NavigationMenuList>
+              {menuGroups.map((group) => (
+                <NavigationMenuItem key={group.title}>
+                  <NavigationMenuTrigger className={triggerInk}>{group.title}</NavigationMenuTrigger>
+                  <NavigationMenuContent>
+                    <div className="grid w-[720px] grid-cols-[1fr_1fr_220px] gap-4 p-3">
+                      <div className="col-span-2 grid grid-cols-2 gap-1">
+                        {group.items.map((item) => (
+                          <MenuCard key={item.href} item={item} />
+                        ))}
+                      </div>
+                      <FeaturedCard feature={menuFeatures[group.title]} />
                     </div>
+                  </NavigationMenuContent>
+                </NavigationMenuItem>
+              ))}
+              {directLinks.map((link) => (
+                <NavigationMenuItem key={link.href}>
+                  <NavigationMenuLink asChild>
+                    <Link
+                      href={link.href}
+                      aria-current={pathname === link.href ? "page" : undefined}
+                      className={cn(
+                        navigationMenuTriggerStyle(),
+                        triggerInk,
+                        "font-medium",
+                        pathname === link.href && "text-primary",
+                      )}
+                    >
+                      {link.title}
+                    </Link>
+                  </NavigationMenuLink>
+                </NavigationMenuItem>
+              ))}
+            </NavigationMenuList>
+          </NavigationMenu>
+
+          <div className="hidden items-center gap-2 lg:flex">
+            <ThemeToggle />
+            <Button asChild variant="ghost" size="sm">
+              <Link href="/login">Log in</Link>
+            </Button>
+            <Button asChild size="sm">
+              <Link href="/signup">Get started</Link>
+            </Button>
+          </div>
+
+          <div className="flex items-center gap-1 lg:hidden">
+            <ThemeToggle />
+            <Sheet open={open} onOpenChange={setDrawerOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" aria-label="Open menu">
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-[88vw] max-w-sm overflow-y-auto p-0">
+                <SheetHeader className="border-b px-5 py-4 text-left">
+                  <SheetTitle>
+                    <BrandMark />
+                  </SheetTitle>
+                  <SheetDescription className="sr-only">Site navigation</SheetDescription>
+                </SheetHeader>
+                <nav className="flex flex-col py-2">
+                  {menuGroups.map((group) => (
+                    <MobileGroup
+                      key={group.title}
+                      title={group.title}
+                      items={group.items}
+                      onNavigate={() => setOpen(false)}
+                    />
+                  ))}
+                  {directLinks.map((link) => (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      onClick={() => setOpen(false)}
+                      className="min-h-[48px] px-5 py-3 text-sm font-medium hover:bg-accent"
+                    >
+                      {link.title}
+                    </Link>
+                  ))}
+                  <div className="mt-2 flex flex-col gap-2 border-t border-border px-5 pt-4">
+                    <Button asChild variant="outline" onClick={() => setOpen(false)}>
+                      <Link href="/login">Log in</Link>
+                    </Button>
+                    <Button asChild onClick={() => setOpen(false)}>
+                      <Link href="/signup">Get started</Link>
+                    </Button>
                   </div>
-                </NavigationMenuContent>
-              </NavigationMenuItem>
-            ))}
-            {directLinks.map((link) => (
-              <NavigationMenuItem key={link.href}>
-                <NavigationMenuLink asChild>
-                  <Link
-                    href={link.href}
-                    className={cn(
-                      navigationMenuTriggerStyle(),
-                      "font-medium",
-                      pathname === link.href && "text-primary",
-                    )}
-                  >
-                    {link.title}
-                  </Link>
-                </NavigationMenuLink>
-              </NavigationMenuItem>
-            ))}
-          </NavigationMenuList>
-        </NavigationMenu>
-
-        <div className="hidden items-center gap-2 lg:flex">
-          <ThemeToggle />
-          <Button asChild variant="ghost" size="sm">
-            <Link href="/login">Log in</Link>
-          </Button>
-          <Button asChild size="sm">
-            <Link href="/signup">Get started</Link>
-          </Button>
-        </div>
-
-        <div className="flex items-center gap-1 lg:hidden">
-          <ThemeToggle />
-          <Sheet open={open} onOpenChange={setOpen}>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" aria-label="Open menu">
-                <Menu className="h-5 w-5" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="right" className="w-[85vw] max-w-sm overflow-y-auto p-0">
-              <SheetHeader className="border-b px-5 py-4 text-left">
-                <SheetTitle>
-                  <BrandMark />
-                </SheetTitle>
-                <SheetDescription className="sr-only">Site navigation</SheetDescription>
-              </SheetHeader>
-              <nav className="flex flex-col py-2">
-                {menuGroups.map((group) => (
-                  <MobileGroup key={group.title} title={group.title} items={group.items} onNavigate={() => setOpen(false)} />
-                ))}
-                {directLinks.map((link) => (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    onClick={() => setOpen(false)}
-                    className="px-5 py-3 text-sm font-medium hover:bg-accent"
-                  >
-                    {link.title}
-                  </Link>
-                ))}
-                <div className="mt-2 flex flex-col gap-2 border-t border-border px-5 pt-4">
-                  <Button asChild variant="outline" onClick={() => setOpen(false)}>
-                    <Link href="/login">Log in</Link>
-                  </Button>
-                  <Button asChild onClick={() => setOpen(false)}>
-                    <Link href="/signup">Get started</Link>
-                  </Button>
-                </div>
-              </nav>
-            </SheetContent>
-          </Sheet>
+                </nav>
+              </SheetContent>
+            </Sheet>
+          </div>
         </div>
       </div>
     </header>
