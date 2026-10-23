@@ -156,6 +156,34 @@ Deliverables: this file (updated at the end), DESIGN_SYSTEM.md, redesigned route
 
 ---
 
+## 5b. v2 extension brief (owner, 2026-10-23 — supersedes v1 where they conflict)
+
+The owner issued a second brief: competitor-informed (Linear, Asana, monday, ClickUp, Jira), fully-functional, standout-feature redesign. Research output: **COMPETITOR_RESEARCH.md** (Borrow/Improve/Avoid table). Everything from v1 that still applies (muted palette, no fabricated claims, a11y/SEO, commit-per-phase) stays; v2 adds:
+
+**New global rules**
+- No dead buttons / `#` links / static fakes anywhere — where no backend exists, build route handlers + a typed, swappable data layer (JSON-file adapter now, Supabase-ready interface).
+- Every major page: 15–20 sections, no two adjacent sections sharing a layout, rotating CSS/SVG background treatments (grain, dot grid, contours, tonal bands, hatching, serif watermark, duotone shapes, inverse charcoal band, terracotta/sage cut-outs, stacked cards) defined as reusable utilities with dark variants and AA contrast.
+- Chrome rework: topbar gains status chip + docs link; header gains scroll-aware compact/hide behavior, mega-menu featured cards, Cmd+K search button; footer becomes editorial (closing CTA + email capture, status, language/theme switchers, back-to-top, oversized outlined wordmark); mobile bottom nav bar + desktop floating contextual bar; cookie-consent manager gating analytics.
+- New deliverables: FEATURES.md, PLACEHOLDERS.md; Playwright smoke tests + unit tests for calculator logic.
+
+**Feature set (v2 §3)** — interactive sandbox board with AI-rebalance + wellbeing meter, burnout-risk calculator, ROI calculator, pay-equity explorer (recharts/visx, demo-labelled), gamification playground, responsible-AI transparency center with "why this suggestion?" explainer, template library (12–20, filterable, preview modals), /compare/* ×5 (factual, dated, flagged), migration hub with locally-saved checklists, "find your fit" quiz personalising CTAs, /roadmap + /status with voting, reading progress + scroll-spy + copy-section-link, Cmd+K palette + `g` shortcuts + `?` help, printable one-pagers per product.
+
+**Phase mapping (v2 §7 → our state)**
+
+| v2 phase | Scope | Status |
+|---|---|---|
+| 0 | Audit + COMPETITOR_RESEARCH.md → present, await go-ahead | ✅ done (audit = §1; research = COMPETITOR_RESEARCH.md) — **awaiting owner go-ahead** |
+| 1 | Tokens ✅, backgrounds library, Topbar/Header/Footer/BottomBar rework | tokens+chrome v1 done in Phase A/B; v2 upgrade pending |
+| 2 | Data layer, forms (contact/demo/newsletter/careers/quote with RHF+zod+honeypot+rate-limit+email adapter+storage), auth verification, Cmd+K search, cookie consent | new |
+| 3 | Homepage → 20 sections incl. sandbox, calculators, explorer, playground, template carousel, comparison snapshot, seat slider | v1 homepage (13 sections) shipped in Phase C; expands here |
+| 4 | Product pages (15–17 sections each), Pricing (15), About (15), Solutions by role+size | supersedes v1 Phase D + parts of E |
+| 5 | Compare ×5, migration hub, templates, roadmap, status, blog/resources, changelog | supersedes v1 Phase E additions |
+| 6 | QA, a11y pass, perf pass (Lighthouse 90+ on Home/Product/Pricing), Playwright+unit tests, cleanup + docs deliverables | supersedes v1 Phase F |
+
+i18n scaffolding (EN first, structure ready for Swahili/French) lands in phase 2 as a thin message-catalog layer, not a rewrite.
+
+---
+
 ## 7. Phase results log
 
 ### Phase 0 — repo hygiene & dependency cleanup (done 2026-10-23)
