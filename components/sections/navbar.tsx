@@ -122,8 +122,9 @@ export function Navbar() {
             ))}
             {directLinks.map((link) => (
               <NavigationMenuItem key={link.href}>
-                <Link href={link.href} legacyBehavior passHref>
-                  <NavigationMenuLink
+                <NavigationMenuLink asChild>
+                  <Link
+                    href={link.href}
                     className={cn(
                       navigationMenuTriggerStyle(),
                       "font-medium",
@@ -131,8 +132,8 @@ export function Navbar() {
                     )}
                   >
                     {link.title}
-                  </NavigationMenuLink>
-                </Link>
+                  </Link>
+                </NavigationMenuLink>
               </NavigationMenuItem>
             ))}
           </NavigationMenuList>

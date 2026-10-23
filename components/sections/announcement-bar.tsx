@@ -1,19 +1,24 @@
 "use client"
 
-import { useEffect, useState } from "react"
 import Link from "next/link"
+import { useSyncExternalStore } from "react"
 import { X } from "lucide-react"
 import { announcement } from "@/content/site"
 
 const DISMISS_KEY = "jv-announcement-dismissed"
+const DISMISS_EVENT = "jv-announcement-dismiss"
+
+function subscribe(onChange: () => void) {
+  window.addEventListener(DISMISS_EVENT, onChange)
+  return () => window.removeEventListener(DISMISS_EVENT, onChange)
+}
+
+const getSnapshot = () => localStorage.getItem(DISMISS_KEY) === "1"
+// Hidden during SSR/hydration so markup matches the server; shown right after if not dismissed.
+const getServerSnapshot = () => true
 
 export function AnnouncementBar() {
-  const [dismissed, setDismissed] = useState(true)
-
-  // Start hidden until we know the dismissal state, to avoid a hydration flash.
-  useEffect(() => {
-    setDismissed(localStorage.getItem(DISMISS_KEY) === "1")
-  }, [])
+  const dismissed = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
 
   if (dismissed) return null
 
@@ -32,10 +37,10 @@ export function AnnouncementBar() {
         <button
           type="button"
           aria-label="Dismiss announcement"
-          className="shrink-0 rounded p-1 transition-colors duration-150 hover:bg-primary-foreground/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-foreground"
+          className="shrink-0 rounded p-1 transition-colors duration-150 hover:bg-primary-foreground/15"
           onClick={() => {
-            setDismissed(true)
             localStorage.setItem(DISMISS_KEY, "1")
+            window.dispatchEvent(new Event(DISMISS_EVENT))
           }}
         >
           <X className="h-4 w-4" />

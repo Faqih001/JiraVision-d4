@@ -167,3 +167,18 @@ Deliverables: this file (updated at the end), DESIGN_SYSTEM.md, redesigned route
 - `.env.example` created documenting all env vars. `typecheck` script added.
 - Type debt: 165 → ~87 unique errors (rest are pre-existing in API routes, drizzle scripts, landing-chatbot, generated route validators incl. hrefs to the missing `/changelog` route — fixed as phases proceed). `ignoreBuildErrors` kept temporarily with TODO; removed in Phase F.
 - Verified: `npm run lint` exit 0, `npm run build` exit 0.
+
+### Phase A — design tokens (done 2026-10-23)
+- `app/globals.css` rewritten: warm stone + pine palette (light/dark), deduped double token blocks, display-font headings, focus-visible ring, prefers-reduced-motion kill-switch, dashboard/chat utilities preserved.
+- `tailwind.config.ts`: font families, surface/ink/clay/success/warning/chart colors, soft shadows, container 1240px.
+- Fraunces + Inter wired via `next/font` in root layout; `v0.dev` generator meta removed.
+- Verified live in browser: light bg `rgb(248,246,242)`, dark `rgb(24,24,22)`, h1 renders Fraunces.
+
+### Phase B — shared marketing chrome (done 2026-10-23)
+- New `app/(marketing)` route group: all 17 public route dirs + homepage moved in via `git mv` (URLs unchanged — build confirms identical route list). 28 pages had per-page `<MainNavbar/>`/`<MainFooter/>` stripped; group layout supplies chrome + skip-link + `<main id="main">`.
+- New components: `components/sections/navbar.tsx` (sticky, announcement bar, mega-menu dropdowns with Unsplash thumbnails, mobile Sheet drawer with aria-expanded accordions, Log in / Get started CTAs), `footer.tsx` (5 config-driven columns, brand block, newsletter form gated behind `newsletter.enabled=false` until a real endpoint exists, social row hidden while `socialLinks` empty), `announcement-bar.tsx` (dismissible, `useSyncExternalStore` + localStorage, no hydration flash), `theme-toggle.tsx` (fixed broken absolute-icon positioning via `relative overflow-hidden`).
+- Fake content removed from chrome: "Trusted by 5,000+ teams / 99.9% uptime" strip gone; 10 dead `href="#"` social icons gone; scroll-hide navbar effect dropped.
+- `content/site.ts` extended with footer columns + newsletter config (PLACEHOLDER-flagged).
+- `landing-chatbot.tsx` fixed per D1: emoji greeting removed, stale-closure `setMessages` replaced with functional updates, aria-labels + `role=dialog` + Escape-to-close, responsive width, unverifiable claims ($10/user, 14-day trial, "Yes!" discount answers) softened to point at pricing/contact.
+- Deleted `components/main-navbar.tsx`, `components/main-footer.tsx`.
+- Verified live (Playwright): desktop header/footer DOM + computed styles, dropdown images load, theme toggle flips class + colors, mobile 375px drawer opens/accords with no horizontal overflow, announcement dismiss persists across reload; `/pricing`, `/products/ai-scrum-master`, `/login`, `/resources/blog` all 200. Lint 0 errors, build exit 0.
