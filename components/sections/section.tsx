@@ -2,19 +2,27 @@
 
 import { useEffect, useRef, useState } from "react"
 import { cn } from "@/lib/utils"
+import { SectionBg, type BgVariant } from "@/components/sections/section-bg"
 
 export function Section({
   id,
   className,
+  bg,
+  watermark,
   children,
 }: {
   id?: string
   className?: string
+  /** Decorative background treatment from the v2 library. */
+  bg?: BgVariant
+  watermark?: string
   children: React.ReactNode
 }) {
+  const invert = bg === "inverse"
   return (
-    <section id={id} className={cn("py-16 md:py-24", className)}>
-      <div className="container">{children}</div>
+    <section id={id} className={cn("relative py-16 md:py-24", invert && "jv-invert", className)}>
+      {bg && <SectionBg variant={bg} watermark={watermark} />}
+      <div className="container relative">{children}</div>
     </section>
   )
 }

@@ -98,6 +98,39 @@ export const announcement = {
   href: "/changelog",
 }
 
+export interface MenuFeature {
+  eyebrow: string
+  title: string
+  body: string
+  cta: string
+  href: string
+}
+
+// Featured card shown inside each mega-menu (latest changelog / key action).
+export const menuFeatures: Record<"Products" | "Solutions" | "Resources", MenuFeature> = {
+  Products: {
+    eyebrow: "Latest release",
+    title: "AI sprint reports",
+    body: "Capacity-aware drafts with a written rationale for every suggested item.",
+    cta: "Read the changelog",
+    href: "/changelog",
+  },
+  Solutions: {
+    eyebrow: "Not sure where to start?",
+    title: "Talk to the team",
+    body: "Tell us about your setup and we'll map JiraVision to how you already work.",
+    cta: "Contact us",
+    href: "/contact",
+  },
+  Resources: {
+    eyebrow: "Hands-on",
+    title: "Product templates",
+    body: "Sprint, roadmap and incident playbooks you can adopt in one click.",
+    cta: "Browse docs",
+    href: "/resources/documentation",
+  },
+}
+
 export interface FooterColumn {
   title: string
   links: { label: string; href: string }[]

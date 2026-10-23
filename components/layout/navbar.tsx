@@ -22,8 +22,8 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet"
-import { AnnouncementBar } from "@/components/sections/announcement-bar"
-import { ThemeToggle } from "@/components/sections/theme-toggle"
+import { AnnouncementBar } from "@/components/layout/announcement-bar"
+import { ThemeToggle } from "@/components/layout/theme-toggle"
 import { productItems, resourceItems, solutionItems, type NavItem } from "@/content/site"
 import { ChevronDown, Menu } from "lucide-react"
 import { cn } from "@/lib/utils"

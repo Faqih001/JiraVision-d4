@@ -2,8 +2,9 @@
 
 import Link from "next/link"
 import { useSyncExternalStore } from "react"
-import { X } from "lucide-react"
+import { ArrowUpRight, X } from "lucide-react"
 import { announcement } from "@/content/site"
+import { overallStatus } from "@/content/status"
 
 const DISMISS_KEY = "jv-announcement-dismissed"
 const DISMISS_EVENT = "jv-announcement-dismiss"
@@ -34,17 +35,33 @@ export function AnnouncementBar() {
             &rarr;
           </span>
         </Link>
-        <button
-          type="button"
-          aria-label="Dismiss announcement"
-          className="shrink-0 rounded p-1 transition-colors duration-150 hover:bg-primary-foreground/15"
-          onClick={() => {
-            localStorage.setItem(DISMISS_KEY, "1")
-            window.dispatchEvent(new Event(DISMISS_EVENT))
-          }}
-        >
-          <X className="h-4 w-4" />
-        </button>
+        <div className="flex shrink-0 items-center gap-4">
+          <Link
+            href="/status"
+            className="hidden items-center gap-1.5 text-primary-foreground/85 transition-colors duration-150 hover:text-primary-foreground sm:flex"
+          >
+            <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-[hsl(148_40%_60%)]" />
+            {overallStatus}
+          </Link>
+          <Link
+            href="/resources/documentation"
+            className="hidden items-center gap-1 text-primary-foreground/85 transition-colors duration-150 hover:text-primary-foreground md:flex"
+          >
+            Docs
+            <ArrowUpRight className="h-3 w-3" aria-hidden="true" />
+          </Link>
+          <button
+            type="button"
+            aria-label="Dismiss announcement"
+            className="rounded p-1 transition-colors duration-150 hover:bg-primary-foreground/15"
+            onClick={() => {
+              localStorage.setItem(DISMISS_KEY, "1")
+              window.dispatchEvent(new Event(DISMISS_EVENT))
+            }}
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
       </div>
     </div>
   )

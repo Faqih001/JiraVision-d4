@@ -448,3 +448,145 @@
   overflow-y: auto;
   padding: 1rem;
 }
+
+/* ---------------------------------------------------------------------------
+ * Section background library (v2) — muted, CSS/SVG-only treatments.
+ * Apply to an absolutely-positioned layer inside a relative section.
+ * Each variant has a dark-mode counterpart; all stay well under text contrast.
+ * ------------------------------------------------------------------------- */
+@layer utilities {
+  .jv-bg-grain {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 140px 140px;
+    opacity: 0.05;
+  }
+  .dark .jv-bg-grain {
+    opacity: 0.07;
+  }
+
+  .jv-bg-dots {
+    background-image: radial-gradient(circle, hsl(var(--foreground) / 0.08) 1px, transparent 1.5px);
+    background-size: 22px 22px;
+    -webkit-mask-image: radial-gradient(ellipse 90% 80% at 50% 50%, black 40%, transparent 100%);
+    mask-image: radial-gradient(ellipse 90% 80% at 50% 50%, black 40%, transparent 100%);
+  }
+  .dark .jv-bg-dots {
+    background-image: radial-gradient(circle, hsl(var(--foreground) / 0.12) 1px, transparent 1.5px);
+  }
+
+  .jv-bg-grid {
+    background-image:
+      linear-gradient(to right, hsl(var(--foreground) / 0.05) 1px, transparent 1px),
+      linear-gradient(to bottom, hsl(var(--foreground) / 0.05) 1px, transparent 1px);
+    background-size: 40px 40px;
+    -webkit-mask-image: linear-gradient(to bottom, transparent, black 25%, black 75%, transparent);
+    mask-image: linear-gradient(to bottom, transparent, black 25%, black 75%, transparent);
+  }
+  .dark .jv-bg-grid {
+    background-image:
+      linear-gradient(to right, hsl(var(--foreground) / 0.07) 1px, transparent 1px),
+      linear-gradient(to bottom, hsl(var(--foreground) / 0.07) 1px, transparent 1px);
+  }
+
+  .jv-bg-contour {
+    background-image:
+      repeating-radial-gradient(circle at 12% 88%, transparent 0 46px, hsl(var(--clay) / 0.08) 46px 47px),
+      repeating-radial-gradient(circle at 88% 8%, transparent 0 54px, hsl(var(--primary) / 0.07) 54px 55px);
+  }
+  .dark .jv-bg-contour {
+    background-image:
+      repeating-radial-gradient(circle at 12% 88%, transparent 0 46px, hsl(var(--clay) / 0.12) 46px 47px),
+      repeating-radial-gradient(circle at 88% 8%, transparent 0 54px, hsl(var(--primary) / 0.1) 54px 55px);
+  }
+
+  .jv-bg-hatch {
+    background-image: repeating-linear-gradient(45deg, hsl(var(--foreground) / 0.045) 0 1px, transparent 1px 10px);
+  }
+  .dark .jv-bg-hatch {
+    background-image: repeating-linear-gradient(45deg, hsl(var(--foreground) / 0.06) 0 1px, transparent 1px 10px);
+  }
+
+  .jv-bg-shapes {
+    background-image:
+      radial-gradient(circle at 85% 18%, hsl(var(--primary) / 0.08) 0 150px, transparent 151px),
+      radial-gradient(circle at 8% 92%, hsl(var(--clay) / 0.07) 0 110px, transparent 111px),
+      radial-gradient(circle at 60% 55%, transparent 0 92px, hsl(var(--primary) / 0.05) 92px 93px, transparent 94px);
+  }
+  .dark .jv-bg-shapes {
+    background-image:
+      radial-gradient(circle at 85% 18%, hsl(var(--primary) / 0.1) 0 150px, transparent 151px),
+      radial-gradient(circle at 8% 92%, hsl(var(--clay) / 0.09) 0 110px, transparent 111px),
+      radial-gradient(circle at 60% 55%, transparent 0 92px, hsl(var(--primary) / 0.07) 92px 93px, transparent 94px);
+  }
+
+  /* Dark warm-charcoal inverse band with faint grid lines */
+  .jv-bg-inverse {
+    background-color: hsl(60 6% 9%);
+    background-image:
+      linear-gradient(to right, hsl(41 18% 87% / 0.04) 1px, transparent 1px),
+      linear-gradient(to bottom, hsl(41 18% 87% / 0.04) 1px, transparent 1px);
+    background-size: 48px 48px;
+  }
+  .dark .jv-bg-inverse {
+    background-color: hsl(60 5% 6%);
+  }
+
+  /* Solid muted bands with a gentle cut-out curve */
+  .jv-bg-band-clay {
+    background-color: hsl(var(--clay) / 0.09);
+    border-radius: 50% 50% 0 0 / 4rem 4rem 0 0;
+  }
+  .dark .jv-bg-band-clay {
+    background-color: hsl(var(--clay) / 0.14);
+  }
+  .jv-bg-band-sage {
+    background-color: hsl(var(--primary) / 0.08);
+    border-radius: 0 0 50% 50% / 4rem 4rem 0 0;
+  }
+  .dark .jv-bg-band-sage {
+    background-color: hsl(var(--primary) / 0.13);
+  }
+
+  /* Paper-fold / stacked-card layered edges */
+  .jv-bg-stacked {
+    box-shadow:
+      inset 0 1px 0 0 hsl(var(--background)),
+      inset 0 9px 0 -6px hsl(var(--surface-2)),
+      inset 0 17px 0 -12px hsl(var(--border) / 0.7);
+  }
+}
+
+/* Oversized serif watermark glyph */
+.jv-watermark {
+  position: absolute;
+  right: 2rem;
+  bottom: -3rem;
+  font-family: var(--font-display);
+  font-size: clamp(12rem, 28vw, 24rem);
+  line-height: 1;
+  font-weight: 500;
+  color: hsl(var(--foreground) / 0.045);
+  user-select: none;
+  pointer-events: none;
+}
+.dark .jv-watermark {
+  color: hsl(var(--foreground) / 0.06);
+}
+
+/* Token remap for the inverse (charcoal) band — works in both themes because
+   every utility reads these variables locally. */
+.jv-invert {
+  --background: 60 6% 9%;
+  --foreground: 41 18% 87%;
+  --card: 60 5% 12%;
+  --card-foreground: 41 18% 87%;
+  --muted: 60 5% 14%;
+  --muted-foreground: 40 9% 66%;
+  --border: 60 5% 20%;
+  --input: 60 5% 20%;
+  --primary: 148 17% 52%;
+  --primary-foreground: 60 6% 9%;
+  --surface: 60 5% 11%;
+  --surface-2: 60 5% 14%;
+  --ring: 148 17% 52%;
+}
