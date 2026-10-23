@@ -1,538 +1,256 @@
-import { Button } from "@/components/ui/button"
-import { Check, X, Zap, HelpCircle } from "lucide-react"
-import Link from "next/link"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import type { Metadata } from "next"
+import { Fragment } from "react"
+import {
+  PageHero,
+  ProblemSection,
+  FeatureGridSection,
+  StepsSection,
+  AudienceSection,
+  MethodSection,
+  HonestFitSection,
+  QuotesSection,
+  FaqSection,
+  RelatedSection,
+  CtaSection,
+} from "@/components/sections/page-kit"
+import { Section, SectionHeading } from "@/components/sections/section"
+import { Check } from "lucide-react"
+import {
+  pricingHero,
+  pricingNav,
+  pricingProblem,
+  includedEverywhere,
+  billingMethod,
+  compareGroups,
+  seatEconomics,
+  trialSteps,
+  chooseAudience,
+  discounts,
+  pricingPrinciples,
+  pricingQuotes,
+  pricingFaq,
+  pricingRelated,
+  pricingCta,
+} from "@/content/pricing-page"
+import { PricingPlans, CostVsTimeEstimator } from "./pricing-calculator"
 
-export default function PricingPage() {
+export function generateMetadata(): Metadata {
+  return {
+    title: "Pricing — JiraVision",
+    description:
+      "Starter $9, Professional $19, Enterprise $49 per user/month. Annual billing saves 20%, every plan runs on a 14-day trial with no card, and you can cancel from account settings.",
+    alternates: { canonical: "/pricing" },
+  }
+}
+
+function PricingAnchorNav() {
   return (
-    <div className="flex min-h-screen flex-col">
+    <nav aria-label="On this page" className="border-b bg-surface">
+      <div className="container flex flex-wrap items-center gap-x-6 gap-y-2 py-3">
+        <span className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+          On this page
+        </span>
+        {pricingNav.links.map((link) => (
+          <a
+            key={link.href}
+            href={link.href}
+            className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+          >
+            {link.label}
+          </a>
+        ))}
+      </div>
+    </nav>
+  )
+}
 
-      <main className="flex-1">
-        <section className="py-20 md:py-28 container">
-          <div className="text-center mb-16">
-            <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-sm text-primary mb-4">
-              <Zap className="h-4 w-4" />
-              <span>Pricing</span>
-            </div>
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">Simple, Transparent Pricing</h1>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Choose the plan that's right for your team. All plans include a 14-day free trial.
+function CompareTable() {
+  return (
+    <Section id="compare" bg="grain">
+      <SectionHeading
+        eyebrow="Compare"
+        title="Every feature, every plan, one table"
+        intro="No fine print elsewhere: this is the complete tier split. Dashes mean the feature is genuinely not on that plan."
+      />
+      <div className="overflow-x-auto rounded-lg border bg-card shadow-soft">
+        <table className="w-full min-w-[40rem] border-collapse text-sm">
+          <caption className="sr-only">Feature comparison across Starter, Professional and Enterprise</caption>
+          <thead>
+            <tr className="border-b bg-muted/40 text-left">
+              <th scope="col" className="px-5 py-3 font-semibold">Feature</th>
+              <th scope="col" className="px-5 py-3 font-semibold">Starter</th>
+              <th scope="col" className="bg-primary/5 px-5 py-3 font-semibold text-primary">Professional</th>
+              <th scope="col" className="px-5 py-3 font-semibold">Enterprise</th>
+            </tr>
+          </thead>
+          <tbody>
+            {compareGroups.map((group) => (
+              <Fragment key={group.title}>
+                <tr className="border-b bg-muted/20">
+                  <td colSpan={4} className="px-5 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    {group.title}
+                  </td>
+                </tr>
+                {group.rows.map((row) => (
+                  <tr key={row.label} className="border-b last:border-b-0">
+                    <th scope="row" className="px-5 py-3 text-left font-medium">{row.label}</th>
+                    <td className="px-5 py-3 text-muted-foreground">{row.starter}</td>
+                    <td className="bg-primary/5 px-5 py-3">{row.professional}</td>
+                    <td className="px-5 py-3 text-muted-foreground">{row.enterprise}</td>
+                  </tr>
+                ))}
+              </Fragment>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <ul className="mt-6 flex flex-wrap gap-x-8 gap-y-2 text-xs text-muted-foreground">
+        <li className="flex items-center gap-1.5">
+          <Check className="h-3.5 w-3.5 text-primary" aria-hidden />
+          All tiers keep the AI approval gate and aggregated wellbeing data — those are never paywalled.
+        </li>
+        <li>Enterprise terms (support response times, uptime) are agreed per account — talk to us.</li>
+      </ul>
+    </Section>
+  )
+}
+
+export default async function PricingPage() {
+  return (
+    <>
+      <PageHero
+        eyebrow={pricingHero.eyebrow}
+        title={pricingHero.title}
+        subtitle={pricingHero.subtitle}
+        bullets={pricingHero.bullets}
+        badge={pricingHero.badge}
+        primary={pricingHero.primary}
+        secondary={pricingHero.secondary}
+        visual={
+          <div className="rounded-lg border bg-card p-6 shadow-soft">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Your bill, in one formula</p>
+            <p className="mt-3 font-display text-2xl font-medium tracking-tight">
+              seats × plan price <span className="text-clay">× 12</span>
             </p>
-          </div>
-
-          <div className="max-w-5xl mx-auto mb-16">
-            <Tabs defaultValue="monthly" className="w-full">
-              <div className="flex justify-center mb-8">
-                <TabsList className="grid w-[400px] grid-cols-2">
-                  <TabsTrigger value="monthly">Monthly</TabsTrigger>
-                  <TabsTrigger value="annual">Annual (Save 20%)</TabsTrigger>
-                </TabsList>
-              </div>
-
-              <TabsContent value="monthly">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                  {/* Starter Plan */}
-                  <div className="border rounded-xl p-8 flex flex-col h-full bg-white shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
-                    <div className="mb-6">
-                      <h3 className="text-lg font-medium mb-2">Starter</h3>
-                      <div className="flex items-baseline mb-4">
-                        <span className="text-4xl font-bold">$9</span>
-                        <span className="text-muted-foreground ml-2">/ user / month</span>
-                      </div>
-                      <p className="text-muted-foreground">
-                        Perfect for small teams getting started with project management.
-                      </p>
-                    </div>
-
-                    <ul className="space-y-3 mb-8 flex-grow">
-                      <li className="flex items-start">
-                        <Check className="h-5 w-5 text-green-500 mr-2 shrink-0 mt-0.5" />
-                        <span>Up to 10 team members</span>
-                      </li>
-                      <li className="flex items-start">
-                        <Check className="h-5 w-5 text-green-500 mr-2 shrink-0 mt-0.5" />
-                        <span>Basic AI Scrum Master</span>
-                      </li>
-                      <li className="flex items-start">
-                        <Check className="h-5 w-5 text-green-500 mr-2 shrink-0 mt-0.5" />
-                        <span>Sprint planning and tracking</span>
-                      </li>
-                      <li className="flex items-start">
-                        <Check className="h-5 w-5 text-green-500 mr-2 shrink-0 mt-0.5" />
-                        <span>Basic team wellbeing metrics</span>
-                      </li>
-                      <li className="flex items-start">
-                        <Check className="h-5 w-5 text-green-500 mr-2 shrink-0 mt-0.5" />
-                        <span>Email support</span>
-                      </li>
-                      <li className="flex items-start">
-                        <X className="h-5 w-5 text-slate-300 mr-2 shrink-0 mt-0.5" />
-                        <span className="text-slate-500">Gamification features</span>
-                      </li>
-                      <li className="flex items-start">
-                        <X className="h-5 w-5 text-slate-300 mr-2 shrink-0 mt-0.5" />
-                        <span className="text-slate-500">Advanced analytics</span>
-                      </li>
-                    </ul>
-
-                    <div className="mt-auto">
-                      <Link href="/signup">
-                        <Button variant="outline" className="w-full rounded-full">
-                          Start Free Trial
-                        </Button>
-                      </Link>
-                    </div>
-                  </div>
-
-                  {/* Professional Plan */}
-                  <div className="border-2 border-primary rounded-xl p-8 flex flex-col h-full bg-white shadow-xl relative transform transition-all duration-300 hover:-translate-y-2">
-                    <div className="absolute top-0 right-0 bg-primary text-primary-foreground px-4 py-1 rounded-bl-lg rounded-tr-lg text-sm font-medium">
-                      Most Popular
-                    </div>
-
-                    <div className="mb-6">
-                      <h3 className="text-lg font-medium mb-2">Professional</h3>
-                      <div className="flex items-baseline mb-4">
-                        <span className="text-4xl font-bold">$19</span>
-                        <span className="text-muted-foreground ml-2">/ user / month</span>
-                      </div>
-                      <p className="text-muted-foreground">Advanced features for growing teams and organizations.</p>
-                    </div>
-
-                    <ul className="space-y-3 mb-8 flex-grow">
-                      <li className="flex items-start">
-                        <Check className="h-5 w-5 text-green-500 mr-2 shrink-0 mt-0.5" />
-                        <span>Unlimited team members</span>
-                      </li>
-                      <li className="flex items-start">
-                        <Check className="h-5 w-5 text-green-500 mr-2 shrink-0 mt-0.5" />
-                        <span>Advanced AI Scrum Master</span>
-                      </li>
-                      <li className="flex items-start">
-                        <Check className="h-5 w-5 text-green-500 mr-2 shrink-0 mt-0.5" />
-                        <span>Full team wellbeing suite</span>
-                      </li>
-                      <li className="flex items-start">
-                        <Check className="h-5 w-5 text-green-500 mr-2 shrink-0 mt-0.5" />
-                        <span>Gamification features</span>
-                      </li>
-                      <li className="flex items-start">
-                        <Check className="h-5 w-5 text-green-500 mr-2 shrink-0 mt-0.5" />
-                        <span>Basic ethical metrics</span>
-                      </li>
-                      <li className="flex items-start">
-                        <Check className="h-5 w-5 text-green-500 mr-2 shrink-0 mt-0.5" />
-                        <span>Priority email & chat support</span>
-                      </li>
-                      <li className="flex items-start">
-                        <Check className="h-5 w-5 text-green-500 mr-2 shrink-0 mt-0.5" />
-                        <span>Basic analytics & reporting</span>
-                      </li>
-                    </ul>
-
-                    <div className="mt-auto">
-                      <Link href="/signup">
-                        <Button className="w-full rounded-full">Start Free Trial</Button>
-                      </Link>
-                    </div>
-                  </div>
-
-                  {/* Enterprise Plan */}
-                  <div className="border rounded-xl p-8 flex flex-col h-full bg-white shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
-                    <div className="mb-6">
-                      <h3 className="text-lg font-medium mb-2">Enterprise</h3>
-                      <div className="flex items-baseline mb-4">
-                        <span className="text-4xl font-bold">$49</span>
-                        <span className="text-muted-foreground ml-2">/ user / month</span>
-                      </div>
-                      <p className="text-muted-foreground">
-                        Complete solution for large organizations with advanced needs.
-                      </p>
-                    </div>
-
-                    <ul className="space-y-3 mb-8 flex-grow">
-                      <li className="flex items-start">
-                        <Check className="h-5 w-5 text-green-500 mr-2 shrink-0 mt-0.5" />
-                        <span>Everything in Professional</span>
-                      </li>
-                      <li className="flex items-start">
-                        <Check className="h-5 w-5 text-green-500 mr-2 shrink-0 mt-0.5" />
-                        <span>Custom AI training</span>
-                      </li>
-                      <li className="flex items-start">
-                        <Check className="h-5 w-5 text-green-500 mr-2 shrink-0 mt-0.5" />
-                        <span>Advanced ethical governance</span>
-                      </li>
-                      <li className="flex items-start">
-                        <Check className="h-5 w-5 text-green-500 mr-2 shrink-0 mt-0.5" />
-                        <span>Custom integrations</span>
-                      </li>
-                      <li className="flex items-start">
-                        <Check className="h-5 w-5 text-green-500 mr-2 shrink-0 mt-0.5" />
-                        <span>Advanced analytics & reporting</span>
-                      </li>
-                      <li className="flex items-start">
-                        <Check className="h-5 w-5 text-green-500 mr-2 shrink-0 mt-0.5" />
-                        <span>Dedicated account manager</span>
-                      </li>
-                      <li className="flex items-start">
-                        <Check className="h-5 w-5 text-green-500 mr-2 shrink-0 mt-0.5" />
-                        <span>24/7 premium support</span>
-                      </li>
-                    </ul>
-
-                    <div className="mt-auto">
-                      <Link href="/contact">
-                        <Button variant="outline" className="w-full rounded-full">
-                          Contact Sales
-                        </Button>
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="annual">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                  {/* Starter Plan Annual */}
-                  <div className="border rounded-xl p-8 flex flex-col h-full bg-white shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
-                    <div className="mb-6">
-                      <h3 className="text-lg font-medium mb-2">Starter</h3>
-                      <div className="flex items-baseline mb-4">
-                        <span className="text-4xl font-bold">$7</span>
-                        <span className="text-muted-foreground ml-2">/ user / month</span>
-                      </div>
-                      <p className="text-muted-foreground">
-                        Perfect for small teams getting started with project management.
-                      </p>
-                    </div>
-
-                    <ul className="space-y-3 mb-8 flex-grow">
-                      <li className="flex items-start">
-                        <Check className="h-5 w-5 text-green-500 mr-2 shrink-0 mt-0.5" />
-                        <span>Up to 10 team members</span>
-                      </li>
-                      <li className="flex items-start">
-                        <Check className="h-5 w-5 text-green-500 mr-2 shrink-0 mt-0.5" />
-                        <span>Basic AI Scrum Master</span>
-                      </li>
-                      <li className="flex items-start">
-                        <Check className="h-5 w-5 text-green-500 mr-2 shrink-0 mt-0.5" />
-                        <span>Sprint planning and tracking</span>
-                      </li>
-                      <li className="flex items-start">
-                        <Check className="h-5 w-5 text-green-500 mr-2 shrink-0 mt-0.5" />
-                        <span>Basic team wellbeing metrics</span>
-                      </li>
-                      <li className="flex items-start">
-                        <Check className="h-5 w-5 text-green-500 mr-2 shrink-0 mt-0.5" />
-                        <span>Email support</span>
-                      </li>
-                      <li className="flex items-start">
-                        <X className="h-5 w-5 text-slate-300 mr-2 shrink-0 mt-0.5" />
-                        <span className="text-slate-500">Gamification features</span>
-                      </li>
-                      <li className="flex items-start">
-                        <X className="h-5 w-5 text-slate-300 mr-2 shrink-0 mt-0.5" />
-                        <span className="text-slate-500">Advanced analytics</span>
-                      </li>
-                    </ul>
-
-                    <div className="mt-auto">
-                      <Link href="/signup">
-                        <Button variant="outline" className="w-full rounded-full">
-                          Start Free Trial
-                        </Button>
-                      </Link>
-                    </div>
-                  </div>
-
-                  {/* Professional Plan Annual */}
-                  <div className="border-2 border-primary rounded-xl p-8 flex flex-col h-full bg-white shadow-xl relative transform transition-all duration-300 hover:-translate-y-2">
-                    <div className="absolute top-0 right-0 bg-primary text-primary-foreground px-4 py-1 rounded-bl-lg rounded-tr-lg text-sm font-medium">
-                      Most Popular
-                    </div>
-
-                    <div className="mb-6">
-                      <h3 className="text-lg font-medium mb-2">Professional</h3>
-                      <div className="flex items-baseline mb-4">
-                        <span className="text-4xl font-bold">$15</span>
-                        <span className="text-muted-foreground ml-2">/ user / month</span>
-                      </div>
-                      <p className="text-muted-foreground">Advanced features for growing teams and organizations.</p>
-                    </div>
-
-                    <ul className="space-y-3 mb-8 flex-grow">
-                      <li className="flex items-start">
-                        <Check className="h-5 w-5 text-green-500 mr-2 shrink-0 mt-0.5" />
-                        <span>Unlimited team members</span>
-                      </li>
-                      <li className="flex items-start">
-                        <Check className="h-5 w-5 text-green-500 mr-2 shrink-0 mt-0.5" />
-                        <span>Advanced AI Scrum Master</span>
-                      </li>
-                      <li className="flex items-start">
-                        <Check className="h-5 w-5 text-green-500 mr-2 shrink-0 mt-0.5" />
-                        <span>Full team wellbeing suite</span>
-                      </li>
-                      <li className="flex items-start">
-                        <Check className="h-5 w-5 text-green-500 mr-2 shrink-0 mt-0.5" />
-                        <span>Gamification features</span>
-                      </li>
-                      <li className="flex items-start">
-                        <Check className="h-5 w-5 text-green-500 mr-2 shrink-0 mt-0.5" />
-                        <span>Basic ethical metrics</span>
-                      </li>
-                      <li className="flex items-start">
-                        <Check className="h-5 w-5 text-green-500 mr-2 shrink-0 mt-0.5" />
-                        <span>Priority email & chat support</span>
-                      </li>
-                      <li className="flex items-start">
-                        <Check className="h-5 w-5 text-green-500 mr-2 shrink-0 mt-0.5" />
-                        <span>Basic analytics & reporting</span>
-                      </li>
-                    </ul>
-
-                    <div className="mt-auto">
-                      <Link href="/signup">
-                        <Button className="w-full rounded-full">Start Free Trial</Button>
-                      </Link>
-                    </div>
-                  </div>
-
-                  {/* Enterprise Plan Annual */}
-                  <div className="border rounded-xl p-8 flex flex-col h-full bg-white shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
-                    <div className="mb-6">
-                      <h3 className="text-lg font-medium mb-2">Enterprise</h3>
-                      <div className="flex items-baseline mb-4">
-                        <span className="text-4xl font-bold">$39</span>
-                        <span className="text-muted-foreground ml-2">/ user / month</span>
-                      </div>
-                      <p className="text-muted-foreground">
-                        Complete solution for large organizations with advanced needs.
-                      </p>
-                    </div>
-
-                    <ul className="space-y-3 mb-8 flex-grow">
-                      <li className="flex items-start">
-                        <Check className="h-5 w-5 text-green-500 mr-2 shrink-0 mt-0.5" />
-                        <span>Everything in Professional</span>
-                      </li>
-                      <li className="flex items-start">
-                        <Check className="h-5 w-5 text-green-500 mr-2 shrink-0 mt-0.5" />
-                        <span>Custom AI training</span>
-                      </li>
-                      <li className="flex items-start">
-                        <Check className="h-5 w-5 text-green-500 mr-2 shrink-0 mt-0.5" />
-                        <span>Advanced ethical governance</span>
-                      </li>
-                      <li className="flex items-start">
-                        <Check className="h-5 w-5 text-green-500 mr-2 shrink-0 mt-0.5" />
-                        <span>Custom integrations</span>
-                      </li>
-                      <li className="flex items-start">
-                        <Check className="h-5 w-5 text-green-500 mr-2 shrink-0 mt-0.5" />
-                        <span>Advanced analytics & reporting</span>
-                      </li>
-                      <li className="flex items-start">
-                        <Check className="h-5 w-5 text-green-500 mr-2 shrink-0 mt-0.5" />
-                        <span>Dedicated account manager</span>
-                      </li>
-                      <li className="flex items-start">
-                        <Check className="h-5 w-5 text-green-500 mr-2 shrink-0 mt-0.5" />
-                        <span>24/7 premium support</span>
-                      </li>
-                    </ul>
-
-                    <div className="mt-auto">
-                      <Link href="/contact">
-                        <Button variant="outline" className="w-full rounded-full">
-                          Contact Sales
-                        </Button>
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              </TabsContent>
-            </Tabs>
-          </div>
-
-          {/* Feature Comparison */}
-          <div className="max-w-5xl mx-auto mt-20">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold mb-4">Compare Features</h2>
-              <p className="text-muted-foreground max-w-2xl mx-auto">
-                A detailed comparison of what's included in each plan.
-              </p>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse">
-                <thead>
-                  <tr className="border-b">
-                    <th className="py-4 px-6 text-left">Features</th>
-                    <th className="py-4 px-6 text-center">Starter</th>
-                    <th className="py-4 px-6 text-center bg-primary/5">Professional</th>
-                    <th className="py-4 px-6 text-center">Enterprise</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr className="border-b">
-                    <td className="py-4 px-6 font-medium">Team Members</td>
-                    <td className="py-4 px-6 text-center">Up to 10</td>
-                    <td className="py-4 px-6 text-center bg-primary/5">Unlimited</td>
-                    <td className="py-4 px-6 text-center">Unlimited</td>
-                  </tr>
-                  <tr className="border-b">
-                    <td className="py-4 px-6 font-medium">AI Scrum Master</td>
-                    <td className="py-4 px-6 text-center">Basic</td>
-                    <td className="py-4 px-6 text-center bg-primary/5">Advanced</td>
-                    <td className="py-4 px-6 text-center">Custom Training</td>
-                  </tr>
-                  <tr className="border-b">
-                    <td className="py-4 px-6 font-medium">Team Wellbeing</td>
-                    <td className="py-4 px-6 text-center">Basic Metrics</td>
-                    <td className="py-4 px-6 text-center bg-primary/5">Full Suite</td>
-                    <td className="py-4 px-6 text-center">Enterprise Suite</td>
-                  </tr>
-                  <tr className="border-b">
-                    <td className="py-4 px-6 font-medium">Gamification</td>
-                    <td className="py-4 px-6 text-center">
-                      <X className="h-5 w-5 text-slate-300 mx-auto" />
-                    </td>
-                    <td className="py-4 px-6 text-center bg-primary/5">
-                      <Check className="h-5 w-5 text-green-500 mx-auto" />
-                    </td>
-                    <td className="py-4 px-6 text-center">
-                      <Check className="h-5 w-5 text-green-500 mx-auto" />
-                    </td>
-                  </tr>
-                  <tr className="border-b">
-                    <td className="py-4 px-6 font-medium">Ethical Metrics</td>
-                    <td className="py-4 px-6 text-center">
-                      <X className="h-5 w-5 text-slate-300 mx-auto" />
-                    </td>
-                    <td className="py-4 px-6 text-center bg-primary/5">Basic</td>
-                    <td className="py-4 px-6 text-center">Advanced</td>
-                  </tr>
-                  <tr className="border-b">
-                    <td className="py-4 px-6 font-medium">Analytics & Reporting</td>
-                    <td className="py-4 px-6 text-center">Basic</td>
-                    <td className="py-4 px-6 text-center bg-primary/5">Advanced</td>
-                    <td className="py-4 px-6 text-center">Custom</td>
-                  </tr>
-                  <tr className="border-b">
-                    <td className="py-4 px-6 font-medium">Support</td>
-                    <td className="py-4 px-6 text-center">Email</td>
-                    <td className="py-4 px-6 text-center bg-primary/5">Priority Email & Chat</td>
-                    <td className="py-4 px-6 text-center">24/7 Premium</td>
-                  </tr>
-                  <tr className="border-b">
-                    <td className="py-4 px-6 font-medium">Custom Integrations</td>
-                    <td className="py-4 px-6 text-center">
-                      <X className="h-5 w-5 text-slate-300 mx-auto" />
-                    </td>
-                    <td className="py-4 px-6 text-center bg-primary/5">Limited</td>
-                    <td className="py-4 px-6 text-center">Unlimited</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </section>
-
-        {/* FAQ Section */}
-        <section className="py-20 bg-muted/50">
-          <div className="container">
-            <div className="text-center mb-16">
-              <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-sm text-primary mb-4">
-                <HelpCircle className="h-4 w-4" />
-                <span>FAQ</span>
-              </div>
-              <h2 className="text-3xl font-bold mb-4">Frequently Asked Questions</h2>
-              <p className="text-muted-foreground max-w-2xl mx-auto">
-                Find answers to common questions about JiraVision pricing and features.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-              <div className="bg-background p-6 rounded-lg shadow-md border">
-                <h3 className="font-bold mb-2">Can I change plans later?</h3>
-                <p className="text-muted-foreground">
-                  Yes, you can upgrade or downgrade your plan at any time. Changes take effect at the start of your next
-                  billing cycle.
-                </p>
-              </div>
-
-              <div className="bg-background p-6 rounded-lg shadow-md border">
-                <h3 className="font-bold mb-2">Is there a free trial?</h3>
-                <p className="text-muted-foreground">
-                  Yes, all plans include a 14-day free trial with full access to all features. No credit card required.
-                </p>
-              </div>
-
-              <div className="bg-background p-6 rounded-lg shadow-md border">
-                <h3 className="font-bold mb-2">How does billing work?</h3>
-                <p className="text-muted-foreground">
-                  We offer monthly and annual billing options. Annual plans receive a 20% discount compared to monthly
-                  billing.
-                </p>
-              </div>
-
-              <div className="bg-background p-6 rounded-lg shadow-md border">
-                <h3 className="font-bold mb-2">Do you offer discounts for nonprofits?</h3>
-                <p className="text-muted-foreground">
-                  Yes, we offer special pricing for nonprofits, educational institutions, and open source projects.
-                  Contact us for details.
-                </p>
-              </div>
-
-              <div className="bg-background p-6 rounded-lg shadow-md border">
-                <h3 className="font-bold mb-2">What payment methods do you accept?</h3>
-                <p className="text-muted-foreground">
-                  We accept all major credit cards, PayPal, and bank transfers for annual enterprise plans.
-                </p>
-              </div>
-
-              <div className="bg-background p-6 rounded-lg shadow-md border">
-                <h3 className="font-bold mb-2">Can I cancel my subscription?</h3>
-                <p className="text-muted-foreground">
-                  Yes, you can cancel your subscription at any time. You'll continue to have access until the end of
-                  your current billing period.
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* CTA Section */}
-        <section className="py-20 bg-gradient-to-br from-primary/90 to-purple-700/90 relative overflow-hidden">
-          <div className="absolute inset-0 bg-grid-white/10 bg-[length:20px_20px] [mask-image:radial-gradient(white,transparent_85%)]"></div>
-          <div className="container text-center relative z-10">
-            <h2 className="text-3xl font-bold mb-4 text-white">Ready to get started?</h2>
-            <p className="text-xl text-white/80 max-w-2xl mx-auto mb-8">
-              Join thousands of teams already using JiraVision to transform their project management.
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+              Annual billing applies a flat 20% off before that ×12. Nothing else is multiplied —
+              no onboarding fee, no storage tier, no “contact us for the real price”.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/signup">
-                <Button size="lg" variant="secondary" className="rounded-full">
-                  Start Your Free Trial
-                </Button>
-              </Link>
-              <Link href="/contact">
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="rounded-full bg-transparent text-white border-white hover:bg-white/10"
-                >
-                  Contact Sales
-                </Button>
-              </Link>
-            </div>
+            <dl className="mt-4 grid grid-cols-3 divide-x divide-border border-t pt-4 text-center">
+              {[
+                { name: "Starter", price: "$9" },
+                { name: "Professional", price: "$19" },
+                { name: "Enterprise", price: "$49" },
+              ].map((p) => (
+                <div key={p.name} className="px-2">
+                  <dt className="text-xs text-muted-foreground">{p.name}</dt>
+                  <dd className="mt-1 font-mono text-lg">{p.price}<span className="text-xs text-muted-foreground">/user/mo</span></dd>
+                </div>
+              ))}
+            </dl>
           </div>
-        </section>
-      </main>
-
-    </div>
+        }
+      />
+      <PricingAnchorNav />
+      <ProblemSection
+        title={pricingProblem.title}
+        intro={pricingProblem.intro}
+        items={pricingProblem.items}
+        bg="dots"
+      />
+      <PricingPlans />
+      <FeatureGridSection
+        eyebrow={includedEverywhere.eyebrow}
+        title={includedEverywhere.title}
+        intro={includedEverywhere.intro}
+        items={includedEverywhere.items}
+        bg="band-clay"
+      />
+      <div id="billing">
+        <MethodSection
+          eyebrow={billingMethod.eyebrow}
+          title={billingMethod.title}
+          intro={billingMethod.intro}
+          rows={billingMethod.rows}
+          bg="contour"
+        />
+      </div>
+      <CompareTable />
+      <MethodSection
+        eyebrow={seatEconomics.eyebrow}
+        title={seatEconomics.title}
+        rows={seatEconomics.rows}
+        bg="stacked"
+      />
+      <CostVsTimeEstimator />
+      <StepsSection
+        id={trialSteps.id}
+        eyebrow={trialSteps.eyebrow}
+        title={trialSteps.title}
+        intro={trialSteps.intro}
+        steps={trialSteps.steps}
+        bg="dots"
+      />
+      <AudienceSection
+        title={chooseAudience.title}
+        intro={chooseAudience.intro}
+        items={chooseAudience.items}
+        bg="band-sage"
+      />
+      <HonestFitSection
+        title="Is your team the right shape for self-serve?"
+        good={[
+          "5–100 people who can decide without procurement",
+          "One or a few Jira teams that pilot before rolling out",
+          "You trust card billing and want to move this week",
+        ]}
+        bad={[
+          "Hundreds of seats with a purchasing department in the loop",
+          "Contracts that need custom SLAs or data-residency terms today",
+          "Any team that expects per-feature pricing à la carte",
+        ]}
+        bg="hatch"
+      />
+      <div id="discounts">
+        <MethodSection
+          eyebrow={discounts.eyebrow}
+          title={discounts.title}
+          intro={discounts.intro}
+          rows={discounts.rows}
+          bg="contour"
+        />
+      </div>
+      <QuotesSection title={pricingQuotes.title} items={pricingQuotes.items} bg="shapes" />
+      <MethodSection
+        eyebrow={pricingPrinciples.eyebrow}
+        title={pricingPrinciples.title}
+        intro={pricingPrinciples.intro}
+        rows={pricingPrinciples.rows}
+        bg="grain"
+      />
+      <div id="faq">
+        <FaqSection
+          title={pricingFaq.title}
+          items={pricingFaq.items}
+          moreHref={pricingFaq.moreHref}
+          moreLabel={pricingFaq.moreLabel}
+          bg="grid"
+        />
+      </div>
+      <RelatedSection
+        eyebrow={pricingRelated.eyebrow}
+        title={pricingRelated.title}
+        items={pricingRelated.items}
+        bg="band-sage"
+      />
+      <CtaSection
+        title={pricingCta.title}
+        body={pricingCta.body}
+        primary={pricingCta.primary}
+        secondary={pricingCta.secondary}
+        bg="inverse"
+        watermark="$"
+      />
+    </>
   )
 }
