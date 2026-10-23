@@ -1,67 +1,33 @@
 import { Skeleton } from "@/components/ui/skeleton"
 
+// Streaming skeleton for the rebuilt /faq page — mirrors the new PageHero +
+// explorer layout (the old one also nested a second <main>, which the
+// marketing layout already provides).
 export default function FAQLoading() {
   return (
-    <div className="flex min-h-screen flex-col">
-      <div className="h-16 border-b bg-background/95 backdrop-blur"></div>
-
-      <main className="flex-1">
-        {/* Hero Section */}
-        <section className="py-24 md:py-32 relative">
-          <div className="container relative">
-            <div className="max-w-3xl mx-auto text-center">
-              <Skeleton className="h-6 w-32 mx-auto mb-4" />
-              <Skeleton className="h-16 w-full max-w-2xl mx-auto mb-6" />
-              <Skeleton className="h-6 w-full max-w-xl mx-auto mb-8" />
-              <Skeleton className="h-12 w-full max-w-xl mx-auto" />
-            </div>
+    <div>
+      <section className="border-b bg-surface">
+        <div className="container grid items-center gap-12 py-16 md:py-24 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16">
+          <div>
+            <Skeleton className="mb-4 h-4 w-40" />
+            <Skeleton className="h-14 w-full max-w-xl" />
+            <Skeleton className="mt-5 h-6 w-full max-w-lg" />
+            <Skeleton className="mt-8 h-11 w-44 rounded-full" />
           </div>
-        </section>
-
-        {/* FAQ Categories */}
-        <section className="py-12 border-b">
-          <div className="container">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {[...Array(4)].map((_, i) => (
-                <Skeleton key={i} className="h-32 w-full rounded-xl" />
-              ))}
-            </div>
+        </div>
+      </section>
+      <section className="relative py-16 md:py-24">
+        <div className="container">
+          <Skeleton className="mb-4 h-5 w-36" />
+          <Skeleton className="mb-8 h-10 w-72" />
+          <Skeleton className="mb-6 h-11 w-full max-w-xl rounded-full" />
+          <div className="space-y-4">
+            {[...Array(5)].map((_, i) => (
+              <Skeleton key={i} className="h-16 w-full max-w-3xl rounded-lg" />
+            ))}
           </div>
-        </section>
-
-        {/* FAQ Accordion */}
-        <section className="py-24">
-          <div className="container">
-            <div className="max-w-3xl mx-auto">
-              <Skeleton className="h-10 w-48 mb-8" />
-
-              <div className="space-y-4">
-                {[...Array(5)].map((_, i) => (
-                  <Skeleton key={i} className="h-16 w-full rounded-md" />
-                ))}
-              </div>
-
-              <Skeleton className="h-10 w-48 mt-16 mb-8" />
-
-              <div className="space-y-4">
-                {[...Array(4)].map((_, i) => (
-                  <Skeleton key={i} className="h-16 w-full rounded-md" />
-                ))}
-              </div>
-
-              <Skeleton className="h-10 w-48 mt-16 mb-8" />
-
-              <div className="space-y-4">
-                {[...Array(4)].map((_, i) => (
-                  <Skeleton key={i} className="h-16 w-full rounded-md" />
-                ))}
-              </div>
-            </div>
-          </div>
-        </section>
-      </main>
-
-      <div className="bg-background border-t py-12"></div>
+        </div>
+      </section>
     </div>
   )
 }

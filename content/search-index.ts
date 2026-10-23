@@ -1,4 +1,5 @@
 import { changelog } from "@/content/changelog"
+import { faqEntries } from "@/content/faq"
 import { productItems, resourceItems, solutionItems } from "@/content/site"
 
 // Static site search corpus for the Cmd/Ctrl+K palette. Derived from the same
@@ -26,6 +27,7 @@ export const searchIndex: SearchEntry[] = [
   { title: "FAQ", subtitle: "Common questions about JiraVision", href: "/faq", group: "Pages" },
   { title: "Changelog", subtitle: "What shipped, newest first", href: "/changelog", group: "Pages" },
   { title: "Status", subtitle: "Service health", href: "/status", group: "Pages" },
+  { title: "Printable one-pager", subtitle: "One-page overview, built for printing", href: "/one-pager", group: "Pages" },
   { title: "Log in", subtitle: "Your workspace", href: "/login", group: "Pages" },
   { title: "Sign up", subtitle: "Create an account", href: "/signup", group: "Pages" },
   ...nav(productItems, "Products"),
@@ -39,16 +41,12 @@ export const searchIndex: SearchEntry[] = [
     ["Improving team wellbeing, one sprint at a time", "/resources/blog/improve-team-wellbeing"],
     ["Preventing burnout: a practical guide for leads", "/resources/blog/preventing-burnout-guide"],
   ].map(([title, href]) => ({ title, subtitle: "Blog article", href, group: "Blog" as SearchGroup })),
-  ...[
-    "What is JiraVision?",
-    "How does JiraVision integrate with existing tools?",
-    "Is JiraVision suitable for remote teams?",
-    "How secure is JiraVision?",
-    "What kind of support does JiraVision offer?",
-    "What plans does JiraVision offer?",
-    "Is there a free trial available?",
-    "Can I change plans later?",
-  ].map((title) => ({ title, subtitle: "FAQ answer", href: "/faq", group: "FAQ" as SearchGroup })),
+  ...faqEntries.map((entry) => ({
+    title: entry.q,
+    subtitle: `${entry.category} FAQ`,
+    href: `/faq?q=${encodeURIComponent(entry.q)}`,
+    group: "FAQ" as SearchGroup,
+  })),
   ...changelog.map((entry) => ({
     title: `${entry.version} — ${entry.title}`,
     subtitle: entry.body.slice(0, 90) + "…",

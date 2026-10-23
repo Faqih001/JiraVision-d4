@@ -85,6 +85,30 @@ export const resourceItems: NavItem[] = [
     image: unsplash("photo-1454165804606-c3d57bc86b40"),
   },
   {
+    title: "Templates",
+    href: "/templates",
+    description: "Sprint, wellbeing and incident playbooks you can copy",
+    image: unsplash("photo-1517245386807-bb43f82c33c4"),
+  },
+  {
+    title: "Compare",
+    href: "/compare",
+    description: "Honest side-by-sides with the tools you already evaluate",
+    image: unsplash("photo-1460925895917-afdab827c52f"),
+  },
+  {
+    title: "Migration hub",
+    href: "/migration",
+    description: "Field mapping, dual-run plans and a downloadable checklist",
+    image: unsplash("photo-1552664730-d307ca884978"),
+  },
+  {
+    title: "Roadmap",
+    href: "/roadmap",
+    description: "Now / next / later, with commitment levels stated plainly",
+    image: unsplash("photo-1516321318423-f06f85e504b3"),
+  },
+  {
     title: "Webinars",
     href: "/resources/webinars",
     description: "Product demos and deep-dive sessions",
@@ -125,9 +149,9 @@ export const menuFeatures: Record<"Products" | "Solutions" | "Resources", MenuFe
   Resources: {
     eyebrow: "Hands-on",
     title: "Product templates",
-    body: "Sprint, roadmap and incident playbooks you can adopt in one click.",
-    cta: "Browse docs",
-    href: "/resources/documentation",
+    body: "Sprint, roadmap and incident playbooks you can copy or download.",
+    cta: "Browse templates",
+    href: "/templates",
   },
 }
 
@@ -144,6 +168,8 @@ export const footerColumns: FooterColumn[] = [
       { label: "Gamification", href: "/products/gamification" },
       { label: "Ethical Metrics", href: "/products/ethical-metrics" },
       { label: "Pricing", href: "/pricing" },
+      { label: "Templates", href: "/templates" },
+      { label: "Roadmap", href: "/roadmap" },
       { label: "Changelog", href: "/changelog" },
     ],
   },
@@ -154,6 +180,8 @@ export const footerColumns: FooterColumn[] = [
       { label: "Enterprise", href: "/solutions/enterprise" },
       { label: "Agencies", href: "/solutions/agencies" },
       { label: "Remote Teams", href: "/solutions/remote-teams" },
+      { label: "Compare tools", href: "/compare" },
+      { label: "Migration hub", href: "/migration" },
     ],
   },
   {
@@ -173,6 +201,7 @@ export const footerColumns: FooterColumn[] = [
       { label: "Webinars", href: "/resources/webinars" },
       { label: "FAQ", href: "/faq" },
       { label: "Status", href: "/status" },
+      { label: "Printable one-pager", href: "/one-pager" },
     ],
   },
   {
