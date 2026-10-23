@@ -1,381 +1,233 @@
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Phone, Mail, MapPin, Clock, ArrowRight, MessageSquare, Building2, HelpCircle, Headphones } from "lucide-react"
-import { GoogleMap } from "@/components/google-map"
-import Image from "next/image"
+import type { Metadata } from "next"
 import Link from "next/link"
+import { ArrowRight, Clock, Mail, MapPin, MessageSquare, Phone } from "lucide-react"
+
+import { Section, SectionHeading, Reveal } from "@/components/sections/section"
+import { ContactFormTabs } from "@/components/forms/contact-form-tabs"
 import { WhatsAppButton } from "@/components/whatsapp-button"
+import { GoogleMap } from "@/components/google-map"
+import { Button } from "@/components/ui/button"
+import { contactDetails, contactDepartments } from "@/content/site"
+import { overallStatus } from "@/content/status"
+
+export const metadata: Metadata = {
+  title: "Contact — JiraVision",
+  description:
+    "Talk to the JiraVision team: send a message, book a live demo, or request a tailored quote. We reply within one business day.",
+  openGraph: {
+    title: "Contact JiraVision",
+    description: "Send a message, book a demo, or request a quote — we reply within one business day.",
+    url: "https://jiravision.vercel.app/contact",
+  },
+}
+
+const center = { lat: -0.1673, lng: 36.1091 }
 
 export default function ContactPage() {
+  // The previous v0 build shipped a live Google Maps key in source; it must be
+  // revoked in Google Cloud Console and provided via env (see .env.example).
+  const hasMapKey = Boolean(process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY)
+  const mapsSearchUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(contactDetails.mapQuery)}`
+
   return (
-    <div className="flex min-h-screen flex-col">
+    <>
+      <Section bg="grain" className="pt-20 md:pt-28">
+        <div className="max-w-3xl">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-clay">Contact</p>
+          <h1 className="font-display text-4xl font-medium tracking-tight md:text-5xl">
+            Talk to a human at JiraVision
+          </h1>
+          <p className="prose-body mt-4 max-w-2xl">
+            Questions about the product, pricing or a pilot? Pick the fastest route below — every message
+            lands with the team, and we reply within one business day.
+          </p>
+          <div className="mt-6 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+            <span className="inline-flex items-center gap-2">
+              <span
+                aria-hidden="true"
+                className="h-2 w-2 rounded-full bg-success"
+              />
+              {overallStatus}
+            </span>
+            <a href={contactDetails.phoneHref} className="underline-offset-4 hover:underline">
+              {contactDetails.phone}
+            </a>
+            <a href={`mailto:${contactDetails.email}`} className="underline-offset-4 hover:underline">
+              {contactDetails.email}
+            </a>
+          </div>
+        </div>
+      </Section>
 
-      <main className="flex-1">
-        {/* Hero Section */}
-        <section className="py-24 md:py-32 relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-primary/10"></div>
-          <div className="absolute inset-0 bg-grid-white/10 bg-[length:20px_20px] [mask-image:radial-gradient(white,transparent_85%)]"></div>
-          <div className="container relative">
-            <div className="max-w-3xl mx-auto text-center">
-              <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-sm text-primary mb-4">
-                <MessageSquare className="h-4 w-4" />
-                <span>Contact Us</span>
-              </div>
-              <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-6">
-                Get in <span className="text-primary">Touch</span>
-              </h1>
-              <p className="text-xl text-muted-foreground mb-8">
-                Have questions about our products or services? Our team is here to help you.
+      <Section bg="grid">
+        <div className="grid gap-10 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:gap-14">
+          <Reveal>
+            <div className="rounded-2xl border border-border bg-background p-6 shadow-soft md:p-8">
+              <h2 className="font-display text-2xl font-medium tracking-tight">How can we help?</h2>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Choose a tab — each goes straight to the right queue.
               </p>
-            </div>
-          </div>
-        </section>
-
-        {/* Contact Form Section */}
-        <section className="py-16">
-          <div className="container">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
-              {/* Contact Form */}
-              <div>
-                <div className="bg-white rounded-xl p-8 shadow-xl border relative overflow-hidden">
-                  <div className="absolute -inset-0.5 rounded-xl bg-gradient-to-r from-primary to-purple-600 opacity-5 blur-xl"></div>
-                  <div className="relative z-10">
-                    <h2 className="text-2xl md:text-3xl font-bold mb-6">Send Us a Message</h2>
-                    <form className="space-y-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                          <label htmlFor="firstName" className="text-sm font-medium">
-                            First Name
-                          </label>
-                          <Input id="firstName" placeholder="Enter your first name" />
-                        </div>
-                        <div className="space-y-2">
-                          <label htmlFor="lastName" className="text-sm font-medium">
-                            Last Name
-                          </label>
-                          <Input id="lastName" placeholder="Enter your last name" />
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <label htmlFor="email" className="text-sm font-medium">
-                          Email
-                        </label>
-                        <Input id="email" type="email" placeholder="Enter your email" />
-                      </div>
-
-                      <div className="space-y-2">
-                        <label htmlFor="company" className="text-sm font-medium">
-                          Company
-                        </label>
-                        <Input id="company" placeholder="Enter your company name" />
-                      </div>
-
-                      <div className="space-y-2">
-                        <label htmlFor="subject" className="text-sm font-medium">
-                          Subject
-                        </label>
-                        <Select>
-                          <SelectTrigger id="subject">
-                            <SelectValue placeholder="Select a subject" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="general">General Inquiry</SelectItem>
-                            <SelectItem value="sales">Sales Question</SelectItem>
-                            <SelectItem value="support">Technical Support</SelectItem>
-                            <SelectItem value="partnership">Partnership Opportunity</SelectItem>
-                            <SelectItem value="other">Other</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="space-y-2">
-                        <label htmlFor="message" className="text-sm font-medium">
-                          Message
-                        </label>
-                        <Textarea id="message" placeholder="Enter your message" rows={5} />
-                      </div>
-
-                      <Button type="submit" className="w-full rounded-full">
-                        Send Message
-                      </Button>
-                    </form>
-                  </div>
-                </div>
-              </div>
-
-              {/* Contact Information */}
-              <div className="space-y-8">
-                <div>
-                  <h2 className="text-2xl md:text-3xl font-bold mb-6">Contact Information</h2>
-                  <p className="text-muted-foreground mb-8">
-                    Our team is available to answer your questions and help you get the most out of JiraVision.
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="bg-white rounded-xl p-6 shadow-lg border transform transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
-                    <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                      <Phone className="h-6 w-6 text-primary" />
-                    </div>
-                    <h3 className="text-lg font-semibold mb-2">Phone</h3>
-                    <p className="text-muted-foreground">+254 741 140 250</p>
-                    <p className="text-muted-foreground">Mon-Fri, 9am-6pm PST</p>
-                  </div>
-
-                  <div className="bg-white rounded-xl p-6 shadow-lg border transform transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
-                    <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                      <Mail className="h-6 w-6 text-primary" />
-                    </div>
-                    <h3 className="text-lg font-semibold mb-2">Email</h3>
-                    <p className="text-muted-foreground">info@jiravision.com</p>
-                    <p className="text-muted-foreground">support@jiravision.com</p>
-                  </div>
-
-                  <div className="bg-white rounded-xl p-6 shadow-lg border transform transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
-                    <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                      <MapPin className="h-6 w-6 text-primary" />
-                    </div>
-                    <h3 className="text-lg font-semibold mb-2">Address</h3>
-                    <p className="text-muted-foreground">Kabarak University</p>
-                    <p className="text-muted-foreground">Nakuru, Kenya</p>
-                  </div>
-
-                  <div className="bg-white rounded-xl p-6 shadow-lg border transform transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
-                    <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                      <Clock className="h-6 w-6 text-primary" />
-                    </div>
-                    <h3 className="text-lg font-semibold mb-2">Hours</h3>
-                    <p className="text-muted-foreground">Monday - Friday</p>
-                    <p className="text-muted-foreground">9:00 AM - 6:00 PM PST</p>
-                  </div>
-                </div>
-
-                <div className="mt-8">
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-semibold">Our Location</h3>
-                    <WhatsAppButton phoneNumber="254741140250" />
-                  </div>
-                  <div className="h-[300px] rounded-xl overflow-hidden border shadow-lg">
-                    <GoogleMap
-                      center={{
-                        lat: -0.1673,
-                        lng: 36.1091,
-                      }}
-                      apiKey="AIzaSyDPgttFbKx3V_mzD-UMAV0fWHDyU-QBk3c"
-                    />
-                  </div>
-                </div>
+              <div className="mt-6">
+                <ContactFormTabs />
               </div>
             </div>
-          </div>
-        </section>
+          </Reveal>
 
-        {/* Department Contacts Section */}
-        <section className="py-16 bg-gradient-to-br from-slate-50 to-slate-100">
-          <div className="container">
-            <div className="text-center mb-12">
-              <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-sm text-primary mb-4">
-                <Building2 className="h-4 w-4" />
-                <span>Departments</span>
-              </div>
-              <h2 className="text-2xl md:text-3xl font-bold mb-4">Connect with the Right Team</h2>
-              <p className="text-muted-foreground max-w-2xl mx-auto">
-                Reach out directly to the department that can best assist you with your needs.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <div className="bg-white rounded-xl overflow-hidden shadow-lg border transform transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
-                <div className="h-40 relative">
-                  <Image
-                    src="https://images.unsplash.com/photo-1556761175-5973dc0f32e7?q=80&w=1170&auto=format&fit=crop"
-                    alt="Sales Team"
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 768px) 100vw, 33vw"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
-                  <div className="absolute bottom-4 left-4 text-white">
-                    <h3 className="text-xl font-bold">Sales</h3>
-                  </div>
+          <div className="space-y-6">
+            <Reveal>
+              <div className="rounded-2xl border border-border bg-surface p-6">
+                <h2 className="font-display text-xl font-medium">Direct lines</h2>
+                <ul className="mt-4 space-y-4 text-sm">
+                  <li className="flex items-start gap-3">
+                    <Phone className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+                    <div>
+                      <a href={contactDetails.phoneHref} className="font-medium hover:underline">
+                        {contactDetails.phone}
+                      </a>
+                      <p className="text-muted-foreground">Voice &amp; WhatsApp during business hours.</p>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <Mail className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+                    <div>
+                      <a href={`mailto:${contactDetails.email}`} className="block font-medium hover:underline">
+                        {contactDetails.email}
+                      </a>
+                      <a
+                        href={`mailto:${contactDetails.supportEmail}`}
+                        className="block text-muted-foreground hover:underline"
+                      >
+                        {contactDetails.supportEmail}
+                      </a>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+                    <div>
+                      <p className="font-medium">{contactDetails.address.line1}</p>
+                      <p className="text-muted-foreground">{contactDetails.address.line2}</p>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <Clock className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+                    <div>
+                      <p className="font-medium">{contactDetails.hours.days}</p>
+                      <p className="text-muted-foreground">{contactDetails.hours.time}</p>
+                    </div>
+                  </li>
+                </ul>
+                <div className="mt-5 border-t border-border pt-4">
+                  <WhatsAppButton phoneNumber={contactDetails.whatsapp} />
                 </div>
-                <div className="p-6">
-                  <p className="text-muted-foreground mb-4">
-                    For pricing inquiries, demos, and information about our products and services.
-                  </p>
-                  <div className="flex items-center gap-2 mb-2">
-                    <Mail className="h-4 w-4 text-primary" />
-                    <span>sales@jiravision.com</span>
+              </div>
+            </Reveal>
+
+            <Reveal>
+              <div className="overflow-hidden rounded-2xl border border-border">
+                {hasMapKey ? (
+                  <div className="h-64">
+                    <GoogleMap center={center} />
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Phone className="h-4 w-4 text-primary" />
-                    <span>+254 741 140 251</span>
-                  </div>
-                  <Link href="/contact/sales">
-                    <Button variant="link" className="p-0 h-auto mt-4 text-primary">
-                      Contact Sales <ArrowRight className="h-4 w-4 ml-1" />
+                ) : (
+                  <div className="flex h-64 flex-col items-center justify-center gap-3 bg-surface p-6 text-center">
+                    <MapPin className="h-6 w-6 text-primary" aria-hidden="true" />
+                    <p className="text-sm font-medium">
+                      {contactDetails.address.line1}, {contactDetails.address.line2}
+                    </p>
+                    <p className="max-w-xs text-xs text-muted-foreground">
+                      Interactive map hidden until a Google Maps key is configured — the address below works
+                      in any maps app.
+                    </p>
+                    <Button asChild variant="outline" size="sm">
+                      <a href={mapsSearchUrl} target="_blank" rel="noopener noreferrer">
+                        Open in Google Maps
+                        <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
+                      </a>
                     </Button>
-                  </Link>
-                </div>
+                  </div>
+                )}
               </div>
-
-              <div className="bg-white rounded-xl overflow-hidden shadow-lg border transform transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
-                <div className="h-40 relative">
-                  <Image
-                    src="https://images.unsplash.com/photo-1600880292203-757bb62b4baf?q=80&w=1170&auto=format&fit=crop"
-                    alt="Support Team"
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 768px) 100vw, 33vw"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
-                  <div className="absolute bottom-4 left-4 text-white">
-                    <h3 className="text-xl font-bold">Support</h3>
-                  </div>
-                </div>
-                <div className="p-6">
-                  <p className="text-muted-foreground mb-4">
-                    For technical assistance, troubleshooting, and help with using our platform.
-                  </p>
-                  <div className="flex items-center gap-2 mb-2">
-                    <Mail className="h-4 w-4 text-primary" />
-                    <span>support@jiravision.com</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Phone className="h-4 w-4 text-primary" />
-                    <span>+254 741 140 252</span>
-                  </div>
-                  <Link href="/contact/support">
-                    <Button variant="link" className="p-0 h-auto mt-4 text-primary">
-                      Get Support <ArrowRight className="h-4 w-4 ml-1" />
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-xl overflow-hidden shadow-lg border transform transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
-                <div className="h-40 relative">
-                  <Image
-                    src="https://images.unsplash.com/photo-1557804506-669a67965ba0?q=80&w=1074&auto=format&fit=crop"
-                    alt="Partnerships Team"
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 768px) 100vw, 33vw"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
-                  <div className="absolute bottom-4 left-4 text-white">
-                    <h3 className="text-xl font-bold">Partnerships</h3>
-                  </div>
-                </div>
-                <div className="p-6">
-                  <p className="text-muted-foreground mb-4">
-                    For integration partners, resellers, and other business collaboration opportunities.
-                  </p>
-                  <div className="flex items-center gap-2 mb-2">
-                    <Mail className="h-4 w-4 text-primary" />
-                    <span>partners@jiravision.com</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Phone className="h-4 w-4 text-primary" />
-                    <span>+254 741 140 253</span>
-                  </div>
-                  <Link href="/contact/partnerships">
-                    <Button variant="link" className="p-0 h-auto mt-4 text-primary">
-                      Explore Partnerships <ArrowRight className="h-4 w-4 ml-1" />
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            </div>
+            </Reveal>
           </div>
-        </section>
+        </div>
+      </Section>
 
-        {/* FAQ Section */}
-        <section className="py-16 bg-white">
-          <div className="container">
-            <div className="max-w-3xl mx-auto">
-              <div className="text-center mb-12">
-                <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-sm text-primary mb-4">
-                  <HelpCircle className="h-4 w-4" />
-                  <span>FAQ</span>
-                </div>
-                <h2 className="text-2xl md:text-3xl font-bold mb-4">Frequently Asked Questions</h2>
-                <p className="text-muted-foreground">Find quick answers to common questions about contacting us.</p>
-              </div>
-
-              <div className="space-y-6">
-                <div className="bg-white rounded-xl p-6 shadow-lg border">
-                  <h3 className="font-semibold mb-2">What's the typical response time?</h3>
-                  <p className="text-muted-foreground">
-                    We aim to respond to all inquiries within 24 hours during business days. For urgent matters, please
-                    call our support line.
-                  </p>
-                </div>
-
-                <div className="bg-white rounded-xl p-6 shadow-lg border">
-                  <h3 className="font-semibold mb-2">Do you offer technical support by phone?</h3>
-                  <p className="text-muted-foreground">
-                    Yes, technical support is available by phone for customers on Business and Enterprise plans. Other
-                    customers can reach our support team via email or chat.
-                  </p>
-                </div>
-
-                <div className="bg-white rounded-xl p-6 shadow-lg border">
-                  <h3 className="font-semibold mb-2">How can I schedule a demo?</h3>
-                  <p className="text-muted-foreground">
-                    You can schedule a demo by filling out the contact form above and selecting "Sales Question" as the
-                    subject. One of our representatives will reach out to arrange a time.
-                  </p>
-                </div>
-              </div>
-
-              <div className="text-center mt-12">
-                <p className="text-muted-foreground mb-4">
-                  Can't find what you're looking for? Check our comprehensive FAQ section.
-                </p>
-                <Link href="/faq">
-                  <Button variant="outline" className="rounded-full gap-2">
-                    View All FAQs <ArrowRight className="h-4 w-4" />
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* CTA Section */}
-        <section className="py-16 bg-gradient-to-br from-primary/90 to-purple-700/90 relative overflow-hidden">
-          <div className="absolute inset-0 bg-grid-white/10 bg-[length:20px_20px] [mask-image:radial-gradient(white,transparent_85%)]"></div>
-          <div className="container relative z-10">
-            <div className="max-w-3xl mx-auto text-center text-white">
-              <div className="inline-flex items-center gap-2 rounded-full bg-white/20 px-3 py-1 text-sm text-white mb-4">
-                <Headphones className="h-4 w-4" />
-                <span>Live Support</span>
-              </div>
-              <h2 className="text-3xl font-bold mb-4">Need Immediate Assistance?</h2>
-              <p className="text-xl text-white/80 mb-8">
-                Our support team is available to help you with any questions or issues you may have.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button size="lg" variant="secondary" className="rounded-full gap-2">
-                  <Phone className="h-4 w-4" /> Call Support
-                </Button>
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="rounded-full bg-transparent text-white border-white hover:bg-white/10 gap-2"
+      <Section bg="band-clay">
+        <SectionHeading
+          eyebrow="Departments"
+          title="Reach the right team first time"
+          intro="Prefer email? Route your note directly — the same addresses are behind the topic dropdown in the form."
+        />
+        <div className="grid gap-6 md:grid-cols-3">
+          {contactDepartments.map((dept) => (
+            <Reveal key={dept.title}>
+              <div className="flex h-full flex-col rounded-2xl border border-border bg-background p-6">
+                <h3 className="font-display text-lg font-medium">{dept.title}</h3>
+                <p className="mt-2 flex-1 text-sm text-muted-foreground">{dept.body}</p>
+                <a
+                  href={`mailto:${dept.email}`}
+                  className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
                 >
-                  <MessageSquare className="h-4 w-4" /> Live Chat
-                </Button>
+                  <Mail className="h-4 w-4" aria-hidden="true" />
+                  {dept.email}
+                </a>
               </div>
-            </div>
-          </div>
-        </section>
-      </main>
+            </Reveal>
+          ))}
+        </div>
+      </Section>
 
-    </div>
+      <Section bg="contour">
+        <div className="mx-auto max-w-3xl">
+          <SectionHeading eyebrow="What happens next" title="From your message to a real answer" className="mx-auto text-center" />
+          <ol className="mt-2 grid gap-6 text-left sm:grid-cols-3">
+            {[
+              {
+                step: "1",
+                title: "Stored & acknowledged",
+                body: "Your note lands in our inbox with a copy of every detail you entered.",
+              },
+              {
+                step: "2",
+                title: "Routed to the team",
+                body: "Sales questions, support tickets and pilots each reach the right person.",
+              },
+              {
+                step: "3",
+                title: "Reply in 1 business day",
+                body: "A real teammate answers — demos get scheduled, quotes get priced.",
+              },
+            ].map((s) => (
+              <li key={s.step} className="rounded-2xl border border-border bg-background p-5">
+                <span className="font-display text-2xl text-clay" aria-hidden="true">
+                  {s.step}
+                </span>
+                <h3 className="mt-2 font-medium">{s.title}</h3>
+                <p className="mt-1 text-sm text-muted-foreground">{s.body}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </Section>
+
+      <Section bg="inverse" watermark="C" className="text-center">
+        <MessageSquare className="mx-auto h-6 w-6" aria-hidden="true" />
+        <h2 className="mx-auto mt-4 max-w-xl font-display text-3xl font-medium tracking-tight">
+          Looking for a quick answer instead?
+        </h2>
+        <p className="mx-auto mt-3 max-w-xl text-muted-foreground">
+          Most questions about plans, data handling and setup are already answered — and live platform
+          status is one click away.
+        </p>
+        <div className="mt-6 flex flex-wrap justify-center gap-3">
+          <Button asChild variant="secondary" size="lg">
+            <Link href="/faq">Browse the FAQ</Link>
+          </Button>
+          <Button asChild variant="outline" size="lg" className="border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10">
+            <Link href="/status">Check live status</Link>
+          </Button>
+        </div>
+      </Section>
+    </>
   )
 }

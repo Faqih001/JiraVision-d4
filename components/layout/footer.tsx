@@ -6,7 +6,10 @@ import { useState } from "react"
 import { ArrowRight, ArrowUp, ChevronDown, Github, Linkedin, Twitter } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { LanguageSelector } from "@/components/layout/language-selector"
 import { ThemeToggle } from "@/components/layout/theme-toggle"
+import { OPEN_CONSENT_EVENT } from "@/lib/consent"
+import { useLocale } from "@/lib/i18n/use-locale"
 import { overallStatus, services } from "@/content/status"
 import {
   footerClosing,
@@ -45,7 +48,7 @@ function NewsletterForm() {
       <p className="mb-4 text-sm text-muted-foreground">{newsletter.description}</p>
       {status === "success" ? (
         <p className="text-sm text-success" role="status">
-          Thanks &mdash; you&apos;re on the list.
+          {newsletter.successNotice}
         </p>
       ) : (
         <form
@@ -103,11 +106,13 @@ function NewsletterForm() {
 }
 
 function FooterColumnNav({ column }: { column: FooterColumn }) {
+  const { t } = useLocale()
+  const label = t(`footer.${column.title.toLowerCase()}`)
   return (
     <>
       <details className="group border-b border-border/60 lg:hidden">
         <summary className="flex min-h-[48px] cursor-pointer list-none items-center justify-between py-2 text-sm font-semibold [&::-webkit-details-marker]:hidden">
-          {column.title}
+          {label}
           <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform duration-200 motion-reduce:transition-none group-open:rotate-180" />
         </summary>
         <ul className="space-y-2 pb-4">
@@ -124,7 +129,7 @@ function FooterColumnNav({ column }: { column: FooterColumn }) {
         </ul>
       </details>
       <nav aria-label={column.title} className="hidden lg:block">
-        <h3 className="mb-3 text-sm font-semibold">{column.title}</h3>
+        <h3 className="mb-3 text-sm font-semibold">{label}</h3>
         <ul className="space-y-2">
           {column.links.map((link) => (
             <li key={link.href}>
@@ -143,6 +148,7 @@ function FooterColumnNav({ column }: { column: FooterColumn }) {
 }
 
 export function Footer() {
+  const { t } = useLocale()
   const backToTop = () => {
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches
     window.scrollTo({ top: 0, behavior: reduced ? "auto" : "smooth" })
@@ -185,6 +191,7 @@ export function Footer() {
             <div className="mt-5 flex flex-wrap items-center gap-3">
               <StatusChip />
               <ThemeToggle className="h-8 w-8" />
+              <LanguageSelector className="rounded-full border border-border bg-background px-3 py-1.5 text-xs" />
             </div>
             {socialLinks.length > 0 && (
               <ul className="mt-5 flex gap-2">
@@ -221,27 +228,35 @@ export function Footer() {
         {/* Compliance row */}
         <div className="mt-6 flex flex-col gap-4 border-t border-border py-6 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
           <p>&copy; {new Date().getFullYear()} JiraVision. All rights reserved.</p>
-          {/* TODO(V2-2): cookie-preferences link once the consent manager exists. */}
-          <nav aria-label="Legal links">
-            <ul className="flex flex-wrap gap-x-5 gap-y-2 text-xs">
-              {footerColumns
-                .find((c) => c.title === "Legal")!
-                .links.map((link) => (
-                  <li key={link.href}>
-                    <Link href={link.href} className="transition-colors duration-150 hover:text-foreground">
-                      {link.label}
-                    </Link>
-                  </li>
-                ))}
-            </ul>
-          </nav>
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new Event(OPEN_CONSENT_EVENT))}
+              className="text-xs transition-colors duration-150 hover:text-foreground"
+            >
+              Cookie preferences
+            </button>
+            <nav aria-label="Legal links">
+              <ul className="flex flex-wrap gap-x-5 gap-y-2 text-xs">
+                {footerColumns
+                  .find((c) => c.title === "Legal")!
+                  .links.map((link) => (
+                    <li key={link.href}>
+                      <Link href={link.href} className="transition-colors duration-150 hover:text-foreground">
+                        {link.label}
+                      </Link>
+                    </li>
+                  ))}
+              </ul>
+            </nav>
+          </div>
           <button
             type="button"
             onClick={backToTop}
             className="inline-flex min-h-[40px] items-center gap-1.5 self-start text-sm font-medium transition-colors duration-150 hover:text-foreground md:self-auto lg:mr-16"
           >
             <ArrowUp className="h-4 w-4" />
-            {footerClosing.backToTop}
+            {t("footer.backToTop")}
           </button>
         </div>
       </div>

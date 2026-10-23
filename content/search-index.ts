@@ -1,0 +1,58 @@
+import { changelog } from "@/content/changelog"
+import { productItems, resourceItems, solutionItems } from "@/content/site"
+
+// Static site search corpus for the Cmd/Ctrl+K palette. Derived from the same
+// content modules the pages render from, so the index can't drift from the nav.
+// (FAQ entries move here as data files in V2-5 when /faq becomes data-driven.)
+
+export type SearchGroup = "Pages" | "Products" | "Solutions" | "Resources" | "Blog" | "FAQ" | "Changelog"
+
+export interface SearchEntry {
+  title: string
+  subtitle: string
+  href: string
+  group: SearchGroup
+}
+
+const nav = (items: typeof productItems, group: SearchGroup): SearchEntry[] =>
+  items.map((item) => ({ title: item.title, subtitle: item.description, href: item.href, group }))
+
+export const searchIndex: SearchEntry[] = [
+  { title: "Home", subtitle: "AI-native project management with wellbeing at the core", href: "/", group: "Pages" },
+  { title: "Pricing", subtitle: "Plans, seat calculator and comparison table", href: "/pricing", group: "Pages" },
+  { title: "About", subtitle: "Mission, principles and the team", href: "/about", group: "Pages" },
+  { title: "Careers", subtitle: "Open roles and how we work", href: "/careers", group: "Pages" },
+  { title: "Contact", subtitle: "Talk to the team, book a demo", href: "/contact", group: "Pages" },
+  { title: "FAQ", subtitle: "Common questions about JiraVision", href: "/faq", group: "Pages" },
+  { title: "Changelog", subtitle: "What shipped, newest first", href: "/changelog", group: "Pages" },
+  { title: "Status", subtitle: "Service health", href: "/status", group: "Pages" },
+  { title: "Log in", subtitle: "Your workspace", href: "/login", group: "Pages" },
+  { title: "Sign up", subtitle: "Create an account", href: "/signup", group: "Pages" },
+  ...nav(productItems, "Products"),
+  ...nav(solutionItems, "Solutions"),
+  ...nav(resourceItems, "Resources"),
+  ...[
+    ["AI Scrum Master: the complete guide", "/resources/blog/ai-scrum-master-guide"],
+    ["How AI is transforming agile project management", "/resources/blog/ai-transforming-agile"],
+    ["Ethical AI in project management", "/resources/blog/ethical-ai-project-management"],
+    ["The science of gamification for engineering teams", "/resources/blog/gamification-science"],
+    ["Improving team wellbeing, one sprint at a time", "/resources/blog/improve-team-wellbeing"],
+    ["Preventing burnout: a practical guide for leads", "/resources/blog/preventing-burnout-guide"],
+  ].map(([title, href]) => ({ title, subtitle: "Blog article", href, group: "Blog" as SearchGroup })),
+  ...[
+    "What is JiraVision?",
+    "How does JiraVision integrate with existing tools?",
+    "Is JiraVision suitable for remote teams?",
+    "How secure is JiraVision?",
+    "What kind of support does JiraVision offer?",
+    "What plans does JiraVision offer?",
+    "Is there a free trial available?",
+    "Can I change plans later?",
+  ].map((title) => ({ title, subtitle: "FAQ answer", href: "/faq", group: "FAQ" as SearchGroup })),
+  ...changelog.map((entry) => ({
+    title: `${entry.version} — ${entry.title}`,
+    subtitle: entry.body.slice(0, 90) + "…",
+    href: "/changelog",
+    group: "Changelog" as SearchGroup,
+  })),
+]

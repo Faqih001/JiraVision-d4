@@ -190,18 +190,50 @@ export const footerColumns: FooterColumn[] = [
 // TODO(owner): add real profile URLs to enable social links; empty array hides the section.
 export const socialLinks: { label: string; href: string; icon: "twitter" | "linkedin" | "github" }[] = []
 
-// Submissions are stored via /api/newsletter (lib/data/subscribers).
-// TODO(V2-2): send the double opt-in confirmation email once the provider adapter exists.
+// Double opt-in: /api/newsletter stores the address as pending and emails a
+// confirmation link (lib/email.ts logs the link locally until a provider key is set).
 export const newsletter = {
   enabled: true,
   title: "Newsletter",
   description: "Occasional notes on AI-native project management. No spam.",
   endpoint: "/api/newsletter",
+  successNotice: "Almost there — check your inbox to confirm your subscription.",
 }
 
 export const footerClosing = {
   title: "Plan sprints your team can sustain.",
   body: "Wellbeing-aware capacity planning, explainable AI drafts and fairness metrics — in one calm workspace.",
   cta: { label: "Get started free", href: "/signup" },
-  backToTop: "Back to top",
 }
+
+// Verified contact channels shown on /contact.
+// NOTE(PLACEHOLDER): sales@ / partners@ mailboxes and the "PST" hours were inherited
+// from the v0 site and are unconfirmed — owner to verify or correct below.
+export const contactDetails = {
+  phone: "+254 741 140 250",
+  phoneHref: "tel:+254741140250",
+  whatsapp: "254741140250",
+  email: "info@jiravision.com",
+  supportEmail: "support@jiravision.com",
+  address: { line1: "Kabarak University", line2: "Nakuru, Kenya" },
+  mapQuery: "Kabarak University, Nakuru, Kenya",
+  hours: { days: "Monday – Friday", time: "9:00 AM – 6:00 PM EAT" },
+}
+
+export const contactDepartments = [
+  {
+    title: "Sales",
+    body: "Pricing questions, demos and product information.",
+    email: "sales@jiravision.com",
+  },
+  {
+    title: "Support",
+    body: "Technical help, troubleshooting and account issues.",
+    email: "support@jiravision.com",
+  },
+  {
+    title: "Partnerships",
+    body: "Integration partners, resellers and collaborations.",
+    email: "partners@jiravision.com",
+  },
+]

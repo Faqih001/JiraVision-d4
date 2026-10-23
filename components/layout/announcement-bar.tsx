@@ -5,6 +5,8 @@ import { useSyncExternalStore } from "react"
 import { ArrowUpRight, X } from "lucide-react"
 import { announcement } from "@/content/site"
 import { overallStatus } from "@/content/status"
+import { LanguageSelector } from "@/components/layout/language-selector"
+import { useLocale } from "@/lib/i18n/use-locale"
 
 const DISMISS_KEY = "jv-announcement-dismissed"
 const DISMISS_EVENT = "jv-announcement-dismiss"
@@ -20,6 +22,7 @@ const getServerSnapshot = () => true
 
 export function AnnouncementBar() {
   const dismissed = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
+  const { t } = useLocale()
 
   if (dismissed) return null
 
@@ -36,9 +39,10 @@ export function AnnouncementBar() {
           </span>
         </Link>
         <div className="flex shrink-0 items-center gap-4">
+          <LanguageSelector className="hidden text-primary-foreground/85 [&_select]:text-primary-foreground/85 sm:inline-flex" />
           <Link
             href="/status"
-            className="hidden items-center gap-1.5 text-primary-foreground/85 transition-colors duration-150 hover:text-primary-foreground sm:flex"
+            className="hidden items-center gap-1.5 text-primary-foreground/85 transition-colors duration-150 hover:text-primary-foreground lg:flex"
           >
             <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-[hsl(148_40%_60%)]" />
             {overallStatus}
@@ -47,7 +51,7 @@ export function AnnouncementBar() {
             href="/resources/documentation"
             className="hidden items-center gap-1 text-primary-foreground/85 transition-colors duration-150 hover:text-primary-foreground md:flex"
           >
-            Docs
+            {t("topbar.docs")}
             <ArrowUpRight className="h-3 w-3" aria-hidden="true" />
           </Link>
           <button

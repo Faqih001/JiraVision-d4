@@ -5,12 +5,13 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
+import { useAuth } from "@/context/auth-context"
+import { AuthShell } from "@/components/auth/auth-shell"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Lock, Eye, EyeOff, ArrowLeft, CheckCircle } from "lucide-react"
-import { useAuth } from "@/context/auth-context"
 
 export default function ResetPasswordPage() {
   const [password, setPassword] = useState("")
@@ -85,135 +86,125 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <div className="flex-1 flex items-center justify-center bg-gray-50 p-4 md:p-8">
-        <div className="w-full max-w-md">
-          <div className="bg-white rounded-xl shadow-lg p-8">
-            {isCheckingToken ? (
-              <div className="text-center py-8">
-                <div className="animate-pulse mb-4">
-                  <div className="h-12 w-12 bg-primary/20 rounded-full mx-auto"></div>
-                </div>
-                <p className="text-muted-foreground">Verifying your reset token...</p>
-              </div>
-            ) : tokenError ? (
-              <div className="text-center py-4">
-                <Alert variant="destructive" className="mb-6">
-                  <AlertDescription>{tokenError}</AlertDescription>
-                </Alert>
-                <Link href="/forgot-password">
-                  <Button>Request New Reset Link</Button>
-                </Link>
-              </div>
-            ) : !isSubmitted ? (
-              <>
-                <div className="mb-6">
-                  <h1 className="text-2xl font-bold mb-2">Create new password</h1>
-                  <p className="text-muted-foreground">
-                    Your new password must be different from previously used passwords.
-                  </p>
-                </div>
-
-                {error && (
-                  <Alert variant="destructive" className="mb-6">
-                    <AlertDescription>{error}</AlertDescription>
-                  </Alert>
-                )}
-
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="password">New password</Label>
-                    <div className="relative">
-                      <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                        <Lock className="h-5 w-5 text-gray-400" />
-                      </div>
-                      <Input
-                        id="password"
-                        name="password"
-                        type={showPassword ? "text" : "password"}
-                        required
-                        className="pl-10 pr-10"
-                        placeholder="••••••••"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        disabled={isSubmitting}
-                      />
-                      <button
-                        type="button"
-                        className="absolute inset-y-0 right-0 flex items-center pr-3"
-                        onClick={() => setShowPassword(!showPassword)}
-                      >
-                        {showPassword ? (
-                          <EyeOff className="h-5 w-5 text-gray-400" />
-                        ) : (
-                          <Eye className="h-5 w-5 text-gray-400" />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="confirmPassword">Confirm new password</Label>
-                    <div className="relative">
-                      <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                        <Lock className="h-5 w-5 text-gray-400" />
-                      </div>
-                      <Input
-                        id="confirmPassword"
-                        name="confirmPassword"
-                        type={showConfirmPassword ? "text" : "password"}
-                        required
-                        className="pl-10 pr-10"
-                        placeholder="••••••••"
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        disabled={isSubmitting}
-                      />
-                      <button
-                        type="button"
-                        className="absolute inset-y-0 right-0 flex items-center pr-3"
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      >
-                        {showConfirmPassword ? (
-                          <EyeOff className="h-5 w-5 text-gray-400" />
-                        ) : (
-                          <Eye className="h-5 w-5 text-gray-400" />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-
-                  <Button type="submit" className="w-full" disabled={isSubmitting}>
-                    {isSubmitting ? "Resetting..." : "Reset password"}
-                  </Button>
-                </form>
-              </>
-            ) : (
-              <div className="text-center">
-                <div className="flex justify-center mb-4">
-                  <CheckCircle className="h-12 w-12 text-green-500" />
-                </div>
-                <h1 className="text-2xl font-bold mb-2">Password reset successful</h1>
-                <p className="text-muted-foreground mb-6">
-                  Your password has been successfully reset. You can now log in with your new password.
-                </p>
-                <Link href="/login">
-                  <Button>Go to login</Button>
-                </Link>
-              </div>
-            )}
-
-            {!tokenError && !isSubmitted && (
-              <div className="mt-6 pt-6 border-t text-center">
-                <Link href="/login" className="inline-flex items-center text-sm text-primary hover:underline">
-                  <ArrowLeft className="mr-2 h-4 w-4" />
-                  Back to login
-                </Link>
-              </div>
-            )}
+    <AuthShell
+      title={isSubmitted ? "Password reset" : "Create a new password"}
+      subtitle={
+        isSubmitted
+          ? undefined
+          : "Your new password must be different from previously used passwords."
+      }
+    >
+      {isCheckingToken ? (
+        <div className="py-8 text-center">
+          <div className="mb-4 animate-pulse">
+            <div className="mx-auto h-12 w-12 rounded-full bg-primary/20" />
           </div>
+          <p className="text-muted-foreground">Verifying your reset token...</p>
         </div>
-      </div>
-    </div>
+      ) : tokenError ? (
+        <div className="py-4 text-center">
+          <Alert variant="destructive" className="mb-6">
+            <AlertDescription>{tokenError}</AlertDescription>
+          </Alert>
+          <Button asChild className="rounded-full">
+            <Link href="/forgot-password">Request a new reset link</Link>
+          </Button>
+        </div>
+      ) : !isSubmitted ? (
+        <>
+          {error && (
+            <Alert variant="destructive" className="mb-6">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="password">New password</Label>
+              <div className="relative">
+                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                  <Lock className="h-5 w-5 text-muted-foreground" />
+                </div>
+                <Input
+                  id="password"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="new-password"
+                  required
+                  className="pl-10 pr-10"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={isSubmitting}
+                />
+                <button
+                  type="button"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirm new password</Label>
+              <div className="relative">
+                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                  <Lock className="h-5 w-5 text-muted-foreground" />
+                </div>
+                <Input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type={showConfirmPassword ? "text" : "password"}
+                  autoComplete="new-password"
+                  required
+                  className="pl-10 pr-10"
+                  placeholder="••••••••"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  disabled={isSubmitting}
+                />
+                <button
+                  type="button"
+                  aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                >
+                  {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
+              </div>
+            </div>
+
+            <Button type="submit" className="w-full rounded-full" disabled={isSubmitting}>
+              {isSubmitting ? "Resetting..." : "Reset password"}
+            </Button>
+          </form>
+        </>
+      ) : (
+        <div className="text-center">
+          <div className="mb-4 flex justify-center">
+            <CheckCircle className="h-12 w-12 text-success" />
+          </div>
+          <h2 className="font-display text-xl font-medium">All set</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Your password has been reset. You can now sign in with your new password.
+          </p>
+          <Button asChild className="mt-6 w-full rounded-full">
+            <Link href="/login">Go to login</Link>
+          </Button>
+        </div>
+      )}
+
+      {!tokenError && !isSubmitted && (
+        <div className="mt-6 border-t border-border pt-6 text-center">
+          <Link href="/login" className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline">
+            <ArrowLeft className="h-4 w-4" />
+            Back to login
+          </Link>
+        </div>
+      )}
+    </AuthShell>
   )
 }

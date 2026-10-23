@@ -3,8 +3,9 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useEffect, useRef, useState, useSyncExternalStore } from "react"
-import { Home, Mail, Menu, Tag, X } from "lucide-react"
+import { Home, Menu, Search, Tag, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { OPEN_SEARCH_EVENT } from "@/components/features/site-search"
 import { cn } from "@/lib/utils"
 
 // The navbar owns the mobile drawer; the "Menu" tab asks it to open.
@@ -20,10 +21,14 @@ function subscribeDismiss(cb: () => void) {
 const getSnapshot = () => sessionStorage.getItem(DISMISS_KEY) === "1"
 const getServerSnapshot = () => false
 
-const mobileTabs = [
+const mobileLinkTabs = [
   { label: "Home", href: "/", icon: Home },
   { label: "Pricing", href: "/pricing", icon: Tag },
-  { label: "Contact", href: "/contact", icon: Mail },
+]
+
+const mobileActionTabs = [
+  { label: "Search", icon: Search, onSelect: () => window.dispatchEvent(new Event(OPEN_SEARCH_EVENT)) },
+  { label: "Menu", icon: Menu, onSelect: () => window.dispatchEvent(new Event(OPEN_MOBILE_NAV_EVENT)) },
 ]
 
 export function BottomBar() {
@@ -111,7 +116,7 @@ export function BottomBar() {
         )}
       >
         <ul className="grid grid-cols-4 pb-[env(safe-area-inset-bottom)]">
-          {mobileTabs.map((tab) => {
+          {mobileLinkTabs.map((tab) => {
             const active = tab.href === "/" ? pathname === "/" : pathname.startsWith(tab.href)
             const Icon = tab.icon
             return (
@@ -137,16 +142,21 @@ export function BottomBar() {
               </li>
             )
           })}
-          <li>
-            <button
-              type="button"
-              onClick={() => window.dispatchEvent(new Event(OPEN_MOBILE_NAV_EVENT))}
-              className="flex min-h-[52px] w-full flex-col items-center justify-center gap-0.5 py-2 text-[11px] font-medium text-muted-foreground transition-colors duration-150 hover:text-foreground"
-            >
-              <Menu className="h-5 w-5" aria-hidden="true" />
-              Menu
-            </button>
-          </li>
+          {mobileActionTabs.map((tab) => {
+            const Icon = tab.icon
+            return (
+              <li key={tab.label}>
+                <button
+                  type="button"
+                  onClick={tab.onSelect}
+                  className="flex min-h-[52px] w-full flex-col items-center justify-center gap-0.5 py-2 text-[11px] font-medium text-muted-foreground transition-colors duration-150 hover:text-foreground"
+                >
+                  <Icon className="h-5 w-5" aria-hidden="true" />
+                  {tab.label}
+                </button>
+              </li>
+            )
+          })}
         </ul>
       </nav>
     </>

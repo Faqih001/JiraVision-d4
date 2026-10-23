@@ -47,14 +47,14 @@ export default function GlobalChatbot() {
 
   return (
     <>
-      {/* Chatbot Button */}
-      <Button className="fixed bottom-4 right-4 rounded-full shadow-lg h-12 w-12 p-0" onClick={() => setIsOpen(true)}>
+      {/* Chatbot Button — lifted above the mobile bottom bar (lg:hidden) so it never covers the Menu tab */}
+      <Button className="fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom))] right-4 rounded-full shadow-lg h-12 w-12 p-0 lg:bottom-4" onClick={() => setIsOpen(true)}>
         <MessageSquare className="h-6 w-6" />
       </Button>
 
       {/* Chatbot Dialog */}
       {isOpen && (
-        <Card className="fixed bottom-20 right-4 w-80 md:w-96 shadow-xl z-50 flex flex-col max-h-[500px]">
+        <Card className="fixed bottom-[calc(8.25rem+env(safe-area-inset-bottom))] right-4 w-80 md:w-96 shadow-xl z-50 flex flex-col max-h-[500px] lg:bottom-20">
           <CardHeader className="bg-primary p-3 rounded-t-lg flex flex-row items-center justify-between">
             <div className="flex items-center gap-2">
               <Avatar className="h-8 w-8 bg-primary-foreground">
