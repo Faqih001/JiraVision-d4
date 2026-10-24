@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next"
 import { changelog } from "@/content/changelog"
+import { docSlugs } from "@/content/documentation"
 
 const site = "https://jiravision.vercel.app"
 
@@ -36,7 +37,25 @@ const marketing: { path: string; changeFrequency: MetadataRoute.Sitemap[number][
   })),
   { path: "/resources/blog", changeFrequency: "weekly", priority: 0.6 },
   { path: "/resources/blog/ai-scrum-master-guide", changeFrequency: "yearly", priority: 0.5 },
+  // The four dynamic posts from blogPosts in
+  // app/(marketing)/resources/blog/[slug]/page.tsx — kept in sync by hand
+  // because that list is not importable from a page module.
+  ...[
+    "ai-transforming-agile",
+    "improve-team-wellbeing",
+    "gamification-science",
+    "ethical-ai-project-management",
+  ].map((slug) => ({
+    path: `/resources/blog/${slug}`,
+    changeFrequency: "yearly" as const,
+    priority: 0.5,
+  })),
   { path: "/resources/documentation", changeFrequency: "monthly", priority: 0.5 },
+  ...docSlugs().map((slug) => ({
+    path: `/resources/documentation/${slug}`,
+    changeFrequency: "monthly" as const,
+    priority: 0.4,
+  })),
   { path: "/resources/case-studies", changeFrequency: "monthly", priority: 0.5 },
   { path: "/resources/webinars", changeFrequency: "monthly", priority: 0.5 },
   { path: "/terms", changeFrequency: "yearly", priority: 0.2 },

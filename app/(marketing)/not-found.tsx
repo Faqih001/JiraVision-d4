@@ -1,4 +1,10 @@
+import type { Metadata } from "next"
 import Link from "next/link"
+
+export const metadata: Metadata = {
+  title: "Page not found",
+  robots: { index: false, follow: true },
+}
 
 // Nearest not-found boundary for the marketing route group. Without it, a
 // notFound() thrown from a page inside app/(marketing) renders an empty <main>

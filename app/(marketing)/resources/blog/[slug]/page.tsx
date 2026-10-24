@@ -266,6 +266,15 @@ function getRelatedPosts(currentSlug: string, limit = 3) {
   return blogPosts.filter((post) => post.slug !== currentSlug).slice(0, limit)
 }
 
+// Posts are in-repo content, so every slug is known at build time. Turning
+// dynamic params off keeps an unknown slug a framework 404 instead of a
+// streamed not-found boundary.
+export function generateStaticParams() {
+  return blogPosts.map((post) => ({ slug: post.slug }))
+}
+
+export const dynamicParams = false
+
 export async function generateMetadata({
   params,
 }: {
