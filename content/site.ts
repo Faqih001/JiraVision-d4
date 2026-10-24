@@ -109,6 +109,12 @@ export const resourceItems: NavItem[] = [
     image: unsplash("photo-1516321318423-f06f85e504b3"),
   },
   {
+    title: "Find your fit",
+    href: "/fit-quiz",
+    description: "Six questions, published scoring, a verdict that can say no",
+    image: unsplash("photo-1438761681033-6461ffad8d80"),
+  },
+  {
     title: "Webinars",
     href: "/resources/webinars",
     description: "Product demos and deep-dive sessions",
@@ -200,6 +206,7 @@ export const footerColumns: FooterColumn[] = [
       { label: "Case Studies", href: "/resources/case-studies" },
       { label: "Webinars", href: "/resources/webinars" },
       { label: "FAQ", href: "/faq" },
+      { label: "Find your fit", href: "/fit-quiz" },
       { label: "Status", href: "/status" },
       { label: "Printable one-pager", href: "/one-pager" },
     ],

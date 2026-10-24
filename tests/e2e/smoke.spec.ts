@@ -92,6 +92,31 @@ test("Cmd+K opens the site search palette and finds pages", async ({ page }) => 
   await expect(input).toBeHidden()
 })
 
+test("fit quiz: six answers reach the strong-fit verdict with personalised CTAs", async ({ page }) => {
+  await page.goto("/fit-quiz")
+  const picks = [
+    "11–30 people",
+    "Jira — we run it already",
+    "Sprints regularly derail mid-flight",
+    "Estimation arguments and surprise over-commitment",
+    "Team-level aggregates, nothing personal",
+    "Starting fresh — no legacy to carry",
+  ]
+  for (const label of picks) {
+    const option = page.getByRole("radio", { name: new RegExp(label.replace(/[–—]/g, ".")) })
+    await expect(option).toBeVisible()
+    await option.click()
+  }
+  await expect(page.locator("#quiz").getByText("Strong fit", { exact: true })).toBeVisible()
+  await expect(page.getByText(/18/).filter({ hasText: "Score" }).first()).toBeVisible()
+  await expect(page.locator("#quiz").getByText("Show the maths")).toBeVisible()
+  // Personalised second CTA comes from the "what hurts" answer.
+  await expect(page.getByRole("link", { name: /Deep-dive: AI Scrum Master/ })).toBeVisible()
+
+  await page.getByRole("button", { name: /Restart the quiz/ }).click()
+  await expect(page.getByText(/Question 1 \/ 6/).first()).toBeVisible()
+})
+
 test("compare sub-page and one-pager render real content", async ({ page }) => {
   const errors = collectConsoleErrors(page)
   await page.goto("/compare/asana")

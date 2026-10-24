@@ -54,7 +54,7 @@ below with its real implementation status; §3 lists gaps honestly.
 
 | Brief item | Evidence | Status |
 |---|---|---|
-| "Find your fit" quiz personalising CTAs | grep `quiz|fit-quiz|FitQuiz` matches only `REDESIGN_PLAN.md` and `COMPETITOR_RESEARCH.md` — no code, no route | Missing entirely |
+| "Find your fit" quiz personalising CTAs | SHIPPED 2026-10-24 (V2-7): `/fit-quiz` + `content/fit-quiz.ts` + `app/(marketing)/fit-quiz/fit-model.ts` (deterministic scoring, two vetoes, product-personalised CTAs) + 15 unit tests + e2e smoke scenario | Done |
 | Roadmap/status **voting** | no `vote`-related code found in app/components/lib (only product-copy mention "Voting built into setup" in `content/products.ts:365`) | `/roadmap` and `/status` shipped without voting |
 | Scroll-spy + copy-section-link on long-form pages | not present in `legal-doc.tsx` / TOC implementations (sticky numbered TOC with plain anchors only) | Partial: TOC yes, scroll-spy/copy-link no |
 | Reading progress | exists only as the desktop bottom-bar float percentage, not per-article | Partial |

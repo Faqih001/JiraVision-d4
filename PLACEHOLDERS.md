@@ -65,7 +65,7 @@ hits (lines 230–266) are the plan's own log, not code.
 4. Confirm real prices/trial/annual discount (`content/home.ts` + `content/pricing-page.ts`) or soften claims; resolve proration/tax/discount FAQ hedges with billing reality.
 5. Set the true `legalLastReviewed` date (and per-doc review status) in `content/legal.ts`.
 6. Delete or rewrite the legacy `/resources` case-studies, webinars and blog pages — they currently carry fabricated stats and fake people that violate the site's own honesty rules.
-7. Replace homepage testimonial `"PLACEHOLDER — …"` names in `content/home.ts` with permissioned quotes or relabel to "Early-access participant — Role" like the subpages.
+7. Homepage testimonial names relabeled to "Early-access participant — Role" (`content/home.ts`, `content/products.ts`, `content/solutions.ts`); still need real permissioned quotes to replace them. Fit-quiz verdict CTAs (`content/fit-quiz.ts`) carry `NOTE(PLACEHOLDER)` — revisit if plan gating (trial length, enterprise-only features) changes.
 8. Confirm careers openings (`content/careers.ts`) or unpublish the board's role list.
 9. Verify the 12 template definitions (`content/templates.ts`) before promoting the library as usable.
 10. Re-verify compare-page rows against vendor sites (`content/compare.ts` header rule).

@@ -19,7 +19,7 @@ interface FormRouteOptions {
  * validation -> store submission -> notify the team inbox. Bots and rate-
  * limited spam get a fake success so they don't learn they were filtered.
  */
-export function formRoute({ kind, schema, subject, emailTitle, labels, maxPerMinute = 3 }: FormRouteOptions) {
+export function formRoute({ kind, schema, subject, emailTitle, labels, maxPerMinute = 5 }: FormRouteOptions) {
   return async function POST(request: Request) {
     let body: unknown
     try {

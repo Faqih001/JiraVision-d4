@@ -11,6 +11,7 @@ const marketing: { path: string; changeFrequency: MetadataRoute.Sitemap[number][
   { path: "/contact", changeFrequency: "yearly", priority: 0.6 },
   { path: "/careers", changeFrequency: "monthly", priority: 0.5 },
   { path: "/faq", changeFrequency: "monthly", priority: 0.6 },
+  { path: "/fit-quiz", changeFrequency: "monthly", priority: 0.7 },
   { path: "/changelog", changeFrequency: "weekly", priority: 0.5 },
   { path: "/roadmap", changeFrequency: "weekly", priority: 0.5 },
   { path: "/status", changeFrequency: "daily", priority: 0.4 },
