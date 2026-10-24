@@ -81,7 +81,7 @@ export const resourceItems: NavItem[] = [
   {
     title: "Case Studies",
     href: "/resources/case-studies",
-    description: "How teams change their practice with JiraVision",
+    description: "Illustrative deployment scenarios — the settings to turn on, in order",
     image: unsplash("photo-1454165804606-c3d57bc86b40"),
   },
   {
@@ -117,7 +117,7 @@ export const resourceItems: NavItem[] = [
   {
     title: "Webinars",
     href: "/resources/webinars",
-    description: "Product demos and deep-dive sessions",
+    description: "Session outlines you can follow yourself — no unreleased recordings promised",
     image: unsplash("photo-1543269865-cbf427effbad"),
   },
 ]

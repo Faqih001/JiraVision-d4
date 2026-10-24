@@ -1,6 +1,8 @@
 import type { MetadataRoute } from "next"
+import { caseStudySlugs } from "@/content/case-studies"
 import { changelog } from "@/content/changelog"
 import { docSlugs } from "@/content/documentation"
+import { webinarSlugs } from "@/content/webinars"
 
 const site = "https://jiravision.vercel.app"
 
@@ -57,7 +59,17 @@ const marketing: { path: string; changeFrequency: MetadataRoute.Sitemap[number][
     priority: 0.4,
   })),
   { path: "/resources/case-studies", changeFrequency: "monthly", priority: 0.5 },
+  ...caseStudySlugs().map((slug) => ({
+    path: `/resources/case-studies/${slug}`,
+    changeFrequency: "monthly" as const,
+    priority: 0.4,
+  })),
   { path: "/resources/webinars", changeFrequency: "monthly", priority: 0.5 },
+  ...webinarSlugs().map((slug) => ({
+    path: `/resources/webinars/${slug}`,
+    changeFrequency: "monthly" as const,
+    priority: 0.4,
+  })),
   { path: "/terms", changeFrequency: "yearly", priority: 0.2 },
   { path: "/privacy", changeFrequency: "yearly", priority: 0.2 },
   { path: "/cookies", changeFrequency: "yearly", priority: 0.2 },

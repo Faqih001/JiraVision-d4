@@ -19,6 +19,7 @@ import {
   Users,
 } from "lucide-react"
 
+import { SectionBg } from "@/components/sections/section-bg"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -68,6 +69,47 @@ const FEATURED: { slug: string; image: string; kind: string }[] = [
   },
 ]
 
+const DEV_RESOURCES = [
+  {
+    title: "Cookie-session REST API",
+    body: "More than 120 route handlers under /api. No bearer tokens, no /v1 prefix, no API keys to rotate.",
+    href: "/resources/documentation/api-authentication",
+  },
+  {
+    title: "Realtime notifications",
+    body: "A Server-Sent Events feed at /api/notifications/live pushes new rows to every open bell.",
+    href: "/resources/documentation/notifications",
+  },
+  {
+    title: "CSV and JSON export",
+    body: "Any report dataset downloads as a file attachment from /api/reports/export.",
+    href: "/resources/documentation/data-export",
+  },
+]
+
+const SAMPLE_REQUEST = `GET /api/tasks?page=1&pageSize=2&status=in_progress
+Cookie: session_id=…; user_id=…`
+
+const SAMPLE_RESPONSE = `{
+  "success": true,
+  "data": [
+    {
+      "id": 482,
+      "title": "Replace the login rate limiter",
+      "status": "in_progress",
+      "priority": "high",
+      "storyPoints": 5,
+      "assigneeId": 9,
+      "sprintId": 3,
+      "dueDate": "2026-11-04",
+      "tags": ["tech-debt", "auth"],
+      "createdAt": "2026-10-20T09:14:02Z",
+      "updatedAt": "2026-10-23T16:41:55Z"
+    }
+  ],
+  "pagination": { "page": 1, "pageSize": 2, "total": 18 }
+}`
+
 export default function DocIndex() {
   const [query, setQuery] = useState("")
   const [openFaq, setOpenFaq] = useState<string | null>(null)
@@ -86,35 +128,40 @@ export default function DocIndex() {
   return (
     <>
       {/* Hero + working search */}
-      <section className="py-16 bg-gradient-to-b from-slate-50 to-white relative overflow-hidden">
-        <div className="absolute inset-0 bg-grid-slate-200 [mask-image:radial-gradient(ellipse_at_center,white,transparent_70%)]" />
-        <div className="container relative z-10">
+      <section className="relative overflow-hidden bg-surface py-16 md:py-24">
+        <SectionBg variant="grid" />
+        <div className="container relative">
           <div className="max-w-3xl mx-auto text-center">
-            <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-sm text-primary mb-6">
-              <BookOpen className="h-4 w-4" />
+            <p className="mb-6 inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 font-mono text-xs tracking-[0.18em] text-primary uppercase">
+              <BookOpen className="h-4 w-4" aria-hidden="true" />
               <span>Documentation</span>
-            </div>
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">JiraVision Documentation</h1>
-            <p className="text-xl text-muted-foreground mb-8">
-              Every guide describes a route, endpoint or setting that exists in the product
+            </p>
+            <h1 className="font-display text-4xl font-medium tracking-tight md:text-5xl">
+              JiraVision Documentation
+            </h1>
+            <p className="prose-body mx-auto mt-4 text-lg text-muted-foreground">
+              Every guide describes a route, endpoint or setting that exists in the product.
             </p>
 
-            <div className="relative max-w-md mx-auto mb-6">
+            <div className="relative mx-auto mt-8 max-w-md">
               <label htmlFor="docs-search" className="sr-only">
                 Search documentation
               </label>
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-5 w-5" />
+              <Search
+                className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground"
+                aria-hidden="true"
+              />
               <Input
                 id="docs-search"
                 type="search"
                 placeholder="Search documentation..."
-                className="pl-10 rounded-full"
+                className="rounded-full bg-card pl-10"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
               />
             </div>
 
-            <div className="flex flex-wrap justify-center gap-3">
+            <nav aria-label="Jump to a documentation category" className="mt-6 flex flex-wrap justify-center gap-3">
               {docCategories.map((category) => (
                 <Button key={category.id} variant="outline" className="rounded-full" size="sm" asChild>
                   <Link href={`#${category.id}`}>{category.title}</Link>
@@ -123,41 +170,44 @@ export default function DocIndex() {
               <Button variant="outline" className="rounded-full" size="sm" asChild>
                 <Link href="#faq">FAQ</Link>
               </Button>
-            </div>
+            </nav>
           </div>
         </div>
       </section>
 
       {/* Search results */}
       {searching ? (
-        <section className="py-12 bg-white" id="search-results">
+        <section className="py-12 md:py-16" id="search-results">
           <div className="container max-w-3xl">
-            <h2 className="text-2xl font-bold mb-1">
+            <h2 className="font-display text-2xl font-medium tracking-tight md:text-3xl">
               {results.length} {results.length === 1 ? "result" : "results"} for “{query}”
             </h2>
-            <p className="text-muted-foreground mb-6 text-sm">
+            <p className="mt-1 text-sm text-muted-foreground">
               Matching titles rank first, then descriptions, then body copy.
             </p>
             {results.length === 0 ? (
-              <div className="rounded-xl border border-slate-200 p-6 text-center">
+              <div className="mt-6 rounded-lg border bg-card p-6 text-center shadow-soft">
                 <p className="mb-4">Nothing in the catalogue matches that yet.</p>
                 <Button variant="outline" onClick={() => setQuery("")}>
                   Clear search
                 </Button>
               </div>
             ) : (
-              <ul className="divide-y divide-slate-200 rounded-xl border border-slate-200">
+              <ul className="mt-6 divide-y divide-border overflow-hidden rounded-lg border bg-card shadow-soft">
                 {results.map((doc) => (
                   <li key={doc.slug}>
                     <Link
                       href={`/resources/documentation/${doc.slug}`}
-                      className="flex items-start gap-3 p-4 hover:bg-slate-50 transition-colors"
+                      className="flex items-start gap-3 p-4 transition-colors hover:bg-surface focus-visible:bg-surface"
                     >
                       <div className="min-w-0">
                         <p className="font-medium">{doc.title}</p>
                         <p className="text-sm text-muted-foreground">{doc.description}</p>
                       </div>
-                      <ChevronRight className="h-4 w-4 mt-1 ml-auto shrink-0 text-muted-foreground" />
+                      <ChevronRight
+                        className="ml-auto mt-1 h-4 w-4 shrink-0 text-muted-foreground"
+                        aria-hidden="true"
+                      />
                     </Link>
                   </li>
                 ))}
@@ -168,14 +218,18 @@ export default function DocIndex() {
       ) : null}
 
       {/* Categories */}
-      <section className="py-16 bg-white">
+      <section className="py-16 md:py-24">
         <div className="container">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-2">Browse Documentation</h2>
-            <p className="text-muted-foreground">Choose a category to get started</p>
+          <div className="mb-10 text-center md:mb-14">
+            <h2 className="font-display text-3xl font-medium tracking-tight md:text-4xl">
+              Browse documentation
+            </h2>
+            <p className="prose-body mx-auto mt-3 text-muted-foreground">
+              Six categories, ordered the way teams actually adopt the product.
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {docCategories.map((category) => {
               const Icon = CATEGORY_ICONS[category.icon] ?? FileText
               const docs = docsByCategory(category.id)
@@ -183,22 +237,25 @@ export default function DocIndex() {
                 <div
                   key={category.id}
                   id={category.id}
-                  className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm hover:shadow-md transition-shadow scroll-mt-24"
+                  className="scroll-mt-24 rounded-lg border bg-card p-6 shadow-soft transition-shadow hover:shadow-soft-md"
                 >
-                  <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                    <Icon className="h-6 w-6 text-primary" />
+                  <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+                    <Icon className="h-6 w-6 text-primary" aria-hidden="true" />
                   </div>
-                  <h3 className="text-xl font-bold mb-2">{category.title}</h3>
-                  <p className="text-muted-foreground mb-4">{category.description}</p>
+                  <h3 className="font-display text-xl font-medium">{category.title}</h3>
+                  <p className="mt-2 mb-4 text-muted-foreground">{category.description}</p>
                   <ul className="space-y-2">
                     {docs.map((doc) => (
                       <li key={doc.slug}>
                         <Link
                           href={`/resources/documentation/${doc.slug}`}
-                          className="text-primary hover:underline flex items-center gap-1 group"
+                          className="group flex items-center gap-1 text-primary hover:underline"
                         >
                           <span>{doc.title}</span>
-                          <ChevronRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+                          <ChevronRight
+                            className="h-4 w-4 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+                            aria-hidden="true"
+                          />
                         </Link>
                       </li>
                     ))}
@@ -211,54 +268,58 @@ export default function DocIndex() {
       </section>
 
       {/* Featured guides */}
-      <section className="py-16 bg-slate-50" id="tutorials">
+      <section className="bg-surface py-16 md:py-24" id="tutorials">
         <div className="container">
-          <div className="mb-12">
-            <h2 className="text-3xl font-bold mb-2">Featured Guides</h2>
-            <p className="text-muted-foreground">The three documents most teams read first</p>
+          <div className="mb-10 md:mb-14">
+            <h2 className="font-display text-3xl font-medium tracking-tight md:text-4xl">
+              Featured guides
+            </h2>
+            <p className="mt-3 text-muted-foreground">The three documents most teams read first.</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
             {FEATURED.map(({ slug, image, kind }) => {
               const doc = getDoc(slug)
               if (!doc) return null
               return (
-                <div
+                <article
                   key={slug}
-                  className="group bg-white rounded-xl overflow-hidden shadow-md border border-slate-100"
+                  className="group overflow-hidden rounded-lg border bg-card shadow-soft transition-shadow hover:shadow-soft-md"
                 >
-                  <div className="h-48 relative overflow-hidden">
+                  <div className="relative h-48 overflow-hidden">
                     <Image
                       src={image}
                       alt=""
                       fill
-                      className="object-cover transition-transform duration-500 group-hover:scale-105"
+                      className="object-cover transition-transform duration-500 group-hover:scale-105 motion-reduce:transition-none motion-reduce:group-hover:scale-100"
                       sizes="(max-width: 768px) 100vw, 33vw"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                    <div className="absolute bottom-4 left-4 right-4 text-white">
+                    <div className="absolute inset-0 bg-foreground/55" aria-hidden="true" />
+                    <div className="absolute inset-x-4 bottom-4 text-background">
                       <div className="flex items-center gap-2 text-sm font-medium">
-                        <span className="bg-primary/80 rounded-full px-2 py-0.5">{kind}</span>
+                        <span className="rounded-full bg-primary px-2 py-0.5 text-primary-foreground">
+                          {kind}
+                        </span>
                         <span className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
+                          <Clock className="h-3 w-3" aria-hidden="true" />
                           {readingTime(doc)} min read
                         </span>
                       </div>
                     </div>
                   </div>
                   <div className="p-6">
-                    <h3 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors">
+                    <h3 className="font-display text-xl font-medium transition-colors group-hover:text-primary">
                       {doc.title}
                     </h3>
-                    <p className="text-muted-foreground mb-4">{doc.description}</p>
+                    <p className="mt-2 mb-4 text-muted-foreground">{doc.description}</p>
                     <Link
                       href={`/resources/documentation/${doc.slug}`}
-                      className="text-primary hover:underline flex items-center gap-1"
+                      className="inline-flex items-center gap-1 text-primary hover:underline"
                     >
-                      Read the guide <ChevronRight className="h-4 w-4" />
+                      Read the guide <ChevronRight className="h-4 w-4" aria-hidden="true" />
                     </Link>
                   </div>
-                </div>
+                </article>
               )
             })}
           </div>
@@ -266,37 +327,42 @@ export default function DocIndex() {
       </section>
 
       {/* Integrations */}
-      <section className="py-16 bg-white" id="integrations">
+      <section className="py-16 md:py-24" id="integrations">
         <div className="container">
-          <div className="text-center mb-12">
-            <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-sm text-primary mb-4">
-              <Laptop className="h-4 w-4" />
+          <div className="mb-10 text-center md:mb-14">
+            <p className="mb-4 inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 font-mono text-xs tracking-[0.18em] text-primary uppercase">
+              <Laptop className="h-4 w-4" aria-hidden="true" />
               <span>Integrations</span>
-            </div>
-            <h2 className="text-3xl font-bold mb-2">Integration Documentation</h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
+            </p>
+            <h2 className="font-display text-3xl font-medium tracking-tight md:text-4xl">
+              Integration documentation
+            </h2>
+            <p className="prose-body mx-auto mt-3 text-muted-foreground">
               Seven connection cards, each with its own configuration schema. Two of them are
               configuration-only in this build and say so.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {INTEGRATIONS.map((integration) => (
               <Link
                 key={integration.name}
                 href="/resources/documentation/integrations"
-                className="bg-white rounded-xl border border-slate-200 p-4 hover:border-primary hover:shadow-md transition-all"
+                className="rounded-lg border bg-card p-4 transition-all hover:border-primary hover:shadow-soft-md"
               >
-                <p className="font-medium mb-1">{integration.name}</p>
+                <p className="mb-1 font-medium">{integration.name}</p>
                 <p className="text-xs text-muted-foreground">{integration.note}</p>
               </Link>
             ))}
-            <div className="rounded-xl border border-dashed border-slate-300 p-4 flex flex-col justify-center">
-              <p className="font-medium mb-1">Configure them</p>
-              <p className="text-xs text-muted-foreground mb-2">
+            <div className="flex flex-col justify-center rounded-lg border border-dashed bg-card p-4">
+              <p className="mb-1 font-medium">Configure them</p>
+              <p className="mb-2 text-xs text-muted-foreground">
                 Saved per user, with a test action and a publishable draft state.
               </p>
-              <Link href="/dashboard/integrations" className="text-primary text-xs hover:underline">
+              <Link
+                href="/dashboard/integrations"
+                className="text-xs text-primary hover:underline"
+              >
                 Open /dashboard/integrations
               </Link>
             </div>
@@ -305,45 +371,52 @@ export default function DocIndex() {
       </section>
 
       {/* FAQ */}
-      <section className="py-16 bg-slate-50" id="faq">
+      <section className="bg-surface py-16 md:py-24" id="faq">
         <div className="container">
-          <div className="text-center mb-12">
-            <div className="inline-flex items-center gap-2 rounded-full bg-amber-100 px-3 py-1 text-sm text-amber-700 mb-4">
-              <LifeBuoy className="h-4 w-4" />
+          <div className="mb-10 text-center md:mb-14">
+            <p className="mb-4 inline-flex items-center gap-2 rounded-full bg-clay/10 px-3 py-1 font-mono text-xs tracking-[0.18em] text-clay uppercase">
+              <LifeBuoy className="h-4 w-4" aria-hidden="true" />
               <span>FAQ</span>
-            </div>
-            <h2 className="text-3xl font-bold mb-2">Frequently Asked Questions</h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              The most-opened questions from the full FAQ
+            </p>
+            <h2 className="font-display text-3xl font-medium tracking-tight md:text-4xl">
+              Frequently asked questions
+            </h2>
+            <p className="prose-body mx-auto mt-3 text-muted-foreground">
+              The most-opened questions from the full FAQ.
             </p>
           </div>
 
-          <div className="max-w-3xl mx-auto divide-y divide-slate-200">
+          <div className="mx-auto max-w-3xl divide-y divide-border">
             {faqs.map((faq) => {
               const open = openFaq === faq.id
               return (
                 <div key={faq.id} className="py-5">
-                  <button
-                    type="button"
-                    className="flex w-full justify-between items-start gap-4 text-left font-medium cursor-pointer"
-                    aria-expanded={open}
-                    aria-controls={`faq-panel-${faq.id}`}
-                    onClick={() => setOpenFaq(open ? null : faq.id)}
-                  >
-                    <span className="text-lg font-semibold">{faq.q}</span>
-                    <span className={`transition shrink-0 ${open ? "rotate-180" : ""}`}>
-                      <ChevronDown className="h-5 w-5" />
-                    </span>
-                  </button>
+                  <h3>
+                    <button
+                      type="button"
+                      className="flex w-full cursor-pointer items-start justify-between gap-4 text-left"
+                      aria-expanded={open}
+                      aria-controls={`faq-panel-${faq.id}`}
+                      onClick={() => setOpenFaq(open ? null : faq.id)}
+                    >
+                      <span className="text-lg font-medium">{faq.q}</span>
+                      <span
+                        className={`shrink-0 transition-transform motion-reduce:transition-none ${open ? "rotate-180" : ""}`}
+                        aria-hidden="true"
+                      >
+                        <ChevronDown className="h-5 w-5" />
+                      </span>
+                    </button>
+                  </h3>
                   {open ? (
                     <div id={`faq-panel-${faq.id}`} className="mt-3">
                       <p className="text-muted-foreground">{faq.a}</p>
                       {faq.relatedHref ? (
                         <Link
                           href={faq.relatedHref}
-                          className="inline-flex items-center gap-1 mt-3 text-primary hover:underline text-sm"
+                          className="mt-3 inline-flex items-center gap-1 text-sm text-primary hover:underline"
                         >
-                          Read more <ChevronRight className="h-4 w-4" />
+                          Read more <ChevronRight className="h-4 w-4" aria-hidden="true" />
                         </Link>
                       ) : null}
                     </div>
@@ -353,57 +426,43 @@ export default function DocIndex() {
             })}
           </div>
 
-          <div className="text-center mt-12 flex flex-wrap justify-center gap-3">
+          <div className="mt-12 flex flex-wrap justify-center gap-3 text-center">
             <Button variant="outline" asChild>
               <Link href="/faq">All {faqEntries.length} questions</Link>
             </Button>
             <Button asChild>
-              <Link href="/contact">Contact Support</Link>
+              <Link href="/contact">Contact support</Link>
             </Button>
           </div>
         </div>
       </section>
 
       {/* Developer resources */}
-      <section className="py-16 bg-white" id="api">
+      <section className="py-16 md:py-24" id="api">
         <div className="container">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+          <div className="grid grid-cols-1 items-center gap-16 lg:grid-cols-2">
             <div>
-              <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-sm text-primary mb-6">
-                <Code className="h-4 w-4" />
-                <span>For Developers</span>
-              </div>
-              <h2 className="text-3xl md:text-4xl font-bold mb-4">Developer Resources</h2>
-              <p className="text-lg text-muted-foreground mb-6">
-                The API the dashboard itself uses: same-origin JSON routes, cookie-session auth, and no
-                key management.
+              <p className="mb-6 inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 font-mono text-xs tracking-[0.18em] text-primary uppercase">
+                <Code className="h-4 w-4" aria-hidden="true" />
+                <span>For developers</span>
               </p>
-              <div className="space-y-4">
-                {[
-                  {
-                    title: "Cookie-session REST API",
-                    body: "More than 120 route handlers under /api. No bearer tokens, no /v1 prefix, no API keys to rotate.",
-                    href: "/resources/documentation/api-authentication",
-                  },
-                  {
-                    title: "Realtime notifications",
-                    body: "A Server-Sent Events feed at /api/notifications/live pushes new rows to every open bell.",
-                    href: "/resources/documentation/notifications",
-                  },
-                  {
-                    title: "CSV and JSON export",
-                    body: "Any report dataset downloads as a file attachment from /api/reports/export.",
-                    href: "/resources/documentation/data-export",
-                  },
-                ].map((item) => (
+              <h2 className="font-display text-3xl font-medium tracking-tight md:text-4xl">
+                Developer resources
+              </h2>
+              <p className="prose-body mt-4 text-lg text-muted-foreground">
+                The API the dashboard itself uses: same-origin JSON routes, cookie-session auth, and
+                no key management.
+              </p>
+              <div className="mt-6 space-y-4">
+                {DEV_RESOURCES.map((item) => (
                   <div key={item.title} className="flex items-start gap-3">
-                    <div className="h-6 w-6 rounded-full bg-green-100 flex items-center justify-center mt-0.5 shrink-0">
-                      <ChevronRight className="h-4 w-4 text-green-600" />
+                    <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-success/10">
+                      <ChevronRight className="h-4 w-4 text-success" aria-hidden="true" />
                     </div>
                     <div>
-                      <h3 className="font-semibold">{item.title}</h3>
+                      <h3 className="font-medium">{item.title}</h3>
                       <p className="text-muted-foreground">{item.body}</p>
-                      <Link href={item.href} className="text-primary text-sm hover:underline">
+                      <Link href={item.href} className="text-sm text-primary hover:underline">
                         Read the doc
                       </Link>
                     </div>
@@ -413,7 +472,7 @@ export default function DocIndex() {
               <div className="mt-8 flex flex-wrap gap-3">
                 <Button asChild>
                   <Link href="/resources/documentation/api-endpoints" className="flex items-center gap-2">
-                    Endpoint reference <ArrowRight className="h-4 w-4" />
+                    Endpoint reference <ArrowRight className="h-4 w-4" aria-hidden="true" />
                   </Link>
                 </Button>
                 <Button variant="outline" asChild>
@@ -422,67 +481,51 @@ export default function DocIndex() {
               </div>
             </div>
 
-            <div className="bg-slate-50 p-6 rounded-xl border border-slate-200">
-              <div className="bg-slate-900 rounded-t-lg p-4 text-white font-mono text-sm">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="h-3 w-3 rounded-full bg-red-500" />
-                  <div className="h-3 w-3 rounded-full bg-yellow-500" />
-                  <div className="h-3 w-3 rounded-full bg-green-500" />
-                  <span className="text-slate-400 text-xs ml-2">Real request from a dashboard page</span>
-                </div>
-                <pre className="text-green-400">GET /api/tasks?page=1&pageSize=2&status=in_progress</pre>
-                <pre className="text-slate-400 mt-2">Cookie: session_id=…; user_id=…</pre>
-              </div>
-              <div className="bg-white rounded-b-lg p-4 border-x border-b border-slate-200 font-mono text-sm">
-                <pre className="text-slate-800 whitespace-pre-wrap">
-                  {`{
-  "success": true,
-  "data": [
-    {
-      "id": 482,
-      "title": "Replace the login rate limiter",
-      "status": "in_progress",
-      "priority": "high",
-      "storyPoints": 5,
-      "assigneeId": 9,
-      "sprintId": 3,
-      "dueDate": "2026-11-04",
-      "tags": ["tech-debt", "auth"],
-      "createdAt": "2026-10-20T09:14:02Z",
-      "updatedAt": "2026-10-23T16:41:55Z"
-    }
-  ],
-  "pagination": { "page": 1, "pageSize": 2, "total": 18 }
-}`}
-                </pre>
-              </div>
+            <div className="overflow-hidden rounded-lg border bg-card shadow-soft">
+              <p className="border-b bg-surface px-4 py-2 font-mono text-xs text-muted-foreground">
+                Real request from a dashboard page
+              </p>
+              <pre className="overflow-x-auto bg-muted p-4 font-mono text-sm">
+                <code>{SAMPLE_REQUEST}</code>
+              </pre>
+              <pre className="overflow-x-auto border-t bg-muted/40 p-4 font-mono text-sm">
+                <code>{SAMPLE_RESPONSE}</code>
+              </pre>
             </div>
           </div>
         </div>
       </section>
 
       {/* CTA */}
-      <section className="py-20 bg-gradient-to-r from-primary/90 to-primary relative overflow-hidden">
-        <div className="absolute inset-0 bg-grid-white/10 [mask-image:radial-gradient(ellipse_at_center,transparent_20%,black)]" />
-        <div className="container relative z-10">
-          <div className="max-w-3xl mx-auto text-center text-white">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Ready to get started with JiraVision?</h2>
-            <p className="text-white/80 text-lg mb-8">
+      <section className="bg-primary text-primary-foreground">
+        <div className="container flex flex-col items-center gap-6 py-16 text-center md:py-20">
+          <div className="max-w-2xl">
+            <h2 className="font-display text-3xl font-medium tracking-tight md:text-4xl">
+              Ready to get started with JiraVision?
+            </h2>
+            <p className="mt-3 text-sm leading-relaxed text-primary-foreground/80 md:text-base">
               Create an account and follow the quick start — it uses only routes that exist.
             </p>
-            <div className="flex flex-wrap justify-center gap-4">
-              <Button size="lg" variant="secondary" asChild>
-                <Link href="/signup">Create an account</Link>
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                className="bg-transparent text-white border-white hover:bg-white/10"
-                asChild
-              >
-                <Link href="/resources/documentation/quick-start">Read the quick start</Link>
-              </Button>
-            </div>
+          </div>
+          <div className="flex flex-wrap justify-center gap-3">
+            <Button
+              size="lg"
+              className="bg-primary-foreground text-primary hover:bg-primary-foreground/90"
+              asChild
+            >
+              <Link href="/signup">
+                Create an account
+                <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              </Link>
+            </Button>
+            <Button
+              size="lg"
+              variant="outline"
+              className="border-primary-foreground/30 bg-transparent text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground"
+              asChild
+            >
+              <Link href="/resources/documentation/quick-start">Read the quick start</Link>
+            </Button>
           </div>
         </div>
       </section>

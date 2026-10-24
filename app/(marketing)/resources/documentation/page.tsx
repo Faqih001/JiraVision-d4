@@ -9,11 +9,5 @@ export const metadata: Metadata = {
 }
 
 export default function DocumentationPage() {
-  return (
-    <div className="flex min-h-screen flex-col">
-      <main className="flex-1">
-        <DocIndex />
-      </main>
-    </div>
-  )
+  return <DocIndex />
 }

@@ -1,615 +1,316 @@
-"use client"
-
-import { use } from "react"
+import type { Metadata } from "next"
 import Link from "next/link"
-import Image from "next/image"
-import { ArrowLeft, Calendar, Clock, Building, MapPin } from "lucide-react"
+import { notFound } from "next/navigation"
+import {
+  ArrowLeft,
+  ArrowRight,
+  BookOpen,
+  ChevronRight,
+  ExternalLink,
+  Gauge,
+  ListChecks,
+  TriangleAlert,
+} from "lucide-react"
+
+import { SectionBg } from "@/components/sections/section-bg"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
+import { caseStudySlugs, getCaseStudy, relatedCaseStudies } from "@/content/case-studies"
+import { getDoc } from "@/content/documentation"
 
-type CaseStudyEntry = {
-  title: string
-  description: string
-  company: string
-  industry: string
-  employeeCount: string
-  location: string
-  logo: string
-  featuredImage: string
-  publishDate: string
-  readTime: string
-  tags: string[]
-  results: { metric: string; value: string }[]
-  content: string
-  testimonials: { quote: string; author: string; role: string; avatar: string }[]
+type Props = { params: Promise<{ slug: string }> }
+
+export function generateStaticParams() {
+  return caseStudySlugs().map((slug) => ({ slug }))
 }
 
-// NOTE(PLACEHOLDER): companies, quoted people and result figures are inherited
-// from the v0 site and await owner review — see PLACEHOLDERS.md.
-const caseStudyData: Record<string, CaseStudyEntry> = {
-  "acme-corp-transformation": {
-    title: "ACME Corp's Digital Transformation with JiraVision",
-    description:
-      "How ACME Corp increased productivity by 35% and reduced burnout with JiraVision's AI-powered project management",
-    company: "ACME Corporation",
-    industry: "Technology",
-    employeeCount: "500-1000",
-    location: "San Francisco, CA",
-    logo: "/placeholder.svg?height=80&width=80",
-    featuredImage: "/placeholder.svg?height=600&width=1200",
-    publishDate: "June 15, 2023",
-    readTime: "8 min read",
-    tags: ["Digital Transformation", "AI Scrum Master", "Team Wellbeing"],
-    results: [
-      { metric: "Productivity Increase", value: "35%" },
-      { metric: "Burnout Reduction", value: "42%" },
-      { metric: "Sprint Completion Rate", value: "95%" },
-      { metric: "Team Satisfaction", value: "4.8/5" },
-    ],
-    content: `
-      ## The Challenge
-
-      ACME Corporation, a leading technology company with over 500 employees, was facing significant challenges with their project management processes:
-
-      - Inconsistent sprint planning leading to missed deadlines
-      - High developer burnout rates due to uneven workload distribution
-      - Lack of visibility into team wellbeing and capacity
-      - Difficulty scaling Agile practices across multiple teams
-
-      "We were struggling to maintain consistency in our Agile processes as we scaled," says Jennifer Chen, CTO at ACME Corp. "Our Scrum Masters were overwhelmed, and we didn't have good insights into team wellbeing or capacity."
-
-      ## The Solution
-
-      After evaluating several options, ACME Corp implemented JiraVision's AI-native project management platform with a focus on three key modules:
-
-      ### 1. AI Scrum Master
-
-      ACME deployed JiraVision's AI Scrum Master to automate and enhance their Scrum processes:
-
-      - Automated sprint planning based on team capacity and historical velocity
-      - AI-facilitated daily standups to identify blockers early
-      - Data-driven retrospectives with actionable insights
-      - Continuous sprint health monitoring with proactive alerts
-
-      ### 2. Team Wellbeing Module
-
-      To address burnout concerns, ACME implemented the Team Wellbeing features:
-
-      - Sentiment analysis of team communications to detect stress and burnout risks
-      - Workload monitoring to identify overloaded team members
-      - Automated interventions to suggest task redistribution
-      - Work-life balance tracking to prevent after-hours work
-
-      ### 3. Ethical Metrics Dashboard
-
-      ACME also deployed the Ethical Metrics Dashboard to ensure fair work distribution:
-
-      - Real-time monitoring of workload balance across teams
-      - DEI task distribution tracking to ensure equitable opportunities
-      - Automated alerts for potential equity issues
-      - Transparent reporting on team health metrics
-
-      ## Implementation Process
-
-      The implementation was completed in three phases over a 2-month period:
-
-      1. **Discovery & Planning (2 weeks)**: JiraVision's team worked with ACME to understand their specific challenges and configure the platform accordingly.
-
-      2. **Pilot Deployment (4 weeks)**: The platform was deployed to three teams for initial testing and feedback.
-
-      3. **Full Rollout (2 weeks)**: After refining based on pilot feedback, JiraVision was deployed across all 12 development teams.
-
-      "The implementation was surprisingly smooth," notes Michael Rodriguez, Head of Engineering. "The AI adapted quickly to our workflows, and the team at JiraVision provided excellent support throughout the process."
-
-      ## Results
-
-      After six months of using JiraVision, ACME Corp reported significant improvements:
-
-      ### Productivity Gains
-
-      - **35% increase** in overall team productivity
-      - **95% sprint completion rate**, up from 72%
-      - **28% reduction** in time spent in meetings
-
-      ### Team Wellbeing Improvements
-
-      - **42% reduction** in reported burnout cases
-      - **67% decrease** in after-hours work
-      - **Team satisfaction score** improved from 3.2/5 to 4.8/5
-
-      ### Process Improvements
-
-      - **89% reduction** in sprint planning time
-      - **Improved estimation accuracy** by 40%
-      - **Real-time visibility** into team capacity and wellbeing
-
-      ## Key Success Factors
-
-      ACME attributes their success with JiraVision to several factors:
-
-      1. **Executive Sponsorship**: Strong support from leadership ensured adoption across the organization.
-
-      2. **Phased Implementation**: Starting with a pilot allowed for refinement before full rollout.
-
-      3. **Comprehensive Training**: All team members received training on how to work with the AI features.
-
-      4. **Continuous Feedback**: Regular feedback sessions helped fine-tune the platform to ACME's specific needs.
-
-      ## Looking Ahead
-
-      Building on their success, ACME is now exploring additional JiraVision features:
-
-      - Implementing the Gamification module to further boost engagement
-      - Expanding the AI Scrum Master's capabilities to include product roadmap planning
-      - Integrating with additional tools in their tech stack
-
-      "JiraVision has transformed how we manage projects," concludes Jennifer Chen. "The combination of AI-driven project management and team wellbeing features has not only improved our productivity but also created a healthier work environment for our teams."
-    `,
-    testimonials: [
-      {
-        quote:
-          "JiraVision has transformed how we manage projects. The combination of AI-driven project management and team wellbeing features has not only improved our productivity but also created a healthier work environment for our teams.",
-        author: "Jennifer Chen",
-        role: "CTO, ACME Corporation",
-        avatar: "/placeholder.svg?height=80&width=80",
-      },
-      {
-        quote:
-          "The implementation was surprisingly smooth. The AI adapted quickly to our workflows, and the team at JiraVision provided excellent support throughout the process.",
-        author: "Michael Rodriguez",
-        role: "Head of Engineering, ACME Corporation",
-        avatar: "/placeholder.svg?height=80&width=80",
-      },
-    ],
-  },
-  "globaltech-wellbeing": {
-    title: "GlobalTech Improves Team Wellbeing with JiraVision",
-    description:
-      "How GlobalTech reduced burnout by 50% and improved team satisfaction using JiraVision's wellbeing features",
-    company: "GlobalTech Inc.",
-    industry: "Software Development",
-    employeeCount: "1000-5000",
-    location: "Multiple Global Offices",
-    logo: "/placeholder.svg?height=80&width=80",
-    featuredImage: "/placeholder.svg?height=600&width=1200",
-    publishDate: "July 22, 2023",
-    readTime: "10 min read",
-    tags: ["Team Wellbeing", "Remote Work", "Global Teams"],
-    results: [
-      { metric: "Burnout Reduction", value: "50%" },
-      { metric: "Team Satisfaction", value: "92%" },
-      { metric: "Retention Improvement", value: "35%" },
-      { metric: "Work-Life Balance Score", value: "4.7/5" },
-    ],
-    content: `
-      ## The Challenge
-
-      GlobalTech Inc., a multinational software development company with over 2,000 employees across 15 countries, was facing significant challenges with team wellbeing and burnout:
-
-      - High burnout rates among distributed teams
-      - Inconsistent work-life balance across different regions
-      - Difficulty monitoring team wellbeing in a remote-first environment
-      - Rising attrition rates attributed to stress and overwork
-
-      "With teams spread across multiple time zones, we struggled to maintain healthy work-life boundaries," explains Sarah Johnson, Chief People Officer at GlobalTech. "Some team members were constantly working late to accommodate meetings, while others felt disconnected from their colleagues."
-
-      ## The Solution
-
-      GlobalTech implemented JiraVision with a primary focus on the Team Wellbeing module:
-
-      ### 1. Sentiment Analysis
-
-      - Implemented across communication channels (Slack, Teams, email)
-      - Configured to respect privacy while detecting burnout signals
-      - Set up automated alerts for concerning patterns
-      - Established regular wellbeing check-ins
-
-      ### 2. Workload Balancing
-
-      - Deployed workload monitoring across all teams
-      - Configured time zone-aware work hour tracking
-      - Implemented automated task redistribution suggestions
-      - Set up manager dashboards for team capacity visibility
-
-      ### 3. Work-Life Boundary Enforcement
-
-      - Established "no meeting" zones based on local time
-      - Implemented after-hours communication monitoring
-      - Created automated reminders for breaks and time off
-      - Developed "right to disconnect" policies supported by the platform
-
-      ## Implementation Process
-
-      GlobalTech took a careful approach to implementation, focusing on privacy and cultural sensitivity:
-
-      1. **Privacy-First Setup (3 weeks)**: Worked with legal and HR to establish privacy-respecting configurations.
-
-      2. **Regional Pilots (8 weeks)**: Deployed to representative teams in each major region to test cultural fit.
-
-      3. **Global Rollout (4 weeks)**: Phased implementation across all teams with localized training.
-
-      4. **Continuous Refinement**: Ongoing adjustments based on feedback and regional needs.
-
-      "We were particularly impressed with JiraVision's ability to adapt to different cultural contexts," notes Raj Patel, Global Head of Engineering. "The platform respects regional differences while maintaining consistent wellbeing standards."
-
-      ## Results
-
-      After one year of using JiraVision's Team Wellbeing features, GlobalTech reported remarkable improvements:
-
-      ### Wellbeing Metrics
-
-      - **50% reduction** in reported burnout cases
-      - **92% team satisfaction** rate, up from 67%
-      - **35% improvement** in employee retention
-      - **Work-life balance score** improved to 4.7/5, up from 3.2/5
-
-      ### Operational Improvements
-
-      - **28% reduction** in after-hours work
-      - **More equitable meeting distribution** across time zones
-      - **Improved cross-region collaboration** with better scheduling
-      - **Reduced context switching** through better work planning
-
-      ### Business Impact
-
-      - **Recruitment advantage** in competitive markets
-      - **Estimated $3.2M savings** from reduced turnover
-      - **Improved employer brand** and company reputation
-      - **Higher quality deliverables** from more focused teams
-
-      ## Key Success Factors
-
-      GlobalTech identified several factors critical to their successful implementation:
-
-      1. **Executive Commitment**: Leadership visibly embraced and modeled healthy work habits.
-
-      2. **Cultural Adaptation**: The platform was configured to respect regional differences while maintaining standards.
-
-      3. **Transparent Communication**: Clear messaging about privacy and the purpose of wellbeing monitoring.
-
-      4. **Actionable Insights**: Focus on providing managers with specific actions, not just data.
-
-      ## Looking Ahead
-
-      Building on their success with the Team Wellbeing module, GlobalTech is now:
-
-      - Expanding to JiraVision's Ethical Metrics Dashboard
-      - Implementing the AI Scrum Master for distributed teams
-      - Developing custom wellbeing metrics for different roles
-      - Creating a wellbeing ambassador program supported by platform insights
-
-      "JiraVision has been transformative for our global workforce," concludes Sarah Johnson. "We've moved from reactive burnout management to proactive wellbeing cultivation, and the results speak for themselves in our retention numbers and team satisfaction scores."
-    `,
-    testimonials: [
-      {
-        quote:
-          "JiraVision has been transformative for our global workforce. We've moved from reactive burnout management to proactive wellbeing cultivation, and the results speak for themselves in our retention numbers and team satisfaction scores.",
-        author: "Sarah Johnson",
-        role: "Chief People Officer, GlobalTech Inc.",
-        avatar: "/placeholder.svg?height=80&width=80",
-      },
-      {
-        quote:
-          "We were particularly impressed with JiraVision's ability to adapt to different cultural contexts. The platform respects regional differences while maintaining consistent wellbeing standards.",
-        author: "Raj Patel",
-        role: "Global Head of Engineering, GlobalTech Inc.",
-        avatar: "/placeholder.svg?height=80&width=80",
-      },
-    ],
-  },
-  "startupx-scaling": {
-    title: "StartupX Scales Agile with JiraVision's AI Scrum Master",
-    description: "How a fast-growing startup maintained agility at scale using JiraVision's AI Scrum Master",
-    company: "StartupX",
-    industry: "FinTech",
-    employeeCount: "50-200",
-    location: "Austin, TX",
-    logo: "/placeholder.svg?height=80&width=80",
-    featuredImage: "/placeholder.svg?height=600&width=1200",
-    publishDate: "August 10, 2023",
-    readTime: "7 min read",
-    tags: ["Startup", "Scaling Agile", "AI Scrum Master"],
-    results: [
-      { metric: "Team Growth", value: "300%" },
-      { metric: "Sprint Velocity", value: "+45%" },
-      { metric: "Release Frequency", value: "2x" },
-      { metric: "Planning Time", value: "-75%" },
-    ],
-    content: `
-      ## The Challenge
-
-      StartupX, a rapidly growing FinTech company, was experiencing the classic growing pains of scaling Agile practices:
-
-      - Growing from 20 to 80 engineers in just 18 months
-      - Inconsistent Scrum practices across newly formed teams
-      - Shortage of experienced Scrum Masters
-      - Difficulty maintaining agility while scaling processes
-
-      "We were victims of our own success," explains David Kim, Co-founder and CTO of StartupX. "Our rapid growth meant we were constantly forming new teams, but we didn't have enough experienced Scrum Masters to maintain consistent practices."
-
-      ## The Solution
-
-      StartupX implemented JiraVision with a focus on the AI Scrum Master module to address their scaling challenges:
-
-      ### 1. AI-Driven Sprint Planning
-
-      - Deployed automated sprint planning across all teams
-      - Configured capacity planning based on historical data
-      - Implemented consistent estimation practices
-      - Set up cross-team dependency management
-
-      ### 2. Standardized Scrum Practices
-
-      - Established consistent Scrum ceremonies across teams
-      - Created automated guidance for new team members
-      - Implemented real-time coaching during meetings
-      - Developed standardized reporting and metrics
-
-      ### 3. Knowledge Sharing
-
-      - Set up automated retrospective insights
-      - Implemented cross-team learning recommendations
-      - Created a central knowledge base of best practices
-      - Developed AI-curated improvement suggestions
-
-      ## Implementation Process
-
-      StartupX took an iterative approach to implementation:
-
-      1. **Pilot Team (2 weeks)**: Started with one mature team to establish baseline configurations.
-
-      2. **New Team Onboarding (4 weeks)**: Expanded to newly formed teams that needed the most guidance.
-
-      3. **Full Deployment (2 weeks)**: Rolled out to all remaining teams with customizations.
-
-      4. **Continuous Learning**: Configured the AI to learn from the most successful teams and share practices.
-
-      "The beauty of JiraVision's AI Scrum Master is that it learns from our best teams and helps standardize those practices across the organization," notes Emma Chen, VP of Engineering. "It's like having our best Scrum Master cloned across every team."
-
-      ## Results
-
-      After six months of using JiraVision, StartupX reported significant improvements in their ability to scale Agile practices:
-
-      ### Scaling Metrics
-
-      - Successfully **scaled from 8 to 24 teams**
-      - Maintained consistent practices despite **300% team growth**
-      - Achieved **45% higher sprint velocity** across teams
-      - **Doubled release frequency** while maintaining quality
-
-      ### Efficiency Improvements
-
-      - Reduced sprint planning time by **75%**
-      - Decreased time spent in Scrum ceremonies by **30%**
-      - Improved estimation accuracy by **40%**
-      - Reduced onboarding time for new teams by **60%**
-
-      ### Business Impact
-
-      - Maintained startup speed despite significant growth
-      - Improved predictability for product roadmap
-      - Enhanced visibility for executives and stakeholders
-      - Reduced coordination overhead between teams
-
-      ## Key Success Factors
-
-      StartupX attributes their successful scaling to several factors:
-
-      1. **Starting Small**: Piloting with one team allowed for configuration refinement.
-
-      2. **Focus on Learning**: Configuring the AI to learn from successful teams created a positive feedback loop.
-
-      3. **Human Partnership**: Using AI as an enhancer rather than replacement for human Scrum Masters.
-
-      4. **Data-Driven Approach**: Leveraging historical data to improve future planning.
-
-      ## Looking Ahead
-
-      Building on their success with the AI Scrum Master, StartupX is now:
-
-      - Implementing JiraVision's Team Wellbeing module to prevent burnout during rapid growth
-      - Exploring the Gamification features to maintain engagement
-      - Developing custom integrations with their financial planning tools
-      - Creating an AI-assisted career development program
-
-      "JiraVision's AI Scrum Master has been a game-changer for us," concludes David Kim. "It's allowed us to maintain our agility and culture of innovation while scaling at a pace that would have been impossible with traditional approaches."
-    `,
-    testimonials: [
-      {
-        quote:
-          "JiraVision's AI Scrum Master has been a game-changer for us. It's allowed us to maintain our agility and culture of innovation while scaling at a pace that would have been impossible with traditional approaches.",
-        author: "David Kim",
-        role: "Co-founder and CTO, StartupX",
-        avatar: "/placeholder.svg?height=80&width=80",
-      },
-      {
-        quote:
-          "The beauty of JiraVision's AI Scrum Master is that it learns from our best teams and helps standardize those practices across the organization. It's like having our best Scrum Master cloned across every team.",
-        author: "Emma Chen",
-        role: "VP of Engineering, StartupX",
-        avatar: "/placeholder.svg?height=80&width=80",
-      },
-    ],
-  },
-}
-
-// Related studies are derived from the catalogue above so these links can never
-// point at a case study that does not exist.
-function relatedCaseStudies(currentSlug: string) {
-  return Object.entries(caseStudyData)
-    .filter(([slug]) => slug !== currentSlug)
-    .map(([slug, item]) => ({ slug, title: item.title }))
-}
-
-export default function CaseStudyPage({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = use(params)
-  const caseStudy = caseStudyData[slug] || null
-
-  if (!caseStudy) {
-    return (
-      <div className="container mx-auto py-12 px-4 text-center">
-        <h1 className="text-3xl font-bold mb-4">Case Study Not Found</h1>
-        <p className="mb-8">The case study you're looking for doesn't exist or has been moved.</p>
-        <Button asChild>
-          <Link href="/resources/case-studies">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Case Studies
-          </Link>
-        </Button>
-      </div>
-    )
+export const dynamicParams = false
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { slug } = await params
+  const study = getCaseStudy(slug)
+  if (!study) return { title: "Scenario not found", robots: { index: false, follow: true } }
+  return {
+    title: study.title,
+    description: study.summary,
+    alternates: { canonical: `/resources/case-studies/${slug}` },
+    openGraph: {
+      title: study.title,
+      description: study.summary,
+      type: "article",
+      url: `/resources/case-studies/${slug}`,
+    },
   }
+}
+
+export default async function CaseStudyPage({ params }: Props) {
+  const { slug } = await params
+  const study = getCaseStudy(slug)
+  if (!study) notFound()
+
+  // The setup steps and the related list can name the same doc; show each once.
+  const referencedDocs = Array.from(
+    new Set([...study.setup.map((step) => step.doc), ...study.relatedDocs]),
+  )
+    .filter((docSlug): docSlug is string => Boolean(docSlug))
+    .map((docSlug) => getDoc(docSlug))
+    .filter((doc): doc is NonNullable<typeof doc> => Boolean(doc))
+  const others = relatedCaseStudies(slug)
+  const teamName = study.team.split(" — ")[0]
 
   return (
-    <div className="container mx-auto py-12 px-4">
-      <div className="mb-8">
-        <Button variant="ghost" asChild className="mb-4">
-          <Link href="/resources/case-studies">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Case Studies
-          </Link>
-        </Button>
-        <h1 className="text-3xl md:text-4xl font-bold mb-4">{caseStudy.title}</h1>
-        <p className="text-lg text-muted-foreground mb-6">{caseStudy.description}</p>
-        <div className="flex flex-wrap gap-2 mb-6">
-          {caseStudy.tags.map((tag: string) => (
-            <Badge key={tag} variant="secondary">
-              {tag}
-            </Badge>
-          ))}
-        </div>
-        <div className="flex items-center gap-4 text-sm text-muted-foreground mb-8">
-          <div className="flex items-center">
-            <Calendar className="mr-1 h-4 w-4" />
-            {caseStudy.publishDate}
-          </div>
-          <div className="flex items-center">
-            <Clock className="mr-1 h-4 w-4" />
-            {caseStudy.readTime}
-          </div>
-        </div>
-      </div>
+    <>
+      {/* Header */}
+      <section className="relative overflow-hidden bg-surface py-12 md:py-16">
+        <SectionBg variant="contour" />
+        <div className="container relative">
+          <nav aria-label="Breadcrumb" className="mb-6">
+            <Link
+              href="/resources/case-studies"
+              className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground hover:underline"
+            >
+              <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+              All scenarios
+            </Link>
+          </nav>
 
-      <div className="relative w-full h-[300px] md:h-[400px] lg:h-[500px] mb-12 rounded-lg overflow-hidden">
-        <Image
-          src={caseStudy.featuredImage || "/placeholder.svg"}
-          alt={caseStudy.title}
-          fill
-          className="object-cover"
-          priority
-        />
-      </div>
+          <div className="max-w-3xl">
+            <p className="mb-3 inline-flex items-center rounded-full bg-primary/10 px-3 py-1 font-mono text-xs tracking-[0.18em] text-primary uppercase">
+              {study.topic}
+            </p>
+            <p className="font-mono text-xs tracking-wide text-muted-foreground uppercase">
+              Illustrative scenario · {study.team}
+            </p>
+            <h1 className="mt-2 font-display text-4xl font-medium tracking-tight md:text-5xl">
+              {study.title}
+            </h1>
+            <p className="prose-body mt-4 text-lg text-muted-foreground">{study.summary}</p>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-        <div className="col-span-3">
-          <div className="prose prose-lg max-w-none">
-            <div dangerouslySetInnerHTML={{ __html: caseStudy.content }} />
-          </div>
-
-          <Separator className="my-12" />
-
-          <div className="mb-12">
-            <h2 className="text-2xl font-bold mb-6">Testimonials</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {caseStudy.testimonials.map((testimonial, index) => (
-                <Card key={index}>
-                  <CardContent className="pt-6">
-                    <div className="flex items-start gap-4">
-                      <div className="relative h-12 w-12 rounded-full overflow-hidden">
-                        <Image
-                          src={testimonial.avatar || "/placeholder.svg"}
-                          alt={testimonial.author}
-                          fill
-                          className="object-cover"
-                        />
-                      </div>
-                      <div>
-                        <p className="italic mb-4">"{testimonial.quote}"</p>
-                        <p className="font-semibold">{testimonial.author}</p>
-                        <p className="text-sm text-muted-foreground">{testimonial.role}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <h2 className="text-2xl font-bold mb-6">Related Case Studies</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {relatedCaseStudies(slug).map((study) => (
-                <Card key={study.slug} className="hover:shadow-md transition-shadow">
-                  <CardContent className="p-6">
-                    <Link href={`/resources/case-studies/${study.slug}`} className="no-underline">
-                      <h3 className="text-lg font-semibold mb-2 hover:text-primary transition-colors">{study.title}</h3>
-                      <Button variant="link" className="p-0 h-auto">
-                        Read Case Study
-                      </Button>
-                    </Link>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="col-span-1">
-          <div className="sticky top-8">
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="relative h-12 w-12 rounded-lg overflow-hidden">
-                    <Image
-                      src={caseStudy.logo || "/placeholder.svg"}
-                      alt={caseStudy.company}
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold">{caseStudy.company}</h3>
-                    <p className="text-sm text-muted-foreground">{caseStudy.industry}</p>
-                  </div>
+            <dl className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
+              {study.shape.map((item) => (
+                <div key={item.label} className="rounded-lg border bg-card p-4 shadow-soft">
+                  <dt className="font-mono text-xs tracking-wide text-muted-foreground uppercase">
+                    {item.label}
+                  </dt>
+                  <dd className="mt-1 text-sm">{item.value}</dd>
                 </div>
+              ))}
+            </dl>
+          </div>
+        </div>
+      </section>
 
-                <Separator className="my-4" />
+      {/* Body */}
+      <section className="py-12 md:py-16">
+        <div className="container">
+          <div className="mb-10 rounded-lg border border-clay/30 bg-clay/10 p-5">
+            <p className="flex items-start gap-3 text-sm">
+              <TriangleAlert className="mt-0.5 h-5 w-5 shrink-0 text-clay" aria-hidden="true" />
+              <span>
+                <strong className="font-semibold">{teamName} is a fictitious team.</strong> This is
+                not a customer story and contains no result figures or attributed quotes. What it
+                does contain is real: every route below exists in the product, and every measure
+                states where its number is computed.
+              </span>
+            </p>
+          </div>
 
-                <div className="space-y-3 mb-6">
-                  <div className="flex items-center gap-2">
-                    <Building className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">{caseStudy.employeeCount} employees</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <MapPin className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">{caseStudy.location}</span>
-                  </div>
-                </div>
+          <div className="grid grid-cols-1 gap-12 lg:grid-cols-3">
+            <div className="lg:col-span-2">
+              <h2 className="font-display text-2xl font-medium tracking-tight md:text-3xl">
+                Where it starts
+              </h2>
+              <ul className="mt-6 space-y-3">
+                {study.situation.map((line) => (
+                  <li
+                    key={line}
+                    className="flex items-start gap-3 rounded-lg border bg-card p-4 shadow-soft"
+                  >
+                    <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-clay" aria-hidden="true" />
+                    <span>{line}</span>
+                  </li>
+                ))}
+              </ul>
 
-                <Separator className="my-4" />
+              <h2 className="mt-12 inline-flex items-center gap-2 font-display text-2xl font-medium tracking-tight md:text-3xl">
+                <ListChecks className="h-6 w-6 text-primary" aria-hidden="true" />
+                What to turn on, in order
+              </h2>
+              <p className="mt-2 text-muted-foreground">
+                Order matters — each step assumes the one before it is already in place.
+              </p>
 
-                <h3 className="font-semibold mb-4">Key Results</h3>
-                <div className="space-y-3">
-                  {caseStudy.results.map((result, index) => (
-                    <div key={index} className="flex justify-between">
-                      <span className="text-sm">{result.metric}</span>
-                      <span className="text-sm font-semibold">{result.value}</span>
-                    </div>
+              <ol className="mt-8 space-y-6">
+                {study.setup.map((step, index) => {
+                  const doc = step.doc ? getDoc(step.doc) : null
+                  return (
+                    <li key={step.title} className="flex gap-4">
+                      <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 font-mono text-sm text-primary">
+                        {index + 1}
+                      </span>
+                      <div className="flex-1 rounded-lg border bg-card p-5 shadow-soft">
+                        <h3 className="font-display text-lg font-medium">{step.title}</h3>
+                        <p className="mt-2 leading-relaxed text-muted-foreground">{step.detail}</p>
+                        <div className="mt-4 flex flex-wrap gap-3">
+                          {step.route ? (
+                            <Button size="sm" variant="outline" asChild>
+                              <Link href={step.route}>
+                                Open {step.route}
+                                <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+                              </Link>
+                            </Button>
+                          ) : null}
+                          {doc ? (
+                            <Button size="sm" variant="outline" asChild>
+                              <Link href={`/resources/documentation/${doc.slug}`}>
+                                <BookOpen className="h-3.5 w-3.5" aria-hidden="true" />
+                                {doc.title}
+                              </Link>
+                            </Button>
+                          ) : null}
+                        </div>
+                      </div>
+                    </li>
+                  )
+                })}
+              </ol>
+
+              <h2 className="mt-12 inline-flex items-center gap-2 font-display text-2xl font-medium tracking-tight md:text-3xl">
+                <Gauge className="h-6 w-6 text-primary" aria-hidden="true" />
+                What to watch
+              </h2>
+              <p className="mt-2 text-muted-foreground">
+                No target values. Each row says where the number is computed and what feeds it, so
+                you can decide what good looks like on your own data.
+              </p>
+
+              <div className="mt-6 overflow-x-auto rounded-lg border bg-card shadow-soft">
+                <table className="w-full text-sm">
+                  <caption className="sr-only">
+                    Measures and where each one is computed
+                  </caption>
+                  <thead className="bg-surface text-left">
+                    <tr>
+                      <th scope="col" className="px-4 py-3 font-medium">
+                        Measure
+                      </th>
+                      <th scope="col" className="px-4 py-3 font-medium">
+                        Where the number comes from
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {study.measures.map((measure) => (
+                      <tr key={measure.label}>
+                        <th scope="row" className="px-4 py-3 text-left align-top font-medium">
+                          {measure.label}
+                        </th>
+                        <td className="px-4 py-3 align-top text-muted-foreground">{measure.how}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <aside className="space-y-8 lg:sticky lg:top-24 lg:self-start">
+              <div className="rounded-lg border bg-card p-6 shadow-soft">
+                <h2 className="mb-4 inline-flex items-center gap-2 font-display text-lg font-medium">
+                  <BookOpen className="h-5 w-5 text-primary" aria-hidden="true" />
+                  Documentation used here
+                </h2>
+                <ul className="space-y-3">
+                  {referencedDocs.map((doc) => (
+                    <li key={doc.slug}>
+                      <Link
+                        href={`/resources/documentation/${doc.slug}`}
+                        className="group block text-sm"
+                      >
+                        <span className="inline-flex items-center gap-1 font-medium text-primary group-hover:underline">
+                          {doc.title}
+                          <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
+                        </span>
+                        <span className="mt-0.5 block text-muted-foreground">
+                          {doc.description}
+                        </span>
+                      </Link>
+                    </li>
                   ))}
-                </div>
+                </ul>
+                {study.relatedProduct ? (
+                  <Link
+                    href={study.relatedProduct}
+                    className="mt-5 inline-flex items-center gap-1 text-sm text-primary hover:underline"
+                  >
+                    Product page <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                  </Link>
+                ) : null}
+              </div>
 
-                <Separator className="my-6" />
-
-                <Button className="w-full">
-                  <Link href="/contact">Request a Demo</Link>
-                </Button>
-              </CardContent>
-            </Card>
+              <div className="rounded-lg border bg-card p-6 shadow-soft">
+                <h2 className="mb-4 font-display text-lg font-medium">Other scenarios</h2>
+                <ul className="space-y-4">
+                  {others.map((item) => (
+                    <li key={item.slug}>
+                      <Link
+                        href={`/resources/case-studies/${item.slug}`}
+                        className="group -m-2 block rounded-md p-2 hover:bg-surface"
+                      >
+                        <span className="block font-medium group-hover:text-primary">
+                          {item.title}
+                        </span>
+                        <span className="mt-1 block text-xs text-muted-foreground">
+                          {item.team} · {item.topic}
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+                <Link
+                  href="/resources/case-studies"
+                  className="mt-5 inline-flex items-center gap-1 text-sm text-primary hover:underline"
+                >
+                  All scenarios <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                </Link>
+              </div>
+            </aside>
           </div>
         </div>
-      </div>
-    </div>
+      </section>
+
+      {/* CTA */}
+      <section className="bg-primary text-primary-foreground">
+        <div className="container flex flex-col items-center gap-6 py-16 text-center md:py-20">
+          <div className="max-w-2xl">
+            <h2 className="font-display text-3xl font-medium tracking-tight md:text-4xl">
+              Walk this scenario on your own workspace
+            </h2>
+            <p className="mt-3 text-sm leading-relaxed text-primary-foreground/80 md:text-base">
+              Every route above is live. The fit quiz will tell you which of these scenarios is
+              closest to your team before you start.
+            </p>
+          </div>
+          <div className="flex flex-wrap justify-center gap-3">
+            <Button
+              size="lg"
+              className="bg-primary-foreground text-primary hover:bg-primary-foreground/90"
+              asChild
+            >
+              <Link href="/signup">
+                Create an account
+                <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              </Link>
+            </Button>
+            <Button
+              size="lg"
+              variant="outline"
+              className="border-primary-foreground/30 bg-transparent text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground"
+              asChild
+            >
+              <Link href="/fit-quiz">Take the fit quiz</Link>
+            </Button>
+          </div>
+        </div>
+      </section>
+    </>
   )
 }

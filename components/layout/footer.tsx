@@ -2,10 +2,9 @@
 
 import Image from "next/image"
 import Link from "next/link"
-import { useState } from "react"
 import { ArrowRight, ArrowUp, ChevronDown, Github, Linkedin, Twitter } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import NewsletterForm from "@/components/newsletter-form"
 import { LanguageSelector } from "@/components/layout/language-selector"
 import { ThemeToggle } from "@/components/layout/theme-toggle"
 import { OPEN_CONSENT_EVENT } from "@/lib/consent"
@@ -36,72 +35,6 @@ function StatusChip() {
       <span className={cn("h-2 w-2 rounded-full", allOk ? "bg-success" : "bg-warning")} aria-hidden="true" />
       {overallStatus}
     </Link>
-  )
-}
-
-function NewsletterForm() {
-  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle")
-
-  return (
-    <div>
-      <h3 className="mb-2 text-sm font-semibold">{newsletter.title}</h3>
-      <p className="mb-4 text-sm text-muted-foreground">{newsletter.description}</p>
-      {status === "success" ? (
-        <p className="text-sm text-success" role="status">
-          {newsletter.successNotice}
-        </p>
-      ) : (
-        <form
-          className="flex gap-2"
-          onSubmit={async (e) => {
-            e.preventDefault()
-            const data = new FormData(e.currentTarget)
-            setStatus("loading")
-            try {
-              const res = await fetch(newsletter.endpoint, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  email: data.get("email"),
-                  source: "footer",
-                  // Honeypot: real users never fill this; bots do.
-                  company: data.get("company") ?? "",
-                }),
-              })
-              setStatus(res.ok ? "success" : "error")
-            } catch {
-              setStatus("error")
-            }
-          }}
-        >
-          <input
-            type="text"
-            name="company"
-            tabIndex={-1}
-            autoComplete="off"
-            aria-hidden="true"
-            className="absolute left-[-9999px] h-0 w-0 opacity-0"
-          />
-          <Input
-            type="email"
-            name="email"
-            required
-            placeholder="you@company.com"
-            aria-label="Email address"
-            className="min-w-0 flex-1 bg-background"
-            disabled={status === "loading"}
-          />
-          <Button type="submit" size="icon" aria-label="Subscribe" disabled={status === "loading"}>
-            <ArrowRight className="h-4 w-4" />
-          </Button>
-        </form>
-      )}
-      {status === "error" && (
-        <p className="mt-2 text-sm text-destructive" role="alert">
-          Something went wrong. Please try again.
-        </p>
-      )}
-    </div>
   )
 }
 
@@ -173,7 +106,7 @@ export function Footer() {
           </div>
           {newsletter.enabled && (
             <div className="rounded-lg border border-border bg-background p-6">
-              <NewsletterForm />
+              <NewsletterForm source="footer" />
             </div>
           )}
         </div>
