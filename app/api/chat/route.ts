@@ -9,6 +9,14 @@ import {
   previewFor,
 } from "@/app/api/chat/api-helpers";
 
+/** The neon http driver hands raw-SQL timestamps back as UTC-naive strings;
+ *  normalize to a real Date so the ISO wire format matches drizzle selects. */
+function toUtcDate(v: Date | string): Date {
+  if (v instanceof Date) return v;
+  const s = v.includes("T") ? v : v.replace(" ", "T");
+  return new Date(s.endsWith("Z") || /[+-]\d{2}:?\d{2}$/.test(s) ? s : `${s}Z`);
+}
+
 export const dynamic = "force-dynamic";
 
 /**
@@ -170,9 +178,7 @@ export async function GET() {
         isArchived: chat.isArchived === true,
         isGroupAdmin: settings.isAdmin,
         online: false,
-        lastMessageTime: lastMessage
-          ? new Date(lastMessage.timestamp as unknown as string | Date).toISOString()
-          : undefined,
+        lastMessageTime: lastMessage ? toUtcDate(lastMessage.timestamp).toISOString() : undefined,
         preview: lastMessage ? previewFor(lastMessage) : "Start a conversation",
         otherUserId,
         lastRead: myPart?.lastRead ? myPart.lastRead.toISOString() : undefined,
