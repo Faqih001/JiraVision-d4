@@ -121,10 +121,10 @@ export async function POST(request: NextRequest) {
     const content = typeof body.body === "string" ? body.body : ""
     const eventType =
       typeof body.eventType === "string" && body.eventType.trim() ? body.eventType.trim().slice(0, 50) : "system"
-    const status: DigestStatus =
-      DIGEST_STATUSES.includes((body.status as DigestStatus) ?? ("queued" as DigestStatus))
-        ? (body.status as DigestStatus)
-        : "queued"
+    const requestedStatus = typeof body.status === "string" ? body.status : "queued"
+    const status: DigestStatus = (DIGEST_STATUSES as readonly string[]).includes(requestedStatus)
+      ? (requestedStatus as DigestStatus)
+      : "queued"
 
     const [row] = (await db.execute(sql`
       INSERT INTO email_digest (user_id, to_email, subject, body, event_type, status)
