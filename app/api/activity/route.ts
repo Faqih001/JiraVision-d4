@@ -188,15 +188,15 @@ export async function GET(request: NextRequest) {
         body: n.body,
         link: typeof metadata.link === "string" ? metadata.link : undefined,
         entityKind: "notification",
-        occurredAt: (n.createdAt ?? now).toISOString(),
+        occurredAt: new Date(n.createdAt ?? now).toISOString(),
         read: n.isRead ?? false,
       })
     }
 
     for (const t of taskRows) {
-      const updated = t.updatedAt ?? t.createdAt
-      const created = t.createdAt ?? updated
-      if (updated && new Date(updated).getTime() >= since.getTime()) {
+      const createdMs = (t.createdAt ?? t.updatedAt) ? new Date(t.createdAt ?? t.updatedAt!).getTime() : null
+      const updatedMs = (t.updatedAt ?? t.createdAt) ? new Date(t.updatedAt ?? t.createdAt!).getTime() : null
+      if (updatedMs !== null && updatedMs >= since.getTime()) {
         events.push({
           id: `t-${t.id}-u`,
           kind: "task",
@@ -206,10 +206,10 @@ export async function GET(request: NextRequest) {
           link: "/dashboard/tasks",
           actorName: t.assigneeName ?? undefined,
           entityKind: "task",
-          occurredAt: new Date(updated).toISOString(),
+          occurredAt: new Date(updatedMs).toISOString(),
         })
       }
-      if (created && new Date(created).getTime() >= since.getTime() && new Date(created).getTime() !== new Date(updated).getTime()) {
+      if (createdMs !== null && createdMs >= since.getTime() && createdMs !== updatedMs) {
         events.push({
           id: `t-${t.id}-c`,
           kind: "task",
@@ -219,7 +219,7 @@ export async function GET(request: NextRequest) {
           link: "/dashboard/tasks",
           actorName: t.assigneeName ?? undefined,
           entityKind: "task",
-          occurredAt: new Date(created).toISOString(),
+          occurredAt: new Date(createdMs).toISOString(),
         })
       }
     }

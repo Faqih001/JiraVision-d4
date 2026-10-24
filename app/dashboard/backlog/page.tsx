@@ -44,7 +44,6 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Progress } from "@/components/ui/progress"
 import {
   Dialog,
   DialogContent,
@@ -95,14 +94,6 @@ type SprintOption = { id: number; name: string; status: string }
 type Member = { id: number; name: string; avatar: string | null }
 
 type GroomDraft = { points: number; description: string }
-
-type NewItemDraft = {
-  title: string
-  description: string
-  priority: string
-  storyPoints: number
-  assigneeId: number | ""
-}
 
 /* --------------------------------------------------------------- scoring */
 
@@ -467,17 +458,6 @@ export default function DashboardBacklog() {
     } finally {
       setPulling(null)
     }
-  }
-
-  function nullDraft(): ItemDraftState {
-    return { title: "", description: "", priority: "medium", storyPoints: 1, assigneeId: "" }
-  }
-  type ItemDraftState = {
-    title: string
-    description: string
-    priority: string
-    storyPoints: number
-    assigneeId: number | ""
   }
 
   const openCreate = () => {

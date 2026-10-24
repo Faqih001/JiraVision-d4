@@ -489,7 +489,7 @@ export default function ActivityCenter() {
         ))}
       </div>
 
-      {/* 3 — Filter bar (kind + actor client-side, days + q server-side) */}
+      {/* 3 — Filter bar (kind/days/q are server params; actor narrows the loaded stream) */}
       <Card>
         <CardContent className="flex flex-wrap items-center gap-2 py-3">
           <form
