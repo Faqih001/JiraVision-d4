@@ -273,3 +273,14 @@ export const notifications = pgTable("notifications", {
   metadata: jsonb("metadata").default({}),
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+// Saved reports table — analytics snapshots (name + filter config) persisted
+// per user by the analytics workspace. Additive-only; nothing existing refers to it.
+export const savedReports = pgTable("saved_reports", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  config: jsonb("config").default({}),
+  createdAt: timestamp("created_at").defaultNow(),
+})
