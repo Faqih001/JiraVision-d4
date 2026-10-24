@@ -82,7 +82,7 @@ export default function GamificationLeaderboardPage() {
     const xpOf = (p: RosterPlayer) => (period === "all" ? p.xp : recent4w.get(p.userId) ?? 0)
     return roster
       .slice()
-      .sort((a, b) => xpOf(b) - xpOf(a) || xpOf(a) - xpOf(b) || a.xp - b.xp || a.userId - b.userId)
+      .sort((a, b) => xpOf(b) - xpOf(a) || b.xp - a.xp || a.userId - b.userId)
       .map((p, idx) => ({ player: p, periodXp: xpOf(p), periodRank: idx + 1 }))
   }, [roster, period, recent4w])
 
@@ -134,27 +134,6 @@ export default function GamificationLeaderboardPage() {
       setSortDir(key === "name" ? "asc" : "desc")
     }
   }
-
-  const SortHeader = ({ label, k, right }: { label: string; k: SortKey; right?: boolean }) => (
-    <th className={`py-2 pr-2 font-medium ${right ? "text-right" : "text-left"}`}>
-      <button
-        className="inline-flex items-center gap-1 uppercase uppercase-tracking-none hover:text-foreground"
-        onClick={() => toggleSort(k)}
-        aria-label={`Sort by ${label}`}
-      >
-        {label}
-        {sortKey === k ? (
-          sortDir === "asc" ? (
-            <ChevronUp className="h-3 w-3" />
-          ) : (
-            <ChevronDown className="h-3 w-3" />
-          )
-        ) : (
-          <Minus className="h-3 w-3 opacity-40" />
-        )}
-      </button>
-    </th>
-  )
 
   const podium = ranked.slice(0, 3)
 
@@ -233,11 +212,18 @@ export default function GamificationLeaderboardPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b text-left text-[11px] uppercase tracking-wide text-muted-foreground">
-                    <SortHeader label="Stored rank" k="rank" />
-                    <SortHeader label="Member" k="name" />
-                    <SortHeader label="Level" k="level" right />
-                    <SortHeader label="Stored XP" k="xp" right />
-                    <SortHeader label={period === "all" ? "Done" : "Est. 4w XP"} k={period === "all" ? "tasksCompleted" : "recentXp"} right />
+                    <SortHeader label="Stored rank" k="rank" sortKey={sortKey} sortDir={sortDir} onToggle={toggleSort} />
+                    <SortHeader label="Member" k="name" sortKey={sortKey} sortDir={sortDir} onToggle={toggleSort} />
+                    <SortHeader label="Level" k="level" right sortKey={sortKey} sortDir={sortDir} onToggle={toggleSort} />
+                    <SortHeader label="Stored XP" k="xp" right sortKey={sortKey} sortDir={sortDir} onToggle={toggleSort} />
+                    <SortHeader
+                      label={period === "all" ? "Done" : "Est. 4w XP"}
+                      k={period === "all" ? "tasksCompleted" : "recentXp"}
+                      right
+                      sortKey={sortKey}
+                      sortDir={sortDir}
+                      onToggle={toggleSort}
+                    />
                     <th className="py-2 text-right font-medium">Movement</th>
                   </tr>
                 </thead>
@@ -287,8 +273,44 @@ export default function GamificationLeaderboardPage() {
   )
 }
 
-function MovementBadge({ delta }: { delta: number }) {
-  if (delta === 0) {
+function SortHeader({
+  label,
+  k,
+  right,
+  sortKey,
+  sortDir,
+  onToggle,
+}: {
+  label: string
+  k: SortKey
+  right?: boolean
+  sortKey: SortKey
+  sortDir: "asc" | "desc"
+  onToggle: (key: SortKey) => void
+}) {
+  return (
+    <th className={`py-2 pr-2 font-medium ${right ? "text-right" : "text-left"}`}>
+      <button
+        className="inline-flex items-center gap-1 hover:text-foreground"
+        onClick={() => onToggle(k)}
+        aria-label={`Sort by ${label}`}
+      >
+        {label}
+        {sortKey === k ? (
+          sortDir === "asc" ? (
+            <ChevronUp className="h-3 w-3" />
+          ) : (
+            <ChevronDown className="h-3 w-3" />
+          )
+        ) : (
+          <Minus className="h-3 w-3 opacity-40" />
+        )}
+      </button>
+    </th>
+  )
+}
+
+function MovementBadge({ delta }: { delta: number }) {  if (delta === 0) {
     return (
       <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
         <Minus className="h-3 w-3" /> —

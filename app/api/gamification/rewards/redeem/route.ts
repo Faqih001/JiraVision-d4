@@ -9,7 +9,7 @@ import {
   getCatalogRow,
   normalizeRewards,
   type Redemption,
-} from "../_helpers"
+} from "../../_helpers"
 
 export const dynamic = "force-dynamic"
 
