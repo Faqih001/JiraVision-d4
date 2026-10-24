@@ -43,7 +43,8 @@ export async function GET() {
       chat_id: string;
       content: string;
       type: string;
-      timestamp: Date;
+      /** the neon http driver may hand back a string here */
+      timestamp: Date | string;
       sender_id: number;
       file_url: string | null;
       file_name: string | null;
@@ -169,7 +170,9 @@ export async function GET() {
         isArchived: chat.isArchived === true,
         isGroupAdmin: settings.isAdmin,
         online: false,
-        lastMessageTime: lastMessage ? lastMessage.timestamp.toISOString() : undefined,
+        lastMessageTime: lastMessage
+          ? new Date(lastMessage.timestamp as unknown as string | Date).toISOString()
+          : undefined,
         preview: lastMessage ? previewFor(lastMessage) : "Start a conversation",
         otherUserId,
         lastRead: myPart?.lastRead ? myPart.lastRead.toISOString() : undefined,
