@@ -1,671 +1,1076 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useTheme } from "next-themes"
+import { useCallback, useEffect, useMemo, useState } from "react"
+import Link from "next/link"
+import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Legend,
+  Line,
+  LineChart,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts"
 import {
   Activity,
-  AlertCircle,
+  AlertTriangle,
+  ArrowDownRight,
+  ArrowUpRight,
   BarChart3,
-  Calendar,
   Clock,
   Download,
-  Heart,
-  LineChart,
+  HeartHandshake,
+  Lock,
+  Minus,
+  Pencil,
+  Plus,
   RefreshCw,
-  Settings,
-  ThumbsUp,
-  LightningBolt,
+  Sparkles,
+  Trash2,
+  Users,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Progress } from "@/components/ui/progress"
+import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Separator } from "@/components/ui/separator"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
-import { useMobile } from "@/hooks/use-mobile"
+import { cn } from "@/lib/utils"
+import { AXIS, AvatarCircle, EmptyNote, SectionCard, TOOLTIP_STYLE, relativeTime } from "@/components/dashboard-kit"
 
-// Define types
-type TeamMember = {
+/* ------------------------------------------------------------------- types */
+
+type CheckInRow = {
   id: number
-  name: string
-  role: string
-  avatar?: string
+  userId: number
+  userName: string
+  avatar: string | null
+  role: string | null
+  date: string
   wellbeingScore: number
   mood: string
   workload: string
+  stressLevel: number
+  overtimeHours: string | number
+  createdAt: string | null
 }
 
-type TeamWellbeing = {
-  overallScore: number
-  happiness: number
-  stress: number
-  burnoutRisk: number
-  sentimentTrend: string
+type WorkloadMember = { id: number; name: string; role: string | null; avatar: string | null; openPoints: number; openTasks: number }
+type DoneTask = { id: number; assigneeId: number | null; status: string; updatedAt: string | null }
+
+type CheckInDraft = {
+  id?: number
+  userId: number
+  date: string
+  wellbeingScore: number
+  mood: string
+  workload: string
+  stressLevel: number
+  overtimeHours: number
+  note: string
 }
 
-type WellbeingInsight = {
-  type: string
-  title: string
-  description: string
+const MOODS = ["Energized", "Focused", "Productive", "Neutral", "Stressed", "Strained", "Overwhelmed", "Low"]
+const WORKLOADS = ["Light", "Balanced", "High"]
+const STRESS_LABEL: Record<string, string> = {
+  "1": "1 · Calm",
+  "2": "2 · Easy",
+  "3": "3 · Manageable",
+  "4": "4 · Heavy",
+  "5": "5 · Critical",
 }
 
-type WellbeingMetric = {
-  name: string
-  value: number
+const MOOD_COLOR: Record<string, string> = {
+  Energized: "hsl(var(--chart-moss))",
+  Focused: "hsl(var(--chart-pine))",
+  Productive: "hsl(var(--chart-pine))",
+  Neutral: "hsl(var(--chart-stone))",
+  Stressed: "hsl(var(--chart-clay))",
+  Strained: "hsl(var(--chart-clay))",
+  Overwhelmed: "hsl(var(--destructive))",
+  Low: "hsl(var(--destructive))",
 }
+
+const LOW_THRESHOLD = 40
+const HIGH_THRESHOLD = 85
+
+/* -------------------------------------------------------------- date utils */
+
+const DAY_MS = 86_400_000
+const isoDay = (offsetDaysAgo: number) => new Date(Date.now() - offsetDaysAgo * DAY_MS).toISOString().slice(0, 10)
+const daysOld = (iso: string) => Math.floor((Date.now() - new Date(iso).getTime()) / DAY_MS)
+
+function moodColor(mood: string) {
+  return MOOD_COLOR[mood] ?? "hsl(var(--muted-foreground))"
+}
+
+function scoreTone(score: number) {
+  if (score < LOW_THRESHOLD) return "text-red-500"
+  if (score > HIGH_THRESHOLD) return "text-emerald-600"
+  return undefined
+}
+
+/* ---------------------------------------------------------------- the page */
 
 export default function TeamWellbeingPage() {
-  const { theme, setTheme } = useTheme()
-  const isMobile = useMobile()
   const { toast } = useToast()
 
-  // State for data
+  const [rows, setRows] = useState<CheckInRow[]>([])
+  const [workload, setWorkload] = useState<WorkloadMember[]>([])
+  const [self, setSelf] = useState<{ id: number; name: string } | null>(null)
+  const [doneTasks, setDoneTasks] = useState<DoneTask[]>([])
+
   const [loading, setLoading] = useState(true)
-  const [teamWellbeing, setTeamWellbeing] = useState<TeamWellbeing | null>(null)
-  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([])
-  const [wellbeingInsights, setWellbeingInsights] = useState<WellbeingInsight[]>([])
-  const [wellbeingMetrics, setWellbeingMetrics] = useState<WellbeingMetric[]>([])
+  const [refreshing, setRefreshing] = useState(false)
+  const [failed, setFailed] = useState(false)
 
-  // Fetch data
-  useEffect(() => {
-    async function fetchWellbeingData() {
-      try {
-        setLoading(true)
+  const [historyScope, setHistoryScope] = useState<"all" | "mine">("all")
+  const [sentSupport, setSentSupport] = useState<number[]>([])
+  const [supportBusy, setSupportBusy] = useState<number | null>(null)
 
-        // Simulate API call delay
-        await new Promise((resolve) => setTimeout(resolve, 1000))
+  const [formOpen, setFormOpen] = useState(false)
+  const [draft, setDraft] = useState<CheckInDraft | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState<number | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
-        // Set team wellbeing
-        setTeamWellbeing({
-          overallScore: 85,
-          happiness: 85,
-          stress: 12,
-          burnoutRisk: 3,
-          sentimentTrend: "positive",
-        })
+  /* ------------------------------- data loading ------------------------------- */
 
-        // Set team members
-        setTeamMembers([
-          {
-            id: 1,
-            name: "John Doe",
-            role: "Frontend Developer",
-            wellbeingScore: 92,
-            mood: "Energized",
-            workload: "Balanced",
-          },
-          {
-            id: 2,
-            name: "Alice Smith",
-            role: "UX Designer",
-            wellbeingScore: 68,
-            mood: "Stressed",
-            workload: "High",
-          },
-          {
-            id: 3,
-            name: "Robert Johnson",
-            role: "Backend Developer",
-            wellbeingScore: 85,
-            mood: "Focused",
-            workload: "Balanced",
-          },
-          {
-            id: 4,
-            name: "Emily Wilson",
-            role: "Project Manager",
-            wellbeingScore: 78,
-            mood: "Productive",
-            workload: "Balanced",
-          },
-        ])
+  const load = useCallback(async () => {
+    setLoading(true)
+    try {
+      const [wbRes, ovRes, tkRes] = await Promise.all([
+        fetch("/api/dashboard/wellbeing?days=30"),
+        fetch("/api/dashboard/overview"),
+        fetch("/api/tasks?pageSize=200&status=done"),
+      ])
+      const wbJson = await wbRes.json()
+      if (!wbJson.success) throw new Error(wbJson.message ?? "Failed to load wellbeing data")
+      setRows(wbJson.data as CheckInRow[])
 
-        // Set wellbeing insights
-        setWellbeingInsights([
-          {
-            type: "warning",
-            title: "Workload Imbalance",
-            description: "Alice is showing signs of stress due to high workload. Consider redistributing some tasks.",
-          },
-          {
-            type: "positive",
-            title: "Positive Collaboration",
-            description:
-              "Team communication has improved significantly in the last two weeks, leading to better morale.",
-          },
-          {
-            type: "info",
-            title: "Work-Life Balance",
-            description: "The team is maintaining a healthy work-life balance, with no after-hours work detected.",
-          },
-        ])
-
-        // Set wellbeing metrics
-        setWellbeingMetrics([
-          { name: "Work-Life Balance", value: 92 },
-          { name: "Team Collaboration", value: 88 },
-          { name: "Workload Distribution", value: 75 },
-          { name: "Meeting Satisfaction", value: 82 },
-          { name: "Burnout Risk", value: 12 },
-        ])
-      } catch (error) {
-        console.error("Error fetching wellbeing data:", error)
-        toast({
-          title: "Error",
-          description: "Failed to load wellbeing data. Please try again.",
-          variant: "destructive",
-        })
-      } finally {
-        setLoading(false)
+      const ovJson = await ovRes.json()
+      if (ovJson.success) {
+        setWorkload(ovJson.data.workload as WorkloadMember[])
+        setSelf({ id: ovJson.data.user.id as number, name: ovJson.data.user.name as string })
       }
-    }
 
-    fetchWellbeingData()
+      const tkJson = await tkRes.json()
+      if (tkJson.success) setDoneTasks((tkJson.data as DoneTask[]).filter((t) => t.status === "done"))
+
+      setFailed(false)
+    } catch (err) {
+      setFailed(true)
+      toast({ variant: "destructive", title: "Wellbeing", description: (err as Error).message })
+    } finally {
+      setLoading(false)
+    }
   }, [toast])
 
-  // Handle button actions
-  const handleViewHistory = async () => {
+  useEffect(() => {
+    void load()
+  }, [load])
+
+  const reloadQuiet = useCallback(async () => {
     try {
-      toast({
-        title: "Loading Wellbeing History",
-        description: "Retrieving historical wellbeing data...",
-      });
-      
-      const response = await fetch('/api/dashboard/wellbeing', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include'
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch wellbeing history');
+      const res = await fetch("/api/dashboard/wellbeing?days=30")
+      const json = await res.json()
+      if (json.success) setRows(json.data as CheckInRow[])
+      else throw new Error(json.message)
+    } catch {
+      toast({ variant: "destructive", title: "Wellbeing", description: "Refresh failed." })
+    }
+  }, [toast])
+
+  const refresh = useCallback(async () => {
+    setRefreshing(true)
+    await load()
+    setRefreshing(false)
+    toast({ title: "Wellbeing data refreshed" })
+  }, [load, toast])
+
+  /* --------------------------------- derived ---------------------------------- */
+
+  const latestByUser = useMemo(() => {
+    const map = new Map<number, CheckInRow>()
+    for (const r of rows) if (!map.has(r.userId)) map.set(r.userId, r)
+    return map
+  }, [rows])
+
+  const memberNames = useMemo(() => {
+    const map = new Map<number, { name: string; avatar: string | null; role: string | null }>()
+    for (const w of workload) map.set(w.id, { name: w.name, avatar: w.avatar, role: w.role })
+    if (self) map.set(self.id, { name: self.name, avatar: null, role: null })
+    for (const r of rows) if (!map.has(r.userId)) map.set(r.userId, { name: r.userName, avatar: r.avatar, role: r.role })
+    return map
+  }, [workload, self, rows])
+
+  const memberIds = useMemo(
+    () => [...new Set([...memberNames.keys(), ...latestByUser.keys()])].sort((a, b) => a - b),
+    [memberNames, latestByUser],
+  )
+
+  const rowsByUserAsc = useMemo(() => {
+    const map = new Map<number, CheckInRow[]>()
+    for (const r of rows) {
+      const list = map.get(r.userId) ?? []
+      list.push(r)
+      map.set(r.userId, list)
+    }
+    for (const list of map.values()) list.sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id)
+    return map
+  }, [rows])
+
+  const kpis = useMemo(() => {
+    const latestScores = [...latestByUser.values()].map((r) => r.wellbeingScore)
+    const teamAvg = latestScores.length ? Math.round(latestScores.reduce((s, v) => s + v, 0) / latestScores.length) : null
+    const recentUsers = new Set(rows.filter((r) => daysOld(r.date) <= 7).map((r) => r.userId))
+    const atRisk = [...latestByUser.values()].filter((r) => r.wellbeingScore < LOW_THRESHOLD)
+    const thisWeek = rows.filter((r) => daysOld(r.date) <= 7).map((r) => r.wellbeingScore)
+    const lastWeek = rows.filter((r) => daysOld(r.date) > 7 && daysOld(r.date) <= 14).map((r) => r.wellbeingScore)
+    const avg = (a: number[]) => (a.length ? a.reduce((s, v) => s + v, 0) / a.length : null)
+    const a1 = avg(thisWeek)
+    const a0 = avg(lastWeek)
+    const weekDelta = a1 !== null && a0 !== null ? Math.round(a1 - a0) : null
+    return { teamAvg, checkedIn7d: recentUsers.size, atRisk, weekDelta }
+  }, [rows, latestByUser])
+
+  const happinessTrend = useMemo(() => {
+    const byDay = new Map<string, number[]>()
+    for (const r of rows) {
+      if (daysOld(r.date) > 13) continue
+      const list = byDay.get(r.date) ?? []
+      list.push(r.wellbeingScore)
+      byDay.set(r.date, list)
+    }
+    const out: { date: string; score: number | null }[] = []
+    for (let i = 13; i >= 0; i--) {
+      const day = isoDay(i)
+      const vals = byDay.get(day)
+      out.push({
+        date: day.slice(5),
+        score: vals && vals.length ? Math.round(vals.reduce((s, v) => s + v, 0) / vals.length) : null,
+      })
+    }
+    return out
+  }, [rows])
+
+  const memberTable = useMemo(() => {
+    return memberIds.map((id) => {
+      const info = memberNames.get(id) ?? { name: `Member #${id}`, avatar: null, role: null }
+      const history = rowsByUserAsc.get(id) ?? []
+      const latest = latestByUser.get(id) ?? null
+      let delta: number | null = null
+      if (latest && history.length > 1) {
+        const ref = [...history].reverse().find((r) => daysOld(r.date) >= 7) ?? history[0]
+        delta = latest.wellbeingScore - ref.wellbeingScore
       }
-      
-      const { data } = await response.json();
-      
-      // Process the history data (this would typically open a modal or update state)
-      console.log('Wellbeing history:', data);
-      
-      toast({
-        title: "History Loaded",
-        description: `Successfully loaded ${data.length} wellbeing records.`,
-      });
-    } catch (error) {
-      console.error("Error fetching wellbeing history:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load wellbeing history. Please try again.",
-        variant: "destructive",
-      });
+      return { id, ...info, latest, delta, spark: history.slice(-10).map((r, i) => ({ i, score: r.wellbeingScore })) }
+    })
+  }, [memberIds, memberNames, rowsByUserAsc, latestByUser])
+
+  const workloadVsWellbeing = useMemo(() => {
+    const ids = [...new Set([...workload.map((w) => w.id), ...latestByUser.keys()])]
+    return ids
+      .map((id) => ({
+        name: (memberNames.get(id)?.name ?? `#${id}`).split(" ")[0],
+        openPoints: workload.find((w) => w.id === id)?.openPoints ?? 0,
+        wellbeing: latestByUser.get(id)?.wellbeingScore ?? null,
+      }))
+      .slice(0, 10)
+  }, [workload, latestByUser, memberNames])
+
+  const overtimeSignals = useMemo(() => {
+    const counts = new Map<number, number>()
+    for (const t of doneTasks) {
+      if (!t.assigneeId || !t.updatedAt || daysOld(t.updatedAt) > 7) continue
+      counts.set(t.assigneeId, (counts.get(t.assigneeId) ?? 0) + 1)
     }
-  };
+    const list = [...counts.entries()]
+      .map(([id, count]) => ({ id, count, name: memberNames.get(id)?.name ?? `Member #${id}` }))
+      .sort((a, b) => b.count - a.count)
+    return { list, max: Math.max(1, ...list.map((x) => x.count)) }
+  }, [doneTasks, memberNames])
 
-  const handleConfigure = () => {
-    toast({
-      title: "Wellbeing Settings",
-      description: "Opening wellbeing monitoring configuration...",
-    });
-  };
+  const moodDistribution = useMemo(() => {
+    const counts = new Map<string, number>()
+    for (const r of rows) {
+      if (daysOld(r.date) > 13) continue
+      counts.set(r.mood, (counts.get(r.mood) ?? 0) + 1)
+    }
+    return [...counts.entries()].map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value)
+  }, [rows])
 
-  const handleSubmitSurvey = async () => {
+  const historyRows = useMemo(
+    () => (historyScope === "mine" && self ? rows.filter((r) => r.userId === self.id) : rows),
+    [rows, historyScope, self],
+  )
+
+  /* ---------------------------------- actions --------------------------------- */
+
+  const openLog = () => {
+    const me = self?.id ?? rows[0]?.userId
+    if (me === undefined) {
+      toast({ variant: "destructive", title: "Check-in", description: "Session user unknown — reload the page." })
+      return
+    }
+    setDraft({
+      userId: me,
+      date: isoDay(0),
+      wellbeingScore: 50,
+      mood: "Neutral",
+      workload: "Balanced",
+      stressLevel: 3,
+      overtimeHours: 0,
+      note: "",
+    })
+    setConfirmDelete(null)
+    setFormOpen(true)
+  }
+
+  const openEdit = (r: CheckInRow) => {
+    setDraft({
+      id: r.id,
+      userId: r.userId,
+      date: r.date,
+      wellbeingScore: r.wellbeingScore,
+      mood: MOODS.includes(r.mood) ? r.mood : "Neutral",
+      workload: WORKLOADS.includes(r.workload) ? r.workload : "Balanced",
+      stressLevel: Math.min(5, Math.max(1, r.stressLevel)),
+      overtimeHours: Number(r.overtimeHours) || 0,
+      note: "",
+    })
+    setConfirmDelete(null)
+    setFormOpen(true)
+  }
+
+  const saveCheckIn = async () => {
+    if (!draft) return
+    if (draft.wellbeingScore < 0 || draft.wellbeingScore > 100) {
+      toast({ variant: "destructive", title: "Check-in", description: "Score must be between 0 and 100." })
+      return
+    }
+    setSaving(true)
     try {
-      toast({
-        title: "Submitting Survey",
-        description: "Recording your wellbeing data...",
-      });
-      
-      const surveyData = {
-        wellbeingScore: 85,
-        mood: "Focused",
-        workload: "Balanced",
-        stressLevel: 3,
-        overtimeHours: 0
-      };
-      
-      const response = await fetch('/api/dashboard/wellbeing', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(surveyData),
-        credentials: 'include'
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to submit wellbeing survey');
+      const payload = {
+        userId: draft.userId,
+        date: draft.date,
+        wellbeingScore: draft.wellbeingScore,
+        mood: draft.mood,
+        workload: draft.workload,
+        stressLevel: draft.stressLevel,
+        overtimeHours: draft.overtimeHours,
+        ...(draft.note.trim() ? { note: draft.note.trim() } : {}),
       }
-      
+      const res = draft.id
+        ? await fetch(`/api/dashboard/wellbeing/${draft.id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          })
+        : await fetch("/api/dashboard/wellbeing", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          })
+      const json = await res.json()
+      if (!json.success) throw new Error(json.message ?? "Save failed")
+      const targetName = memberNames.get(draft.userId)?.name ?? "member"
       toast({
-        title: "Survey Submitted",
-        description: "Your wellbeing data has been recorded. Thank you!",
-      });
-    } catch (error) {
-      console.error("Error submitting wellbeing survey:", error);
-      toast({
-        title: "Error",
-        description: "Failed to submit wellbeing survey. Please try again.",
-        variant: "destructive",
-      });
+        title: draft.id ? "Check-in updated" : "Check-in logged",
+        description: draft.id
+          ? `Score ${draft.wellbeingScore} · ${draft.mood} saved.`
+          : `${draft.wellbeingScore} · ${draft.mood} for ${targetName}${draft.userId !== self?.id ? " — they were notified." : "."}`,
+      })
+      setFormOpen(false)
+      setDraft(null)
+      await reloadQuiet()
+    } catch (err) {
+      toast({ variant: "destructive", title: "Check-in", description: (err as Error).message })
+    } finally {
+      setSaving(false)
     }
-  };
+  }
 
-  const handleDownloadAnalysis = () => {
-    toast({
-      title: "Download Analysis",
-      description: "Generating and downloading full wellbeing analysis...",
-    });
-    
-    // This would typically generate and download a PDF or Excel file
-  };
-
-  const handleImplementRecommendations = async () => {
+  const deleteCheckIn = async (id: number) => {
+    setDeleting(true)
     try {
-      toast({
-        title: "Implementing Recommendations",
-        description: "Applying wellbeing recommendations...",
-      });
-      
-      // Simulating an API call to implement recommendations
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      toast({
-        title: "Recommendations Applied",
-        description: "Wellbeing recommendations have been implemented successfully.",
-      });
-    } catch (error) {
-      console.error("Error implementing recommendations:", error);
-      toast({
-        title: "Error",
-        description: "Failed to implement recommendations. Please try again.",
-        variant: "destructive",
-      });
+      const res = await fetch(`/api/dashboard/wellbeing/${id}`, { method: "DELETE" })
+      const json = await res.json()
+      if (!json.success) throw new Error(json.message ?? "Delete failed")
+      setRows((rs) => rs.filter((r) => r.id !== id))
+      toast({ title: "Check-in deleted" })
+      setConfirmDelete(null)
+    } catch (err) {
+      toast({ variant: "destructive", title: "Check-in", description: (err as Error).message })
+    } finally {
+      setDeleting(false)
     }
-  };
+  }
 
-  const handleViewMemberDetails = (memberId: number) => {
-    toast({
-      title: "View Details",
-      description: `Opening details for team member #${memberId}...`,
-    });
-    
-    // This would typically open a modal with member details
-  };
+  const sendSupportNote = async (userId: number, name: string, score: number) => {
+    setSupportBusy(userId)
+    try {
+      const res = await fetch("/api/notifications", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "wellbeing",
+          title: `Support check-in: ${name}`,
+          body: `${name}'s latest wellbeing score is ${score}. Reach out, offer to rebalance their load.`,
+          link: "/dashboard/team-wellbeing",
+        }),
+      })
+      if (!res.ok) throw new Error("Could not queue the notification.")
+      setSentSupport((s) => [...s, userId])
+      toast({ title: "Support note queued", description: `A wellbeing reminder for ${name} landed in your activity feed.` })
+    } catch (err) {
+      toast({ variant: "destructive", title: "Support note", description: (err as Error).message })
+    } finally {
+      setSupportBusy(null)
+    }
+  }
+
+  const exportCsv = () => {
+    if (latestByUser.size === 0) {
+      toast({ variant: "destructive", title: "Export", description: "No check-ins to export yet." })
+      return
+    }
+    const header = "Date,Member,WellbeingScore,Mood,Workload,Stress,OvertimeHours"
+    const lines = [...latestByUser.values()].map((r) =>
+      [r.date, memberNames.get(r.userId)?.name ?? r.userName, r.wellbeingScore, r.mood, r.workload, r.stressLevel, r.overtimeHours]
+        .map((v) => `"${String(v).replace(/"/g, '""')}"`)
+        .join(","),
+    )
+    const blob = new Blob([`${header}\n${lines.join("\n")}\n`], { type: "text/csv;charset=utf-8" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `wellbeing-latest-${isoDay(0)}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+    toast({ title: "CSV exported", description: `${latestByUser.size} latest check-ins downloaded.` })
+  }
+
+  /* ----------------------------------- render ---------------------------------- */
+
+  if (loading && rows.length === 0) {
+    return (
+      <div className="space-y-5 p-4 md:p-6">
+        <Skeleton className="h-10 w-72" />
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-24" />
+          ))}
+        </div>
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Skeleton className="h-72" />
+          <Skeleton className="h-72" />
+        </div>
+        <Skeleton className="h-80" />
+      </div>
+    )
+  }
+
+  if (failed && rows.length === 0) {
+    return (
+      <div className="flex flex-col items-center gap-4 p-10 text-center">
+        <p className="text-sm text-muted-foreground">We couldn’t reach the wellbeing API. Your session may have expired.</p>
+        <Link href="/login">
+          <Button>Sign in again</Button>
+        </Link>
+        <Button variant="outline" onClick={() => load()}>
+          Retry
+        </Button>
+      </div>
+    )
+  }
+
+  const lastUpdate = rows[0]?.date ? `Data through ${rows[0].date}` : "No check-ins yet"
 
   return (
-    <div className="p-4 md:p-6 space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="space-y-5 p-4 md:p-6">
+      {/* 1 — Header */}
+      <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold">Team Wellbeing</h1>
-          <p className="text-muted-foreground">Monitor and improve your team's emotional health</p>
+          <h1 className="flex items-center gap-2 text-xl font-semibold tracking-tight">
+            <Sparkles className="h-5 w-5" style={{ color: "hsl(var(--chart-moss))" }} />
+            Team Wellbeing Workspace
+          </h1>
+          <p className="text-sm text-muted-foreground">Check-ins, mood signals, and at-risk nudges for the whole team · {lastUpdate}</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="gap-1" onClick={handleViewHistory}>
-            <Calendar className="h-4 w-4" />
-            <span>History</span>
+        <div className="flex flex-wrap gap-2">
+          <Button size="sm" onClick={openLog}>
+            <Plus className="mr-1 h-4 w-4" /> Log check-in
           </Button>
-          <Button size="sm" className="gap-1" onClick={handleConfigure}>
-            <Settings className="h-4 w-4" />
-            <span>Configure</span>
+          <Button size="sm" variant="outline" onClick={exportCsv}>
+            <Download className="mr-1 h-4 w-4" /> Export CSV
+          </Button>
+          <Button size="sm" variant="ghost" onClick={refresh} disabled={refreshing}>
+            <RefreshCw className={cn("mr-1 h-4 w-4", refreshing && "animate-spin")} /> Refresh
           </Button>
         </div>
       </div>
 
-      {/* Team Mood Overview */}
-      <section>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-2xl font-bold">Team Mood</h2>
-          <Badge variant="outline" className="gap-1">
-            <RefreshCw className="h-3 w-3" />
-            <span>Updated 30 minutes ago</span>
+      {/* 2 — KPI strip */}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {[
+          {
+            label: "Team avg happiness",
+            value: kpis.teamAvg ?? "—",
+            hint: "avg of each member’s latest check-in /100",
+            icon: <Sparkles className="h-4 w-4" />,
+            tone: kpis.teamAvg !== null ? scoreTone(kpis.teamAvg) : undefined,
+          },
+          { label: "Members checked in · 7d", value: kpis.checkedIn7d, hint: `of ${memberIds.length} members`, icon: <Users className="h-4 w-4" />, tone: undefined },
+          {
+            label: "At risk (< 40)",
+            value: kpis.atRisk.length,
+            hint: kpis.atRisk.length ? "act this week" : "nobody below the line",
+            icon: <AlertTriangle className="h-4 w-4" />,
+            tone: kpis.atRisk.length > 0 ? "text-red-500" : undefined,
+          },
+          {
+            label: "Trend vs previous week",
+            value: kpis.weekDelta === null ? "—" : `${kpis.weekDelta > 0 ? "+" : ""}${kpis.weekDelta}`,
+            hint: "team avg of check-ins, last 7d vs prior 7d",
+            icon: <Activity className="h-4 w-4" />,
+            tone: kpis.weekDelta !== null && kpis.weekDelta < 0 ? "text-red-500" : kpis.weekDelta !== null && kpis.weekDelta > 0 ? "text-emerald-600" : undefined,
+          },
+        ].map((k) => (
+          <Card key={k.label}>
+            <CardContent className="pt-4">
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                {k.label}
+                <span className={k.tone}>{k.icon}</span>
+              </div>
+              <p className={cn("mt-1 text-2xl font-semibold tabular-nums", k.tone)}>{k.value}</p>
+              <p className="text-[11px] text-muted-foreground">{k.hint}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* 3 — Team mood board */}
+      <SectionCard
+        title="Team mood board"
+        icon={<HeartHandshake className="h-4 w-4" />}
+        action={
+          <Badge variant="outline" className="text-[10px] text-muted-foreground">
+            latest per member
           </Badge>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {loading ? (
-            <>
-              <Skeleton className="h-[400px] md:col-span-2" />
-              <Skeleton className="h-[400px] md:col-span-2" />
-            </>
-          ) : (
-            <>
-              <Card className="md:col-span-2">
-                <CardHeader>
-                  <CardTitle>Overall Team Sentiment</CardTitle>
-                  <CardDescription>Based on meeting analysis and check-ins</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center justify-center py-6">
-                    <div className="text-center">
-                      <div className="inline-flex h-24 w-24 items-center justify-center rounded-full bg-green-100">
-                        <Heart className="h-12 w-12 text-green-600" />
-                      </div>
-                      <h3 className="mt-4 text-2xl font-bold">Positive</h3>
-                      <p className="text-muted-foreground">{teamWellbeing?.happiness}% happiness score</p>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-3 gap-4 text-center mt-4">
-                    <div className="bg-muted/40 rounded-md p-3">
-                      <div className="text-2xl font-bold">{teamWellbeing?.happiness}%</div>
-                      <div className="text-xs text-muted-foreground">Happiness</div>
-                    </div>
-                    <div className="bg-muted/40 rounded-md p-3">
-                      <div className="text-2xl font-bold">{teamWellbeing?.stress}%</div>
-                      <div className="text-xs text-muted-foreground">Stress</div>
-                    </div>
-                    <div className="bg-muted/40 rounded-md p-3">
-                      <div className="text-2xl font-bold">{teamWellbeing?.burnoutRisk}%</div>
-                      <div className="text-xs text-muted-foreground">Burnout Risk</div>
-                    </div>
-                  </div>
-                </CardContent>
-                <CardFooter className="border-t pt-4">
-                  <Button variant="outline" size="sm" className="w-full gap-1" onClick={handleDownloadAnalysis}>
-                    <Download className="h-4 w-4" />
-                    <span>Download Full Report</span>
-                  </Button>
-                </CardFooter>
-              </Card>
-
-              <Card className="md:col-span-2">
-                <CardHeader>
-                  <CardTitle>Sentiment Trend</CardTitle>
-                  <CardDescription>Last 30 days</CardDescription>
-                </CardHeader>
-                <CardContent className="h-[250px] flex items-center justify-center bg-muted/30 rounded-md">
-                  <div className="text-center">
-                    <LineChart className="h-10 w-10 text-muted-foreground mx-auto mb-2" />
-                    <p className="text-muted-foreground">Sentiment Trend Visualization</p>
-                  </div>
-                </CardContent>
-                <CardFooter className="text-sm text-muted-foreground">
-                  <div className="flex items-center gap-1">
-                    <ThumbsUp className="h-3 w-3" />
-                    <span>Positive trend over the last 2 weeks</span>
-                  </div>
-                </CardFooter>
-              </Card>
-            </>
-          )}
-        </div>
-      </section>
-
-      {/* Individual Team Member Wellbeing */}
-      <section>
-        <h2 className="text-2xl font-bold mb-4">Team Member Wellbeing</h2>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {loading ? (
-            <>
-              <Skeleton className="h-[300px]" />
-              <Skeleton className="h-[300px]" />
-              <Skeleton className="h-[300px]" />
-              <Skeleton className="h-[300px]" />
-            </>
-          ) : (
-            teamMembers.map((member) => (
-              <Card key={member.id}>
-                <CardHeader className="pb-2">
-                  <div className="flex items-center gap-3">
-                    <Avatar>
-                      <AvatarFallback>
-                        {member.name
-                          .split(" ")
-                          .map((n) => n[0])
-                          .join("")}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <CardTitle className="text-lg">{member.name}</CardTitle>
-                      <CardDescription>{member.role}</CardDescription>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div>
-                      <div className="flex justify-between mb-1 text-sm">
-                        <span>Wellbeing Score</span>
-                        <span className="font-medium">{member.wellbeingScore}%</span>
-                      </div>
-                      <Progress
-                        value={member.wellbeingScore}
-                        className={`h-2 ${
-                          member.wellbeingScore >= 80
-                            ? "bg-green-100"
-                            : member.wellbeingScore >= 60
-                              ? "bg-amber-100"
-                              : "bg-red-100"
-                        }`}
-                      />
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Mood</span>
-                      <Badge
-                        variant="outline"
-                        className={
-                          member.mood === "Energized"
-                            ? "bg-green-50 text-green-700 border-green-200"
-                            : member.mood === "Stressed"
-                              ? "bg-amber-50 text-amber-700 border-amber-200"
-                              : member.mood === "Focused"
-                                ? "bg-green-50 text-green-700 border-green-200"
-                                : "bg-blue-50 text-blue-700 border-blue-200"
-                        }
-                      >
-                        {member.mood}
-                      </Badge>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Workload</span>
-                      <Badge
-                        variant="outline"
-                        className={
-                          member.workload === "Balanced"
-                            ? "bg-blue-50 text-blue-700 border-blue-200"
-                            : member.workload === "High"
-                              ? "bg-amber-50 text-amber-700 border-amber-200"
-                              : "bg-blue-50 text-blue-700 border-blue-200"
-                        }
-                      >
-                        {member.workload}
-                      </Badge>
-                    </div>
-                  </div>
-                </CardContent>
-                <CardFooter className="border-t pt-4 flex justify-between">
-                  <div className="text-xs text-muted-foreground">
-                    <Clock className="h-3 w-3 inline mr-1" />
-                    <span>Updated today</span>
-                  </div>
-                  <Button variant="ghost" size="sm" onClick={() => handleViewMemberDetails(member.id)}>
-                    Details
-                  </Button>
-                </CardFooter>
-              </Card>
-            ))
-          )}
-        </div>
-      </section>
-
-      {/* Wellbeing Insights */}
-      <section>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-2xl font-bold">Wellbeing Insights</h2>
-          <Badge>AI Generated</Badge>
-        </div>
-
-        {loading ? (
-          <>
-            <Skeleton className="h-[300px] mb-6" />
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Skeleton className="h-[400px]" />
-              <Skeleton className="h-[400px]" />
-            </div>
-          </>
+        }
+      >
+        {latestByUser.size > 0 ? (
+          <div className="flex flex-wrap gap-2 pt-1">
+            {[...latestByUser.values()].map((r) => (
+              <div key={r.userId} className="flex items-center gap-2 rounded-full border px-2.5 py-1.5 text-xs">
+                <AvatarCircle name={memberNames.get(r.userId)?.name ?? r.userName} avatar={r.avatar} size={20} />
+                <span className="font-medium">{(memberNames.get(r.userId)?.name ?? r.userName).split(" ")[0]}</span>
+                <span className="rounded-full px-1.5 py-0.5 text-[10px] font-medium" style={{ color: moodColor(r.mood), backgroundColor: `color-mix(in srgb, ${moodColor(r.mood)} 14%, transparent)` }}>
+                  {r.mood}
+                </span>
+                <span className={cn("tabular-nums", scoreTone(r.wellbeingScore))}>{r.wellbeingScore}</span>
+              </div>
+            ))}
+          </div>
         ) : (
-          <>
-            <Card className="bg-primary/5 border-primary/20 mb-6">
-              <CardHeader className="pb-2">
-                <CardTitle>Team Wellbeing Analysis</CardTitle>
-                <CardDescription>Based on emotional intelligence data</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="mb-4">
-                  Your team is generally doing well, with an overall positive sentiment. However, there are a few areas
-                  that need attention:
-                </p>
-                <div className="space-y-4">
-                  {wellbeingInsights.map((insight, index) => (
-                    <div key={index} className="flex items-start gap-3">
-                      <div
-                        className={`h-6 w-6 rounded-full flex items-center justify-center mt-1 ${
-                          insight.type === "warning"
-                            ? "bg-amber-100"
-                            : insight.type === "positive"
-                              ? "bg-green-100"
-                              : "bg-blue-100"
-                        }`}
-                      >
-                        {insight.type === "warning" ? (
-                          <AlertCircle
-                            className={`h-3 w-3 ${
-                              insight.type === "warning"
-                                ? "text-amber-600"
-                                : insight.type === "positive"
-                                  ? "text-green-600"
-                                  : "text-blue-600"
-                            }`}
-                          />
-                        ) : insight.type === "positive" ? (
-                          <ThumbsUp className="h-3 w-3 text-green-600" />
-                        ) : (
-                          <Activity className="h-3 w-3 text-blue-600" />
-                        )}
-                      </div>
-                      <div>
-                        <h3 className="font-medium">{insight.title}</h3>
-                        <p className="text-sm text-muted-foreground">{insight.description}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-              <CardFooter className="border-t pt-4">
-                <Button variant="outline" size="sm" className="w-full gap-1" onClick={handleDownloadAnalysis}>
-                  <Download className="h-4 w-4" />
-                  <span>Download Full Analysis</span>
-                </Button>
-              </CardFooter>
-            </Card>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Wellbeing Recommendations</CardTitle>
-                  <CardDescription>AI-generated suggestions</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-3">
-                    <li className="flex items-start gap-3">
-                      <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center mt-1">
-                        <Heart className="h-3 w-3 text-primary" />
-                      </div>
-                      <div>
-                        <p className="text-sm">
-                          <span className="font-medium">Schedule a team building activity</span> - The team would
-                          benefit from a collaborative non-work activity this week.
-                        </p>
-                      </div>
-                    </li>
-                    <li className="flex items-start gap-3">
-                      <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center mt-1">
-                        <Heart className="h-3 w-3 text-primary" />
-                      </div>
-                      <div>
-                        <p className="text-sm">
-                          <span className="font-medium">Redistribute Alice's workload</span> - Move 2-3 tasks to team
-                          members with capacity to reduce her stress levels.
-                        </p>
-                      </div>
-                    </li>
-                    <li className="flex items-start gap-3">
-                      <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center mt-1">
-                        <Heart className="h-3 w-3 text-primary" />
-                      </div>
-                      <div>
-                        <p className="text-sm">
-                          <span className="font-medium">Implement "Focus Fridays"</span> - Dedicate Friday afternoons to
-                          uninterrupted work time with no meetings.
-                        </p>
-                      </div>
-                    </li>
-                    <li className="flex items-start gap-3">
-                      <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center mt-1">
-                        <Heart className="h-3 w-3 text-primary" />
-                      </div>
-                      <div>
-                        <p className="text-sm">
-                          <span className="font-medium">Recognize team achievements</span> - Publicly acknowledge the
-                          team's recent progress on the Gamification feature.
-                        </p>
-                      </div>
-                    </li>
-                  </ul>
-                </CardContent>
-                <CardFooter className="border-t pt-4">
-                  <Button size="sm" className="w-full" onClick={handleImplementRecommendations}>
-                    Implement Recommendations
-                  </Button>
-                </CardFooter>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Wellbeing Metrics</CardTitle>
-                  <CardDescription>Key indicators of team health</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {wellbeingMetrics.map((metric, index) => (
-                      <div key={index}>
-                        <div className="flex justify-between mb-1 text-sm">
-                          <span>{metric.name}</span>
-                          <span className="font-medium">{metric.value}%</span>
-                        </div>
-                        <Progress
-                          value={metric.value}
-                          className={`h-2 ${
-                            metric.name === "Burnout Risk"
-                              ? metric.value <= 20
-                                ? "bg-green-100"
-                                : metric.value <= 50
-                                  ? "bg-amber-100"
-                                  : "bg-red-100"
-                              : metric.value >= 80
-                                ? "bg-green-100"
-                                : metric.value >= 60
-                                  ? "bg-amber-100"
-                                  : "bg-red-100"
-                          }`}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-                <CardFooter className="border-t pt-4 text-sm text-muted-foreground">
-                  <div className="flex items-center gap-1">
-                    <BarChart3 className="h-4 w-4" />
-                    <span>Metrics updated weekly based on team activity and feedback</span>
-                  </div>
-                </CardFooter>
-              </Card>
-            </div>
-          </>
+          <EmptyNote>No check-ins logged yet — use “Log check-in” to start the board.</EmptyNote>
         )}
-      </section>
+      </SectionCard>
+
+      {/* 4 + 9 — Happiness trend + mood distribution */}
+      <div className="grid gap-4 lg:grid-cols-3">
+        <SectionCard title="Happiness trend · 14 days" icon={<Activity className="h-4 w-4" />} className="lg:col-span-2">
+          {rows.length > 0 ? (
+            <ResponsiveContainer width="100%" height={220}>
+              <AreaChart data={happinessTrend}>
+                <defs>
+                  <linearGradient id="wbTeamFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="hsl(var(--chart-moss))" stopOpacity={0.35} />
+                    <stop offset="100%" stopColor="hsl(var(--chart-moss))" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                <XAxis dataKey="date" tick={{ ...AXIS, fontSize: 10 }} minTickGap={16} />
+                <YAxis domain={[0, 100]} tick={AXIS} width={28} />
+                <Tooltip {...TOOLTIP_STYLE} />
+                <Area type="monotone" dataKey="score" name="Team avg wellbeing" stroke="hsl(var(--chart-moss))" fill="url(#wbTeamFill)" strokeWidth={2} connectNulls />
+              </AreaChart>
+            </ResponsiveContainer>
+          ) : (
+            <EmptyNote>Log a check-in to build the trend.</EmptyNote>
+          )}
+        </SectionCard>
+
+        <SectionCard title="Mood distribution · 14 days" icon={<BarChart3 className="h-4 w-4" />}>
+          {moodDistribution.length > 0 ? (
+            <ResponsiveContainer width="100%" height={220}>
+              <PieChart>
+                <Pie data={moodDistribution} dataKey="value" nameKey="name" innerRadius={48} outerRadius={78} paddingAngle={2}>
+                  {moodDistribution.map((m) => (
+                    <Cell key={m.name} fill={moodColor(m.name)} />
+                  ))}
+                </Pie>
+                <Tooltip {...TOOLTIP_STYLE} />
+                <Legend wrapperStyle={{ fontSize: 10 }} />
+              </PieChart>
+            </ResponsiveContainer>
+          ) : (
+            <EmptyNote>No moods recorded in the window.</EmptyNote>
+          )}
+        </SectionCard>
+      </div>
+
+      {/* 5 — Per-member table with sparklines */}
+      <SectionCard title="Member wellbeing" icon={<Users className="h-4 w-4" />}>
+        {memberTable.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b text-left text-[11px] uppercase tracking-wide text-muted-foreground">
+                  <th className="px-3 py-2 font-medium">Member</th>
+                  <th className="px-3 py-2 font-medium">Latest</th>
+                  <th className="px-3 py-2 font-medium">7d trend</th>
+                  <th className="px-3 py-2 font-medium">History</th>
+                  <th className="px-3 py-2 font-medium">Mood</th>
+                  <th className="px-3 py-2 font-medium">Last check-in</th>
+                </tr>
+              </thead>
+              <tbody>
+                {memberTable.map((m) => (
+                  <tr key={m.id} className="border-b last:border-0 hover:bg-muted/40">
+                    <td className="px-3 py-2">
+                      <div className="flex items-center gap-2">
+                        <AvatarCircle name={m.name} avatar={m.avatar} size={22} />
+                        <div className="min-w-0">
+                          <p className="truncate text-xs font-medium">{m.name}</p>
+                          {m.role && <p className="truncate text-[10px] text-muted-foreground">{m.role}</p>}
+                        </div>
+                      </div>
+                    </td>
+                    <td className={cn("px-3 py-2 tabular-nums font-semibold", m.latest && scoreTone(m.latest.wellbeingScore))}>
+                      {m.latest?.wellbeingScore ?? "—"}
+                    </td>
+                    <td className="px-3 py-2">
+                      {m.delta === null ? (
+                        <span className="text-xs text-muted-foreground">{m.latest ? "first check-in" : "no data"}</span>
+                      ) : m.delta > 0 ? (
+                        <span className="inline-flex items-center gap-0.5 text-xs font-medium text-emerald-600">
+                          <ArrowUpRight className="h-3.5 w-3.5" /> +{m.delta}
+                        </span>
+                      ) : m.delta < 0 ? (
+                        <span className="inline-flex items-center gap-0.5 text-xs font-medium text-red-500">
+                          <ArrowDownRight className="h-3.5 w-3.5" /> {m.delta}
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-0.5 text-xs text-muted-foreground">
+                          <Minus className="h-3.5 w-3.5" /> flat
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2">
+                      {m.spark.length > 1 ? (
+                        <LineChart width={110} height={32} data={m.spark}>
+                          <Line type="monotone" dataKey="score" stroke="hsl(var(--chart-pine))" strokeWidth={1.5} dot={false} isAnimationActive={false} />
+                        </LineChart>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2">
+                      {m.latest ? (
+                        <span className="text-xs font-medium" style={{ color: moodColor(m.latest.mood) }}>
+                          {m.latest.mood}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2 text-xs text-muted-foreground">
+                      {m.latest ? (
+                        <>
+                          <Clock className="mr-1 inline h-3 w-3" />
+                          {relativeTime(m.latest.date)}
+                        </>
+                      ) : (
+                        "never"
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <EmptyNote>No team members found. Add workload members to track their wellbeing.</EmptyNote>
+        )}
+      </SectionCard>
+
+      {/* 6 — Workload vs wellbeing */}
+      <SectionCard title="Workload vs wellbeing" icon={<BarChart3 className="h-4 w-4" />}>
+        {workloadVsWellbeing.length > 0 ? (
+          <ResponsiveContainer width="100%" height={240}>
+            <BarChart data={workloadVsWellbeing}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+              <XAxis dataKey="name" tick={AXIS} />
+              <YAxis yAxisId="left" tick={AXIS} width={26} />
+              <YAxis yAxisId="right" orientation="right" domain={[0, 100]} tick={AXIS} width={26} />
+              <Tooltip {...TOOLTIP_STYLE} cursor={{ fill: "hsl(var(--muted))" }} />
+              <Legend wrapperStyle={{ fontSize: 11 }} />
+              <Bar yAxisId="left" dataKey="openPoints" name="Open points" fill="hsl(var(--chart-stone))" radius={[3, 3, 0, 0]} />
+              <Bar yAxisId="right" dataKey="wellbeing" name="Wellbeing /100" fill="hsl(var(--chart-moss))" radius={[3, 3, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        ) : (
+          <EmptyNote>Workload pairs appear once members have tasks and check-ins.</EmptyNote>
+        )}
+        <p className="mt-2 text-[11px] text-muted-foreground">
+          Watch for inverse pairs: high open points with a low wellbeing bar is where you rebalance first.
+        </p>
+      </SectionCard>
+
+      {/* 7 — At-risk panel */}
+      <SectionCard
+        title="At-risk members"
+        icon={<AlertTriangle className="h-4 w-4" />}
+        action={
+          <Badge variant={kpis.atRisk.length > 0 ? "destructive" : "outline"} className="text-[10px]">
+            {kpis.atRisk.length} below {LOW_THRESHOLD}
+          </Badge>
+        }
+      >
+        {kpis.atRisk.length > 0 ? (
+          <ul className="divide-y">
+            {kpis.atRisk.map((r) => {
+              const name = memberNames.get(r.userId)?.name ?? r.userName
+              return (
+                <li key={r.userId} className="flex flex-wrap items-center justify-between gap-3 py-2.5">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <AvatarCircle name={name} avatar={r.avatar} size={28} />
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium">{name}</p>
+                      <p className="text-[11px] text-muted-foreground">
+                        <span className="font-semibold text-red-500">{r.wellbeingScore}</span> · {r.mood} · workload {r.workload} · logged {relativeTime(r.date)}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button asChild size="sm" variant="outline" className="h-7 text-xs">
+                      <Link href={`/dashboard/kanban?assignee=${r.userId}`}>View tasks</Link>
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={sentSupport.includes(r.userId) ? "ghost" : "secondary"}
+                      className="h-7 text-xs"
+                      disabled={sentSupport.includes(r.userId) || supportBusy === r.userId}
+                      onClick={() => sendSupportNote(r.userId, name, r.wellbeingScore)}
+                    >
+                      {sentSupport.includes(r.userId) ? "Support queued" : supportBusy === r.userId ? "Sending…" : "Send support note"}
+                    </Button>
+                  </div>
+                </li>
+              )
+            })}
+          </ul>
+        ) : (
+          <EmptyNote>Nobody under {LOW_THRESHOLD}. If that surprises you, ask the team to log check-ins.</EmptyNote>
+        )}
+      </SectionCard>
+
+      {/* 8 — Overtime signals */}
+      <SectionCard
+        title="Overtime signals"
+        icon={<Clock className="h-4 w-4" />}
+        action={
+          <Badge variant="outline" className="text-[10px] text-muted-foreground">
+            proxy · tasks closed this week
+          </Badge>
+        }
+      >
+        {overtimeSignals.list.length > 0 ? (
+          <div className="space-y-2.5">
+            {overtimeSignals.list.slice(0, 8).map((o) => (
+              <div key={o.id} className="flex items-center gap-3">
+                <AvatarCircle name={o.name} avatar={memberNames.get(o.id)?.avatar ?? null} />
+                <div className="min-w-0 flex-1">
+                  <div className="flex justify-between text-xs">
+                    <span className="truncate font-medium">{o.name}</span>
+                    <span className="shrink-0 tabular-nums text-muted-foreground">{o.count} done · 7d</span>
+                  </div>
+                  <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted">
+                    <div
+                      className={cn("h-full rounded-full", o.count / overtimeSignals.max > 0.8 ? "bg-[hsl(var(--chart-clay))]" : "bg-[hsl(var(--chart-pine))]")}
+                      style={{ width: `${Math.round((o.count / overtimeSignals.max) * 100)}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+            <p className="pt-1 text-[11px] text-muted-foreground">
+              Closing an unusually high number of tasks in a week often signals compensating hours — pair this with low mood scores.
+            </p>
+          </div>
+        ) : (
+          <EmptyNote>No tasks completed in the last 7 days — no overtime signal.</EmptyNote>
+        )}
+      </SectionCard>
+
+      {/* 10 — Check-in history with edit/delete */}
+      <SectionCard
+        title="Check-in history · 30 days"
+        icon={<Activity className="h-4 w-4" />}
+        action={
+          <div className="flex items-center gap-1 rounded-md border p-0.5">
+            <Button size="sm" variant={historyScope === "all" ? "secondary" : "ghost"} className="h-7 px-2 text-xs" onClick={() => setHistoryScope("all")}>
+              All team
+            </Button>
+            <Button size="sm" variant={historyScope === "mine" ? "secondary" : "ghost"} className="h-7 px-2 text-xs" onClick={() => setHistoryScope("mine")}>
+              Mine
+            </Button>
+          </div>
+        }
+      >
+        {historyRows.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b text-left text-[11px] uppercase tracking-wide text-muted-foreground">
+                  <th className="px-3 py-2 font-medium">Member</th>
+                  <th className="px-3 py-2 font-medium">Date</th>
+                  <th className="px-3 py-2 font-medium">Score</th>
+                  <th className="px-3 py-2 font-medium">Mood</th>
+                  <th className="px-3 py-2 font-medium">Workload</th>
+                  <th className="px-3 py-2 font-medium">Stress</th>
+                  <th className="px-3 py-2 font-medium">OT hrs</th>
+                  <th className="px-3 py-2 text-right font-medium">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {historyRows.map((r) => (
+                  <tr key={r.id} className="border-b last:border-0 hover:bg-muted/40">
+                    <td className="px-3 py-2">
+                      <div className="flex items-center gap-2">
+                        <AvatarCircle name={memberNames.get(r.userId)?.name ?? r.userName} avatar={r.avatar} size={20} />
+                        <span className="truncate text-xs font-medium">{memberNames.get(r.userId)?.name ?? r.userName}</span>
+                      </div>
+                    </td>
+                    <td className="px-3 py-2 text-xs tabular-nums">{r.date}</td>
+                    <td className={cn("px-3 py-2 text-xs font-semibold tabular-nums", scoreTone(r.wellbeingScore))}>{r.wellbeingScore}</td>
+                    <td className="px-3 py-2 text-xs" style={{ color: moodColor(r.mood) }}>{r.mood}</td>
+                    <td className="px-3 py-2 text-xs text-muted-foreground">{r.workload}</td>
+                    <td className="px-3 py-2 text-xs tabular-nums text-muted-foreground">{r.stressLevel}/5</td>
+                    <td className="px-3 py-2 text-xs tabular-nums text-muted-foreground">{r.overtimeHours}</td>
+                    <td className="px-3 py-2 text-right">
+                      {confirmDelete === r.id ? (
+                        <div className="inline-flex items-center gap-1">
+                          <span className="text-[11px] text-red-500">Delete?</span>
+                          <Button size="sm" variant="destructive" className="h-7 px-2 text-xs" disabled={deleting} onClick={() => deleteCheckIn(r.id)}>
+                            Confirm
+                          </Button>
+                          <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => setConfirmDelete(null)}>
+                            Keep
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="inline-flex gap-1">
+                          <Button size="sm" variant="ghost" className="h-7 px-2" aria-label={`Edit check-in for ${r.userName} on ${r.date}`} onClick={() => openEdit(r)}>
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button size="sm" variant="ghost" className="h-7 px-2 text-red-500" aria-label={`Delete check-in for ${r.userName} on ${r.date}`} onClick={() => setConfirmDelete(r.id)}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <EmptyNote>{historyScope === "mine" ? "You haven’t logged any check-ins in the last 30 days." : "No check-ins in the last 30 days."}</EmptyNote>
+        )}
+      </SectionCard>
+
+      {/* 11 — Anonymous survey note */}
+      <SectionCard title="About anonymity" icon={<Lock className="h-4 w-4" />}>
+        <div className="space-y-2 text-xs text-muted-foreground">
+          <p>
+            Check-ins in this workspace are <span className="font-medium text-foreground">tied to member accounts</span>, not anonymous — they
+            power the trend charts, at-risk alerts and support notifications on this page.
+          </p>
+          <p>
+            Before surfacing individual scores to managers, agree as a team on who can see raw numbers versus aggregates only. If you
+            later need truly anonymous pulse surveys, that requires a separate survey tool — this page does not hide identities.
+          </p>
+          <Separator className="my-2" />
+          <p className="text-[11px]">Thresholds in use: at-risk below {LOW_THRESHOLD}, thriving above {HIGH_THRESHOLD}. Crossing either line sends the member a wellbeing notification.</p>
+        </div>
+      </SectionCard>
+
+      {/* ---------------------------- log / edit dialog ---------------------------- */}
+
+      <Dialog open={formOpen && draft !== null} onOpenChange={(o) => !o && setFormOpen(false)}>
+        {draft && (
+          <DialogContent className="max-w-xl">
+            <DialogHeader>
+              <DialogTitle>{draft.id ? `Edit check-in #${draft.id}` : "Log wellbeing check-in"}</DialogTitle>
+              <DialogDescription>Scores run 0–100. Crossing the 40 or 85 line notifies the member.</DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1 sm:col-span-2">
+                <Label>Check-in for</Label>
+                <Select value={String(draft.userId)} onValueChange={(v) => setDraft({ ...draft, userId: Number(v) })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose member…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {memberIds.map((id) => (
+                      <SelectItem key={id} value={String(id)}>
+                        {memberNames.get(id)?.name ?? `Member #${id}`}
+                        {self?.id === id ? " (you)" : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {draft.userId !== self?.id && (
+                  <p className="text-[11px] text-muted-foreground">Logging for someone else sends them a wellbeing notification.</p>
+                )}
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="ci-date">Date</Label>
+                <Input id="ci-date" type="date" value={draft.date} onChange={(e) => setDraft({ ...draft, date: e.target.value })} />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="ci-score">Happiness score · {draft.wellbeingScore}/100</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="ci-score"
+                    type="range"
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={draft.wellbeingScore}
+                    onChange={(e) => setDraft({ ...draft, wellbeingScore: Number(e.target.value) })}
+                    className="h-2 flex-1 cursor-pointer appearance-none rounded-full bg-muted"
+                    aria-label="Happiness score slider"
+                  />
+                  <Input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={draft.wellbeingScore}
+                    onChange={(e) => setDraft({ ...draft, wellbeingScore: Math.min(100, Math.max(0, Number(e.target.value) || 0)) })}
+                    className="w-20"
+                    aria-label="Happiness score number"
+                  />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <Label>Mood</Label>
+                <Select value={draft.mood} onValueChange={(v) => setDraft({ ...draft, mood: v })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {MOODS.map((m) => (
+                      <SelectItem key={m} value={m}>
+                        {m}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label>Perceived workload</Label>
+                <Select value={draft.workload} onValueChange={(v) => setDraft({ ...draft, workload: v })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {WORKLOADS.map((w) => (
+                      <SelectItem key={w} value={w}>
+                        {w}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label>Stress level</Label>
+                <Select value={String(draft.stressLevel)} onValueChange={(v) => setDraft({ ...draft, stressLevel: Number(v) })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[1, 2, 3, 4, 5].map((s) => (
+                      <SelectItem key={s} value={String(s)}>
+                        {STRESS_LABEL[String(s)]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="ci-ot">Overtime hours</Label>
+                <Input
+                  id="ci-ot"
+                  type="number"
+                  min={0}
+                  max={80}
+                  value={draft.overtimeHours}
+                  onChange={(e) => setDraft({ ...draft, overtimeHours: Math.min(80, Math.max(0, Number(e.target.value) || 0)) })}
+                />
+              </div>
+              <div className="space-y-1 sm:col-span-2">
+                <Label htmlFor="ci-note">Note (optional)</Label>
+                <Textarea
+                  id="ci-note"
+                  rows={2}
+                  value={draft.note}
+                  onChange={(e) => setDraft({ ...draft, note: e.target.value })}
+                  placeholder={draft.userId !== self?.id ? "Context for the member — travels with their check-in notification." : "Notes are stored with the member’s notification, not the metric row."}
+                  disabled={!!draft.id}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setFormOpen(false)} disabled={saving}>
+                Cancel
+              </Button>
+              <Button onClick={saveCheckIn} disabled={saving}>
+                {saving ? "Saving…" : draft.id ? "Save changes" : "Log check-in"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        )}
+      </Dialog>
     </div>
   )
 }
