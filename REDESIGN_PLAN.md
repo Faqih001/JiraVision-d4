@@ -309,6 +309,10 @@ Inventory findings this build (what already exists):
   both `socket.io*` deps, the `dev:socket`/`start:socket` scripts and the two socket env vars).
 - Bell dropdown in the shell is hardcoded fake notifications; `app/api/chat/notifications` uses a
   hardcoded userId=1. recharts 2.15.0 available. Middleware protects /dashboard via session cookies.
+  **Corrected 2026-10-25**: the userId=1 claim was stale before this plan was written —
+  `app/api/chat/notifications` resolves the caller through `getCurrentUser()`, and the only
+  hardcoding that did exist was in `[chatId]/read`, which V3-1 already fixed. The fake bell was
+  replaced in V3-1 as planned.
 
 Phases (report after each; commit+push on every change set):
 

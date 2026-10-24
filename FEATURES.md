@@ -89,10 +89,30 @@ below with its real implementation status; §3 lists gaps honestly.
   `dev:socket`/`start:socket` scripts and `NEXT_PUBLIC_WEBSOCKET_URL`/`NEXT_PUBLIC_SOCKET_URL`.
   A persistent socket server could never run on Vercel anyway (see `REDESIGN_PLAN.md`), so polling
   is the delivery model rather than a fallback.
-- Four chat endpoints have no client left and are working-but-unreachable: `[chatId]/mute` (the UI
-  mutes through `[chatId]/settings` instead), `[chatId]/read` (the messages GET marks read on a
-  full stream), `messages/[messageId]/permanent-delete`, and `chat/notifications` (the UI reads
-  `/api/notifications`). Either wire them up or delete them.
+- **All four previously-orphaned chat endpoints are wired (2026-10-25).** Nothing under `/api/chat*`
+  is unreachable now:
+  - `[chatId]/mute` — `PATCH` drives the row mute toggle, the conversation header and the members
+    rail. Muting is enforced server-side too: `notifyMentions()` in `app/api/chat/api-helpers.ts`
+    skips muted participants, so mute actually silences the bell instead of only swapping an icon.
+    The unread badge still counts on the row — mute hides noise, not messages — which is why the
+    header total excludes muted chats while "Mark all read" does not.
+  - `[chatId]/read` — `POST` advances `chat_participants.last_read`, the only thing that clears
+    `unreadCount` server-side. Called on chat open, on every poll that delivers somebody else's
+    message, and in bulk from the header's "Mark all read". Before this the marker never moved, so
+    unread counts could only ever grow.
+  - `messages/[messageId]/permanent-delete` — `DELETE`, reachable from a soft-deleted row behind an
+    `AlertDialog` confirm. Ownership is enforced server-side (403 unless `senderId === userId`).
+  - `chat/notifications` — `GET`/`POST`/`DELETE` back the "@ Me" rail: click an item to jump to its
+    chat (or to `metadata.link` for pre-chat rows), bulk mark-read, per-item dismiss. `GET` takes an
+    optional `type` filter, which must be applied in SQL rather than in the caller because `limit`
+    is evaluated first — a client-side `.filter(type === "mention")` let a busy user's newer
+    task/system rows push every mention out of the window.
+- **Toasts render.** `components/ui/toaster.tsx` existed but `<Toaster />` was never mounted, so all
+  376 `toast()` call sites across 40 files resolved into a store nothing read — every success and
+  error message in the dashboard was silently dropped. It is now mounted in `app/layout.tsx`. The
+  duplicate store `components/ui/use-toast.ts` (byte-identical apart from formatting, used by three
+  ethical-metrics modals) was deleted and its importers repointed at `hooks/use-toast.ts`, the one
+  the Toaster consumes.
 
 ## 5. Documentation, webinars, case studies and blog (rewritten 2026-10-23/24/25)
 
