@@ -7,7 +7,7 @@
 // notifies the actor plus the members whose queue changed.
 
 import { NextResponse } from "next/server"
-import { and, eq } from "drizzle-orm"
+import { and, eq, isNull } from "drizzle-orm"
 import { getSession } from "@/lib/auth-actions"
 import { db } from "@/lib/db"
 import { tasks, users } from "@/drizzle/schema"
@@ -17,7 +17,6 @@ import {
   SnapshotUnmeasurableError,
   buildRecommendations,
   computeLive,
-  loadConfig,
   mergeConfig,
   readEthicsMeta,
   recordSnapshot,
@@ -185,10 +184,12 @@ export async function POST(request: Request) {
         if (fromUserId !== null && taskRow.assigneeId !== fromUserId) continue
         if (taskRow.assigneeId === toUserId) continue
 
+        const ownerCondition =
+          taskRow.assigneeId === null ? isNull(tasks.assigneeId) : eq(tasks.assigneeId, taskRow.assigneeId)
         const [updated] = await db
           .update(tasks)
           .set({ assigneeId: toUserId, updatedAt: new Date() })
-          .where(and(eq(tasks.id, taskId), eq(tasks.assigneeId, taskRow.assigneeId)))
+          .where(and(eq(tasks.id, taskId), ownerCondition))
           .returning()
         if (!updated) continue
         moved.push({

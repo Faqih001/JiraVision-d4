@@ -671,7 +671,7 @@ export async function computeLive(config: EthicsConfig): Promise<LiveMetrics> {
         measured.length === 0
           ? "No overtime readings in the window - not measurable"
           : overLimit.length === 0
-            ? `Highest logged value ${Math.max(0, ...measured.map((m) => m.latestOvertimeHours as number)).toFixed(1)}h across ${measured.length} members`,
+            ? `Highest logged value ${Math.max(0, ...measured.map((m) => m.latestOvertimeHours as number)).toFixed(1)}h across ${measured.length} members`
             : `${overLimit.map((m) => `${m.name} (${(m.latestOvertimeHours as number).toFixed(1)}h)`).join(", ")} over the limit`,
     },
     {
@@ -762,7 +762,6 @@ export function buildRecommendations(live: LiveMetrics, meta: EthicsMeta, config
     const s = states[id]
     return s ? { status: s.status, appliedAt: s.appliedAt, summary: s.summary ?? null } : { status: "pending", appliedAt: null, summary: null }
   }
-  const nameOf = (id: number | null) => live.members.find((m) => m.userId === id)?.name ?? "unknown member"
   const recs: Recommendation[] = []
 
   const overloaded = live.members
@@ -1070,11 +1069,8 @@ export async function GET(request: Request) {
 
     const meta = await readEthicsMeta(session.id)
     const config = mergeConfig(meta.config)
-    const [live, snapshots, recommendations] = await Promise.all([
-      computeLive(config),
-      listSnapshots(session.id, limit),
-      Promise.resolve(buildRecommendations(live, meta, config)),
-    ])
+    const [live, snapshots] = await Promise.all([computeLive(config), listSnapshots(session.id, limit)])
+    const recommendations = buildRecommendations(live, meta, config)
 
     const latest = snapshots[0] ?? null
 

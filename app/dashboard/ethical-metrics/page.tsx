@@ -62,7 +62,6 @@ import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
-import { Progress } from "@/components/ui/progress"
 import {
   Dialog,
   DialogContent,
@@ -232,7 +231,6 @@ type TaskLite = {
 
 /* ----------------------------------------------------------------- helpers */
 
-const DAY = "day"
 const COLORS = {
   pine: "hsl(var(--chart-pine))",
   stone: "hsl(var(--chart-stone))",
@@ -259,16 +257,11 @@ function firstName(name: string) {
   return name.split(" ")[0] ?? name
 }
 
-function fmt(value: number | null | undefined, digits = 0): string {
-  if (value === null || value === undefined || !Number.isFinite(value)) return "—"
-  return value.toFixed(digits)
-}
-
 function scoreColor(value: number | null, threshold: number): string {
   if (value === null) return "hsl(var(--muted-foreground))"
-  if (value < threshold) return COLORS.destructive
-  if (value < threshold + 8) return COLORS.clay
-  return COLORS.pine
+  if (value >= threshold) return COLORS.pine
+  if (value >= threshold - 8) return COLORS.clay
+  return COLORS.destructive
 }
 
 function dayString(value: unknown): string {
@@ -320,6 +313,7 @@ function KpiCard({
   score,
   delta,
   threshold,
+  floorLabel,
   hint,
   icon,
 }: {
@@ -327,6 +321,7 @@ function KpiCard({
   score: number | null
   delta: number | null
   threshold: number
+  floorLabel?: string
   hint: string
   icon: React.ReactNode
 }) {
@@ -339,7 +334,7 @@ function KpiCard({
             <span style={{ color }}>{icon}</span>
             {label}
           </span>
-          <span className="text-[10px] tabular-nums">floor {threshold}</span>
+          <span className="text-[10px] tabular-nums">{floorLabel ?? `floor ${threshold}`}</span>
         </p>
         <p className="mt-1 flex items-baseline gap-2">
           <span className="text-2xl font-semibold tabular-nums" style={{ color }}>
@@ -350,11 +345,12 @@ function KpiCard({
         <div className="mt-0.5">
           <DeltaArrow delta={delta} />
         </div>
-        <Progress
-          value={score ?? 0}
-          className="mt-2 h-1.5"
-          indicatorStyle={{ backgroundColor: color }}
-        />
+        <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-secondary" role="presentation">
+          <div
+            className="h-full rounded-full transition-all"
+            style={{ width: `${score === null ? 0 : Math.max(2, Math.min(100, score))}%`, backgroundColor: color }}
+          />
+        </div>
         <p className="mt-1.5 text-[11px] leading-tight text-muted-foreground">{hint}</p>
       </CardContent>
     </Card>
@@ -526,6 +522,7 @@ export default function EthicalMetricsWorkspace() {
     return [...live.members]
       .sort((a, b) => b.openPoints - a.openPoints)
       .map((m) => ({
+        id: m.userId,
         name: firstName(m.name),
         points: m.openPoints,
         mean: Number(live.meanOpenPoints.toFixed(1)),
@@ -708,6 +705,8 @@ export default function EthicalMetricsWorkspace() {
       const json = await readJson(res)
       if (!res.ok || json.success !== true) throw new Error(String(json.message ?? json.error ?? `Request failed (${res.status})`))
       toast({ title: "Thresholds saved", description: "Alert floors and limits persisted; the workspace recomputed against them." })
+      const saved = (json.data as { config?: EthicsConfig } | undefined)?.config
+      if (saved) setConfigDraft(saved)
       await Promise.all([loadWorkspace(), loadAux()])
     } catch (err) {
       toast({ variant: "destructive", title: "Could not save thresholds", description: (err as Error).message })
@@ -863,7 +862,8 @@ export default function EthicalMetricsWorkspace() {
                 label="Overtime compliance"
                 score={live.scores.overtimeCompliance}
                 delta={deltas.overtimeCompliance}
-                threshold={ethics?.config.maxOvertimeHours ?? 0}
+                threshold={100}
+                floorLabel={`limit ${ethics?.config.maxOvertimeHours ?? 0}h`}
                 icon={<Zap className="h-3.5 w-3.5" />}
                 hint={`Members within the ${ethics?.config.maxOvertimeHours ?? 0}h weekly limit (${live.wellbeingCoveragePct}% check-in coverage).`}
               />
@@ -871,7 +871,8 @@ export default function EthicalMetricsWorkspace() {
                 label="Composite"
                 score={live.scores.composite}
                 delta={deltas.composite}
-                threshold={snapshots[0]?.compositeScore ?? 0}
+                threshold={80}
+                floorLabel="target 80"
                 icon={<Swords className="h-3.5 w-3.5" />}
                 hint="Weighted mean of the measurable axes (.30/.25/.25/.20)."
               />
@@ -904,7 +905,7 @@ export default function EthicalMetricsWorkspace() {
                   { key: "workloadBalance", label: "Workload", live: live.scores.workloadBalance, stored: snapshots[0]?.workloadBalanceScore ?? null, thr: thresholds?.workloadBalanceAlertThreshold ?? 0 },
                   { key: "dei", label: "DEI", live: live.scores.deiTaskDistribution, stored: snapshots[0]?.deiTaskDistributionScore ?? null, thr: thresholds?.deiTaskDistributionAlertThreshold ?? 0 },
                   { key: "pay", label: "Pay proxy", live: live.scores.payEquity, stored: snapshots[0]?.payEquityScore ?? null, thr: thresholds?.payEquityAlertThreshold ?? 0 },
-                  { key: "ot", label: "Overtime", live: live.scores.overtimeCompliance, stored: snapshots[0]?.overtimeCompliance ?? null, thr: thresholds?.overtimeAlertThreshold ?? 0 },
+                  { key: "ot", label: "Overtime", live: live.scores.overtimeCompliance, stored: snapshots[0]?.overtimeCompliance ?? null, thr: 100 },
                 ] as const
               ).map((row) => (
                 <div key={row.key} className="rounded-lg border p-2.5 text-center">
@@ -988,7 +989,7 @@ export default function EthicalMetricsWorkspace() {
                 />
                 <Bar dataKey="points" name="Open story points" radius={[4, 4, 0, 0]}>
                   {workloadData.map((d) => (
-                    <Cell key={d.name} fill={d.overloaded ? COLORS.destructive : d.underloaded ? COLORS.stone : COLORS.pine} />
+                    <Cell key={d.id} fill={d.overloaded ? COLORS.destructive : d.underloaded ? COLORS.stone : COLORS.pine} />
                   ))}
                 </Bar>
               </BarChart>
@@ -1001,11 +1002,37 @@ export default function EthicalMetricsWorkspace() {
               {live.members
                 .slice()
                 .sort((a, b) => b.openPoints - a.openPoints)
-                .slice(0, 6)
                 .map((m) => (
                   <MemberRow key={m.userId} member={m} mean={live.meanOpenPoints * (ethics?.config.overloadRatio ?? 1.5)} />
                 ))}
             </div>
+            {live.members.some((m) => m.overloaded) && (
+              <div className="mt-3 space-y-2 rounded-lg bg-muted/40 p-2.5">
+                <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                  Queued work for the overloaded members
+                </p>
+                {live.members
+                  .filter((m) => m.overloaded)
+                  .map((m) => (
+                    <div key={m.userId} className="text-[11px]">
+                      <p className="font-medium">{m.name}</p>
+                      <ul className="mt-1 space-y-1">
+                        {m.openTaskRefs.slice(0, 5).map((t) => (
+                          <li key={t.id} className="flex items-center justify-between gap-2">
+                            <span className="truncate">
+                              <span style={{ color: PRIORITY_COLOR[t.priority] }}>#{t.id}</span> {t.title}
+                            </span>
+                            <span className="flex shrink-0 items-center gap-2 tabular-nums">
+                              <span>{t.storyPoints} pts</span>
+                              <StatusPill status={t.status} />
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+              </div>
+            )}
           </>
         )}
       </SectionCard>
@@ -1229,7 +1256,7 @@ export default function EthicalMetricsWorkspace() {
                     <td className="px-1 py-1.5 text-center tabular-nums">{s.deiTaskDistributionScore}</td>
                     <td className="px-1 py-1.5 text-center tabular-nums">{s.payEquityScore}</td>
                     <td className="px-1 py-1.5 text-center tabular-nums">{s.overtimeCompliance}</td>
-                    <td className="px-1 py-1.5 text-center font-semibold tabular-nums" style={{ color: scoreColor(s.compositeScore, thresholds?.payEquityAlertThreshold ?? 80) }}>
+                    <td className="px-1 py-1.5 text-center font-semibold tabular-nums" style={{ color: scoreColor(s.compositeScore, 80) }}>
                       {s.compositeScore}
                     </td>
                     <td className="px-1 py-1.5 text-center">
@@ -1347,7 +1374,7 @@ export default function EthicalMetricsWorkspace() {
                   <label key={field.key} htmlFor={`en-${field.key}`} className="flex items-center justify-between gap-2 rounded-lg border px-2.5 py-2 text-xs">
                     <span>{field.label}</span>
                     <Switch
-                      id={DAY + field.key}
+                      id={`en-${field.key}`}
                       checked={configDraft[field.key]}
                       onCheckedChange={(v) => setConfigDraft({ ...configDraft, [field.key]: v })}
                     />
@@ -1361,7 +1388,7 @@ export default function EthicalMetricsWorkspace() {
                 {savingConfig ? <RefreshCw className="h-4 w-4 animate-spin" /> : <BadgeCheck className="h-4 w-4" />}
                 Save thresholds
               </Button>
-              <Button type="button" size="sm" variant="ghost" onClick={() => setConfigDraft(ethics.config)}>
+              <Button type="button" size="sm" variant="ghost" onClick={() => setConfigDraft(ethics?.config ?? null)}>
                 Reset to stored
               </Button>
               <p className="text-[11px] text-muted-foreground">
