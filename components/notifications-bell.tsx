@@ -21,13 +21,36 @@ import {
 
 export interface NotificationRow {
   id: number
-  userId: number
+  userId?: number
   type: string
   title: string
   body: string | null
   isRead: boolean
   metadata: Record<string, unknown> | null
   createdAt: string | Date
+}
+
+/** Live-query rows arrive with PostgreSQL (snake_case) column keys. */
+interface LiveNotificationRow {
+  id: number
+  type: string
+  title: string
+  body: string | null
+  is_read: boolean
+  metadata: Record<string, unknown> | null
+  created_at: string | Date
+}
+
+function fromLiveRow(row: LiveNotificationRow): NotificationRow {
+  return {
+    id: row.id,
+    type: row.type,
+    title: row.title,
+    body: row.body,
+    isRead: row.is_read,
+    metadata: row.metadata,
+    createdAt: row.created_at,
+  }
 }
 
 function linkOf(row: NotificationRow): string | null {
@@ -111,17 +134,20 @@ function NotificationFeed({ rows, statusText, emptyText, onError }: FeedProps) {
   )
 }
 
-function LiveBell({ sealed }: { sealed: SealedLiveQuery<NotificationRow> }) {
+function LiveBell({ sealed }: { sealed: SealedLiveQuery<LiveNotificationRow> }) {
   const refreshQuery = useCallback(async () => {
     const res = await fetch("/api/notifications/live")
     if (!res.ok) throw new Error("Could not refresh the live notification query")
-    const json = (await res.json()) as { sealed: SealedLiveQuery<NotificationRow> }
+    const json = (await res.json()) as { sealed: SealedLiveQuery<LiveNotificationRow> }
     return json.sealed
   }, [])
 
   const { data, status, error } = useLiveQuery(sealed, { refreshQuery })
 
-  const rows = data as NotificationRow[] | undefined
+  const rows = useMemo(
+    () => (data ? data.map(fromLiveRow) : undefined),
+    [data],
+  )
   const unreadCount = rows ? rows.filter((row) => !row.isRead).length : 0
 
   return (
@@ -237,7 +263,7 @@ function PollingBell() {
 }
 
 export default function NotificationsBell() {
-  const [config, setConfig] = useState<{ sealed: SealedLiveQuery<NotificationRow>; realtimeUrl: string } | null>(null)
+  const [config, setConfig] = useState<{ sealed: SealedLiveQuery<LiveNotificationRow>; realtimeUrl: string } | null>(null)
   const [checked, setChecked] = useState(false)
 
   useEffect(() => {
@@ -245,7 +271,7 @@ export default function NotificationsBell() {
     fetch("/api/notifications/live")
       .then(async (res) => {
         if (!res.ok) return null
-        return (await res.json()) as { sealed: SealedLiveQuery<NotificationRow>; realtimeUrl: string | null }
+        return (await res.json()) as { sealed: SealedLiveQuery<LiveNotificationRow>; realtimeUrl: string | null }
       })
       .then((json) => {
         if (cancelled) return

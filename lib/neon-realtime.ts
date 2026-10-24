@@ -47,10 +47,32 @@ export function getRealtimeServer(): NeonRealtimeServer | null {
   return g.__jvNeonRealtime
 }
 
-/** Only this user's notifications, newest first — parameters are baked in server-side. */
+/**
+ * Only this user's notifications, newest first — parameters are baked in
+ * server-side. Selected keys must match the PostgreSQL column names
+ * (snake_case), which is what the Realtime drizzle adapter validates.
+ */
+export interface NotificationLiveRow {
+  id: number
+  type: string
+  title: string
+  body: string | null
+  is_read: boolean
+  metadata: Record<string, unknown> | null
+  created_at: string | Date
+}
+
 export function notificationsLiveQuery(userId: number) {
   return db
-    .select()
+    .select({
+      id: notifications.id,
+      type: notifications.type,
+      title: notifications.title,
+      body: notifications.body,
+      is_read: notifications.isRead,
+      metadata: notifications.metadata,
+      created_at: notifications.createdAt,
+    })
     .from(notifications)
     .where(eq(notifications.userId, userId))
     .orderBy(desc(notifications.createdAt))
