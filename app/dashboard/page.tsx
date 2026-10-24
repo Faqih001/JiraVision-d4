@@ -1,906 +1,1449 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { useTheme } from "next-themes"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Legend,
+  Line,
+  LineChart,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts"
+import Link from "next/link"
+import {
+  Activity,
   ArrowRight,
-  ArrowUp,
-  ArrowUpRight,
+  BarChart3,
   Brain,
-  CreditCard,
-  MoreHorizontal,
+  CalendarClock,
+  CheckCheck,
+  ChevronRight,
+  CircleDot,
+  Flag,
+  LayoutGrid,
+  List,
+  Pencil,
   Plus,
-  ShoppingCart,
-  Ticket,
+  RefreshCw,
+  Scale,
+  Search,
+  Sparkles,
+  Swords,
   Timer,
-  Users,
-  ChevronDown,
-  CheckCircle,
-  XCircle,
-  Edit,
   Trash2,
-  Wallet,
+  Trophy,
+  Users,
+  Zap,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Progress } from "@/components/ui/progress"
+import { Separator } from "@/components/ui/separator"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
-import { useAuth } from "@/context/auth-context"
 import { cn } from "@/lib/utils"
-import AddTaskModal from "@/components/add-task-modal"
-import { Task } from "@/types/task"
-import { useRouter } from "next/navigation"
+import type { DashboardOverview } from "@/lib/dashboard-data"
 
-// Define types for our data
-type Sprint = {
-  id: number
-  name: string
-  description: string
-  startDate: string
-  endDate: string
-  status: string
-  capacity: number
-  completed: number
-}
+/* ------------------------------------------------------------------ types */
 
-type AIInsight = {
-  id: number
-  type: string
+type SprintOption = { id: number; name: string; status: string }
+
+type TaskDraft = {
+  id?: number
   title: string
   description: string
   status: string
+  priority: string
+  storyPoints: number
+  assigneeId: number | ""
+  sprintId: number | ""
+  dueDate: string
+  tags: string
 }
 
-type WellbeingMetrics = {
-  teamHappiness: number
-  teamMembers: {
-    id: number
-    name: string
-    avatar: string
-    mood: string
-  }[]
+type OverviewTask = DashboardOverview["myTasks"][number]
+
+const STATUSES = ["todo", "in_progress", "review", "blocked", "done"]
+const PRIORITIES = ["urgent", "high", "medium", "low"]
+
+const STATUS_LABEL: Record<string, string> = {
+  todo: "To do",
+  in_progress: "In progress",
+  review: "Review",
+  blocked: "Blocked",
+  done: "Done",
 }
 
-type EthicalMetrics = {
-  workloadBalance: number
-  deiTaskDistribution: number
-  payEquityCompliance: number
+const STATUS_COLOR: Record<string, string> = {
+  todo: "hsl(var(--chart-stone))",
+  in_progress: "hsl(var(--chart-moss))",
+  review: "hsl(var(--chart-clay))",
+  blocked: "hsl(var(--destructive))",
+  done: "hsl(var(--chart-pine))",
 }
 
-type GamificationProgress = {
-  skillTrees: {
-    name: string
-    level: number
-    progress: number
-    tasksToNextLevel: number
-  }[]
-  nextReward: string
+const PRIORITY_COLOR: Record<string, string> = {
+  urgent: "hsl(var(--destructive))",
+  high: "hsl(var(--chart-clay))",
+  medium: "hsl(var(--chart-moss))",
+  low: "hsl(var(--chart-stone))",
 }
 
-type Transaction = {
-  id: number
-  type: string
-  amount: number
-  status: string
-  date: string
+/* ------------------------------------------------------------- small bits */
+
+function SectionCard({
+  title,
+  icon,
+  action,
+  className,
+  children,
+}: {
+  title: string
+  icon?: React.ReactNode
+  action?: React.ReactNode
+  className?: string
+  children: React.ReactNode
+}) {
+  return (
+    <Card className={cn("flex flex-col", className)}>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+          {icon}
+          {title}
+        </CardTitle>
+        {action}
+      </CardHeader>
+      <CardContent className="flex-1">{children}</CardContent>
+    </Card>
+  )
 }
 
-export default function Dashboard() {
-  const { theme, setTheme } = useTheme()
-  const { user } = useAuth()
+function StatusPill({ status }: { status: string }) {
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium"
+      style={{
+        backgroundColor: `color-mix(in srgb, ${STATUS_COLOR[status] ?? "hsl(var(--muted-foreground))"} 15%, transparent)`,
+        color: STATUS_COLOR[status],
+      }}
+    >
+      <CircleDot className="h-3 w-3" />
+      {STATUS_LABEL[status] ?? status}
+    </span>
+  )
+}
+
+function PriorityPill({ priority }: { priority: string }) {
+  return (
+    <span className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
+      <Flag className="h-3 w-3" style={{ color: PRIORITY_COLOR[priority] }} />
+      {priority}
+    </span>
+  )
+}
+
+function AvatarCircle({ name, avatar, size = 28 }: { name: string; avatar?: string | null; size?: number }) {
+  const initials = name
+    .split(" ")
+    .map((p) => p[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase()
+  if (avatar) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={avatar.startsWith("avatars/") ? `/api/storage/${avatar}` : avatar}
+        alt={name}
+        className="rounded-full object-cover"
+        style={{ width: size, height: size }}
+      />
+    )
+  }
+  return (
+    <span
+      className="inline-flex items-center justify-center rounded-full bg-muted text-[10px] font-semibold"
+      style={{ width: size, height: size }}
+    >
+      {initials}
+    </span>
+  )
+}
+
+function EmptyNote({ children }: { children: React.ReactNode }) {
+  return <p className="py-6 text-center text-xs text-muted-foreground">{children}</p>
+}
+
+function relativeTime(iso: string) {
+  const diff = Date.now() - new Date(iso).getTime()
+  const mins = Math.round(diff / 60_000)
+  if (mins < 1) return "just now"
+  if (mins < 60) return `${mins}m ago`
+  const hrs = Math.round(mins / 60)
+  if (hrs < 24) return `${hrs}h ago`
+  return `${Math.round(hrs / 24)}d ago`
+}
+
+/* ------------------------------------------------------------- chart bits */
+
+const AXIS = { fontSize: 11, fill: "hsl(var(--muted-foreground))" }
+const TOOLTIP_STYLE = {
+  contentStyle: {
+    background: "hsl(var(--card))",
+    border: "1px solid hsl(var(--border))",
+    borderRadius: 8,
+    fontSize: 12,
+  },
+}
+
+/* --------------------------------------------------------------- the page */
+
+export default function DashboardHome() {
   const { toast } = useToast()
-  const router = useRouter()
-
-  // State for data
+  const [overview, setOverview] = useState<DashboardOverview | null>(null)
+  const [sprints, setSprints] = useState<SprintOption[]>([])
   const [loading, setLoading] = useState(true)
-  const [activeSprint, setActiveSprint] = useState<Sprint | null>(null)
-  const [tasks, setTasks] = useState<Task[]>([])
-  const [aiInsight, setAIInsight] = useState<AIInsight | null>(null)
-  const [wellbeing, setWellbeing] = useState<WellbeingMetrics | null>(null)
-  const [ethicalMetrics, setEthicalMetrics] = useState<EthicalMetrics | null>(null)
-  const [gamification, setGamification] = useState<GamificationProgress | null>(null)
-  const [transactions, setTransactions] = useState<Transaction[]>([])
-  const [supportTickets, setSupportTickets] = useState({
-    total: 120,
-    new: 42,
-    open: 38,
-    responseTime: "2h 15m",
-  })
-  const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false)
-  const [isTaskDetailModalOpen, setIsTaskDetailModalOpen] = useState(false)
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null)
-  const [aiRecommendations, setAIRecommendations] = useState<any[]>([])
+  const [refreshing, setRefreshing] = useState(false)
 
-  // Fetch data
+  // task view state
+  const [view, setView] = useState<"grid" | "list">("grid")
+  const [search, setSearch] = useState("")
+  const [statusFilter, setStatusFilter] = useState("all")
+  const [priorityFilter, setPriorityFilter] = useState("all")
+  const [sprintFilter, setSprintFilter] = useState("all")
+
+  // modals
+  const [formOpen, setFormOpen] = useState(false)
+  const [draft, setDraft] = useState<TaskDraft | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [detailTask, setDetailTask] = useState<OverviewTask | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    try {
+      const [ovRes, spRes] = await Promise.all([fetch("/api/dashboard/overview"), fetch("/api/sprints")])
+      const ovJson = await ovRes.json()
+      if (!ovJson.success) throw new Error(ovJson.message ?? "Failed to load dashboard")
+      setOverview(ovJson.data)
+      const spJson = await spRes.json()
+      if (spJson.success)
+        setSprints(
+          spJson.data.map((s: { id: number; name: string; status: string }) => ({
+            id: s.id,
+            name: s.name,
+            status: s.status,
+          })),
+        )
+    } catch (err) {
+      toast({ variant: "destructive", title: "Dashboard", description: (err as Error).message })
+    } finally {
+      setLoading(false)
+    }
+  }, [toast])
+
+  const reloadQuiet = useCallback(async () => {
+    try {
+      const ovRes = await fetch("/api/dashboard/overview")
+      const ovJson = await ovRes.json()
+      if (ovJson.success) setOverview(ovJson.data)
+    } catch {
+      toast({ variant: "destructive", title: "Dashboard", description: "Refresh failed." })
+    }
+  }, [toast])
+
+  const refresh = useCallback(async () => {
+    setRefreshing(true)
+    await load()
+    setRefreshing(false)
+    toast({ title: "Dashboard refreshed" })
+  }, [load, toast])
+
   useEffect(() => {
-    async function fetchDashboardData() {
-      try {
-        setLoading(true)
+    load()
+  }, [load])
 
-        // Fetch dashboard data from our API
-        const response = await fetch('/api/dashboard', {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include', // Include cookies for authentication
-        });
-        
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || 'Failed to fetch dashboard data');
-        }
-        
-        const result = await response.json();
-        if (!result.success) {
-          throw new Error(result.message || 'Failed to fetch dashboard data');
-        }
-        
-        // Set active sprint from API response
-        setActiveSprint(result.data.activeSprint || {
-          id: 1,
-          name: "Sprint 25.05",
-          description: "AI-Powered Project Management Platform",
-          startDate: "2025-05-01",
-          endDate: "2025-05-14",
-          status: "active",
-          capacity: 40,
-          completed: 18,
-        });
+  /* ---- task mutations ---- */
 
-        // Set tasks from API response or fallback to default
-        setTasks(result.data.tasks && result.data.tasks.length > 0 ? result.data.tasks : [
-          {
-            id: 103,
-            title: "Implement AI Scrum Master Dashboard",
-            description: "Create the main dashboard view for the AI Scrum Master feature",
-            status: "in_progress",
-            priority: "high",
-            storyPoints: 8,
-            assigneeId: user?.id || 0,
-            sprintId: 1,
-            dueDate: "2025-05-10",
-            tags: ["Frontend", "UI/UX", "High Priority"],
-          },
-          {
-            id: 105,
-            title: "Design Gamification Elements",
-            description: "Create visual assets for the gamified experience",
-            status: "todo",
-            priority: "medium",
-            storyPoints: 5,
-            assigneeId: user?.id || 0,
-            sprintId: 1,
-            dueDate: "2025-05-13",
-            tags: ["Design", "Medium Priority"],
-          },
-        ]);
+  const openCreate = () => {
+    setDraft({
+      title: "",
+      description: "",
+      status: "todo",
+      priority: "medium",
+      storyPoints: 1,
+      assigneeId: overview?.user.id ?? "",
+      sprintId: overview?.activeSprint?.id ?? "",
+      dueDate: "",
+      tags: "",
+    })
+    setConfirmDelete(false)
+    setFormOpen(true)
+  }
 
-        // Set AI insight from API response or fallback
-        setAIInsight(result.data.aiInsight || {
-          id: 1,
-          type: "sprint_planning",
-          title: "Sprint Planning Recommendation",
-          description:
-            "Based on your team's velocity and current capacity, I recommend reducing the sprint commitment by 15% this week. Three team members have PTO scheduled, and there's a company all-hands meeting.",
-          status: "active",
-        });
+  const openEdit = (t: OverviewTask) => {
+    setDraft({
+      id: t.id,
+      title: t.title,
+      description: t.description ?? "",
+      status: t.status,
+      priority: t.priority,
+      storyPoints: t.storyPoints,
+      assigneeId: overview?.user.id ?? "",
+      sprintId: t.sprintId ?? "",
+      dueDate: t.dueDate ?? "",
+      tags: Array.isArray(t.tags) ? (t.tags as string[]).join(", ") : "",
+    })
+    setConfirmDelete(false)
+    setDetailTask(null)
+    setFormOpen(true)
+  }
 
-        // Set wellbeing metrics from API response or fallback
-        setWellbeing(result.data.wellbeing || {
-          teamHappiness: 85,
-          teamMembers: [
-            {
-              id: 1,
-              name: "John Doe",
-              avatar: "",
-              mood: "Energized",
-            },
-            {
-              id: 2,
-              name: "Alice Smith",
-              avatar: "",
-              mood: "Stressed",
-            },
-          ],
-        });
-
-        // Set ethical metrics from API response or fallback
-        setEthicalMetrics(result.data.ethicalMetrics || {
-          workloadBalance: 92,
-          deiTaskDistribution: 88,
-          payEquityCompliance: 100,
-        });
-
-        // Set gamification progress from API response or fallback
-        setGamification(result.data.gamification || {
-          skillTrees: [
-            {
-              name: "Frontend Master",
-              level: 3,
-              progress: 65,
-              tasksToNextLevel: 7,
-            },
-            {
-              name: "Team Player",
-              level: 4,
-              progress: 80,
-              tasksToNextLevel: 3,
-            },
-            {
-              name: "Problem Solver",
-              level: 2,
-              progress: 40,
-              tasksToNextLevel: 12,
-            },
-          ],
-          nextReward: "Complete 5 more high-priority tasks to unlock a half-day PTO bonus!",
-        });
-
-        // Set transactions from API response or fallback
-        setTransactions(result.data.transactions || [
-          {
-            id: 1,
-            type: "Team License",
-            amount: 1200,
-            status: "completed",
-            date: "2025-05-01",
-          },
-          {
-            id: 2,
-            type: "AI Credits",
-            amount: 450,
-            status: "completed",
-            date: "2025-05-03",
-          },
-          {
-            id: 3,
-            type: "Premium Support",
-            amount: -200,
-            status: "refunded",
-            date: "2025-05-05",
-          },
-          {
-            id: 4,
-            type: "Additional Users",
-            amount: 350,
-            status: "completed",
-            date: "2025-05-07",
-          },
-        ]);
-      } catch (error) {
-        console.error("Error fetching dashboard data:", error)
-        toast({
-          title: "Error",
-          description: "Failed to load dashboard data. Please try again.",
-          variant: "destructive",
-        })
-      } finally {
-        setLoading(false)
-      }
+  const saveTask = async () => {
+    if (!draft || !draft.title.trim()) {
+      toast({ variant: "destructive", title: "Task", description: "A title is required." })
+      return
     }
-
-    fetchDashboardData()
-  }, [user, toast])
-
-  // Handle button actions
-  const handleApplyRecommendation = async () => {
+    setSaving(true)
     try {
-      const response = await fetch('/api/dashboard/ai-recommendation', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          sprintId: activeSprint?.id || 1,
-          taskIds: tasks.map(task => task.id)
-        }),
-        credentials: 'include'
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to apply recommendation');
+      const payload = {
+        title: draft.title.trim(),
+        description: draft.description,
+        status: draft.status,
+        priority: draft.priority,
+        storyPoints: draft.storyPoints,
+        assigneeId: draft.assigneeId === "" ? undefined : Number(draft.assigneeId),
+        sprintId: draft.sprintId === "" ? null : Number(draft.sprintId),
+        dueDate: draft.dueDate || null,
+        tags: draft.tags
+          .split(",")
+          .map((tag) => tag.trim())
+          .filter(Boolean),
       }
-      
-      const { recommendation } = await response.json();
-      
-      // Update local state with new recommendation
-      setAIRecommendations(prev => [...prev, recommendation]);
-      
-      // Show success toast
-      toast({
-        title: "Recommendation Applied",
-        description: "The AI recommendation has been applied successfully.",
-      });
-    } catch (error) {
-      console.error("Error applying recommendation:", error);
-      toast({
-        title: "Error",
-        description: "Failed to apply recommendation. Please try again.",
-        variant: "destructive",
-      });
+      const res = draft.id
+        ? await fetch(`/api/tasks/${draft.id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          })
+        : await fetch("/api/tasks", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          })
+      const json = await res.json()
+      if (!json.success) throw new Error(json.message ?? "Save failed")
+      toast({ title: draft.id ? "Task updated" : "Task created", description: payload.title })
+      setFormOpen(false)
+      setDraft(null)
+      await reloadQuiet()
+    } catch (err) {
+      toast({ variant: "destructive", title: "Task", description: (err as Error).message })
+    } finally {
+      setSaving(false)
     }
-  };
+  }
 
-  const handleIgnoreRecommendation = async () => {
-    // We can simply remove the recommendation from the state
-    setAIRecommendations([]);
-    
-    toast({
-      title: "Recommendation Ignored",
-      description: "The AI recommendation has been dismissed.",
-    });
-  };
-
-  const handleAddTask = () => {
-    setIsAddTaskModalOpen(true);
-  };
-
-  const handleTaskDetail = (task: Task) => {
-    setSelectedTask(task);
-    setIsTaskDetailModalOpen(true);
-  };
-
-  const handleAddTaskComplete = async (newTask: Task) => {
+  const setTaskStatus = async (t: OverviewTask, status: string) => {
     try {
-      const response = await fetch('/api/dashboard/tasks', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...newTask,
-          sprintId: activeSprint?.id
-        }),
-        credentials: 'include'
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to create task');
-      }
-      
-      const data = await response.json();
-      
-      // Update local state
-      setTasks(prev => [...prev, data.task]);
-      
-      // Close modal
-      setIsAddTaskModalOpen(false);
-      
-      toast({
-        title: "Task Added",
-        description: "New task has been created successfully.",
-      });
-    } catch (error) {
-      console.error("Error creating task:", error);
-      toast({
-        title: "Error",
-        description: "Failed to create task. Please try again.",
-        variant: "destructive",
-      });
+      const res = await fetch(`/api/tasks/${t.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      })
+      const json = await res.json()
+      if (!json.success) throw new Error(json.message ?? "Update failed")
+      toast({ title: "Status updated", description: `${t.title} → ${STATUS_LABEL[status] ?? status}` })
+      await reloadQuiet()
+    } catch (err) {
+      toast({ variant: "destructive", title: "Task", description: (err as Error).message })
     }
-  };
+  }
 
-  const handleTaskAction = async (action: string, taskId: number) => {
+  const deleteTask = async (t: OverviewTask) => {
     try {
-      if (action === 'delete') {
-        const response = await fetch(`/api/dashboard/tasks?id=${taskId}`, {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include'
-        });
-        
-        if (!response.ok) {
-          throw new Error('Failed to delete task');
-        }
-        
-        // Update local state
-        setTasks(prev => prev.filter(task => task.id !== taskId));
-        
-        toast({
-          title: "Task Deleted",
-          description: "The task has been deleted successfully.",
-        });
-      } else if (action === 'complete') {
-        const response = await fetch('/api/dashboard/tasks', {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            id: taskId,
-            status: 'completed'
-          }),
-          credentials: 'include'
-        });
-        
-        if (!response.ok) {
-          throw new Error('Failed to update task');
-        }
-        
-        // Update local state
-        setTasks(prev => prev.map(task => 
-          task.id === taskId 
-            ? {...task, status: 'completed'} 
-            : task
-        ));
-        
-        toast({
-          title: "Task Completed",
-          description: "The task has been marked as completed.",
-        });
-      }
-    } catch (error) {
-      console.error(`Error performing task action (${action}):`, error);
-      toast({
-        title: "Error",
-        description: `Failed to ${action} task. Please try again.`,
-        variant: "destructive",
-      });
+      const res = await fetch(`/api/tasks/${t.id}`, { method: "DELETE" })
+      const json = await res.json()
+      if (!json.success) throw new Error(json.message ?? "Delete failed")
+      toast({ title: "Task deleted", description: t.title })
+      setDetailTask(null)
+      setConfirmDelete(false)
+      await reloadQuiet()
+    } catch (err) {
+      toast({ variant: "destructive", title: "Task", description: (err as Error).message })
     }
-  };
+  }
 
-  const handleViewAllInsights = () => {
-    router.push('/dashboard/ai-scrum-master');
-  };
+  /* ---- insight + activity actions ---- */
 
-  const handleViewDetails = () => {
-    router.push('/dashboard/team-wellbeing');
-  };
-
-  // New navigation handlers
-  const handleNavigateTo = (path: string, pageName: string) => {
-    toast({
-      title: `Navigating to ${pageName}`,
-      description: `Opening the ${pageName} page...`,
-    });
-    router.push(path);
-  };
-
-  const handleUpgradeNow = () => {
-    toast({
-      title: "Upgrade Plan",
-      description: "Opening subscription plan options...",
-    });
-    // This would typically open a modal or navigate to a subscription page
-  };
-
-  const handleViewAll = (itemType: string) => {
-    let path = "";
-    switch (itemType) {
-      case "transactions":
-        path = "/dashboard/billing";
-        break;
-      case "tasks":
-        path = "/dashboard/tasks";
-        break;
-      case "sprints":
-        path = "/dashboard/sprints";
-        break;
-      default:
-        path = "/dashboard";
+  const dismissInsight = async (id: number) => {
+    try {
+      const res = await fetch(`/api/ai-insights/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "dismissed" }),
+      })
+      const json = await res.json()
+      if (!json.success) throw new Error(json.message ?? "Failed")
+      setOverview((ov) => (ov ? { ...ov, insights: ov.insights.filter((i) => i.id !== id) } : ov))
+      toast({ title: "Insight dismissed" })
+    } catch (err) {
+      toast({ variant: "destructive", title: "Insights", description: (err as Error).message })
     }
-    
-    toast({
-      title: `View All ${itemType}`,
-      description: `Opening complete ${itemType} list...`,
-    });
-    
-    router.push(path);
-  };
+  }
 
-  const handleDropdownAction = (action: string) => {
-    toast({
-      title: action,
-      description: `Performing ${action.toLowerCase()}...`,
-    });
-  };
+  const markActivityRead = async (id: number, isRead: boolean) => {
+    if (isRead) return
+    try {
+      await fetch(`/api/notifications/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isRead: true }),
+      })
+      setOverview((ov) =>
+        ov ? { ...ov, activity: ov.activity.map((act) => (act.id === id ? { ...act, isRead: true } : act)) } : ov,
+      )
+    } catch {
+      toast({ variant: "destructive", title: "Activity", description: "Could not mark as read." })
+    }
+  }
+
+  const openActivity = (a: DashboardOverview["activity"][number]) => {
+    void markActivityRead(a.id, a.isRead)
+    if (a.link) window.location.href = a.link
+  }
+
+  const markAllActivityRead = async () => {
+    try {
+      await fetch("/api/notifications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ all: true }),
+      })
+      setOverview((ov) => (ov ? { ...ov, activity: ov.activity.map((a) => ({ ...a, isRead: true })) } : ov))
+      toast({ title: "All activity marked read" })
+    } catch {
+      toast({ variant: "destructive", title: "Activity", description: "Could not update notifications." })
+    }
+  }
+
+  /* ---- filtered task list ---- */
+
+  const filteredTasks = useMemo(() => {
+    if (!overview) return []
+    const q = search.trim().toLowerCase()
+    return overview.myTasks.filter((t) => {
+      if (q && !`${t.title} ${t.description ?? ""}`.toLowerCase().includes(q)) return false
+      if (statusFilter !== "all" && t.status !== statusFilter) return false
+      if (priorityFilter !== "all" && t.priority !== priorityFilter) return false
+      if (sprintFilter !== "all" && String(t.sprintId ?? "") !== sprintFilter) return false
+      return true
+    })
+  }, [overview, search, statusFilter, priorityFilter, sprintFilter])
+
+  const workloadMax = useMemo(
+    () => (overview ? Math.max(1, ...overview.workload.map((w) => w.openPoints)) : 1),
+    [overview],
+  )
+
+  /* ---- render ---- */
+
+  if (loading && !overview) {
+    return (
+      <div className="space-y-6 p-4 md:p-6">
+        <Skeleton className="h-10 w-64" />
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-28" />
+          ))}
+        </div>
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Skeleton className="h-72" />
+          <Skeleton className="h-72" />
+        </div>
+      </div>
+    )
+  }
+
+  if (!overview) {
+    return (
+      <div className="flex flex-col items-center gap-4 p-10 text-center">
+        <p className="text-sm text-muted-foreground">
+          We couldn’t reach the dashboard API. Your session may have expired.
+        </p>
+        <Link href="/login">
+          <Button>Sign in again</Button>
+        </Link>
+        <Button variant="outline" onClick={() => load()}>
+          Retry
+        </Button>
+      </div>
+    )
+  }
+
+  const { kpis, activeSprint } = overview
+  const hour = new Date().getHours()
+  const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening"
+  const priorityMax = Math.max(1, ...overview.priorityBreakdown.map((x) => x.value))
 
   return (
-    <>
-      {/* Dashboard content */}
-      <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-            <p className="text-muted-foreground">Welcome back, {user?.name}</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button onClick={handleAddTask} className="gap-1">
-              <Plus className="h-4 w-4" /> New Task
-            </Button>
-          </div>
+    <div className="space-y-5 p-4 md:p-6">
+      {/* 1 — Greeting + quick actions */}
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight">
+            {greeting}, {overview.user.name.split(" ")[0]}
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            {activeSprint
+              ? `${activeSprint.name} · ${activeSprint.daysLeft} day${activeSprint.daysLeft === 1 ? "" : "s"} left`
+              : "No active sprint right now"}
+            {overview.realtimeEnabled && (
+              <span className="ml-2 inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-current" /> live
+              </span>
+            )}
+          </p>
         </div>
-
-        {/* Top Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          {/* Upgrade Plan Card */}
-          <Card className="overflow-hidden">
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-br from-purple-600 to-blue-500"></div>
-              <CardContent className="p-4 sm:p-6 relative z-10 text-white">
-                <h3 className="text-lg sm:text-xl font-bold mb-2 sm:mb-4">Upgrade Your Plan</h3>
-                <p className="mb-4 sm:mb-6 text-sm sm:text-base">Your free trial expires in 7 days</p>
-                <Button className="w-full bg-white text-purple-600 hover:bg-white/90 text-sm sm:text-base" onClick={handleUpgradeNow}>Upgrade Now</Button>
-              </CardContent>
-            </div>
-          </Card>
-
-          {/* Total Sprints Card */}
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div className="rounded-md bg-blue-100 p-2 dark:bg-blue-900/20">
-                  <ShoppingCart className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                </div>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => handleDropdownAction("View Details")}>View Details</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleDropdownAction("Export Data")}>Export Data</DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-              <div className="mt-4">
-                <p className="text-sm font-medium text-muted-foreground">Total Sprints</p>
-                <h3 className="text-2xl font-bold mt-1">23</h3>
-              </div>
-              <div className="mt-4 flex items-center text-sm text-green-600">
-                <ArrowUp className="h-4 w-4 mr-1" />
-                <span>12% from last month</span>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Total Tasks Card */}
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div className="rounded-md bg-green-100 p-2 dark:bg-green-900/20">
-                  <Ticket className="h-5 w-5 text-green-600 dark:text-green-400" />
-                </div>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => handleNavigateTo("/dashboard/tasks", "Tasks")}>View Details</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleDropdownAction("Export Data")}>Export Data</DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-              <div className="mt-4">
-                <p className="text-sm font-medium text-muted-foreground">Total Tasks</p>
-                <h3 className="text-2xl font-bold mt-1">1,500</h3>
-              </div>
-              <div className="mt-4 flex items-center text-sm text-green-600">
-                <ArrowUp className="h-4 w-4 mr-1" />
-                <span>8% from last month</span>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Team Members Card */}
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div className="rounded-md bg-purple-100 p-2 dark:bg-purple-900/20">
-                  <Users className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                </div>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => handleNavigateTo("/dashboard/team", "Team")}>View Details</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleDropdownAction("Export Data")}>Export Data</DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-              <div className="mt-4">
-                <p className="text-sm font-medium text-muted-foreground">Team Members</p>
-                <h3 className="text-2xl font-bold mt-1">12,300</h3>
-              </div>
-              <div className="mt-4 flex items-center text-sm text-green-600">
-                <ArrowUp className="h-4 w-4 mr-1" />
-                <span>24% from last month</span>
-              </div>
-            </CardContent>
-          </Card>
+        <div className="flex flex-wrap gap-2">
+          <Button size="sm" onClick={openCreate}>
+            <Plus className="mr-1 h-4 w-4" /> New task
+          </Button>
+          <Button asChild size="sm" variant="outline">
+            <Link href="/dashboard/kanban">
+              <LayoutGrid className="mr-1 h-4 w-4" /> Kanban
+            </Link>
+          </Button>
+          <Button asChild size="sm" variant="outline">
+            <Link href="/dashboard/calendar">
+              <CalendarClock className="mr-1 h-4 w-4" /> Calendar
+            </Link>
+          </Button>
+          <Button size="sm" variant="ghost" onClick={refresh} disabled={refreshing}>
+            <RefreshCw className={cn("mr-1 h-4 w-4", refreshing && "animate-spin")} /> Refresh
+          </Button>
         </div>
+      </div>
 
-        {/* Revenue Statistics and AI Insights */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Revenue Statistics */}
-          <Card className="lg:col-span-2">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle>Sprint Performance</CardTitle>
-                <CardDescription>Velocity and completion rates over time</CardDescription>
+      {/* 2 — KPI cards */}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
+        {[
+          { label: "My open tasks", value: kpis.myOpenTasks, icon: <CircleDot className="h-4 w-4" />, hint: `${kpis.myDueThisWeek} due this week`, tone: undefined },
+          { label: "Completed this week", value: kpis.myCompletedThisWeek, icon: <CheckCheck className="h-4 w-4" />, hint: "last 7 days", tone: undefined },
+          { label: "Sprint progress", value: `${kpis.sprintProgressPct}%`, icon: <Zap className="h-4 w-4" />, hint: activeSprint ? `${activeSprint.donePoints}/${activeSprint.totalPoints} pts` : "no sprint", tone: undefined },
+          { label: "Blocked tasks", value: kpis.blockedTasks, icon: <Timer className="h-4 w-4" />, hint: "team-wide", tone: kpis.blockedTasks > 0 ? "text-red-500" : undefined },
+          { label: "Team happiness", value: kpis.teamHappiness, icon: <Sparkles className="h-4 w-4" />, hint: "avg wellbeing /100", tone: undefined },
+          { label: "Level", value: overview.gamification?.level ?? 1, icon: <Trophy className="h-4 w-4" />, hint: `${overview.gamification?.xp ?? 0} XP`, tone: undefined },
+        ].map((k) => (
+          <Card key={k.label}>
+            <CardContent className="pt-4">
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                {k.label}
+                <span className={k.tone}>{k.icon}</span>
               </div>
-              <div className="flex items-center gap-2">
-                <Badge
-                  variant="outline"
-                  className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800"
-                >
-                  Velocity
-                </Badge>
-                <Badge
-                  variant="outline"
-                  className="bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/20 dark:text-purple-400 dark:border-purple-800"
-                >
-                  Completion
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[300px] flex items-end justify-between">
-                {Array.from({ length: 12 }).map((_, i) => (
-                  <div key={i} className="flex flex-col items-center gap-2">
-                    <div className="w-full flex items-end gap-1">
-                      <div
-                        className={`bar-chart-column bar-chart-column-blue h-[${Math.floor(Math.random() * 100) + 50}px]`}
-                      ></div>
-                      <div
-                        className={`bar-chart-column bar-chart-column-purple h-[${Math.floor(Math.random() * 100) + 30}px]`}
-                      ></div>
-                    </div>
-                    <span className="text-xs text-muted-foreground">
-                      {["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][i]}
-                    </span>
-                  </div>
-                ))}
-              </div>
+              <p className={cn("mt-1 text-2xl font-semibold tabular-nums", k.tone)}>{k.value}</p>
+              <p className="text-[11px] text-muted-foreground">{k.hint}</p>
             </CardContent>
           </Card>
+        ))}
+      </div>
 
-          {/* AI Insights */}
-          <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Brain className="h-5 w-5 text-primary" />
-                AI Insights
-              </CardTitle>
-              <CardDescription>Recommendations based on your team's data</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {loading ? (
-                <>
-                  <Skeleton className="h-20 w-full" />
-                  <Skeleton className="h-20 w-full" />
-                </>
-              ) : (
-                <>
-                  <div className="rounded-lg border bg-card p-3">
-                    <h4 className="font-medium mb-1">Sprint Planning</h4>
-                    <p className="text-sm text-muted-foreground">
-                      Reduce sprint commitment by 15% due to team PTO and company meetings.
-                    </p>
-                    <div className="mt-2 flex justify-end gap-2">
-                      <Button size="sm" variant="ghost" onClick={() => handleIgnoreRecommendation()}>
-                        Ignore
-                      </Button>
-                      <Button size="sm" onClick={() => handleNavigateTo("/dashboard/sprints", "Sprints")}>View Details</Button>
-                    </div>
-                  </div>
-                  <div className="rounded-lg border bg-card p-3">
-                    <h4 className="font-medium mb-1">Team Wellbeing</h4>
-                    <p className="text-sm text-muted-foreground">
-                      2 team members showing signs of burnout. Consider redistributing tasks.
-                    </p>
-                    <div className="mt-2 flex justify-end gap-2">
-                      <Button size="sm" variant="ghost" onClick={() => handleIgnoreRecommendation()}>
-                        Ignore
-                      </Button>
-                      <Button size="sm" onClick={() => handleNavigateTo("/dashboard/team-wellbeing", "Team Wellbeing")}>View Details</Button>
-                    </div>
-                  </div>
-                </>
-              )}
-            </CardContent>
-            <CardFooter>
-              <Button variant="ghost" className="w-full justify-between" onClick={handleViewAllInsights}>
-                View All Insights
-                <ArrowRight className="h-4 w-4" />
-              </Button>
-            </CardFooter>
-          </Card>
-        </div>
-
-        {/* Support Tracker and Daily Sales */}
-        <div className="grid grid-cols-1 sm:grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-          {/* Support Tracker */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <div>
-                <CardTitle>Support Tracker</CardTitle>
-                <CardDescription>Ticket status and response times</CardDescription>
-              </div>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm">
-                    Weekly
-                    <ChevronDown className="ml-2 h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => handleDropdownAction("Set Daily View")}>Daily</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleDropdownAction("Set Weekly View")}>Weekly</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleDropdownAction("Set Monthly View")}>Monthly</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <div className="flex flex-col items-center justify-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                  <Ticket className="h-5 w-5 text-blue-600 dark:text-blue-400 mb-2" />
-                  <span className="text-sm font-medium text-muted-foreground">New Tickets</span>
-                  <span className="text-2xl font-bold">{supportTickets.new}</span>
-                </div>
-                <div className="flex flex-col items-center justify-center p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
-                  <Ticket className="h-5 w-5 text-amber-600 dark:text-amber-400 mb-2" />
-                  <span className="text-sm font-medium text-muted-foreground">Open Tickets</span>
-                  <span className="text-2xl font-bold">{supportTickets.open}</span>
-                </div>
-                <div className="flex flex-col items-center justify-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                  <Timer className="h-5 w-5 text-green-600 dark:text-green-400 mb-2" />
-                  <span className="text-sm font-medium text-muted-foreground">Response Time</span>
-                  <span className="text-2xl font-bold">{supportTickets.responseTime}</span>
-                </div>
-              </div>
-              <div className="relative flex items-center justify-center">
-                <div className="absolute text-center">
-                  <div className="text-4xl font-bold">{supportTickets.total}</div>
-                  <div className="text-sm text-muted-foreground">Total Tickets</div>
-                </div>
-                <svg className="w-full h-48" viewBox="0 0 100 100">
-                  <circle cx="50" cy="50" r="40" fill="none" stroke="#e2e8f0" strokeWidth="10" />
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r="40"
-                    fill="none"
-                    stroke="url(#gradient)"
-                    strokeWidth="10"
-                    strokeDasharray="251.2"
-                    strokeDashoffset="62.8"
-                    transform="rotate(-90 50 50)"
-                  />
-                  <defs>
-                    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                      <stop offset="0%" stopColor="#4f46e5" />
-                      <stop offset="100%" stopColor="#8b5cf6" />
-                    </linearGradient>
-                  </defs>
-                </svg>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Average Daily Sales */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <div>
-                <CardTitle>Average Daily Tasks</CardTitle>
-                <CardDescription>Tasks completed per hour</CardDescription>
-              </div>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm">
-                    Weekly
-                    <ChevronDown className="ml-2 h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => handleDropdownAction("Set Daily View")}>Daily</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleDropdownAction("Set Weekly View")}>Weekly</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleDropdownAction("Set Monthly View")}>Monthly</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </CardHeader>
-            <CardContent>
-              <div className="mb-4">
-                <h3 className="text-2xl font-bold">27,500.00</h3>
-                <div className="flex items-center text-sm text-green-600">
-                  <ArrowUpRight className="h-4 w-4 mr-1" />
-                  <span>12% increase from yesterday</span>
-                </div>
-              </div>
-              <div className="h-[250px] flex items-end justify-between gap-2">
-                {["2hr", "4hr", "6hr", "8hr", "10hr", "12hr", "14hr"].map((hour, i) => (
-                  <div key={i} className="flex flex-col items-center gap-2 flex-1">
-                    <div
-                      className={`task-chart-bar task-chart-bar-blue ${i === 2 ? 'opacity-100' : 'opacity-70'} ${
-                        i === 0 ? 'height-70' : 
-                        i === 1 ? 'height-120' : 
-                        i === 2 ? 'height-90' : 
-                        i === 3 ? 'height-180' : 
-                        i === 4 ? 'height-110' : 
-                        i === 5 ? 'height-60' : 
-                        'height-130'
-                      } rounded-t`}
-                    ></div>
-                    <span className="text-xs text-muted-foreground">{hour}</span>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Transactions */}
+      {/* 3 — Active sprint strip */}
+      {activeSprint && (
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <div>
-              <CardTitle>Recent Transactions</CardTitle>
-              <CardDescription>Your recent billing activity</CardDescription>
+          <CardContent className="flex flex-col gap-3 py-4 md:flex-row md:items-center md:gap-6">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <p className="truncate text-sm font-semibold">{activeSprint.name}</p>
+                <Badge variant="secondary" className="shrink-0 capitalize">
+                  {activeSprint.status}
+                </Badge>
+              </div>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {activeSprint.taskCount} tasks · {activeSprint.donePoints}/{activeSprint.totalPoints} points · ends{" "}
+                {activeSprint.endDate}
+              </p>
+              <Progress value={activeSprint.progressPct} className="mt-2 h-2" />
             </div>
-            <Button variant="outline" size="sm" className="gap-1" onClick={() => handleViewAll("transactions")}>
-              View All
-              <ArrowRight className="h-4 w-4" />
+            <div className="flex items-center gap-6 text-center">
+              <div>
+                <p className="text-lg font-semibold tabular-nums">{activeSprint.progressPct}%</p>
+                <p className="text-[11px] text-muted-foreground">complete</p>
+              </div>
+              <div>
+                <p className="text-lg font-semibold tabular-nums">{activeSprint.daysLeft}</p>
+                <p className="text-[11px] text-muted-foreground">days left</p>
+              </div>
+              <Button asChild size="sm" variant="outline">
+                <Link href="/dashboard/sprints">
+                  Sprint board <ArrowRight className="ml-1 h-4 w-4" />
+                </Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 4 — Filter bar + grid/list toggle */}
+      <Card>
+        <CardContent className="flex flex-wrap items-center gap-2 py-3">
+          <div className="relative min-w-40 flex-1">
+            <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search my tasks…"
+              className="h-9 pl-8 text-sm"
+            />
+          </div>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="h-9 w-36 text-sm">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All statuses</SelectItem>
+              {STATUSES.map((s) => (
+                <SelectItem key={s} value={s}>
+                  {STATUS_LABEL[s]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+            <SelectTrigger className="h-9 w-32 text-sm">
+              <SelectValue placeholder="Priority" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All priorities</SelectItem>
+              {PRIORITIES.map((p) => (
+                <SelectItem key={p} value={p} className="capitalize">
+                  {p}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={sprintFilter} onValueChange={setSprintFilter}>
+            <SelectTrigger className="h-9 w-40 text-sm">
+              <SelectValue placeholder="Sprint" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All sprints</SelectItem>
+              <SelectItem value="">Backlog</SelectItem>
+              {sprints.map((s) => (
+                <SelectItem key={s.id} value={String(s.id)}>
+                  {s.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <div className="ml-auto flex items-center gap-1 rounded-md border p-0.5">
+            <Button
+              size="sm"
+              variant={view === "grid" ? "secondary" : "ghost"}
+              className="h-7 px-2"
+              onClick={() => setView("grid")}
+              aria-label="Grid view"
+            >
+              <LayoutGrid className="h-4 w-4" />
             </Button>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {transactions.map((transaction) => (
-                <div key={transaction.id} className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div
+            <Button
+              size="sm"
+              variant={view === "list" ? "secondary" : "ghost"}
+              className="h-7 px-2"
+              onClick={() => setView("list")}
+              aria-label="List view"
+            >
+              <List className="h-4 w-4" />
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 5 — My tasks grid/list */}
+      {view === "grid" ? (
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {filteredTasks.map((t) => (
+            <Card key={t.id} className="transition-colors hover:border-primary/40">
+              <CardContent className="flex flex-col gap-2 py-3">
+                <div className="flex items-start justify-between gap-2">
+                  <button className="text-left text-sm font-medium leading-snug hover:underline" onClick={() => setDetailTask(t)}>
+                    {t.title}
+                  </button>
+                  <StatusPill status={t.status} />
+                </div>
+                <p className="line-clamp-2 text-xs text-muted-foreground">{t.description || "No description"}</p>
+                <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                  <div className="flex items-center gap-2">
+                    <PriorityPill priority={t.priority} />
+                    <span>{t.storyPoints} pts</span>
+                  </div>
+                  {t.dueDate && (
+                    <span className={cn(new Date(t.dueDate) < new Date() && t.status !== "done" && "font-semibold text-red-500")}>
+                      {t.dueDate}
+                    </span>
+                  )}
+                </div>
+                <div className="flex gap-1 pt-1">
+                  <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => setDetailTask(t)}>
+                    Details <ChevronRight className="ml-0.5 h-3 w-3" />
+                  </Button>
+                  <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => openEdit(t)}>
+                    <Pencil className="mr-1 h-3 w-3" /> Edit
+                  </Button>
+                  {t.status !== "done" ? (
+                    <Button size="sm" variant="ghost" className="ml-auto h-7 px-2 text-xs text-emerald-600" onClick={() => setTaskStatus(t, "done")}>
+                      Complete
+                    </Button>
+                  ) : (
+                    <Button size="sm" variant="ghost" className="ml-auto h-7 px-2 text-xs" onClick={() => setTaskStatus(t, "todo")}>
+                      Reopen
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+          {filteredTasks.length === 0 && (
+            <Card className="md:col-span-2 xl:col-span-3">
+              <EmptyNote>No tasks match these filters.</EmptyNote>
+            </Card>
+          )}
+        </div>
+      ) : (
+        <Card>
+          <CardContent className="p-0">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b text-left text-[11px] uppercase tracking-wide text-muted-foreground">
+                  <th className="px-4 py-2 font-medium">Task</th>
+                  <th className="px-4 py-2 font-medium">Status</th>
+                  <th className="px-4 py-2 font-medium">Priority</th>
+                  <th className="px-4 py-2 font-medium">Points</th>
+                  <th className="px-4 py-2 font-medium">Due</th>
+                  <th className="px-4 py-2 text-right font-medium">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredTasks.map((t) => (
+                  <tr key={t.id} className="border-b last:border-0 hover:bg-muted/40">
+                    <td className="max-w-64 px-4 py-2">
+                      <button className="truncate font-medium hover:underline" onClick={() => setDetailTask(t)}>
+                        {t.title}
+                      </button>
+                    </td>
+                    <td className="px-4 py-2">
+                      <StatusPill status={t.status} />
+                    </td>
+                    <td className="px-4 py-2">
+                      <PriorityPill priority={t.priority} />
+                    </td>
+                    <td className="px-4 py-2 tabular-nums">{t.storyPoints}</td>
+                    <td
                       className={cn(
-                        "flex h-10 w-10 items-center justify-center rounded-full",
-                        transaction.amount > 0 ? "bg-green-100 dark:bg-green-900/20" : "bg-red-100 dark:bg-red-900/20",
+                        "px-4 py-2 text-xs",
+                        new Date(t.dueDate ?? "9999") < new Date() && t.status !== "done" && "font-semibold text-red-500",
                       )}
                     >
-                      {transaction.amount > 0 ? (
-                        <Wallet className="h-5 w-5 text-green-600 dark:text-green-400" />
-                      ) : (
-                        <CreditCard className="h-5 w-5 text-red-600 dark:text-red-400" />
-                      )}
-                    </div>
-                    <div>
-                      <p className="font-medium">{transaction.type}</p>
-                      <p className="text-sm text-muted-foreground">{new Date(transaction.date).toLocaleDateString()}</p>
-                    </div>
+                      {t.dueDate ?? "—"}
+                    </td>
+                    <td className="px-4 py-2 text-right">
+                      <div className="inline-flex gap-1">
+                        <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => openEdit(t)} aria-label={`Edit ${t.title}`}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => setDetailTask(t)} aria-label={`Open ${t.title}`}>
+                          <ChevronRight className="h-3.5 w-3.5" />
+                        </Button>
+                        {t.status !== "done" ? (
+                          <Button size="sm" variant="ghost" className="h-7 px-2 text-emerald-600" onClick={() => setTaskStatus(t, "done")}>
+                            Done
+                          </Button>
+                        ) : (
+                          <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => setTaskStatus(t, "todo")}>
+                            Reopen
+                          </Button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {filteredTasks.length === 0 && (
+                  <tr>
+                    <td colSpan={6}>
+                      <EmptyNote>No tasks match these filters.</EmptyNote>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 6+7 — Burndown & velocity */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <SectionCard title="Sprint burndown" icon={<BarChart3 className="h-4 w-4" />}>
+          {overview.burndown.length > 0 ? (
+            <ResponsiveContainer width="100%" height={220}>
+              <LineChart data={overview.burndown}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                <XAxis dataKey="label" tick={AXIS} minTickGap={24} />
+                <YAxis tick={AXIS} width={30} />
+                <Tooltip {...TOOLTIP_STYLE} />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+                <Line type="monotone" dataKey="ideal" name="Ideal" stroke="hsl(var(--chart-stone))" strokeDasharray="5 4" dot={false} />
+                <Line type="monotone" dataKey="actual" name="Remaining" stroke="hsl(var(--chart-pine))" strokeWidth={2} dot={false} />
+              </LineChart>
+            </ResponsiveContainer>
+          ) : (
+            <EmptyNote>Start a sprint to see burndown.</EmptyNote>
+          )}
+        </SectionCard>
+
+        <SectionCard title="Velocity" icon={<Swords className="h-4 w-4" />}>
+          {overview.velocity.length > 0 ? (
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={overview.velocity}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                <XAxis dataKey="name" tick={AXIS} />
+                <YAxis tick={AXIS} width={30} />
+                <Tooltip {...TOOLTIP_STYLE} cursor={{ fill: "hsl(var(--muted))" }} />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+                <Bar dataKey="committed" name="Committed" fill="hsl(var(--chart-stone))" radius={[3, 3, 0, 0]} />
+                <Bar dataKey="completed" name="Completed" fill="hsl(var(--chart-pine))" radius={[3, 3, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <EmptyNote>Complete a sprint to build velocity history.</EmptyNote>
+          )}
+        </SectionCard>
+      </div>
+
+      {/* 8+9+10 — Status donut, priority bars, throughput */}
+      <div className="grid gap-4 lg:grid-cols-3">
+        <SectionCard title="Task status mix" icon={<CircleDot className="h-4 w-4" />}>
+          {overview.statusBreakdown.length > 0 ? (
+            <ResponsiveContainer width="100%" height={200}>
+              <PieChart>
+                <Pie data={overview.statusBreakdown} dataKey="value" nameKey="name" innerRadius={50} outerRadius={80} paddingAngle={2}>
+                  {overview.statusBreakdown.map((s) => (
+                    <Cell key={s.name} fill={STATUS_COLOR[s.name] ?? "hsl(var(--muted-foreground))"} />
+                  ))}
+                </Pie>
+                <Tooltip {...TOOLTIP_STYLE} />
+                <Legend wrapperStyle={{ fontSize: 11 }} formatter={(v) => STATUS_LABEL[String(v)] ?? String(v)} />
+              </PieChart>
+            </ResponsiveContainer>
+          ) : (
+            <EmptyNote>No tasks yet.</EmptyNote>
+          )}
+        </SectionCard>
+
+        <SectionCard title="My open priorities" icon={<Flag className="h-4 w-4" />}>
+          {overview.priorityBreakdown.length > 0 ? (
+            <div className="space-y-3 pt-2">
+              {overview.priorityBreakdown.map((p) => (
+                <div key={p.name}>
+                  <div className="flex justify-between text-xs">
+                    <span className="capitalize">{p.name}</span>
+                    <span className="tabular-nums text-muted-foreground">{p.value}</span>
                   </div>
-                  <div
-                    className={cn(
-                      "font-medium",
-                      transaction.amount > 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400",
-                    )}
-                  >
-                    {transaction.amount > 0 ? "+" : ""}
-                    {transaction.amount.toLocaleString("en-US", {
-                      style: "currency",
-                      currency: "USD",
-                      minimumFractionDigits: 0,
-                    })}
+                  <div className="mt-1 h-2 overflow-hidden rounded-full bg-muted">
+                    <div
+                      className="h-full rounded-full"
+                      style={{ width: `${Math.round((p.value / priorityMax) * 100)}%`, background: PRIORITY_COLOR[p.name] }}
+                    />
                   </div>
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
+          ) : (
+            <EmptyNote>Nothing open — nice.</EmptyNote>
+          )}
+        </SectionCard>
+
+        <SectionCard title="Weekly throughput" icon={<Activity className="h-4 w-4" />}>
+          {overview.throughput.length > 0 ? (
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={overview.throughput}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                <XAxis dataKey="label" tick={AXIS} />
+                <YAxis tick={AXIS} width={26} />
+                <Tooltip {...TOOLTIP_STYLE} cursor={{ fill: "hsl(var(--muted))" }} />
+                <Bar dataKey="donePoints" name="Points done" fill="hsl(var(--chart-moss))" radius={[3, 3, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <EmptyNote>Nothing completed in the last 7 days.</EmptyNote>
+          )}
+        </SectionCard>
       </div>
 
-      {/* Task Modals */}
-      <AddTaskModal
-        isOpen={isAddTaskModalOpen}
-        onClose={() => setIsAddTaskModalOpen(false)}
-        onAddTask={handleAddTaskComplete}
-        sprintId={activeSprint?.id}
-      />
-    </>
+      {/* 11+12 — Team workload + deadlines */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <SectionCard
+          title="Team workload"
+          icon={<Users className="h-4 w-4" />}
+          action={
+            <Button asChild size="sm" variant="ghost" className="h-7 text-xs">
+              <Link href="/dashboard/team">Manage team</Link>
+            </Button>
+          }
+        >
+          <div className="space-y-2.5">
+            {overview.workload.slice(0, 7).map((w) => (
+              <div key={w.id} className="flex items-center gap-3">
+                <AvatarCircle name={w.name} avatar={w.avatar} />
+                <div className="min-w-0 flex-1">
+                  <div className="flex justify-between text-xs">
+                    <span className="truncate font-medium">{w.name}</span>
+                    <span className="shrink-0 text-muted-foreground">
+                      {w.openPoints} pts · {w.openTasks} open
+                    </span>
+                  </div>
+                  <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted">
+                    <div
+                      className={cn("h-full rounded-full", w.openPoints / workloadMax > 0.8 ? "bg-red-400" : "bg-[hsl(var(--chart-pine))]")}
+                      style={{ width: `${Math.round((w.openPoints / workloadMax) * 100)}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </SectionCard>
+
+        <SectionCard
+          title="Upcoming deadlines"
+          icon={<Timer className="h-4 w-4" />}
+          action={
+            <Button asChild size="sm" variant="ghost" className="h-7 text-xs">
+              <Link href="/dashboard/tasks">All tasks</Link>
+            </Button>
+          }
+        >
+          {overview.deadlines.length > 0 ? (
+            <ul className="divide-y">
+              {overview.deadlines.map((d) => (
+                <li key={d.id} className="flex items-center justify-between gap-3 py-2">
+                  <button
+                    className="min-w-0 flex-1 truncate text-left text-sm hover:underline"
+                    onClick={() => {
+                      const t = overview.myTasks.find((x) => x.id === d.id)
+                      if (t) setDetailTask(t)
+                    }}
+                  >
+                    {d.title}
+                  </button>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <PriorityPill priority={d.priority} />
+                    <Badge
+                      variant={
+                        d.daysRemaining !== null && d.daysRemaining < 0
+                          ? "destructive"
+                          : d.daysRemaining !== null && d.daysRemaining <= 2
+                            ? "secondary"
+                            : "outline"
+                      }
+                      className="text-[11px]"
+                    >
+                      {d.daysRemaining === null
+                        ? "—"
+                        : d.daysRemaining < 0
+                          ? `${-d.daysRemaining}d overdue`
+                          : d.daysRemaining === 0
+                            ? "today"
+                            : `${d.daysRemaining}d`}
+                    </Badge>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <EmptyNote>No deadlines on your plate.</EmptyNote>
+          )}
+        </SectionCard>
+      </div>
+
+      {/* 13+14 — Events + activity feed */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <SectionCard
+          title="Upcoming events"
+          icon={<CalendarClock className="h-4 w-4" />}
+          action={
+            <Button asChild size="sm" variant="ghost" className="h-7 text-xs">
+              <Link href="/dashboard/calendar">Calendar</Link>
+            </Button>
+          }
+        >
+          {overview.events.length > 0 ? (
+            <ul className="divide-y">
+              {overview.events.map((e) => {
+                const dt = new Date(e.startTime)
+                return (
+                  <li key={e.id} className="flex items-center gap-3 py-2">
+                    <div className="flex w-12 shrink-0 flex-col items-center rounded-md bg-muted py-1 text-center">
+                      <span className="text-[10px] uppercase">{dt.toLocaleDateString("en-US", { weekday: "short" })}</span>
+                      <span className="text-sm font-semibold tabular-nums">{dt.getDate()}</span>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">{e.title}</p>
+                      <p className="text-[11px] capitalize text-muted-foreground">
+                        {e.eventType} · {dt.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
+                        {e.location ? ` · ${e.location}` : ""}
+                      </p>
+                    </div>
+                  </li>
+                )
+              })}
+            </ul>
+          ) : (
+            <EmptyNote>Nothing scheduled ahead.</EmptyNote>
+          )}
+        </SectionCard>
+
+        <SectionCard
+          title="Activity"
+          icon={<Activity className="h-4 w-4" />}
+          action={
+            <div className="flex items-center gap-2">
+              {overview.realtimeEnabled && (
+                <Badge variant="outline" className="text-[10px] text-emerald-600">
+                  realtime
+                </Badge>
+              )}
+              <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={markAllActivityRead}>
+                Mark all read
+              </Button>
+            </div>
+          }
+        >
+          {overview.activity.length > 0 ? (
+            <ul className="max-h-72 space-y-1 overflow-y-auto">
+              {overview.activity.map((a) => (
+                <li key={a.id}>
+                  <button
+                    className={cn(
+                      "flex w-full items-start gap-2 rounded-md px-2 py-1.5 text-left hover:bg-muted/60",
+                      !a.isRead && "bg-muted/40",
+                    )}
+                    onClick={() => openActivity(a)}
+                  >
+                    <span className={cn("mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full", a.isRead ? "bg-transparent" : "bg-primary")} />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-medium">{a.title}</span>
+                      {a.body && <span className="block truncate text-xs text-muted-foreground">{a.body}</span>}
+                    </span>
+                    <span className="shrink-0 text-[10px] text-muted-foreground">{relativeTime(a.createdAt)}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <EmptyNote>No activity yet. Task changes land here live.</EmptyNote>
+          )}
+        </SectionCard>
+      </div>
+
+      {/* 15 — AI insights */}
+      <SectionCard
+        title="AI scrum master"
+        icon={<Brain className="h-4 w-4" />}
+        action={
+          <Button asChild size="sm" variant="ghost" className="h-7 text-xs">
+            <Link href="/dashboard/ai-scrum-master">Open copilot</Link>
+          </Button>
+        }
+      >
+        {overview.insights.length > 0 ? (
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {overview.insights.map((i) => (
+              <div key={i.id} className="rounded-lg border p-3">
+                <div className="flex items-center justify-between">
+                  <Badge variant="secondary" className="capitalize text-[10px]">
+                    {i.type}
+                  </Badge>
+                  <span className="text-[10px] text-muted-foreground">{relativeTime(i.createdAt)}</span>
+                </div>
+                <p className="mt-2 text-sm font-medium">{i.title}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{i.description}</p>
+                <div className="mt-2 flex justify-end">
+                  <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => dismissInsight(i.id)}>
+                    Dismiss
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <EmptyNote>No active insights. The model flags risks and wins here as sprints run.</EmptyNote>
+        )}
+      </SectionCard>
+
+      {/* 16+17 — Wellbeing trend + team mood */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <SectionCard
+          title="My wellbeing"
+          icon={<Sparkles className="h-4 w-4" />}
+          action={
+            <Button asChild size="sm" variant="ghost" className="h-7 text-xs">
+              <Link href="/dashboard/team-wellbeing">Log mood</Link>
+            </Button>
+          }
+        >
+          {overview.wellbeingTrend.length > 0 ? (
+            <ResponsiveContainer width="100%" height={180}>
+              <AreaChart data={overview.wellbeingTrend}>
+                <defs>
+                  <linearGradient id="wbFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="hsl(var(--chart-moss))" stopOpacity={0.35} />
+                    <stop offset="100%" stopColor="hsl(var(--chart-moss))" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                <XAxis dataKey="date" tick={{ ...AXIS, fontSize: 10 }} minTickGap={20} />
+                <YAxis domain={[0, 100]} tick={AXIS} width={26} />
+                <Tooltip {...TOOLTIP_STYLE} />
+                <Area type="monotone" dataKey="score" name="Wellbeing" stroke="hsl(var(--chart-moss))" fill="url(#wbFill)" strokeWidth={2} />
+                <Area type="monotone" dataKey="stress" name="Stress" stroke="hsl(var(--chart-clay))" fill="transparent" strokeDasharray="4 3" />
+              </AreaChart>
+            </ResponsiveContainer>
+          ) : (
+            <EmptyNote>Log a check-in to start your trend.</EmptyNote>
+          )}
+        </SectionCard>
+
+        <SectionCard title="Team mood" icon={<Users className="h-4 w-4" />}>
+          {overview.teamMood.length > 0 ? (
+            <div className="flex flex-wrap gap-2 pt-1">
+              {overview.teamMood.map((m) => (
+                <div key={m.id} className="flex items-center gap-2 rounded-full border px-2.5 py-1.5 text-xs">
+                  <AvatarCircle name={m.name} avatar={m.avatar} size={20} />
+                  <span className="font-medium">{m.name.split(" ")[0]}</span>
+                  <span className="text-muted-foreground">{m.mood}</span>
+                  <span className="tabular-nums text-muted-foreground">{m.score}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <EmptyNote>No check-ins yet.</EmptyNote>
+          )}
+        </SectionCard>
+      </div>
+
+      {/* 18+19 — Ethical health + gamification */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <SectionCard
+          title="Ethical health"
+          icon={<Scale className="h-4 w-4" />}
+          action={
+            <Button asChild size="sm" variant="ghost" className="h-7 text-xs">
+              <Link href="/dashboard/ethical-metrics">Details</Link>
+            </Button>
+          }
+        >
+          {overview.ethics.latest ? (
+            <>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {[
+                  { label: "Pay equity", value: overview.ethics.latest.payEquity, delta: overview.ethics.deltas?.payEquity },
+                  { label: "Workload balance", value: overview.ethics.latest.workloadBalance, delta: overview.ethics.deltas?.workloadBalance },
+                  { label: "DEI distribution", value: overview.ethics.latest.deiDistribution, delta: overview.ethics.deltas?.deiDistribution },
+                  { label: "Overtime compl.", value: overview.ethics.latest.overtimeCompliance, delta: overview.ethics.deltas?.overtimeCompliance },
+                ].map((m) => (
+                  <div key={m.label} className="rounded-lg border p-2.5 text-center">
+                    <p className="text-lg font-semibold tabular-nums">{m.value}</p>
+                    <p className="text-[10px] leading-tight text-muted-foreground">{m.label}</p>
+                    {m.delta !== undefined && m.delta !== 0 && (
+                      <p className={cn("text-[10px] font-medium", m.delta > 0 ? "text-emerald-600" : "text-red-500")}>
+                        {m.delta > 0 ? "▲" : "▼"} {Math.abs(m.delta)}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+              {overview.ethics.trend.length > 1 && (
+                <ResponsiveContainer width="100%" height={120} className="mt-3">
+                  <LineChart data={overview.ethics.trend}>
+                    <XAxis dataKey="date" hide />
+                    <Tooltip {...TOOLTIP_STYLE} />
+                    <Line type="monotone" dataKey="workloadBalance" name="Workload balance" stroke="hsl(var(--chart-pine))" dot={false} strokeWidth={2} />
+                    <Line type="monotone" dataKey="overtimeCompliance" name="Overtime compliance" stroke="hsl(var(--chart-stone))" dot={false} strokeDasharray="4 3" />
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
+              <p className="mt-2 text-[10px] text-muted-foreground">Weekly aggregate · measured {overview.ethics.latest.date}</p>
+            </>
+          ) : (
+            <EmptyNote>Ethical scoring starts once metrics are recorded.</EmptyNote>
+          )}
+        </SectionCard>
+
+        <SectionCard
+          title="Progress & rewards"
+          icon={<Trophy className="h-4 w-4" />}
+          action={
+            <Button asChild size="sm" variant="ghost" className="h-7 text-xs">
+              <Link href="/dashboard/gamification">Skill trees</Link>
+            </Button>
+          }
+        >
+          {overview.gamification ? (
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[hsl(var(--chart-pine))] text-sm font-bold text-white">
+                  {overview.gamification.level}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex justify-between text-xs">
+                    <span className="font-medium">{overview.gamification.xp} XP</span>
+                    <span className="text-muted-foreground">next level {overview.gamification.nextLevelXp} XP</span>
+                  </div>
+                  <Progress value={Math.min(100, Math.round(((overview.gamification.xp % 500) / 500) * 100))} className="mt-1 h-1.5" />
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    {overview.gamification.tasksCompleted} tasks completed · {overview.gamification.achievements} achievements
+                  </p>
+                </div>
+              </div>
+              <Separator />
+              {overview.gamification.skillTrees.length > 0 ? (
+                overview.gamification.skillTrees.slice(0, 3).map((s) => (
+                  <div key={s.name}>
+                    <div className="flex justify-between text-xs">
+                      <span>{s.name}</span>
+                      <span className="text-muted-foreground">
+                        Lv {s.level} · {s.progress}%
+                      </span>
+                    </div>
+                    <Progress value={s.progress} className="mt-1 h-1.5" />
+                  </div>
+                ))
+              ) : (
+                <p className="text-xs text-muted-foreground">Complete tasks to grow skill trees.</p>
+              )}
+              {overview.leaderboard.length > 0 && (
+                <>
+                  <p className="pt-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Leaderboard</p>
+                  <div className="flex flex-wrap gap-2">
+                    {overview.leaderboard.map((l, idx) => (
+                      <div key={l.id} className="flex items-center gap-1.5 rounded-full border px-2 py-1 text-[11px]">
+                        <span className="tabular-nums text-muted-foreground">#{idx + 1}</span>
+                        <AvatarCircle name={l.name} avatar={l.avatar} size={18} />
+                        <span className="font-medium">{l.name.split(" ")[0]}</span>
+                        <span className="text-muted-foreground">{l.xp}xp</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          ) : (
+            <EmptyNote>Start closing tasks to earn XP.</EmptyNote>
+          )}
+        </SectionCard>
+      </div>
+
+      {/* ---- task detail modal ---- */}
+      <Dialog open={detailTask !== null} onOpenChange={(o) => !o && setDetailTask(null)}>
+        {detailTask && (
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="pr-8 text-base">{detailTask.title}</DialogTitle>
+              <DialogDescription className="text-xs">
+                Task #{detailTask.id}
+                {detailTask.dueDate ? ` · due ${detailTask.dueDate}` : ""}
+                {detailTask.sprintId ? ` · sprint #${detailTask.sprintId}` : " · backlog"}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3 text-sm">
+              <div className="flex flex-wrap items-center gap-3">
+                <StatusPill status={detailTask.status} />
+                <PriorityPill priority={detailTask.priority} />
+                <Badge variant="outline">{detailTask.storyPoints} pts</Badge>
+              </div>
+              <p className="whitespace-pre-wrap text-xs text-muted-foreground">
+                {detailTask.description || "No description."}
+              </p>
+              <div>
+                <Label className="text-xs">Change status</Label>
+                <div className="mt-1 flex flex-wrap gap-1">
+                  {STATUSES.map((s) => (
+                    <Button
+                      key={s}
+                      size="sm"
+                      variant={detailTask.status === s ? "default" : "outline"}
+                      className="h-7 text-xs"
+                      onClick={() => {
+                        setTaskStatus(detailTask, s)
+                        setDetailTask(null)
+                      }}
+                    >
+                      {STATUS_LABEL[s]}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <DialogFooter className="flex gap-2 sm:justify-between">
+              {confirmDelete ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-red-500">Delete permanently?</span>
+                  <Button size="sm" variant="destructive" onClick={() => deleteTask(detailTask)}>
+                    Confirm delete
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => setConfirmDelete(false)}>
+                    Keep
+                  </Button>
+                </div>
+              ) : (
+                <Button size="sm" variant="ghost" className="text-red-500" onClick={() => setConfirmDelete(true)}>
+                  <Trash2 className="mr-1 h-3.5 w-3.5" /> Delete
+                </Button>
+              )}
+              <Button size="sm" onClick={() => openEdit(detailTask)}>
+                <Pencil className="mr-1 h-3.5 w-3.5" /> Edit task
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        )}
+      </Dialog>
+
+      {/* ---- create/edit task modal ---- */}
+      <Dialog open={formOpen && draft !== null} onOpenChange={(o) => !o && setFormOpen(false)}>
+        {draft && (
+          <DialogContent className="max-w-xl">
+            <DialogHeader>
+              <DialogTitle>{draft.id ? `Edit task #${draft.id}` : "New task"}</DialogTitle>
+              <DialogDescription>Assignees get a live notification in their bell feed.</DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1 sm:col-span-2">
+                <Label htmlFor="tf-title">Title</Label>
+                <Input id="tf-title" value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} placeholder="What needs doing?" />
+              </div>
+              <div className="space-y-1 sm:col-span-2">
+                <Label htmlFor="tf-desc">Description</Label>
+                <Textarea id="tf-desc" rows={3} value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })} />
+              </div>
+              <div className="space-y-1">
+                <Label>Status</Label>
+                <Select value={draft.status} onValueChange={(v) => setDraft({ ...draft, status: v })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {STATUSES.map((s) => (
+                      <SelectItem key={s} value={s}>
+                        {STATUS_LABEL[s]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label>Priority</Label>
+                <Select value={draft.priority} onValueChange={(v) => setDraft({ ...draft, priority: v })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PRIORITIES.map((p) => (
+                      <SelectItem key={p} value={p} className="capitalize">
+                        {p}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label>Assignee</Label>
+                <Select value={String(draft.assigneeId)} onValueChange={(v) => setDraft({ ...draft, assigneeId: v === "" ? "" : Number(v) })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Assign to…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {overview.workload.map((w) => (
+                      <SelectItem key={w.id} value={String(w.id)}>
+                        {w.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label>Sprint</Label>
+                <Select value={String(draft.sprintId)} onValueChange={(v) => setDraft({ ...draft, sprintId: v === "" ? "" : Number(v) })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Backlog" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Backlog</SelectItem>
+                    {sprints.map((s) => (
+                      <SelectItem key={s.id} value={String(s.id)}>
+                        {s.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="tf-due">Due date</Label>
+                <Input id="tf-due" type="date" value={draft.dueDate} onChange={(e) => setDraft({ ...draft, dueDate: e.target.value })} />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="tf-points">Story points</Label>
+                <Input
+                  id="tf-points"
+                  type="number"
+                  min={0}
+                  value={draft.storyPoints}
+                  onChange={(e) => setDraft({ ...draft, storyPoints: Math.max(0, parseInt(e.target.value, 10) || 0) })}
+                />
+              </div>
+              <div className="space-y-1 sm:col-span-2">
+                <Label htmlFor="tf-tags">Tags (comma separated)</Label>
+                <Input id="tf-tags" value={draft.tags} onChange={(e) => setDraft({ ...draft, tags: e.target.value })} placeholder="frontend, bug" />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setFormOpen(false)} disabled={saving}>
+                Cancel
+              </Button>
+              <Button onClick={saveTask} disabled={saving}>
+                {saving ? "Saving…" : draft.id ? "Save changes" : "Create task"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        )}
+      </Dialog>
+    </div>
   )
 }

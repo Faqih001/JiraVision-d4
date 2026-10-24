@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { getSession } from "@/lib/auth-actions"
 import { createTask, getPaginatedTasks } from "@/lib/data-access"
+import { createNotification } from "@/lib/notifications"
 
 // For local development and testing - set to false in production
 const ENABLE_TEST_MODE = process.env.NODE_ENV === 'development' || process.env.ENABLE_TEST_MODE === 'true';
@@ -19,9 +20,6 @@ export async function GET(request: Request) {
       )
     }
     
-    // Use default test user ID for operations if in test mode
-    const userId = session ? session.id : (ENABLE_TEST_MODE ? 1 : null)
-
     // Get query parameters
     const { searchParams } = new URL(request.url)
     
@@ -106,7 +104,18 @@ export async function POST(request: Request) {
     
     // Create the task
     const newTask = await createTask(taskData)
-    
+
+    if (newTask.assigneeId && newTask.assigneeId !== userId) {
+      await createNotification({
+        userId: newTask.assigneeId,
+        type: "task",
+        title: `New task assigned: ${newTask.title}`,
+        body: `${session?.name || "A teammate"} assigned "${newTask.title}" to you.`,
+        link: "/dashboard/tasks",
+        metadata: { taskId: newTask.id, action: "assigned" },
+      })
+    }
+
     return NextResponse.json({
       success: true,
       data: newTask
