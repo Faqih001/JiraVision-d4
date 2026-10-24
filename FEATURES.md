@@ -60,9 +60,9 @@ below with its real implementation status; §3 lists gaps honestly.
 | Reading progress | exists only as the desktop bottom-bar float percentage, not per-article | Partial |
 | Printable one-pagers **per product** | one consolidated `/one-pager` covering all products | Partial |
 | Responsible-AI "transparency center" as a destination | shipped as pieces instead: homepage `ResponsibleAi` section, sandbox per-ticket rationale, equity "Why this number?" panel, `/products/ethical-metrics` refusal list — no standalone center route | Partial / redistributed |
-| Playwright smoke tests + unit tests for calculator logic | no `tests/`, `e2e/`, or `__tests__/` dirs; no test script in `package.json` (task V2-6a still in progress) | Not shipped |
-| SEO: sitemap, robots, OG/Twitter, JSON-LD | no `app/sitemap.ts`, no `app/robots.ts`, no `public/sitemap.xml`/`robots.txt`; `export const metadata` exists on only 5 of 27 marketing entries (home, contact, careers, changelog, newsletter/confirm) | Not shipped (V2-6b pending) |
-| Lighthouse 90+ perf pass, a11y audit pass | Phase V2-6d pending | Not verified |
+| Playwright smoke tests + unit tests for calculator logic | SHIPPED: `tests/unit/` is 17 files / 212 tests under `npm test` (vitest) — burnout, ROI, XP, migration-plan, plan, fit-quiz, cms-registry, search-index, markdown-lite and the four resource catalogues. `tests/e2e/smoke.spec.ts` + `playwright.config.ts` run under `npm run test:e2e` | Done |
+| SEO: sitemap, robots, OG/Twitter, JSON-LD | Shipped except JSON-LD. `app/sitemap.ts` and `app/robots.ts` generate at runtime (no static `public/` copies); the sitemap derives blog and changelog dates from the content modules, and robots disallows `/api/`, `/dashboard` and the four auth routes. 41 of 45 marketing pages export metadata — the exceptions are `login`, `signup`, `forgot-password` and `reset-password`, which are `"use client"` pages and therefore *cannot* export metadata. They inherit the root title in the browser tab, but robots already blocks them, so there is no indexing impact. **No `application/ld+json` exists anywhere in the repo** | Partial: JSON-LD not shipped |
+| Lighthouse 90+ perf pass, a11y audit pass | V2-6d ran as a QA/cleanup pass but no Lighthouse or automated a11y run was ever recorded. A11y was handled by construction instead (single `<main>` per route, `aria-pressed`/`aria-labelledby` on filters, `prefers-reduced-motion` kill-switch, token contrast) rather than measured | Not verified |
 
 ## 4. Known behavior notes
 
@@ -78,6 +78,19 @@ below with its real implementation status; §3 lists gaps honestly.
 - Legacy `/resources` fabrications: **documentation, webinars, case-studies and blog are all
   rewritten** (see §5). No `blocks launch` row remains in `PLACEHOLDERS.md` §4 — what is left there
   is owner-supplied material (a real customer reference, webinar recordings, confirmed bylines).
+- **Chat has one implementation, not two.** `/dashboard/chat` is a self-contained V3 page that
+  talks to `/api/chat*` directly and delivers messages by polling `GET /api/chat/messages?after=`
+  every 12s — Neon Realtime covers notifications only, so the page does not claim realtime chat.
+  The older `app/context/chat/ChatContext.tsx` + `components/chat/*` stack was never imported by
+  anything and its provider hard-coded ~24 actions to `() => {}`, so it was deleted (2026-10-25)
+  along with its orphaned clients `lib/api-chat.ts`, `lib/chat-client.ts`, `lib/socket-client.ts`,
+  `lib/socket.ts`, `utils/socketUtil.ts` and the broken `server/websocket.ts`. `socket.io-client`
+  now has no importer; `socket.io` is used only by `lib/websocket-manager.js` behind
+  `npm run dev:socket`.
+- Four chat endpoints have no client left and are working-but-unreachable: `[chatId]/mute` (the UI
+  mutes through `[chatId]/settings` instead), `[chatId]/read` (the messages GET marks read on a
+  full stream), `messages/[messageId]/permanent-delete`, and `chat/notifications` (the UI reads
+  `/api/notifications`). Either wire them up or delete them.
 
 ## 5. Documentation, webinars, case studies and blog (rewritten 2026-10-23/24/25)
 

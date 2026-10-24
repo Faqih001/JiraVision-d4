@@ -3,7 +3,7 @@ import nextConfig from "eslint-config-next"
 export default [
   ...nextConfig,
   {
-    ignores: ["drizzle/**", "scripts/**", "server/**", "public/**", "generate-jwt-secret.js", "server.js"],
+    ignores: ["drizzle/**", "scripts/**", "public/**", "generate-jwt-secret.js", "server.js"],
   },
   {
     files: ["**/*.ts", "**/*.tsx"],
@@ -18,13 +18,11 @@ export default [
     // TODO(redesign): remove once these files are rebuilt or deleted (phases B-F).
     files: [
       "app/dashboard/**",
-      "app/context/**",
       "components/dashboard-*.tsx",
       "components/ai-model-selector.tsx",
       "components/calendar/**",
       "components/kanban/**",
       "components/ethical-metrics/**",
-      "components/chat/**",
       "components/ui/**",
       "components/landing-chatbot.tsx",
       "components/google-map.tsx",

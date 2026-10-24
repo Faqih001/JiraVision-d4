@@ -217,7 +217,7 @@ async function listParticipantsForMany(chatIds: string[]) {
 /**
  * POST /api/chat — create a group or individual chat.
  * Body: { type, name, participants: number[], avatar?, description?, message? }
- * Kept for the existing lib/api-chat + ChatContext consumers.
+ * Backs the create-group dialog on /dashboard/chat.
  * The creator is marked isAdmin inside chat_participants.settings.
  */
 export async function POST(req: NextRequest) {

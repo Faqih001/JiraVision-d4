@@ -11,9 +11,12 @@ export const dynamic = "force-dynamic";
  * Toggle the caller's reaction on a message. The map { emoji: userIds[] }
  * lives in messages.reactions (jsonb) — the old code inserted into the legacy
  * `reactions` table with a non-existent `id` column (TS2769).
- * PUT is the canonical verb; POST is kept for the legacy lib/api-chat client.
  */
-async function toggle(req: NextRequest, messageId: string) {
+export async function PUT(
+  req: NextRequest,
+  { params }: { params: Promise<{ messageId: string }> },
+) {
+  const { messageId } = await params;
   try {
     const session = await getSession();
     if (!session || !session.id) {
@@ -53,27 +56,10 @@ async function toggle(req: NextRequest, messageId: string) {
       .set({ reactions: map })
       .where(eq(messages.id, messageId));
 
-    // Consumers of the old endpoint checked `removed`; keep that field plus
-    // the fresh map so the UI can re-render chips without a refetch.
-    return NextResponse.json({ removed, reactions: map });
+    // The fresh map lets the UI re-render chips without a refetch.
+    return NextResponse.json({ reactions: map });
   } catch (error) {
     console.error("Error handling reaction:", error);
     return NextResponse.json({ error: "Failed to process reaction" }, { status: 500 });
   }
-}
-
-export async function PUT(
-  req: NextRequest,
-  { params }: { params: Promise<{ messageId: string }> },
-) {
-  const { messageId } = await params;
-  return toggle(req, messageId);
-}
-
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ messageId: string }> },
-) {
-  const { messageId } = await params;
-  return toggle(req, messageId);
 }
