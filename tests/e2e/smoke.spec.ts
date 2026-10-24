@@ -30,14 +30,20 @@ test("homepage renders its section stack without console errors", async ({ page 
 test("pricing calculator: billing toggle and seats slider change the maths", async ({ page }) => {
   await page.goto("/pricing")
   const group = page.getByRole("group", { name: "Billing period" })
-  await expect(group.getByRole("button", { name: "Monthly" })).toHaveAttribute("aria-pressed", "true")
-  await group.getByRole("button", { name: /^Annual/ }).click()
+  // Annual −20% is the default selection (seatModel-driven).
   await expect(group.getByRole("button", { name: /^Annual/ })).toHaveAttribute("aria-pressed", "true")
+  await group.getByRole("button", { name: "Monthly" }).click()
+  await expect(page.getByText("(monthly)").first()).toBeVisible()
+  await group.getByRole("button", { name: /^Annual/ }).click()
   await expect(page.getByText("(annual)").first()).toBeVisible()
 
-  const seats = page.getByLabel("Number of seats")
-  await seats.fill("30")
-  await expect(page.getByText(/30 seats →/).first()).toBeVisible()
+  // Radix Slider: keyboard-driven. Home pins to minSeats (5), arrows step 1.
+  const thumb = page.locator("#pricing-seats [role='slider']")
+  await thumb.focus()
+  await page.keyboard.press("Home")
+  await expect(page.getByText(/5 seats →/).first()).toBeVisible()
+  for (let i = 0; i < 8; i++) await page.keyboard.press("ArrowRight")
+  await expect(page.getByText(/13 seats →/).first()).toBeVisible()
 })
 
 test("faq deep link prefills the explorer from ?q=", async ({ page }) => {
@@ -80,7 +86,8 @@ test("Cmd+K opens the site search palette and finds pages", async ({ page }) => 
   const input = page.getByPlaceholder(/^Search pages, products, FAQ/)
   await expect(input).toBeVisible({ timeout: 5_000 })
   await input.fill("roadmap")
-  await expect(page.getByText(/Roadmap/i).first()).toBeVisible()
+  // Scope to the dialog — the navbar also has a hidden "Roadmap" link.
+  await expect(page.getByRole("dialog").getByText(/Roadmap/i).first()).toBeVisible()
   await page.keyboard.press("Escape")
   await expect(input).toBeHidden()
 })
@@ -88,7 +95,9 @@ test("Cmd+K opens the site search palette and finds pages", async ({ page }) => 
 test("compare sub-page and one-pager render real content", async ({ page }) => {
   const errors = collectConsoleErrors(page)
   await page.goto("/compare/asana")
-  await expect(page.getByRole("heading").first()).toContainText(/Asana/i)
+  // Editorial h1 doesn't name the tool; metadata does.
+  await expect(page).toHaveTitle(/Asana/i)
+  await expect(page.getByRole("heading").first()).toBeVisible()
   await expect(page.locator("#comparison")).toBeAttached()
 
   await page.goto("/one-pager")
