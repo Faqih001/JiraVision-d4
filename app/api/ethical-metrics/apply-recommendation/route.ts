@@ -3,8 +3,10 @@
 // Executes a recommendation the workspace page computed from live rows.
 // The response contract (`{ success, message }`) is unchanged from the original
 // stub, but the work is now real: reassign_tasks moves task assignments in the
-// tasks table, record_snapshot writes an ethical_metrics row, and every path
-// notifies the actor plus the members whose queue changed.
+// tasks table, record_snapshot writes an ethical_metrics row. Notifications
+// follow the workspace's stored preferences (notifyEnabled) — the actor receipt
+// and the affected-member fan-out can each be switched off in the configure
+// modal.
 
 import { NextResponse } from "next/server"
 import { and, eq, isNull } from "drizzle-orm"
@@ -18,6 +20,7 @@ import {
   buildRecommendations,
   computeLive,
   mergeConfig,
+  notifyEnabled,
   readEthicsMeta,
   recordSnapshot,
   writeEthicsMeta,
@@ -85,16 +88,18 @@ export async function POST(request: Request) {
       }
       states[id] = nextState
       await writeEthicsMeta(session.id, { recommendations: states })
-      await createNotification({
-        userId: session.id,
-        type: "system",
-        title: `Recommendation dismissed: ${rec?.title ?? id}`,
-        body: rec
-          ? `Ignored on ${new Date().toISOString().slice(0, 10)}. It stays in the recommendation list marked dismissed until the underlying data changes.`
-          : "Unknown recommendation dismissed.",
-        link: ETHICS_LINK,
-        metadata: { action: "ethics_recommendation_dismissed", recommendationId: id, title: rec?.title ?? id },
-      })
+      if (notifyEnabled(config, "recommendationReceipts")) {
+        await createNotification({
+          userId: session.id,
+          type: "system",
+          title: `Recommendation dismissed: ${rec?.title ?? id}`,
+          body: rec
+            ? `Ignored on ${new Date().toISOString().slice(0, 10)}. It stays in the recommendation list marked dismissed until the underlying data changes.`
+            : "Unknown recommendation dismissed.",
+          link: ETHICS_LINK,
+          metadata: { action: "ethics_recommendation_dismissed", recommendationId: id, title: rec?.title ?? id },
+        })
+      }
       return NextResponse.json({
         success: true,
         message: "Recommendation dismissed",
@@ -127,25 +132,27 @@ export async function POST(request: Request) {
       })
       states[id] = { ...nextState, summary: `Snapshot #${snapshot.id} (${snapshot.date}) recorded` }
       await writeEthicsMeta(session.id, { recommendations: states })
-      await createNotification({
-        userId: session.id,
-        type: "system",
-        title: `Recommendation applied: ${rec?.title ?? id}`,
-        body: `Ethical metrics snapshot #${snapshot.id} recorded for ${snapshot.date}.`,
-        link: ETHICS_LINK,
-        metadata: {
-          action: "ethics_recommendation_applied",
-          recommendationId: id,
-          kind,
-          snapshotId: snapshot.id,
-          scores: {
-            workloadBalance: snapshot.workloadBalanceScore,
-            deiTaskDistribution: snapshot.deiTaskDistributionScore,
-            payEquity: snapshot.payEquityScore,
-            overtimeCompliance: snapshot.overtimeCompliance,
+      if (notifyEnabled(config, "recommendationReceipts")) {
+        await createNotification({
+          userId: session.id,
+          type: "system",
+          title: `Recommendation applied: ${rec?.title ?? id}`,
+          body: `Ethical metrics snapshot #${snapshot.id} recorded for ${snapshot.date}.`,
+          link: ETHICS_LINK,
+          metadata: {
+            action: "ethics_recommendation_applied",
+            recommendationId: id,
+            kind,
+            snapshotId: snapshot.id,
+            scores: {
+              workloadBalance: snapshot.workloadBalanceScore,
+              deiTaskDistribution: snapshot.deiTaskDistributionScore,
+              payEquity: snapshot.payEquityScore,
+              overtimeCompliance: snapshot.overtimeCompliance,
+            },
           },
-        },
-      })
+        })
+      }
       return NextResponse.json({
         success: true,
         message: "Recommendation successfully applied",
@@ -232,26 +239,28 @@ export async function POST(request: Request) {
     }
     await writeEthicsMeta(session.id, { recommendations: states })
 
-    await createNotification({
-      userId: session.id,
-      type: "system",
-      title: `Recommendation applied: ${rec?.title ?? id}`,
-      body: detail,
-      link: ETHICS_LINK,
-      metadata: {
-        action: "ethics_recommendation_applied",
-        recommendationId: id,
-        kind,
-        movedTaskIds: moved.map((m) => m.taskId),
-        fromUserId: moved[0]?.fromUserId ?? fromUserId,
-        toUserId: moved[0]?.toUserId ?? toUserId,
-      },
-    })
+    if (notifyEnabled(config, "recommendationReceipts")) {
+      await createNotification({
+        userId: session.id,
+        type: "system",
+        title: `Recommendation applied: ${rec?.title ?? id}`,
+        body: detail,
+        link: ETHICS_LINK,
+        metadata: {
+          action: "ethics_recommendation_applied",
+          recommendationId: id,
+          kind,
+          movedTaskIds: moved.map((m) => m.taskId),
+          fromUserId: moved[0]?.fromUserId ?? fromUserId,
+          toUserId: moved[0]?.toUserId ?? toUserId,
+        },
+      })
+    }
 
     // Members whose queue actually changed get their own audit-trail event.
     const affected = [...new Set(moved.map((m) => m.fromUserId).concat(moved.map((m) => m.toUserId)))]
       .filter((id2): id2 is number => typeof id2 === "number" && id2 !== session.id)
-    if (affected.length > 0) {
+    if (affected.length > 0 && notifyEnabled(config, "memberFanout")) {
       await notifyMany(affected, {
         type: "system",
         title: `Workload rebalanced: ${taskSummary.slice(0, 120)}`,

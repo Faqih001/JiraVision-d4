@@ -32,6 +32,19 @@ export type EthicsAlertThresholds = {
   overtimeAlertThreshold: number
 }
 
+export type EthicsNotificationPrefs = {
+  /** master switch — when off, the workspace creates no notifications at all */
+  inApp: boolean
+  /** notify me when a snapshot is recorded */
+  snapshotReceipts: boolean
+  /** notify me when the threshold configuration changes */
+  configReceipts: boolean
+  /** notify me when a recommendation is applied or dismissed */
+  recommendationReceipts: boolean
+  /** notify members whose task queue changed after a rebalance */
+  memberFanout: boolean
+}
+
 export type EthicsConfig = {
   maxOvertimeHours: number
   /** a member above `overloadRatio` x team mean open points is overloaded */
@@ -47,6 +60,15 @@ export type EthicsConfig = {
   enableDeiTaskDistributionTracking: boolean
   enableOvertimeMonitoring: boolean
   alertThresholds: EthicsAlertThresholds
+  notifications: EthicsNotificationPrefs
+}
+
+/** Gate used by every ethical-metrics notification call site. */
+export function notifyEnabled(
+  config: EthicsConfig,
+  kind: Exclude<keyof EthicsNotificationPrefs, "inApp">,
+): boolean {
+  return config.notifications.inApp && config.notifications[kind]
 }
 
 export const DEFAULT_CONFIG: EthicsConfig = {
@@ -64,6 +86,13 @@ export const DEFAULT_CONFIG: EthicsConfig = {
     workloadBalanceAlertThreshold: 85,
     deiTaskDistributionAlertThreshold: 90,
     overtimeAlertThreshold: 4,
+  },
+  notifications: {
+    inApp: true,
+    snapshotReceipts: true,
+    configReceipts: true,
+    recommendationReceipts: true,
+    memberFanout: true,
   },
 }
 
@@ -201,7 +230,10 @@ export type RecommendationState = {
 }
 
 export type EthicsMeta = {
-  config?: Partial<EthicsConfig> & { alertThresholds?: Partial<EthicsAlertThresholds> }
+  config?: Partial<EthicsConfig> & {
+    alertThresholds?: Partial<EthicsAlertThresholds>
+    notifications?: Partial<EthicsNotificationPrefs>
+  }
   snapshots?: Record<string, SnapshotMeta>
   recommendations?: Record<string, RecommendationState>
 }
@@ -330,8 +362,21 @@ export async function writeEthicsMeta(userId: number, patch: Partial<EthicsMeta>
   return next[PREF_NAMESPACE] as EthicsMeta
 }
 
-export function mergeConfig(stored: Partial<EthicsConfig> & { alertThresholds?: Partial<EthicsAlertThresholds> } | undefined): EthicsConfig {
-  if (!stored) return { ...DEFAULT_CONFIG, alertThresholds: { ...DEFAULT_CONFIG.alertThresholds } }
+export function mergeConfig(
+  stored:
+    | (Partial<EthicsConfig> & {
+        alertThresholds?: Partial<EthicsAlertThresholds>
+        notifications?: Partial<EthicsNotificationPrefs>
+      })
+    | undefined,
+): EthicsConfig {
+  if (!stored) {
+    return {
+      ...DEFAULT_CONFIG,
+      alertThresholds: { ...DEFAULT_CONFIG.alertThresholds },
+      notifications: { ...DEFAULT_CONFIG.notifications },
+    }
+  }
   const num = (v: unknown, fallback: number) => {
     const n = toNumberOrNull(v)
     return n === null ? fallback : n
@@ -355,6 +400,16 @@ export function mergeConfig(stored: Partial<EthicsConfig> & { alertThresholds?: 
       workloadBalanceAlertThreshold: num(stored.alertThresholds?.workloadBalanceAlertThreshold, DEFAULT_CONFIG.alertThresholds.workloadBalanceAlertThreshold),
       deiTaskDistributionAlertThreshold: num(stored.alertThresholds?.deiTaskDistributionAlertThreshold, DEFAULT_CONFIG.alertThresholds.deiTaskDistributionAlertThreshold),
       overtimeAlertThreshold: num(stored.alertThresholds?.overtimeAlertThreshold, DEFAULT_CONFIG.alertThresholds.overtimeAlertThreshold),
+    },
+    notifications: {
+      inApp: bool(stored.notifications?.inApp, DEFAULT_CONFIG.notifications.inApp),
+      snapshotReceipts: bool(stored.notifications?.snapshotReceipts, DEFAULT_CONFIG.notifications.snapshotReceipts),
+      configReceipts: bool(stored.notifications?.configReceipts, DEFAULT_CONFIG.notifications.configReceipts),
+      recommendationReceipts: bool(
+        stored.notifications?.recommendationReceipts,
+        DEFAULT_CONFIG.notifications.recommendationReceipts,
+      ),
+      memberFanout: bool(stored.notifications?.memberFanout, DEFAULT_CONFIG.notifications.memberFanout),
     },
   }
 }
@@ -1020,26 +1075,28 @@ export async function recordSnapshot(opts: {
   snapshots[String(inserted.id)] = { label: label ?? `Snapshot ${date}`, note: note ?? undefined, source: opts.source ?? "recorded" }
   await writeEthicsMeta(opts.userId, { snapshots })
 
-  await createNotification({
-    userId: opts.userId,
-    type: "system",
-    title: `Ethics snapshot recorded: ${label ?? date}`,
-    body: `Workload ${values.workloadBalanceScore} · DEI ${values.deiTaskDistributionScore} · pay proxy ${values.payEquityScore} · overtime ${values.overtimeCompliance}.`,
-    link: ETHICS_LINK,
-    metadata: {
-      action: "ethics_snapshot_created",
-      snapshotId: inserted.id,
-      label: label ?? `Snapshot ${date}`,
-      date,
-      scores: values,
-      composite: compositeOf({
-        workloadBalance: values.workloadBalanceScore,
-        deiTaskDistribution: values.deiTaskDistributionScore,
-        payEquity: values.payEquityScore,
-        overtimeCompliance: values.overtimeCompliance,
-      }),
-    },
-  })
+  if (notifyEnabled(config, "snapshotReceipts")) {
+    await createNotification({
+      userId: opts.userId,
+      type: "system",
+      title: `Ethics snapshot recorded: ${label ?? date}`,
+      body: `Workload ${values.workloadBalanceScore} · DEI ${values.deiTaskDistributionScore} · pay proxy ${values.payEquityScore} · overtime ${values.overtimeCompliance}.`,
+      link: ETHICS_LINK,
+      metadata: {
+        action: "ethics_snapshot_created",
+        snapshotId: inserted.id,
+        label: label ?? `Snapshot ${date}`,
+        date,
+        scores: values,
+        composite: compositeOf({
+          workloadBalance: values.workloadBalanceScore,
+          deiTaskDistribution: values.deiTaskDistributionScore,
+          payEquity: values.payEquityScore,
+          overtimeCompliance: values.overtimeCompliance,
+        }),
+      },
+    })
+  }
 
   const snapshot = (await getSnapshotById(opts.userId, inserted.id)) as SnapshotRow
   return { snapshot, live, config }
