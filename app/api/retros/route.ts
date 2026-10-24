@@ -101,6 +101,7 @@ export async function GET() {
     return NextResponse.json({
       success: true,
       data: {
+        me: session.id,
         items,
         stats: {
           retrosTotal: items.length,
