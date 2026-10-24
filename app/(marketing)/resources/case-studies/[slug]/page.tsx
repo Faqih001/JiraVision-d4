@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { use } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { ArrowLeft, Calendar, Clock, Building, MapPin } from "lucide-react"
@@ -9,8 +9,26 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 
-// Mock data - in a real app, this would come from a database
-const caseStudyData = {
+type CaseStudyEntry = {
+  title: string
+  description: string
+  company: string
+  industry: string
+  employeeCount: string
+  location: string
+  logo: string
+  featuredImage: string
+  publishDate: string
+  readTime: string
+  tags: string[]
+  results: { metric: string; value: string }[]
+  content: string
+  testimonials: { quote: string; author: string; role: string; avatar: string }[]
+}
+
+// NOTE(PLACEHOLDER): companies, quoted people and result figures are inherited
+// from the v0 site and await owner review — see PLACEHOLDERS.md.
+const caseStudyData: Record<string, CaseStudyEntry> = {
   "acme-corp-transformation": {
     title: "ACME Corp's Digital Transformation with JiraVision",
     description:
@@ -417,70 +435,17 @@ const caseStudyData = {
   },
 }
 
-// Mock related case studies
-const relatedCaseStudies = {
-  "acme-corp-transformation": [
-    { slug: "globaltech-wellbeing", title: "GlobalTech Improves Team Wellbeing with JiraVision" },
-    { slug: "startupx-scaling", title: "StartupX Scales Agile with JiraVision's AI Scrum Master" },
-    { slug: "enterprise-ethical-metrics", title: "Enterprise Corp Implements Ethical Metrics Dashboard" },
-  ],
-  "globaltech-wellbeing": [
-    { slug: "acme-corp-transformation", title: "ACME Corp's Digital Transformation with JiraVision" },
-    { slug: "remote-team-success", title: "How RemoteFirst Improved Collaboration with JiraVision" },
-    { slug: "healthcare-burnout-prevention", title: "HealthTech Prevents Burnout with Team Wellbeing Features" },
-  ],
-  "startupx-scaling": [
-    { slug: "acme-corp-transformation", title: "ACME Corp's Digital Transformation with JiraVision" },
-    { slug: "saas-growth-story", title: "SaaS Company Accelerates Growth with JiraVision" },
-    { slug: "agile-at-scale", title: "Enterprise Agile Transformation with JiraVision" },
-  ],
+// Related studies are derived from the catalogue above so these links can never
+// point at a case study that does not exist.
+function relatedCaseStudies(currentSlug: string) {
+  return Object.entries(caseStudyData)
+    .filter(([slug]) => slug !== currentSlug)
+    .map(([slug, item]) => ({ slug, title: item.title }))
 }
 
-export default function CaseStudyPage({ params }: { params: { slug: string } }) {
-  const [caseStudy, setCaseStudy] = useState<any>(null)
-  const [isLoading, setIsLoading] = useState(true)
-
-  useEffect(() => {
-    // In a real app, this would be an API call
-    const fetchCaseStudy = () => {
-      setIsLoading(true)
-      // Simulate API delay
-      setTimeout(() => {
-        setCaseStudy(caseStudyData[params.slug] || null)
-        setIsLoading(false)
-      }, 500)
-    }
-
-    fetchCaseStudy()
-  }, [params.slug])
-
-  if (isLoading) {
-    return (
-      <div className="container mx-auto py-12 px-4">
-        <div className="animate-pulse">
-          <div className="h-8 bg-muted rounded w-3/4 mb-4"></div>
-          <div className="h-4 bg-muted rounded w-1/2 mb-12"></div>
-          <div className="h-64 bg-muted rounded mb-8"></div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <div className="col-span-3">
-              <div className="h-4 bg-muted rounded w-full mb-4"></div>
-              <div className="h-4 bg-muted rounded w-full mb-4"></div>
-              <div className="h-4 bg-muted rounded w-3/4 mb-8"></div>
-              <div className="h-4 bg-muted rounded w-full mb-4"></div>
-              <div className="h-4 bg-muted rounded w-full mb-4"></div>
-              <div className="h-4 bg-muted rounded w-5/6 mb-8"></div>
-            </div>
-            <div className="col-span-1">
-              <div className="h-32 bg-muted rounded mb-4"></div>
-              <div className="h-4 bg-muted rounded w-full mb-2"></div>
-              <div className="h-4 bg-muted rounded w-full mb-2"></div>
-              <div className="h-4 bg-muted rounded w-3/4 mb-4"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    )
-  }
+export default function CaseStudyPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = use(params)
+  const caseStudy = caseStudyData[slug] || null
 
   if (!caseStudy) {
     return (
@@ -548,7 +513,7 @@ export default function CaseStudyPage({ params }: { params: { slug: string } }) 
           <div className="mb-12">
             <h2 className="text-2xl font-bold mb-6">Testimonials</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {caseStudy.testimonials.map((testimonial: any, index: number) => (
+              {caseStudy.testimonials.map((testimonial, index) => (
                 <Card key={index}>
                   <CardContent className="pt-6">
                     <div className="flex items-start gap-4">
@@ -575,7 +540,7 @@ export default function CaseStudyPage({ params }: { params: { slug: string } }) 
           <div>
             <h2 className="text-2xl font-bold mb-6">Related Case Studies</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {relatedCaseStudies[params.slug as keyof typeof relatedCaseStudies]?.map((study: any) => (
+              {relatedCaseStudies(slug).map((study) => (
                 <Card key={study.slug} className="hover:shadow-md transition-shadow">
                   <CardContent className="p-6">
                     <Link href={`/resources/case-studies/${study.slug}`} className="no-underline">
@@ -627,7 +592,7 @@ export default function CaseStudyPage({ params }: { params: { slug: string } }) 
 
                 <h3 className="font-semibold mb-4">Key Results</h3>
                 <div className="space-y-3">
-                  {caseStudy.results.map((result: any, index: number) => (
+                  {caseStudy.results.map((result, index) => (
                     <div key={index} className="flex justify-between">
                       <span className="text-sm">{result.metric}</span>
                       <span className="text-sm font-semibold">{result.value}</span>

@@ -1,3 +1,5 @@
+import type { Metadata } from "next"
+import { notFound } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import {
   Calendar,
@@ -100,6 +102,47 @@ const blogPosts = [
     },
     category: "Team Wellbeing",
     tags: ["Remote Work", "Team Health", "Wellbeing", "Burnout Prevention"],
+    content: `
+      <p>Remote work removed the commute and gave people back hours of their day. It also removed the small, constant signals that tell you how a colleague is actually doing — the sigh after a bad review, the quiet person who suddenly has nothing to say in stand-up. Wellbeing work in a distributed team is mostly the work of rebuilding those signals on purpose.</p>
+
+      <h2>1. Make load visible before it becomes a problem</h2>
+
+      <p>Burnout rarely announces itself. It shows up first as an uneven spread of work: one person carrying three critical tasks while two others have slack. Review assignment against capacity on a fixed cadence — weekly is usually enough — and treat "who is over-committed" as a planning question, not a personal one.</p>
+
+      <ul>
+        <li>Sort the roster by open work, not by name, so concentration is obvious at a glance.</li>
+        <li>Flag anyone whose committed load exceeds what the sprint actually contains in working days.</li>
+        <li>Move the work or move the date. Do not silently accept both.</li>
+      </ul>
+
+      <h2>2. Ask for a check-in, not a status report</h2>
+
+      <p>A short, recurring wellbeing check-in gives people a low-cost way to say "this week is heavy" without having to raise it in a group call. Keep it to a few questions — energy, workload, blockers — and score it consistently so a downward trend is visible over time rather than only in hindsight.</p>
+
+      <p>The scoring matters more than the questions. A single number per person per week, charted across the team, turns a vague sense that "things feel tense" into something a lead can act on in the next one-to-one.</p>
+
+      <h2>3. Separate response time from working hours</h2>
+
+      <p>Distributed teams span time zones, and the default that emerges without intervention is "always available." Replace it with an explicit expectation: which channel is urgent, what response time each channel carries, and what a person is never expected to answer outside their own hours. Write it down where onboarding picks it up.</p>
+
+      <h2>4. Protect the boundaries between meetings</h2>
+
+      <p>Back-to-back calls are the most common quiet tax on remote work. Two cheap fixes: default meetings to 25 or 50 minutes so there is a gap, and give every meeting an owner who is responsible for cutting it short when the agenda is done. Neither requires anyone's permission beyond the team's own.</p>
+
+      <h2>5. Close the loop on what people tell you</h2>
+
+      <p>Check-ins and retros only keep working if answers lead somewhere. When someone flags overload, the follow-up should be visible — a reassignment, a scope cut, a date moved. When nothing can change, say so and explain why. Surveys that never produce a response teach the team that answering is pointless, and the data dries up.</p>
+
+      <h2>What to look at first</h2>
+
+      <ol>
+        <li>Trend, not snapshot: one low score is a bad day, four in a row is a signal.</li>
+        <li>Distribution, not average: a healthy team mean can hide one person at the floor.</li>
+        <li>Action items from the last retro that touched workload — were any of them completed?</li>
+      </ol>
+
+      <p>None of this requires a new policy or a budget. It requires treating wellbeing as an operational metric with the same standing as throughput: measured on a cadence, reviewed by the people who can change the work, and reported honestly when the number is bad.</p>
+    `,
   },
   {
     slug: "gamification-science",
@@ -115,6 +158,50 @@ const blogPosts = [
     },
     category: "Gamification",
     tags: ["Gamification", "Motivation", "Team Engagement", "Psychology"],
+    content: `
+      <p>Badges and leaderboards do not motivate people. They record motivation that already exists — or they replace it with something thinner. The difference between gamification that helps and gamification that quietly damages a team comes down to which psychological need the mechanic is feeding.</p>
+
+      <h2>Start with self-determination theory</h2>
+
+      <p>The most durable framework here is self-determination theory, which holds that sustained intrinsic motivation rests on three needs: competence (I am getting better at this), autonomy (I chose to do this), and relatedness (this matters to people I work with). A game mechanic that serves one of those three tends to land. A mechanic that serves none of them is just bookkeeping with confetti.</p>
+
+      <ul>
+        <li><strong>Competence</strong> — progress bars, streaks, level-ups tied to skills someone is deliberately building.</li>
+        <li><strong>Autonomy</strong> — opt-in challenges, self-set targets, choices about which reward to pursue.</li>
+        <li><strong>Relatedness</strong> — team goals, shared unlocks, recognition that names the contribution rather than the score.</li>
+      </ul>
+
+      <h2>Why points-for-points fails</h2>
+
+      <p>Points awarded for activity — commits, comments, tickets touched — measure motion, not value. Teams respond by optimising the metric rather than the work, which is Goodhart's law playing out in a sprint: once a measure becomes a target, it stops being a good measure. The classic symptom is a burst of small, low-value ticket churn at the end of a scoring period.</p>
+
+      <p>The fix is not to remove points but to anchor them to outcomes you already believe in: work completed within its estimate, review turnaround that unblocked someone else, a defect caught before release. If you cannot explain why an action earns points in one sentence, the rule is probably wrong.</p>
+
+      <h2>Design the leaderboard so losing is survivable</h2>
+
+      <p>A single all-time leaderboard is demotivating for anyone not in the top three, and it rewards the people who needed the least encouragement. Better patterns:</p>
+
+      <ol>
+        <li><strong>Reset cadence</strong> — weekly or per-sprint standings so a slow start is not a permanent position.</li>
+        <li><strong>Cohorts</strong> — compare people doing comparable work; a designer and an on-call engineer should not share one ranking.</li>
+        <li><strong>Personal bests</strong> — show progress against the person's own history alongside any team ranking.</li>
+        <li><strong>Team totals</strong> — where competition would damage collaboration, score the group instead of the individual.</li>
+      </ol>
+
+      <h2>Recognition beats reward</h2>
+
+      <p>Research on motivation consistently finds that extrinsic rewards can crowd out intrinsic interest in work people already found meaningful — the overjustification effect. In practice this means a public, specific acknowledgement of what someone did and why it mattered usually outperforms a token of equivalent cash value. Kudos that name the behaviour also teach the rest of the team what good looks like.</p>
+
+      <h2>Make the rules inspectable</h2>
+
+      <p>Trust in a gamified system collapses the moment someone suspects the scoring is arbitrary or hidden. Publish the point rules, show the history of a person's own awards, and let the team propose changes. A mechanic people helped design is a mechanic people accept when they lose.</p>
+
+      <h2>Measure whether it is working</h2>
+
+      <p>Gamification needs the same treatment as any other intervention: a baseline and a review. Watch for movement in the things you actually care about — cycle time, review latency, sprint completion, participation in retros — and watch the counter-signals too: ticket churn, gaming of estimates, and whether the same two people collect every award. If engagement with the game rises while delivery does not, the game is the product and your sprint is the raw material.</p>
+
+      <p>Used with that discipline, gamification is not a trick. It is a way of making progress visible and effort acknowledged, which most teams already want and rarely get.</p>
+    `,
   },
   {
     slug: "ethical-ai-project-management",
@@ -130,6 +217,42 @@ const blogPosts = [
     },
     category: "Ethical AI",
     tags: ["Ethics", "AI", "Governance", "Best Practices"],
+    content: `
+      <p>AI in project management is rarely a robot making decisions. It is a recommendation, a risk score, a suggested owner, a summary of a thread nobody read. That framing matters: the ethical question is almost never "is the model correct" but "who is accountable when a person acts on it."</p>
+
+      <h2>Explainability is a feature, not a nicety</h2>
+
+      <p>If a tool flags a task as at-risk, the person receiving that flag needs to know which inputs produced it. Without that, they either ignore the system entirely or defer to it uncritically — both of which are worse than not having it. Prefer models and prompts whose reasoning can be surfaced in plain language alongside the recommendation, and store the reasoning with the record so it can be audited later.</p>
+
+      <h2>Watch for proxy discrimination</h2>
+
+      <p>Historical project data encodes past decisions, including unfair ones. A model trained on who was assigned stretch work, whose estimates were trusted, or who got flagged as a bottleneck can reproduce those patterns while looking purely statistical. Two guards help:</p>
+
+      <ul>
+        <li>Review any per-person score for patterns across teams, locations, tenure or role before it influences a decision.</li>
+        <li>Keep human judgement in the loop for anything that affects a person's work allocation, appraisal or reputation. Automate reminders, not consequences.</li>
+      </ul>
+
+      <h2>Be honest about the data</h2>
+
+      <p>Tell people what is collected, what is used to train or tune models, and what is retained. Wellbeing and sentiment signals deserve the strictest treatment: they are the most useful inputs an AI system can have and the easiest to misuse. Aggregate by default, restrict access to individuals, and never let a check-in score become a performance input without the team knowing.</p>
+
+      <h2>Design the override path first</h2>
+
+      <p>Every automated recommendation needs a visible way to disagree, a record that the disagreement happened, and no penalty for using it. If dismissing a suggestion is harder than accepting it, the system is not assisting — it is deciding.</p>
+
+      <h2>A practical checklist</h2>
+
+      <ol>
+        <li>Can a person see why this recommendation was made?</li>
+        <li>Can they override it, and is the override recorded?</li>
+        <li>Who is accountable for the outcome — the tool, the operator, or the manager who approved it?</li>
+        <li>What personal data went in, and who can still read it?</li>
+        <li>When was the last time anyone checked the outputs for unfair patterns?</li>
+      </ol>
+
+      <p>Answering those five questions before rollout turns most ethical risk into an ordinary product decision. Leaving them unanswered is what turns a useful assistant into a liability.</p>
+    `,
   },
 ]
 
@@ -143,24 +266,33 @@ function getRelatedPosts(currentSlug: string, limit = 3) {
   return blogPosts.filter((post) => post.slug !== currentSlug).slice(0, limit)
 }
 
-export default function BlogPostPage({ params }: { params: { slug: string } }) {
-  const post = getBlogPost(params.slug)
-  const relatedPosts = getRelatedPosts(params.slug)
-
-  // If post not found, this would typically redirect to a 404 page
-  if (!post) {
-    return (
-      <div className="flex min-h-screen flex-col">
-        <main className="flex-1 container py-20">
-          <h1 className="text-3xl font-bold">Blog post not found</h1>
-          <p className="mt-4">The blog post you're looking for doesn't exist.</p>
-          <Button asChild className="mt-8">
-            <Link href="/resources/blog">Back to Blog</Link>
-          </Button>
-        </main>
-      </div>
-    )
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>
+}): Promise<Metadata> {
+  const { slug } = await params
+  const post = getBlogPost(slug)
+  if (!post) return { title: "Blog post not found" }
+  return {
+    title: post.title,
+    description: post.description,
+    openGraph: {
+      title: post.title,
+      description: post.description,
+      type: "article",
+      publishedTime: post.date,
+      images: [{ url: post.image }],
+    },
   }
+}
+
+export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params
+  const post = getBlogPost(slug)
+  const relatedPosts = getRelatedPosts(slug)
+
+  if (!post) notFound()
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -236,7 +368,7 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
               <div className="lg:col-span-8">
                 <div
                   className="prose prose-lg max-w-none"
-                  dangerouslySetInnerHTML={{ __html: post.content || "<p>Content coming soon...</p>" }}
+                  dangerouslySetInnerHTML={{ __html: post.content }}
                 ></div>
 
                 {/* Tags */}

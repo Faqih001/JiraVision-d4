@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useState } from "react"
+import Link from "next/link"
 import {
   Area,
   AreaChart,
@@ -30,6 +31,7 @@ import {
   Plus,
   RefreshCw,
   Search,
+  Settings,
   Smile,
   Trash2,
   Trophy,
@@ -539,6 +541,12 @@ export default function TeamWorkspace() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" className="gap-1" asChild>
+            <Link href="/dashboard/team/settings">
+              <Settings className="h-4 w-4" />
+              <span>Workspace settings</span>
+            </Link>
+          </Button>
           <Button
             variant="outline"
             size="sm"

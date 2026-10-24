@@ -326,3 +326,29 @@ export const cmsAuditLog = pgTable("cms_audit_log", {
   detail: jsonb("detail").notNull().default({}),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 })
+
+// Team workspace settings: exactly one row, read by the team APIs so member
+// defaults and notification preferences round-trip instead of being hard-coded.
+export const teamSettings = pgTable("team_settings", {
+  id: serial("id").primaryKey(),
+  teamName: varchar("team_name", { length: 120 }).notNull().default("Team"),
+  defaultMemberRole: varchar("default_member_role", { length: 32 }).notNull().default("user"),
+  notifyMemberJoined: boolean("notify_member_joined").notNull().default(true),
+  notifyMemberRemoved: boolean("notify_member_removed").notNull().default(true),
+  notifyProfileUpdated: boolean("notify_profile_updated").notNull().default(true),
+  notifyRoleChanged: boolean("notify_role_changed").notNull().default(true),
+  notifyWellbeingAlert: boolean("notify_wellbeing_alert").notNull().default(true),
+  updatedBy: integer("updated_by"),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+})
+
+// Who changed whose system role, and when. Written by /api/team/members/[id]/role.
+export const teamRoleAudit = pgTable("team_role_audit", {
+  id: serial("id").primaryKey(),
+  memberId: integer("member_id").notNull(),
+  memberName: varchar("member_name", { length: 160 }),
+  fromRole: varchar("from_role", { length: 32 }),
+  toRole: varchar("to_role", { length: 32 }).notNull(),
+  changedBy: integer("changed_by"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+})

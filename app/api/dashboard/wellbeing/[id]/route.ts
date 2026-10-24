@@ -4,6 +4,7 @@ import { db } from "@/lib/db"
 import { wellbeingMetrics, users } from "@/drizzle/schema"
 import { eq } from "drizzle-orm"
 import { createNotification } from "@/lib/notifications"
+import { readTeamSettings, teamNotifyEnabled } from "@/lib/team-settings"
 
 export const dynamic = "force-dynamic"
 
@@ -25,6 +26,8 @@ function clampInt(value: unknown, min: number, max: number): number | undefined 
 
 async function safeNotify(input: { userId: number; title: string; body?: string; metadata?: Record<string, unknown> }) {
   try {
+    const settings = await readTeamSettings()
+    if (!teamNotifyEnabled(settings, "wellbeingAlert")) return
     await createNotification({
       userId: input.userId,
       type: "wellbeing",

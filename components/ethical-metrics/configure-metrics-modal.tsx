@@ -8,20 +8,54 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/use-toast";
-import { AlertCircle, Check, Info } from "lucide-react";
+import { AlertCircle, Bell, Check, Info, Users } from "lucide-react";
 
 // Configuration Modal props
 interface ConfigureEthicalMetricsModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
+
+const NOTIFICATION_ROWS = [
+  {
+    key: "inApp",
+    label: "In-app notifications",
+    hint: "Master switch for everything this workspace sends to your bell and realtime feed.",
+    icon: Bell,
+  },
+  {
+    key: "snapshotReceipts",
+    label: "Snapshot receipts",
+    hint: "Confirm each recorded snapshot with its four scores.",
+    icon: Check,
+  },
+  {
+    key: "configReceipts",
+    label: "Configuration receipts",
+    hint: "Confirm threshold changes, so a silent edit still leaves a trace.",
+    icon: Check,
+  },
+  {
+    key: "recommendationReceipts",
+    label: "Recommendation activity",
+    hint: "Applied and dismissed recommendations, with what actually changed.",
+    icon: AlertCircle,
+  },
+  {
+    key: "memberFanout",
+    label: "Notify affected members",
+    hint: "Tell members when a rebalance moves tasks into or out of their queue.",
+    icon: Users,
+  },
+] as const;
+
+type NotificationKey = (typeof NOTIFICATION_ROWS)[number]["key"];
 
 export function ConfigureEthicalMetricsModal({
   isOpen,
@@ -40,7 +74,14 @@ export function ConfigureEthicalMetricsModal({
       workloadBalanceAlertThreshold: 85,
       deiTaskDistributionAlertThreshold: 90,
       overtimeAlertThreshold: 4
-    }
+    },
+    notifications: {
+      inApp: true,
+      snapshotReceipts: true,
+      configReceipts: true,
+      recommendationReceipts: true,
+      memberFanout: true,
+    },
   });
 
   // Fetch the configuration when the modal opens
@@ -119,6 +160,16 @@ export function ConfigureEthicalMetricsModal({
       ...prev,
       alertThresholds: {
         ...prev.alertThresholds,
+        [key]: value,
+      },
+    }));
+  };
+
+  const updateNotification = (key: NotificationKey, value: boolean) => {
+    setConfig((prev) => ({
+      ...prev,
+      notifications: {
+        ...prev.notifications,
         [key]: value,
       },
     }));
@@ -316,44 +367,45 @@ export function ConfigureEthicalMetricsModal({
             <div className="bg-muted/30 p-4 rounded-md flex items-start gap-3 mb-4">
               <Info className="h-5 w-5 text-primary mt-0.5" />
               <p className="text-sm">
-                Notifications settings will be available in the next update. Currently, all alerts are sent to workspace administrators and team leads.
+                Saved with this workspace&apos;s configuration and checked server-side before every
+                notification it sends. Turning off the master switch silences the workspace without
+                affecting other products.
               </p>
             </div>
-            
+
             <div className="space-y-3">
-              <div className="flex items-center gap-3 border p-3 rounded-md">
-                <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
-                  <Check className="h-4 w-4 text-green-600" />
-                </div>
-                <div className="flex-1">
-                  <p className="font-medium">Email Notifications</p>
-                  <p className="text-sm text-muted-foreground">Daily digest of ethical metrics alerts</p>
-                </div>
-                <Switch checked={true} disabled />
-              </div>
-              
-              <div className="flex items-center gap-3 border p-3 rounded-md">
-                <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
-                  <Check className="h-4 w-4 text-green-600" />
-                </div>
-                <div className="flex-1">
-                  <p className="font-medium">In-App Notifications</p>
-                  <p className="text-sm text-muted-foreground">Real-time alerts for critical issues</p>
-                </div>
-                <Switch checked={true} disabled />
-              </div>
-              
-              <div className="flex items-center gap-3 border p-3 rounded-md">
-                <div className="h-8 w-8 rounded-full bg-amber-100 flex items-center justify-center">
-                  <AlertCircle className="h-4 w-4 text-amber-600" />
-                </div>
-                <div className="flex-1">
-                  <p className="font-medium">Weekly Reports</p>
-                  <p className="text-sm text-muted-foreground">Comprehensive weekly ethical metrics reports</p>
-                </div>
-                <Switch checked={false} disabled />
-              </div>
+              {NOTIFICATION_ROWS.map((row) => {
+                const Icon = row.icon;
+                const enabled = config.notifications[row.key];
+                const locked = !config.notifications.inApp && row.key !== "inApp";
+                return (
+                  <div key={row.key} className={`flex items-start gap-3 border p-3 rounded-md ${locked ? "opacity-60" : ""}`}>
+                    <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center shrink-0">
+                      <Icon className={`h-4 w-4 ${enabled ? "text-green-600" : "text-muted-foreground"}`} />
+                    </div>
+                    <div className="flex-1">
+                      <Label htmlFor={`ethics-notif-${row.key}`} className="font-medium cursor-pointer">
+                        {row.label}
+                      </Label>
+                      <p className="text-sm text-muted-foreground">{row.hint}</p>
+                    </div>
+                    <Switch
+                      id={`ethics-notif-${row.key}`}
+                      checked={enabled}
+                      onCheckedChange={(value) => updateNotification(row.key, value)}
+                      aria-label={row.label}
+                    />
+                  </div>
+                );
+              })}
             </div>
+
+            {!config.notifications.memberFanout && (
+              <p className="text-xs text-muted-foreground flex items-start gap-2">
+                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                Members will still see the reassignment on their board — only the notification is skipped.
+              </p>
+            )}
           </TabsContent>
         </Tabs>
 

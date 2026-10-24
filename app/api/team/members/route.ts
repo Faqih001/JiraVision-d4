@@ -6,6 +6,7 @@ import bcrypt from "bcryptjs";
 import { v4 as uuidv4 } from "uuid";
 import { getSession } from "@/lib/auth-actions";
 import { createNotification } from "@/lib/notifications";
+import { readTeamSettings, teamNotifyEnabled } from "@/lib/team-settings";
 
 export const dynamic = "force-dynamic";
 
@@ -244,13 +245,15 @@ export async function POST(request: Request) {
     // signs in later via the reset-link flow, so store an unusable random hash.
     const placeholderHash = await bcrypt.hash(uuidv4(), 10);
 
+    const settings = await readTeamSettings();
+
     const [created] = await db
       .insert(users)
       .values({
         name,
         email,
         passwordHash: placeholderHash,
-        role: "user",
+        role: settings.defaultMemberRole,
         jobTitle,
         department,
         location,
@@ -259,14 +262,18 @@ export async function POST(request: Request) {
       })
       .returning();
 
-    await createNotification({
-      userId: session.id,
-      type: "system",
-      title: `${name} joined the team`,
-      body: jobTitle ? `${name} was added as ${jobTitle}.` : `${name} was added to the team roster.`,
-      link: "/dashboard/team",
-      metadata: { teamMemberId: created.id },
-    }).catch(() => undefined);
+    if (teamNotifyEnabled(settings, "memberJoined")) {
+      await createNotification({
+        userId: session.id,
+        type: "system",
+        title: `${name} joined ${settings.teamName}`,
+        body: jobTitle
+          ? `${name} was added as ${jobTitle} with ${settings.defaultMemberRole} access.`
+          : `${name} was added to the team roster with ${settings.defaultMemberRole} access.`,
+        link: "/dashboard/team",
+        metadata: { teamMemberId: created.id, accessRole: settings.defaultMemberRole },
+      }).catch(() => undefined);
+    }
 
     const { passwordHash: _hash, ...safeMember } = created;
     void _hash;

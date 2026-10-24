@@ -1,14 +1,17 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, use } from "react"
 import Link from "next/link"
 import { ArrowLeft, ChevronRight, Copy, Check, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
-// Mock documentation data - in a real app, this would come from a database
-const documentationData = {
+type DocSection = { id: string; title: string }
+type DocEntry = { title: string; description: string; content: string; sections: DocSection[] }
+
+// Documentation copy is maintained in-repo alongside the marketing site.
+const documentationData: Record<string, DocEntry> = {
   "getting-started": {
     title: "Getting Started with JiraVision",
     description: "Learn how to set up and start using JiraVision",
@@ -305,73 +308,32 @@ const documentationData = {
   },
 }
 
-// Mock related documentation
-const relatedDocs = {
+// Cross-links between the guides that actually exist above.
+const relatedDocs: Record<string, { slug: string; title: string }[]> = {
   "getting-started": [
     { slug: "ai-scrum-master-guide", title: "AI Scrum Master Guide" },
     { slug: "team-wellbeing-setup", title: "Team Wellbeing Setup" },
-    { slug: "ethical-metrics-configuration", title: "Ethical Metrics Configuration" },
   ],
   "ai-scrum-master-guide": [
     { slug: "getting-started", title: "Getting Started with JiraVision" },
-    { slug: "sprint-planning-automation", title: "Sprint Planning Automation" },
-    { slug: "ai-facilitated-retrospectives", title: "AI-Facilitated Retrospectives" },
+    { slug: "team-wellbeing-setup", title: "Team Wellbeing Setup" },
   ],
   "team-wellbeing-setup": [
     { slug: "getting-started", title: "Getting Started with JiraVision" },
-    { slug: "sentiment-analysis-guide", title: "Sentiment Analysis Guide" },
-    { slug: "workload-balancing", title: "Workload Balancing" },
+    { slug: "ai-scrum-master-guide", title: "AI Scrum Master Guide" },
   ],
 }
 
-export default function DocumentationPage({ params }: { params: { slug: string } }) {
-  const [doc, setDoc] = useState<any>(null)
-  const [isLoading, setIsLoading] = useState(true)
+export default function DocumentationPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = use(params)
+  const doc = documentationData[slug] || null
   const [copied, setCopied] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
-
-  useEffect(() => {
-    // In a real app, this would be an API call
-    const fetchDocumentation = () => {
-      setIsLoading(true)
-      // Simulate API delay
-      setTimeout(() => {
-        setDoc(documentationData[params.slug] || null)
-        setIsLoading(false)
-      }, 500)
-    }
-
-    fetchDocumentation()
-  }, [params.slug])
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
-  }
-
-  if (isLoading) {
-    return (
-      <div className="container mx-auto py-12 px-4">
-        <div className="animate-pulse">
-          <div className="h-8 bg-muted rounded w-3/4 mb-4"></div>
-          <div className="h-4 bg-muted rounded w-1/2 mb-8"></div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div className="md:col-span-1">
-              <div className="h-8 bg-muted rounded mb-4"></div>
-              <div className="space-y-2">
-                <div className="h-6 bg-muted rounded"></div>
-                <div className="h-6 bg-muted rounded"></div>
-                <div className="h-6 bg-muted rounded"></div>
-              </div>
-            </div>
-            <div className="md:col-span-3">
-              <div className="h-96 bg-muted rounded"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    )
   }
 
   if (!doc) {
@@ -479,7 +441,7 @@ export default function DocumentationPage({ params }: { params: { slug: string }
             <div className="mb-6">
               <h3 className="font-medium mb-3">On This Page</h3>
               <ul className="space-y-2 text-sm">
-                {doc.sections.map((section: any) => (
+                {doc.sections.map((section) => (
                   <li key={section.id}>
                     <a
                       href={`#${section.id}`}
@@ -496,7 +458,7 @@ export default function DocumentationPage({ params }: { params: { slug: string }
             <div>
               <h3 className="font-medium mb-3">Related Documentation</h3>
               <ul className="space-y-2 text-sm">
-                {relatedDocs[params.slug]?.map((related: any) => (
+                {relatedDocs[slug]?.map((related) => (
                   <li key={related.slug}>
                     <Link href={`/resources/documentation/${related.slug}`} className="text-primary hover:underline">
                       {related.title}

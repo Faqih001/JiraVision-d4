@@ -44,6 +44,7 @@ import {
   Search,
   Settings,
   Shield,
+  SlidersHorizontal,
   Sprout,
   Sun,
   Target,
@@ -199,6 +200,13 @@ export default function DashboardLayout({
           icon: <Users className="h-5 w-5" />,
           href: "/dashboard/team",
           active: pathname === "/dashboard/team",
+          dot: "bg-rose-500",
+        },
+        {
+          title: "Team Settings",
+          icon: <SlidersHorizontal className="h-5 w-5" />,
+          href: "/dashboard/team/settings",
+          active: pathname === "/dashboard/team/settings",
           dot: "bg-rose-500",
         },
         {

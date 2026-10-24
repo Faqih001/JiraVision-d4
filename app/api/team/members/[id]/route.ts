@@ -18,6 +18,7 @@ import {
 import { and, asc, desc, eq, ne, sql } from "drizzle-orm";
 import { getSession } from "@/lib/auth-actions";
 import { createNotification } from "@/lib/notifications";
+import { readTeamSettings, teamNotifyEnabled } from "@/lib/team-settings";
 
 export const dynamic = "force-dynamic";
 
@@ -218,7 +219,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     const changedBySomeoneElse = session.id !== memberId;
     const nameChanged = updates.name !== undefined && updates.name !== before.name;
     const roleChanged = updates.jobTitle !== undefined && updates.jobTitle !== before.jobTitle;
-    if (changedBySomeoneElse && (nameChanged || roleChanged)) {
+    const settings = await readTeamSettings();
+    if (changedBySomeoneElse && (nameChanged || roleChanged) && teamNotifyEnabled(settings, "profileUpdated")) {
       const parts: string[] = [];
       if (nameChanged) parts.push(`name → ${updates.name}`);
       if (roleChanged) parts.push(`role → ${updates.jobTitle || "Team Member"}`);
@@ -295,15 +297,9 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
       );
     }
 
-    // The member row exists, so they can still receive the removal notice.
-    await createNotification({
-      userId: memberId,
-      type: "system",
-      title: "You were removed from the team",
-      body: `${session.name || "An admin"} removed ${member.name} from the team workspace.`,
-      link: "/dashboard/team",
-      metadata: { teamMemberId: memberId, removedBy: session.id },
-    }).catch(() => undefined);
+    // The removal transaction deletes the member's rows (notifications included),
+    // so the audit receipt goes to whoever performed the removal.
+    const settings = await readTeamSettings();
 
     await transaction(async (tx) => {
       // Drop rows that reference this user, then the user itself.
@@ -321,14 +317,16 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
       await tx.delete(users).where(eq(users.id, memberId));
     });
 
-    await createNotification({
-      userId: session.id,
-      type: "system",
-      title: `${member.name} was removed`,
-      body: `${member.name} no longer has access to the team workspace.`,
-      link: "/dashboard/team",
-      metadata: { teamMemberId: memberId, removedBy: session.id },
-    }).catch(() => undefined);
+    if (teamNotifyEnabled(settings, "memberRemoved")) {
+      await createNotification({
+        userId: session.id,
+        type: "system",
+        title: `${member.name} was removed`,
+        body: `${member.name} no longer has access to the ${settings.teamName} workspace.`,
+        link: "/dashboard/team",
+        metadata: { teamMemberId: memberId, removedBy: session.id, counts },
+      }).catch(() => undefined);
+    }
 
     return NextResponse.json({ success: true, removed: { id: member.id, name: member.name } });
   } catch (error) {

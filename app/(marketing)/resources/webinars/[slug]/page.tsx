@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { use } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { ArrowLeft, Calendar, Clock } from "lucide-react"
@@ -10,8 +10,24 @@ import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
-// Mock data - in a real app, this would come from a database
-const webinarData = {
+type WebinarEntry = {
+  title: string
+  description: string
+  date: string
+  duration: string
+  speaker: { name: string; role: string; avatar: string }
+  videoUrl: string
+  slides: string
+  attendees: number
+  likes: number
+  comments: number
+  tags: string[]
+  transcript: string
+}
+
+// NOTE(PLACEHOLDER): speaker names and attendance counts are inherited from the
+// v0 site and await owner review — see PLACEHOLDERS.md.
+const webinarData: Record<string, WebinarEntry> = {
   "ai-scrum-master-introduction": {
     title: "Introduction to AI Scrum Master",
     description: "Learn how our AI Scrum Master can revolutionize your project management workflow",
@@ -113,66 +129,23 @@ const webinarData = {
   },
 }
 
-// Mock related webinars
-const relatedWebinars = [
-  {
-    slug: "team-wellbeing-analytics",
-    title: "Team Wellbeing Analytics",
-    description: "Learn how to monitor and improve your team's emotional health",
-    date: "August 5, 2023",
-    duration: "40 minutes",
-    image: "/placeholder.svg?height=200&width=300",
-  },
-  {
-    slug: "ai-powered-retrospectives",
-    title: "AI-Powered Retrospectives",
-    description: "Make your sprint retrospectives more effective with AI insights",
-    date: "July 28, 2023",
-    duration: "55 minutes",
-    image: "/placeholder.svg?height=200&width=300",
-  },
-  {
-    slug: "predictive-sprint-planning",
-    title: "Predictive Sprint Planning",
-    description: "Use AI to predict team velocity and optimize sprint planning",
-    date: "June 22, 2023",
-    duration: "45 minutes",
-    image: "/placeholder.svg?height=200&width=300",
-  },
-]
+// Related sessions are derived from the catalogue above so these links can
+// never point at a webinar that does not exist.
+function relatedWebinars(currentSlug: string) {
+  return Object.entries(webinarData)
+    .filter(([slug]) => slug !== currentSlug)
+    .map(([slug, item]) => ({
+      slug,
+      title: item.title,
+      description: item.description,
+      date: item.date,
+      duration: item.duration,
+    }))
+}
 
-export default function WebinarPage({ params }: { params: { slug: string } }) {
-  const [webinar, setWebinar] = useState<any>(null)
-  const [isLoading, setIsLoading] = useState(true)
-
-  useEffect(() => {
-    // In a real app, this would be an API call
-    const fetchWebinar = () => {
-      setIsLoading(true)
-      // Simulate API delay
-      setTimeout(() => {
-        setWebinar(webinarData[params.slug] || null)
-        setIsLoading(false)
-      }, 500)
-    }
-
-    fetchWebinar()
-  }, [params.slug])
-
-  if (isLoading) {
-    return (
-      <div className="container mx-auto py-12 px-4">
-        <div className="animate-pulse">
-          <div className="h-8 bg-muted rounded w-3/4 mb-4"></div>
-          <div className="h-4 bg-muted rounded w-1/2 mb-8"></div>
-          <div className="h-96 bg-muted rounded mb-8"></div>
-          <div className="h-4 bg-muted rounded w-full mb-2"></div>
-          <div className="h-4 bg-muted rounded w-full mb-2"></div>
-          <div className="h-4 bg-muted rounded w-5/6 mb-8"></div>
-        </div>
-      </div>
-    )
-  }
+export default function WebinarPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = use(params)
+  const webinar = webinarData[slug] || null
 
   if (!webinar) {
     return (
@@ -310,21 +283,21 @@ export default function WebinarPage({ params }: { params: { slug: string } }) {
             <div>
               <h3 className="text-lg font-medium mb-4">Related Webinars</h3>
               <div className="space-y-4">
-                {relatedWebinars.map((item) => (
+                {relatedWebinars(slug).map((item) => (
                   <Card key={item.slug} className="overflow-hidden">
                     <Link href={`/resources/webinars/${item.slug}`}>
-                      <Image
-                        src={item.image || "/placeholder.svg"}
-                        alt={item.title}
-                        width={300}
-                        height={200}
-                        className="w-full h-40 object-cover"
-                      />
                       <CardContent className="p-4">
                         <h4 className="font-medium line-clamp-2">{item.title}</h4>
-                        <div className="flex items-center text-xs text-muted-foreground mt-2">
-                          <Calendar className="h-3 w-3 mr-1" />
-                          <span>{item.date}</span>
+                        <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{item.description}</p>
+                        <div className="flex items-center gap-3 text-xs text-muted-foreground mt-2">
+                          <span className="flex items-center">
+                            <Calendar className="h-3 w-3 mr-1" />
+                            {item.date}
+                          </span>
+                          <span className="flex items-center">
+                            <Clock className="h-3 w-3 mr-1" />
+                            {item.duration}
+                          </span>
                         </div>
                       </CardContent>
                     </Link>

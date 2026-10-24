@@ -164,7 +164,7 @@ describe("applySectionOverrides", () => {
 
   it("never invents structure for paths missing from defaults", () => {
     const content = buildDefaults("home")
-    const pillars = content.pillars as Record<string, unknown>[]
+    const pillars = content.pillars as unknown[]
     applySectionOverrides("home", content, "pillars", { "9.title": "ghost" } as Record<string, unknown>)
     expect(pillars).toHaveLength(4)
   })
