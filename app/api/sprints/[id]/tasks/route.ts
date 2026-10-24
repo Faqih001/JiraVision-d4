@@ -3,10 +3,13 @@ import { getSession } from "@/lib/auth-actions";
 import { getTasksBySprintId } from "@/lib/data-access";
 
 // GET handler for /api/sprints/[id]/tasks - Returns tasks for a specific sprint
+export const dynamic = "force-dynamic";
+
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id: idParam } = await params;
   try {
     // Check if user is authenticated
     const session = await getSession();
@@ -17,7 +20,7 @@ export async function GET(
       );
     }
 
-    const id = parseInt(params.id, 10);
+    const id = parseInt(idParam, 10);
     
     if (isNaN(id)) {
       return NextResponse.json(
@@ -34,11 +37,11 @@ export async function GET(
       data: tasks
     });
   } catch (error) {
-    console.error(`Error fetching tasks for sprint with ID ${params.id}:`, error);
+    console.error(`Error fetching tasks for sprint with ID ${idParam}:`, error);
     return NextResponse.json(
       {
         success: false,
-        message: `Failed to fetch tasks for sprint with ID ${params.id}`,
+        message: `Failed to fetch tasks for sprint with ID ${idParam}`,
         error: (error as Error).message,
       },
       { status: 500 }
