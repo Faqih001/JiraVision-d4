@@ -4,6 +4,7 @@ import { Inter, Fraunces } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { AuthProvider } from "@/context/auth-context"
+import { Toaster } from "@/components/ui/toaster"
 import LandingChatbot from "@/components/landing-chatbot"
 import ClientCorsWrapper from "@/app/providers/client-cors-wrapper"
 
@@ -48,6 +49,9 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <AuthProvider>{children}</AuthProvider>
         </ThemeProvider>
+        {/* Every mutation surface reports through useToast(); without this the
+            376 toast() call sites resolve into a store nothing ever renders. */}
+        <Toaster />
         <LandingChatbot />
         {/* Add CORS handler in development mode via client wrapper */}
         <ClientCorsWrapper />
