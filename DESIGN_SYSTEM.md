@@ -153,6 +153,9 @@ Observed, enforced-in-practice rules (REDESIGN_PLAN V2-1/V2-3 + homepage impleme
   `app/(marketing)/migration/migration-planner.tsx`, `app/(marketing)/faq/faq-explorer.tsx`,
   `app/(marketing)/templates/templates-library.tsx` + `template-request-form.tsx`. Shared
   islands sit in `components/features/`, `components/forms/`, `components/sections/demo-*.tsx`.
+  Exception: islands shared by an index route *and* its `[slug]` sibling live at `components/`
+  root (`doc-index.tsx` + `doc-reader.tsx`, `webinar-index.tsx`, `case-study-index.tsx`,
+  `newsletter-form.tsx`), because they are not scoped to one route directory.
 - **localStorage-backed state goes through `useSyncExternalStore` with a cached,
   hydration-stable snapshot (server snapshot = default/empty) — never `setState` in an
   effect.** Implemented this way in: `announcement-bar.tsx` (dismissal), `site-search.tsx`
@@ -187,3 +190,8 @@ Observed, enforced-in-practice rules (REDESIGN_PLAN V2-1/V2-3 + homepage impleme
   note on tables (`content/compare.ts` header rules).
 - Status page: hand-maintained manifest, and only real states are published (email
   delivery shows degraded until a Resend key is configured).
+- `/resources/case-studies` publishes **illustrative scenarios, not customer stories**: a visible
+  banner names the team as fictitious, measures state where the number is computed instead of
+  asserting a result, and `tests/unit/case-studies.test.ts` fails if any entry carries a
+  percentage, an attributed quote, or a `customer` field the owner has not supplied.
+  `/resources/webinars` renders "No recording published" unless a `videoUrl` exists.
