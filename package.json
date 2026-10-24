@@ -25,8 +25,15 @@
     "generate:jwt": "node generate-jwt-secret.js"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1156.0",
+    "@aws-sdk/s3-request-presigner": "^3.1156.0",
     "@hello-pangea/dnd": "^18.0.1",
     "@hookform/resolvers": "^3.9.1",
+    "@neon/config": "^1.9.3",
+    "@neon/env": "^1.6.4",
+    "@neon/realtime": "^0.1.2",
+    "@neon/realtime-drizzle": "^0.1.0",
+    "@neon/realtime-react": "^0.1.1",
     "@neondatabase/serverless": "latest",
     "@radix-ui/react-accordion": "1.2.2",
     "@radix-ui/react-alert-dialog": "1.1.4",
@@ -65,6 +72,7 @@
     "drizzle-kit": "^0.31.1",
     "drizzle-orm": "latest",
     "embla-carousel-react": "8.5.1",
+    "files-sdk": "^3.1.2",
     "input-otp": "1.4.1",
     "lucide-react": "^0.454.0",
     "next": "16.1.1",

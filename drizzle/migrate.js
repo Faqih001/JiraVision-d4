@@ -2,9 +2,12 @@ const { migrate } = require('drizzle-orm/postgres-js/migrator');
 const postgres = require('postgres');
 const { drizzle } = require('drizzle-orm/postgres-js');
 const fs = require('fs');
+require('dotenv').config({ path: '.env.local' });
 require('dotenv').config();
 
 const runMigrations = async () => {
+  // Create connection
+  const migrationClient = postgres(process.env.DATABASE_URL, { max: 1 });
   try {
     // Get connection string from environment
     const connectionString = process.env.DATABASE_URL;
@@ -26,9 +29,6 @@ const runMigrations = async () => {
     // List migration files
     const files = fs.readdirSync('./drizzle/migrations');
     console.log('Migration files:', files);
-    
-    // Create connection
-    const migrationClient = postgres(connectionString, { max: 1 });
     
     const db = drizzle(migrationClient);
     

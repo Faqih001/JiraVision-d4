@@ -285,3 +285,86 @@ i18n scaffolding (EN first, structure ready for Swahili/French) lands in phase 2
 - **Wiring**: nav Resources card + footer Resources column + search index (via resourceItems) + sitemap entry; unverified hash anchors avoided (`/pricing`, `/roadmap` plain).
 - **Forms**: `formRoute` default rate limit raised 3→5/min to match the v2 brief (careers keeps its explicit 2/min).
 - Verified: 15 new unit tests (76 total green), 8/8 Playwright smoke scenarios green incl. new fit-quiz flow (six clicks → "Strong fit" + Deep-dive CTA + restart), /fit-quiz 200, sitemap 37 URLs, filtered tsc clean on all touched files.
+
+---
+
+## V3 — Dashboard product build + realtime + super-admin CMS (brief 2026-10-24)
+
+Owner brief: every user gets ≥15 relevant dashboard pages; the main dashboard has ≥15 sections
+(cards, filters, graphs, modals, grid/list view and the standard component kit); every other
+dashboard page has 10–14 relevant sections; all dashboard pages do real CRUD through functional
+APIs; modern dashboard layout; every mutation API wired to the notification system and realtime;
+a super-admin CMS page that can edit every section of every landing page.
+
+Inventory findings this build (what already exists):
+- 16 dashboard routes (main, ai-scrum-master, analytics, billing+settings, calendar, chat, email,
+  ethical-metrics, gamification (+7 subpages), integrations, kanban, settings, sprints, tasks,
+  team(+settings), team-wellbeing).
+- ~60 API routes; drizzle Postgres (Neon) with 26 tables incl. `users.role` (default "user") and
+  `notifications` (userId/type/title/body/isRead/metadata).
+- Realtime today is dead code: socket.io lives in `server/websocket.ts` + `lib/websocket-manager.ts`
+  but `npm run dev/start` never boots a custom server, and Vercel (the deploy target) cannot host a
+  persistent socket server. → Realtime ships as SSE + polling fallback, DB as source of truth.
+- Bell dropdown in the shell is hardcoded fake notifications; `app/api/chat/notifications` uses a
+  hardcoded userId=1. recharts 2.15.0 available. Middleware protects /dashboard via session cookies.
+
+Phases (report after each; commit+push on every change set):
+
+### V3-1 — Foundation: session/role helpers, notification system, realtime transport, modern shell
+- `lib/session.ts`: getCurrentUser()/requireUser() usable from route handlers (cookie→user, 401/403),
+  isAdmin() = DB role admin/superadmin OR ADMIN_EMAILS env (bootstrap; documented in .env.example).
+- `lib/notifications.ts`: createNotification() → insert + broadcast; notifyMany; used by every CRUD API.
+- `lib/realtime.ts` + `/api/events/stream`: SSE endpoint (auth-gated, per-user stream, heartbeat,
+  clean cancel) + in-process bus; `lib/realtime-client.ts` subscribes and auto-falls back to
+  /api/notifications?since= polling on Vercel/serverless where long streams can't live.
+- `/api/notifications` CRUD: GET list+unreadCount (+since), POST create (self or admin→user),
+  PATCH read flags, DELETE. Fixes hardcoded userId=1 pattern.
+- Shell rework (components/dashboard-layout.tsx): grouped modern sidebar, real NotificationsBell
+  replacing the fake array, user menu with real session, mobile drawer, search entry.
+
+### V3-2 — Main dashboard: ≥15 sections, grid/list, filters, modals, graphs
+- One page, 15 sections: header+quick actions, filter bar (range/project/priority/type/view),
+  KPI cards ×6, sprint status cards, my-work table (grid|list toggle, sort, inline actions),
+  team capacity, burndown (recharts), velocity chart, wellbeing trend, gamification leaderboard,
+  AI insights, activity feed (real), notifications feed, agenda, storage/integrations health.
+- Modals: new task, new sprint, task detail (edit = real CRUD), confirm-delete.
+- All data from the drizzle APIs (tasks/sprints/wellbeing/gamification/aiInsights), never mock.
+
+### V3-3 — Elevate existing 16 pages to 10–14 sections + full CRUD wiring
+- Per page: section stack (summary cards, filters, table/graph views, detail drawer/modal,
+  activity, settings, empty/loading/error states) and CRUD against new+existing APIs.
+- Every mutation route calls createNotification() → realtime to affected users.
+
+### V3-4 — New pages so every user has ≥15 product pages
+- /dashboard/backlog, /dashboard/retros, /dashboard/goals (OKR), /dashboard/reports,
+  /dashboard/activity, /dashboard/automation-rules (each 10–14 sections, CRUD, notifications).
+
+### V3-5 — Super-admin CMS for landing content
+- `lib/cms/registry.ts` (pageId → default content objects from content/*.ts), `cms_overrides`
+  table (pageId, sectionKey, path, value, published) + merge helper `withOverrides(pageId, obj)`.
+- Marketing pages switch defaults through the loader (static file stays the fallback → SSR-safe,
+  no behavior change until edited). `/admin/cms` (role-gated): page list → section list → field
+  editor (text/textarea/list/image-url) + preview link + publish/unpublish + restore default.
+- `/api/admin/cms` CRUD, validation, notifications on publish events kept in-app.
+
+### V3-6 — Tests, QA, docs
+- Unit: session/admin logic, notifications service, CMS merge; e2e: bell realtime, main dashboard
+  CRUD round-trip, grid/list+filters, CMS edit → public page change. Playwright + vitest green,
+  lint+build green, FEATURES/PLACEHOLDERS/DESIGN_SYSTEM updated.
+
+### V3 feature bar — competitive parity + advantage (owner add-on 2026-10-24)
+Owner requirement: the webapp must have all modern PM-tool features and more than rivals
+(Jira, Linear, Asana, ClickUp, monday.com). Mapped into phases:
+- Parity (must-haves rivals all ship): command palette + keyboard shortcuts in-app, drag-and-drop
+  kanban, saved views/filters, bulk task edit/delete, Gantt/timeline view, retrospectives, OKR
+  goals, backlog management with prioritization, report export (CSV + printable PDF), full-text
+  search over tasks/sprints/docs, mobile-usable responsive shell, dark mode, @mentions + comments,
+  audit/activity log, templates, sprint reports.
+- Advantages (things rivals do NOT ship): team wellbeing telemetry with burnout bands, ethical
+  AI metrics + fairness refusals (per-person ranking refusal), gamification without per-person
+  rankings, AI Scrum Master drafts that require human approval before touching Jira,
+  read-only-on-top-of-Jira architecture (never copies attachments/history), realtime live queries
+  (Neon Realtime) instead of page refreshes, super-admin landing CMS, transparent pricing maths +
+  fit quiz that can refuse your money.
+Phase owners: parity items land inside V3-2/V3-3/V3-4; advantages are already designed and get
+wired to real data in V3-3.

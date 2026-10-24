@@ -18,9 +18,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
+import NotificationsBell from "@/components/notifications-bell"
 import {
-  Bell,
   Brain,
   Calendar,
   ChevronDown,
@@ -59,11 +58,6 @@ export default function DashboardLayout({
   const { theme, setTheme } = useTheme()
   const isMobile = useMobile()
   const [searchFocused, setSearchFocused] = useState(false)
-  const [notifications, setNotifications] = useState([
-    { id: 1, title: "New sprint started", read: false },
-    { id: 2, title: "Team meeting in 30 minutes", read: false },
-    { id: 3, title: "3 tasks due today", read: true },
-  ])
 
   // Toggle sidebar collapse
   const toggleSidebar = () => {
@@ -74,14 +68,6 @@ export default function DashboardLayout({
   const toggleMobileSidebar = () => {
     setMobileSidebarOpen(!mobileSidebarOpen)
   }
-
-  // Mark all notifications as read
-  const markAllAsRead = () => {
-    setNotifications(notifications.map((n) => ({ ...n, read: true })))
-  }
-
-  // Count unread notifications
-  const unreadCount = notifications.filter((n) => !n.read).length
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -411,57 +397,7 @@ export default function DashboardLayout({
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="relative text-muted-foreground hover:text-foreground rounded-full h-8 w-8 sm:h-9 sm:w-9"
-                >
-                  <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
-                  {unreadCount > 0 && (
-                    <Badge
-                      variant="destructive"
-                      className="absolute -right-1 -top-1 flex h-4 w-4 sm:h-5 sm:w-5 items-center justify-center rounded-full p-0 text-[10px] sm:text-xs"
-                    >
-                      {unreadCount}
-                    </Badge>
-                  )}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-[280px] sm:w-80">
-                <div className="flex items-center justify-between p-2">
-                  <DropdownMenuLabel className="text-sm sm:text-base">Notifications</DropdownMenuLabel>
-                  <Button variant="ghost" size="sm" onClick={markAllAsRead} className="text-xs sm:text-sm h-7 sm:h-8">
-                    Mark all as read
-                  </Button>
-                </div>
-                <DropdownMenuSeparator />
-                {notifications.length > 0 ? (
-                  <div className="max-h-[300px] overflow-y-auto">
-                    {notifications.map((notification) => (
-                      <DropdownMenuItem key={notification.id} className="flex items-start gap-2 p-3">
-                        <div
-                          className={cn(
-                            "mt-0.5 h-2 w-2 flex-shrink-0 rounded-full",
-                            notification.read ? "bg-muted" : "bg-primary",
-                          )}
-                        />
-                        <div className="flex-1">
-                          <p className={cn("text-sm", notification.read ? "text-muted-foreground" : "font-medium")}>
-                            {notification.title}
-                          </p>
-                        </div>
-                      </DropdownMenuItem>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="py-6 text-center text-muted-foreground">
-                    <p>No notifications</p>
-                  </div>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <NotificationsBell />
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

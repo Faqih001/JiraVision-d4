@@ -36,3 +36,4 @@ next-env.d.ts
 # playwright artifacts
 test-results/
 playwright-report/
+.neon
