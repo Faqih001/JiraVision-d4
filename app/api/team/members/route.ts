@@ -1,145 +1,286 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { users } from "@/drizzle/schema";
-import { sql } from "drizzle-orm";
-import { ne } from "drizzle-orm";
+import { gamification, tasks, users, wellbeingMetrics } from "@/drizzle/schema";
+import { asc, desc, eq, ne, sql, type InferSelectModel } from "drizzle-orm";
+import bcrypt from "bcryptjs";
+import { v4 as uuidv4 } from "uuid";
 import { getSession } from "@/lib/auth-actions";
-import { type TeamMember } from "@/types/team";
+import { createNotification } from "@/lib/notifications";
 
-// Define the type for the database query result
-type TeamMemberDbResult = {
+export const dynamic = "force-dynamic";
+
+/* ------------------------------------------------------------------ types */
+
+export interface TeamMemberRow {
   id: number;
-  name: string | null;
-  email: string | null;
-  role: string | null;
-  jobTitle: string | null;
-  department: string | null;
-  status: string | null;
+  name: string;
+  email: string;
+  role: string;
+  department: string;
+  status: string;
   avatar: string | null;
-  skills: any; // JSONB field can be string or object
   currentSprint: { name: string; tasks: number } | null;
+  skills: string[];
   utilization: number;
+  jobTitle: string | null;
+  location: string | null;
+  joinedAt: string | null;
+  openTasks: number;
+  doneTasks: number;
+  blockedTasks: number;
+  openPoints: number;
+  mood: string | null;
+  wellbeingScore: number | null;
+  xp: number;
+  level: number;
 }
 
-export async function GET(request: Request) {
+interface TaskAgg {
+  openTasks: number;
+  doneTasks: number;
+  blockedTasks: number;
+  openPoints: number;
+}
+
+interface WellbeingLatest {
+  mood: string;
+  wellbeingScore: number;
+  date: string;
+}
+
+/* ------------------------------------------------------------- aggregates */
+
+export async function loadTaskAggregates(): Promise<Map<number, TaskAgg>> {
+  const rows = await db
+    .select({
+      assigneeId: tasks.assigneeId,
+      openTasks: sql<number>`count(*) filter (where ${tasks.status} <> 'done')::int`,
+      doneTasks: sql<number>`count(*) filter (where ${tasks.status} = 'done')::int`,
+      blockedTasks: sql<number>`count(*) filter (where ${tasks.status} = 'blocked')::int`,
+      openPoints:
+        sql<number>`coalesce(sum(${tasks.storyPoints}) filter (where ${tasks.status} <> 'done'), 0)::int`,
+    })
+    .from(tasks)
+    .where(sql`${tasks.assigneeId} is not null`)
+    .groupBy(tasks.assigneeId);
+
+  const map = new Map<number, TaskAgg>();
+  for (const r of rows) {
+    if (r.assigneeId == null) continue;
+    map.set(r.assigneeId, {
+      openTasks: Number(r.openTasks ?? 0),
+      doneTasks: Number(r.doneTasks ?? 0),
+      blockedTasks: Number(r.blockedTasks ?? 0),
+      openPoints: Number(r.openPoints ?? 0),
+    });
+  }
+  return map;
+}
+
+export async function loadLatestWellbeing(): Promise<Map<number, WellbeingLatest>> {
+  const rows = await db
+    .select({
+      userId: wellbeingMetrics.userId,
+      mood: wellbeingMetrics.mood,
+      wellbeingScore: wellbeingMetrics.wellbeingScore,
+      date: wellbeingMetrics.date,
+    })
+    .from(wellbeingMetrics)
+    .orderBy(asc(wellbeingMetrics.userId), desc(wellbeingMetrics.date));
+
+  const map = new Map<number, WellbeingLatest>();
+  for (const r of rows) {
+    if (!map.has(r.userId)) {
+      map.set(r.userId, { mood: r.mood, wellbeingScore: r.wellbeingScore, date: r.date });
+    }
+  }
+  return map;
+}
+
+export async function loadGamification(): Promise<Map<number, { xp: number; level: number }>> {
+  const rows = await db
+    .select({ userId: gamification.userId, xp: gamification.xp, level: gamification.level })
+    .from(gamification);
+  return new Map(rows.map((r) => [r.userId, { xp: r.xp, level: r.level }]));
+}
+
+/* ------------------------------------------------------------- formatting */
+
+export function formatMember(
+  member: InferSelectModel<typeof users>,
+  taskAgg: TaskAgg,
+  wellbeing: WellbeingLatest | undefined,
+  game: { xp: number; level: number } | undefined,
+  maxOpenPoints: number,
+): TeamMemberRow {
+  let skills: string[] = [];
+  const rawSkills = member.skills as unknown;
   try {
-    // Get authenticated session
+    if (typeof rawSkills === "string") skills = JSON.parse(rawSkills);
+    else if (Array.isArray(rawSkills)) skills = rawSkills.map((s) => String(s ?? ""));
+  } catch {
+    skills = [];
+  }
+  if (!Array.isArray(skills)) skills = [];
+
+  const utilization =
+    maxOpenPoints > 0 ? Math.min(100, Math.round((taskAgg.openPoints / maxOpenPoints) * 100)) : 0;
+
+  return {
+    id: member.id,
+    name: member.name || "Unknown User",
+    email: member.email || "",
+    role: member.jobTitle || "Team Member",
+    department: member.department || "General",
+    status: member.status || "offline",
+    avatar: member.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name || "U")}&background=random`,
+    currentSprint: null,
+    skills,
+    utilization,
+    jobTitle: member.jobTitle,
+    location: member.location,
+    joinedAt: member.createdAt ? new Date(member.createdAt).toISOString() : null,
+    openTasks: taskAgg.openTasks,
+    doneTasks: taskAgg.doneTasks,
+    blockedTasks: taskAgg.blockedTasks,
+    openPoints: taskAgg.openPoints,
+    mood: wellbeing?.mood ?? null,
+    wellbeingScore: wellbeing?.wellbeingScore ?? null,
+    xp: game?.xp ?? 0,
+    level: game?.level ?? 1,
+  };
+}
+
+/* --------------------------------------------------------------------- GET */
+
+export async function GET() {
+  try {
     const session = await getSession();
     if (!session || !session.id) {
-      console.log("Team Members API: No valid session found, but proceeding for development");
+      return NextResponse.json({ success: false, error: "Unauthorized", teamMembers: [] }, { status: 401 });
     }
 
-    // Fetch team members from database with all required fields
-    let teamMembers: TeamMemberDbResult[] = [];
-    
-    try {
-      // More simplified query with fewer potential error sources
-      const queryResult = await db
-        .select({
-          id: users.id,
-          name: users.name,
-          email: users.email,
-          role: users.role,
-          jobTitle: users.jobTitle,
-          department: users.department,
-          status: users.status,
-          avatar: users.avatar,
-          skills: sql`COALESCE(${users.skills}, '[]'::jsonb)`,
-          utilization: sql<number>`80`
-        })
-        .from(users)
-        .where(ne(users.role, 'admin')); // Exclude admin users from team list
-      
-      // Transform query result to match TeamMemberDbResult type
-      teamMembers = queryResult.map(member => ({
-        ...member,
-        currentSprint: null // Add the missing currentSprint property
-      }));
-      
-      console.log(`Successfully fetched ${teamMembers.length} team members`);
-    } catch (dbError: any) {
-      console.error("Database error fetching team members:", dbError);
-      console.error("Error stack:", dbError.stack);
-      
-      // Fallback - return some mock data for development
-      teamMembers = [
-        {
-          id: 1,
-          name: "Demo User",
-          email: "demo@example.com",
-          role: "developer",
-          jobTitle: "Developer",
-          department: "Engineering",
-          status: "online",
-          avatar: null,
-          skills: [],
-          currentSprint: null,
-          utilization: 85
-        },
-        {
-          id: 2,
-          name: "Test Manager",
-          email: "manager@example.com",
-          role: "manager",
-          jobTitle: "Project Manager",
-          department: "Management",
-          status: "online",
-          avatar: null,
-          skills: [],
-          currentSprint: null,
-          utilization: 75
-        }
-      ];
-    }
+    const [memberRows, taskAggs, wellbeingMap, gameMap] = await Promise.all([
+      db.select().from(users).where(ne(users.role, "admin")).orderBy(asc(users.name)),
+      loadTaskAggregates(),
+      loadLatestWellbeing(),
+      loadGamification(),
+    ]);
 
-    // Transform and validate the data to match TeamMember type
-    const formattedTeamMembers = teamMembers.map((member: TeamMemberDbResult) => {
-      // Handle skills safely - ensure it's an array
-      let skills: string[] = [];
-      
-      try {
-        if (typeof member.skills === 'string') {
-          skills = JSON.parse(member.skills);
-        } else if (Array.isArray(member.skills)) {
-          skills = member.skills.map(skill => String(skill || ''));
-        }
-      } catch (e) {
-        console.warn(`Exception processing skills for user ${member.id}:`, e);
-        skills = [];
-      }
-      
-      // Ensure all required fields have valid values
-      return {
-        id: member.id,
-        name: member.name || 'Unknown User',
-        email: member.email || '',
-        role: member.jobTitle || 'Team Member',
-        department: member.department || 'General',
-        status: member.status || 'offline',
-        avatar: member.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name || 'U')}&background=random`,
-        currentSprint: member.currentSprint || null,
-        skills: skills,
-        utilization: member.utilization || 80
-      };
-    }) as TeamMember[];
+    const emptyAgg: TaskAgg = { openTasks: 0, doneTasks: 0, blockedTasks: 0, openPoints: 0 };
+    const maxOpenPoints = memberRows.reduce(
+      (m, u) => Math.max(m, (taskAggs.get(u.id) ?? emptyAgg).openPoints),
+      0,
+    );
 
-    console.log(`Successfully formatted ${formattedTeamMembers.length} team members`);
+    const teamMembers = memberRows.map((member) =>
+      formatMember(
+        member,
+        taskAggs.get(member.id) ?? emptyAgg,
+        wellbeingMap.get(member.id),
+        gameMap.get(member.id),
+        maxOpenPoints,
+      ),
+    );
 
-    return NextResponse.json({ 
-      success: true,
-      teamMembers: formattedTeamMembers 
-    });
-  } catch (error: any) {
+    return NextResponse.json({ success: true, teamMembers });
+  } catch (error) {
     console.error("Error fetching team members:", error);
-    // Return a more informative error response with an empty team members array
     return NextResponse.json(
-      { 
-        success: false, 
-        error: error?.message || "Unknown error fetching team members",
-        details: error?.stack?.toString() || "",
-        teamMembers: [] 
+      {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error fetching team members",
+        teamMembers: [],
       },
-      { status: 500 }
+      { status: 500 },
+    );
+  }
+}
+
+/* -------------------------------------------------------------------- POST */
+
+export async function POST(request: Request) {
+  try {
+    const session = await getSession();
+    if (!session || !session.id) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
+
+    const body = (await request.json().catch(() => null)) as {
+      name?: unknown;
+      email?: unknown;
+      role?: unknown;
+      jobTitle?: unknown;
+      department?: unknown;
+      avatar?: unknown;
+      location?: unknown;
+    } | null;
+
+    const name = typeof body?.name === "string" ? body.name.trim() : "";
+    const email = typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";
+    const jobTitle =
+      typeof body?.jobTitle === "string" && body.jobTitle.trim()
+        ? body.jobTitle.trim()
+        : typeof body?.role === "string" && body.role.trim()
+          ? body.role.trim()
+          : null;
+    const department = typeof body?.department === "string" && body.department.trim() ? body.department.trim() : null;
+    const avatar = typeof body?.avatar === "string" && body.avatar.trim() ? body.avatar.trim() : null;
+    const location = typeof body?.location === "string" && body.location.trim() ? body.location.trim() : null;
+
+    if (!name) {
+      return NextResponse.json({ success: false, error: "A member name is required" }, { status: 400 });
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return NextResponse.json({ success: false, error: "A valid email is required" }, { status: 400 });
+    }
+
+    const existing = await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
+    if (existing.length > 0) {
+      return NextResponse.json({ success: false, error: "A member with that email already exists" }, { status: 409 });
+    }
+
+    // users.password_hash is NOT NULL; a member invited through this endpoint
+    // signs in later via the reset-link flow, so store an unusable random hash.
+    const placeholderHash = await bcrypt.hash(uuidv4(), 10);
+
+    const [created] = await db
+      .insert(users)
+      .values({
+        name,
+        email,
+        passwordHash: placeholderHash,
+        role: "user",
+        jobTitle,
+        department,
+        location,
+        avatar,
+        status: "offline",
+      })
+      .returning();
+
+    await createNotification({
+      userId: session.id,
+      type: "system",
+      title: `${name} joined the team`,
+      body: jobTitle ? `${name} was added as ${jobTitle}.` : `${name} was added to the team roster.`,
+      link: "/dashboard/team",
+      metadata: { teamMemberId: created.id },
+    }).catch(() => undefined);
+
+    const { passwordHash: _hash, ...safeMember } = created;
+    void _hash;
+
+    return NextResponse.json({ success: true, teamMember: safeMember }, { status: 201 });
+  } catch (error) {
+    const code = (error as { code?: string })?.code;
+    if (code === "23505") {
+      return NextResponse.json({ success: false, error: "A member with that email already exists" }, { status: 409 });
+    }
+    console.error("Error creating team member:", error);
+    return NextResponse.json(
+      { success: false, error: error instanceof Error ? error.message : "Failed to create team member" },
+      { status: 500 },
     );
   }
 }

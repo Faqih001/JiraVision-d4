@@ -1,560 +1,1252 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useTheme } from "next-themes"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import {
-  Calendar,
-  Download,
-  FileText,
-  Filter,
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Legend,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts"
+import {
+  Activity,
+  ArrowDown,
+  ArrowUp,
+  BarChart3,
+  Bell,
   Heart,
+  LayoutGrid,
+  List,
   Mail,
-  MessageSquare,
-  MoreHorizontal,
-  Phone,
+  Pencil,
   Plus,
   RefreshCw,
   Search,
-  Settings,
-  ThumbsUp,
+  Smile,
+  Trash2,
+  Trophy,
+  UserPlus,
   Users,
-  UsersRound,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Progress } from "@/components/ui/progress"
+import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Input } from "@/components/ui/input"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Label } from "@/components/ui/label"
+import { Progress } from "@/components/ui/progress"
+import { Separator } from "@/components/ui/separator"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
-import { useMobile } from "@/hooks/use-mobile"
-import { useRouter } from "next/navigation"
-// Remove: import DashboardLayout from "@/components/dashboard-layout"
+import { cn } from "@/lib/utils"
+import type { DashboardOverview } from "@/lib/dashboard-data"
+import {
+  AXIS,
+  AvatarCircle,
+  EmptyNote,
+  PriorityPill,
+  SectionCard,
+  StatusPill,
+  TOOLTIP_STYLE,
+  relativeTime,
+} from "@/components/dashboard-kit"
 
-// Define types
-type TeamMember = {
+/* ------------------------------------------------------------------ types */
+
+type TeamRow = {
   id: number
   name: string
-  role: string
   email: string
-  phone?: string
-  avatar?: string
+  role: string
   department: string
   status: string
+  avatar: string | null
   skills: string[]
   utilization: number
-  currentSprint?: {
+  jobTitle?: string | null
+  location?: string | null
+  joinedAt?: string | null
+  openTasks: number
+  doneTasks: number
+  blockedTasks: number
+  openPoints: number
+  mood: string | null
+  wellbeingScore: number | null
+  xp: number
+  level: number
+}
+
+type MemberDetail = {
+  profile: {
+    id: number
     name: string
-    tasks: number
+    email: string
+    role: string
+    jobTitle: string | null
+    department: string | null
+    location: string | null
+    bio: string | null
+    status: string | null
+    timezone: string | null
+    joinedAt: string | null
   }
+  aggregates: {
+    openTasks: number
+    doneTasks: number
+    blockedTasks: number
+    openPoints: number
+    utilization: number
+    mood: string | null
+    wellbeingScore: number | null
+    xp: number
+    level: number
+  }
+  openTasks: {
+    id: number
+    title: string
+    status: string
+    priority: string
+    storyPoints: number
+    dueDate: string | null
+  }[]
 }
 
-type Department = {
+type NotificationItem = {
   id: number
-  name: string
-  memberCount: number
-  lead: string
-  productivity: number
+  type: string
+  title: string
+  body: string | null
+  isRead: boolean
+  metadata: Record<string, unknown> | null
+  createdAt: string
 }
 
-export default function TeamPage() {
-  const { theme, setTheme } = useTheme()
-  const isMobile = useMobile()
+type MemberDraft = {
+  id: number | null
+  name: string
+  email: string
+  role: string
+  department: string
+  location: string
+  status: string
+  avatar: string
+}
+
+type SortKey = "name" | "role" | "workload" | "happiness" | "xp" | "joinedAt"
+
+/* -------------------------------------------------------------- constants */
+
+const PALETTE = [
+  "hsl(var(--chart-pine))",
+  "hsl(var(--chart-stone))",
+  "hsl(var(--chart-clay))",
+  "hsl(var(--chart-moss))",
+  "hsl(var(--destructive))",
+]
+
+const MOOD_META: Record<string, { emoji: string; label: string }> = {
+  great: { emoji: "😄", label: "Great" },
+  good: { emoji: "🙂", label: "Good" },
+  happy: { emoji: "🙂", label: "Happy" },
+  ok: { emoji: "😐", label: "Okay" },
+  neutral: { emoji: "😐", label: "Neutral" },
+  stressed: { emoji: "😓", label: "Stressed" },
+  overwhelmed: { emoji: "😰", label: "Overwhelmed" },
+  burned_out: { emoji: "🔥", label: "Burned out" },
+}
+
+function moodMeta(mood: string | null) {
+  if (!mood) return { emoji: "❔", label: "No check-in" }
+  return MOOD_META[mood.toLowerCase()] ?? { emoji: "❔", label: mood }
+}
+
+const STATUSES = [
+  { value: "all", label: "All statuses" },
+  { value: "online", label: "Online" },
+  { value: "away", label: "Away" },
+  { value: "busy", label: "Busy" },
+  { value: "offline", label: "Offline" },
+]
+
+const STATUS_TONE: Record<string, string> = {
+  online: "text-[hsl(var(--chart-moss))]",
+  away: "text-[hsl(var(--chart-clay))]",
+  busy: "text-[hsl(var(--destructive))]",
+  offline: "text-muted-foreground",
+}
+
+function emptyDraft(): MemberDraft {
+  return { id: null, name: "", email: "", role: "", department: "", location: "", status: "offline", avatar: "" }
+}
+
+/* --------------------------------------------------------------- the page */
+
+export default function TeamWorkspace() {
   const { toast } = useToast()
-  const router = useRouter()
-
-  // State for data
+  const [members, setMembers] = useState<TeamRow[]>([])
+  const [overview, setOverview] = useState<DashboardOverview | null>(null)
+  const [notifications, setNotifications] = useState<NotificationItem[]>([])
   const [loading, setLoading] = useState(true)
-  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([])
-  const [departments, setDepartments] = useState<Department[]>([])
-  const [searchQuery, setSearchQuery] = useState("")
+  const [refreshing, setRefreshing] = useState(false)
 
-  // Fetch data
-  useEffect(() => {
-    async function fetchTeamData() {
-      try {
-        setLoading(true)
+  // toolbar state
+  const [search, setSearch] = useState("")
+  const [roleFilter, setRoleFilter] = useState("all")
+  const [statusFilter, setStatusFilter] = useState("all")
+  const [view, setView] = useState<"grid" | "list">("grid")
 
-        // Fetch team members from API
-        const response = await fetch('/api/team/members')
-        
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error(`API error (${response.status}):`, errorText);
-          throw new Error(`API error: ${response.status} ${response.statusText}`);
-        }
-        
-        const data = await response.json()
-        
-        if (data.success && Array.isArray(data.teamMembers)) {
-          // Add utilization field if not present
-          const membersWithUtilization = data.teamMembers.map((member: TeamMember) => ({
-            ...member,
-            utilization: member.utilization || Math.floor(Math.random() * 30) + 70, // Random utilization between 70-100 if not present
-          }))
-          setTeamMembers(membersWithUtilization)
-        } else {
-          console.error("Invalid data format from API:", data);
-          throw new Error("Failed to fetch team members: invalid data format")
-        }
+  // table sort
+  const [sortKey, setSortKey] = useState<SortKey>("name")
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc")
 
-        // Set departments based on actual team members
-        // Get unique departments and count members in each
-        // Make sure data.teamMembers is an array before attempting to reduce it
-        const teamMembersArray = Array.isArray(data.teamMembers) ? data.teamMembers : [];
-        let deptMap: Record<string, { count: number, members: TeamMember[] }> = {};
-        
-        try {
-          deptMap = teamMembersArray.reduce((acc: Record<string, { count: number, members: TeamMember[] }>, member: TeamMember) => {
-            if (!member) return acc; // Skip undefined/null members
-            
-            const dept = member.department || 'Other';
-            if (!acc[dept]) {
-              acc[dept] = { count: 0, members: [] };
-            }
-            acc[dept].count += 1;
-            acc[dept].members.push(member);
-            return acc;
-          }, {});
-        } catch (error) {
-          console.error("Error processing department data:", error);
-          deptMap = { 'Other': { count: teamMembersArray.length, members: teamMembersArray } };
-        }
-        
-        // Convert to department objects - safely handle the case where deptMap might be null/undefined
-        const departmentsData = deptMap && typeof deptMap === 'object' ? 
-          Object.entries(deptMap).map(([name, info], index) => {
-            // Find a senior member to use as lead (could be improved with actual data)
-            const leadMember = info && info.members && info.members.length > 0 ? info.members[0] : null;
-            
-            return {
-              id: index + 1,
-              name,
-              memberCount: info && typeof info.count === 'number' ? info.count : 0,
-              lead: leadMember ? leadMember.name : "Not Assigned",
-              productivity: Math.floor(Math.random() * 15) + 80, // Random productivity between 80-95
-            };
-          })
-        : [];
-        
-        setDepartments(departmentsData)
-      } catch (error) {
-        console.error("Error fetching team data:", error)
-        toast({
-          title: "Error",
-          description: "Failed to load team data. Please try again.",
-          variant: "destructive",
-        })
-      } finally {
-        setLoading(false)
+  // dialogs
+  const [formOpen, setFormOpen] = useState(false)
+  const [draft, setDraft] = useState<MemberDraft | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [detailRow, setDetailRow] = useState<TeamRow | null>(null)
+  const [detail, setDetail] = useState<MemberDetail | null>(null)
+  const [detailLoading, setDetailLoading] = useState(false)
+  const [confirmRow, setConfirmRow] = useState<TeamRow | null>(null)
+  const [removing, setRemoving] = useState(false)
+
+  /* ---- load ---- */
+
+  const load = useCallback(async (silent = false) => {
+    if (silent) setRefreshing(true)
+    else setLoading(true)
+    try {
+      const [membersRes, overviewRes, notifRes] = await Promise.all([
+        fetch("/api/team/members"),
+        fetch("/api/dashboard/overview"),
+        fetch("/api/notifications?limit=50"),
+      ])
+      const membersJson = await membersRes.json()
+      if (!membersJson.success || !Array.isArray(membersJson.teamMembers)) {
+        throw new Error(membersJson.error ?? "Failed to load team members")
       }
-    }
+      setMembers(membersJson.teamMembers as TeamRow[])
 
-    fetchTeamData()
+      if (overviewRes.ok) {
+        const overviewJson = await overviewRes.json()
+        if (overviewJson.success) setOverview(overviewJson.data as DashboardOverview)
+      }
+
+      if (notifRes.ok) {
+        const notifJson = await notifRes.json()
+        if (Array.isArray(notifJson.items)) setNotifications(notifJson.items as NotificationItem[])
+      }
+    } catch (err) {
+      toast({
+        variant: "destructive",
+        title: "Team workspace",
+        description: (err as Error).message,
+      })
+    } finally {
+      setLoading(false)
+      setRefreshing(false)
+    }
   }, [toast])
 
-  // Handle button actions
-  const handleAddTeamMember = () => {
-    toast({
-      title: "Add Team Member",
-      description: "Opening form to add a new team member...",
-    });
-  };
+  useEffect(() => {
+    load()
+  }, [load])
 
-  const handleExportTeam = () => {
-    toast({
-      title: "Export Team Data",
-      description: "Generating team data export...",
-    });
-  };
+  /* ---- derived data ---- */
 
-  const handleConfigureTeam = () => {
-    toast({
-      title: "Team Settings",
-      description: "Opening team configuration settings...",
-    });
-    
-    router.push('/dashboard/team/settings');
-  };
+  const roles = useMemo(
+    () => Array.from(new Set(members.map((m) => m.role).filter(Boolean))).sort(),
+    [members],
+  )
 
-  const handleViewProfile = (teamMemberId: number) => {
-    toast({
-      title: "View Profile",
-      description: `Opening profile for team member #${teamMemberId}...`,
-    });
-  };
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    return members.filter((m) => {
+      if (roleFilter !== "all" && m.role !== roleFilter) return false
+      if (statusFilter !== "all" && m.status !== statusFilter) return false
+      if (!q) return true
+      return (
+        m.name.toLowerCase().includes(q) ||
+        m.email.toLowerCase().includes(q) ||
+        m.role.toLowerCase().includes(q) ||
+        (m.department ?? "").toLowerCase().includes(q) ||
+        (m.skills ?? []).some((s) => s.toLowerCase().includes(q))
+      )
+    })
+  }, [members, search, roleFilter, statusFilter])
 
-  const handleContactMember = (type: string, contact: string) => {
-    toast({
-      title: `Contact via ${type}`,
-      description: `Opening ${type} to ${contact}...`,
-    });
-  };
+  const sorted = useMemo(() => {
+    const dir = sortDir === "asc" ? 1 : -1
+    const value = (m: TeamRow): string | number => {
+      switch (sortKey) {
+        case "name":
+          return m.name.toLowerCase()
+        case "role":
+          return m.role.toLowerCase()
+        case "workload":
+          return m.openTasks
+        case "happiness":
+          return m.wellbeingScore ?? -1
+        case "xp":
+          return m.xp
+        case "joinedAt":
+          return m.joinedAt ? new Date(m.joinedAt).getTime() : 0
+      }
+    }
+    return [...filtered].sort((a, b) => {
+      const av = value(a)
+      const bv = value(b)
+      if (av < bv) return -1 * dir
+      if (av > bv) return 1 * dir
+      return 0
+    })
+  }, [filtered, sortKey, sortDir])
 
-  const handleAddDepartment = () => {
-    toast({
-      title: "Add Department",
-      description: "Opening form to create a new department...",
-    });
-  };
+  const kpis = useMemo(() => {
+    const scores = members.map((m) => m.wellbeingScore).filter((s): s is number => s != null)
+    const avgHappiness = scores.length
+      ? Math.round(scores.reduce((s, n) => s + n, 0) / scores.length)
+      : (overview?.kpis.teamHappiness ?? 0)
+    const monthStart = new Date()
+    monthStart.setDate(1)
+    monthStart.setHours(0, 0, 0, 0)
+    return {
+      members: members.length,
+      avgHappiness,
+      openTasks: members.reduce((s, m) => s + m.openTasks, 0),
+      blocked: members.reduce((s, m) => s + m.blockedTasks, 0),
+      newThisMonth: members.filter((m) => m.joinedAt && new Date(m.joinedAt) >= monthStart).length,
+    }
+  }, [members, overview])
 
-  // Filter team members based on search query
-  const filteredTeamMembers = teamMembers.filter((member: TeamMember) => 
-    member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    member.role.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    member.department.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    member.email.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const workloadData = useMemo(
+    () =>
+      [...members]
+        .sort((a, b) => b.openPoints - a.openPoints)
+        .slice(0, 8)
+        .map((m) => ({
+          name: m.name.split(" ")[0],
+          open: m.openPoints,
+          done: m.doneTasks,
+        })),
+    [members],
+  )
+
+  const roleDonut = useMemo(() => {
+    const counts = new Map<string, number>()
+    for (const m of members) counts.set(m.role || "Unassigned", (counts.get(m.role || "Unassigned") ?? 0) + 1)
+    return Array.from(counts.entries()).map(([name, value]) => ({ name, value }))
+  }, [members])
+
+  const teamActivity = useMemo(
+    () =>
+      notifications.filter((n) => {
+        const link = typeof n.metadata?.link === "string" ? n.metadata.link : ""
+        return link.includes("/dashboard/team") || n.metadata?.teamMemberId != null
+      }),
+    [notifications],
+  )
+
+  /* ---- mutations ---- */
+
+  const openAdd = () => {
+    setDraft(emptyDraft())
+    setFormOpen(true)
+  }
+
+  const openEdit = (m: TeamRow) => {
+    setDetailRow(null)
+    setDraft({
+      id: m.id,
+      name: m.name,
+      email: m.email,
+      role: m.role,
+      department: m.department ?? "",
+      location: m.location ?? "",
+      status: m.status || "offline",
+      avatar: m.avatar ?? "",
+    })
+    setFormOpen(true)
+  }
+
+  const saveMember = async () => {
+    if (!draft) return
+    if (!draft.name.trim()) {
+      toast({ variant: "destructive", title: "Member", description: "A name is required." })
+      return
+    }
+    if (draft.id === null && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(draft.email.trim())) {
+      toast({ variant: "destructive", title: "Member", description: "A valid email is required for new members." })
+      return
+    }
+    setSaving(true)
+    try {
+      const payload: Record<string, unknown> = {
+        name: draft.name.trim(),
+        role: draft.role.trim() || "Team Member",
+        department: draft.department.trim(),
+        location: draft.location.trim(),
+        status: draft.status,
+        avatar: draft.avatar.trim(),
+      }
+      let res: Response
+      if (draft.id === null) {
+        payload.email = draft.email.trim()
+        res = await fetch("/api/team/members", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        })
+      } else {
+        res = await fetch(`/api/team/members/${draft.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        })
+      }
+      const json = await res.json()
+      if (!json.success) throw new Error(json.error ?? "Save failed")
+      toast({
+        title: draft.id === null ? "Member added" : "Member updated",
+        description: payload.name as string,
+      })
+      setFormOpen(false)
+      setDraft(null)
+      await load(true)
+    } catch (err) {
+      toast({ variant: "destructive", title: "Member", description: (err as Error).message })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const removeMember = async () => {
+    if (!confirmRow) return
+    setRemoving(true)
+    try {
+      const res = await fetch(`/api/team/members/${confirmRow.id}`, { method: "DELETE" })
+      const json = await res.json()
+      if (res.status === 409) {
+        const counts = json.counts ?? {}
+        toast({
+          variant: "destructive",
+          title: "Cannot remove member",
+          description: `${confirmRow.name} still has ${counts.totalTasks ?? 0} task(s) (${counts.openTasks ?? 0} open). Reassign their work first.`,
+        })
+        setConfirmRow(null)
+        return
+      }
+      if (!json.success) throw new Error(json.error ?? "Removal failed")
+      toast({ title: "Member removed", description: `${confirmRow.name} no longer has team access.` })
+      setConfirmRow(null)
+      setDetailRow(null)
+      await load(true)
+    } catch (err) {
+      toast({ variant: "destructive", title: "Remove member", description: (err as Error).message })
+    } finally {
+      setRemoving(false)
+    }
+  }
+
+  const openDetail = async (m: TeamRow) => {
+    setDetailRow(m)
+    setDetail(null)
+    setDetailLoading(true)
+    try {
+      const res = await fetch(`/api/team/members/${m.id}`)
+      const json = await res.json()
+      if (!json.success) throw new Error(json.error ?? "Failed to load profile")
+      setDetail({ profile: json.profile, aggregates: json.aggregates, openTasks: json.openTasks ?? [] })
+    } catch (err) {
+      toast({ variant: "destructive", title: "Member profile", description: (err as Error).message })
+    } finally {
+      setDetailLoading(false)
+    }
+  }
+
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"))
+    else {
+      setSortKey(key)
+      setSortDir("asc")
+    }
+  }
+
+  /* ---- render helpers ---- */
+
+  const renderMoodChip = (m: TeamRow) => {
+    const meta = moodMeta(m.mood)
+    return (
+      <Badge variant="secondary" className="gap-1 text-xs font-normal">
+        <span aria-hidden>{meta.emoji}</span>
+        {meta.label}
+        {m.wellbeingScore != null && <span className="text-muted-foreground">· {m.wellbeingScore}</span>}
+      </Badge>
+    )
+  }
+
+  const sortHeader = (key: SortKey, label: string, className?: string) => (
+    <th className={cn("px-3 py-2 text-left font-medium", className)}>
+      <button
+        type="button"
+        onClick={() => toggleSort(key)}
+        className="inline-flex items-center gap-1 hover:text-foreground"
+        aria-label={`Sort by ${label}`}
+      >
+        {label}
+        {sortKey === key ? (
+          sortDir === "asc" ? (
+            <ArrowUp className="h-3 w-3" />
+          ) : (
+            <ArrowDown className="h-3 w-3" />
+          )
+        ) : null}
+      </button>
+    </th>
+  )
+
+  /* ------------------------------------------------------------- sections */
 
   return (
-    // Remove: <DashboardLayout>
     <div className="p-4 md:p-6 space-y-6">
+      {/* 1 · header + add member */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Team</h1>
-          <p className="text-muted-foreground">Manage your team members and departments</p>
+          <h1 className="text-3xl font-bold">Team Workspace</h1>
+          <p className="text-muted-foreground">
+            Roster, workload, wellbeing and gamification for everyone in your team.
+          </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="gap-1" onClick={handleExportTeam}>
-            <Download className="h-4 w-4" />
-            <span>Export</span>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1"
+            onClick={() => load(true)}
+            disabled={refreshing || loading}
+          >
+            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+            <span>Refresh</span>
           </Button>
-          <Button variant="outline" size="sm" className="gap-1" onClick={handleConfigureTeam}>
-            <Settings className="h-4 w-4" />
-            <span>Configure</span>
-          </Button>
-          <Button size="sm" className="gap-1" onClick={handleAddTeamMember}>
-            <Plus className="h-4 w-4" />
+          <Button size="sm" className="gap-1" onClick={openAdd}>
+            <UserPlus className="h-4 w-4" />
             <span>Add Member</span>
           </Button>
         </div>
       </div>
 
-      <Tabs defaultValue="members">
-        <TabsList className="mb-4">
-          <TabsTrigger value="members">Team Members</TabsTrigger>
-          <TabsTrigger value="departments">Departments</TabsTrigger>
-          <TabsTrigger value="utilization">Utilization</TabsTrigger>
-        </TabsList>
+      {/* 2 · KPI strip */}
+      {loading ? (
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="h-20 rounded-lg" />
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Users className="h-3.5 w-3.5" /> Members
+              </div>
+              <p className="mt-1 text-2xl font-bold">{kpis.members}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Heart className="h-3.5 w-3.5" /> Avg happiness
+              </div>
+              <p className="mt-1 text-2xl font-bold">{kpis.avgHappiness}</p>
+              <Progress value={kpis.avgHappiness} className="mt-1.5 h-1.5" />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Activity className="h-3.5 w-3.5" /> Open tasks
+              </div>
+              <p className="mt-1 text-2xl font-bold">{kpis.openTasks}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Bell className="h-3.5 w-3.5" /> Blocked
+              </div>
+              <p className={cn("mt-1 text-2xl font-bold", kpis.blocked > 0 && "text-destructive")}>
+                {kpis.blocked}
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Plus className="h-3.5 w-3.5" /> New this month
+              </div>
+              <p className="mt-1 text-2xl font-bold">{kpis.newThisMonth}</p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
-        <TabsContent value="members" className="space-y-4">
-          {/* Search and Filters */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-            <div className="w-full sm:w-80">
-              <div className="relative">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="search"
-                  placeholder="Search team members..."
-                  className="w-full pl-8"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+      {/* 3 · search + filters + view toggle */}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+        <div className="relative w-full sm:max-w-xs">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            aria-label="Search team members"
+            placeholder="Search by name, role, skill…"
+            className="pl-8"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <Label className="sr-only" htmlFor="role-filter">
+          Filter by role
+        </Label>
+        <Select value={roleFilter} onValueChange={setRoleFilter}>
+          <SelectTrigger id="role-filter" className="h-9 w-40 text-sm">
+            <SelectValue placeholder="Role" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All roles</SelectItem>
+            {roles.map((r) => (
+              <SelectItem key={r} value={r}>
+                {r}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Label className="sr-only" htmlFor="status-filter">
+          Filter by status
+        </Label>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger id="status-filter" className="h-9 w-36 text-sm">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            {STATUSES.map((s) => (
+              <SelectItem key={s.value} value={s.value}>
+                {s.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <div className="flex items-center gap-1 sm:ml-auto">
+          <Button
+            variant={view === "grid" ? "default" : "outline"}
+            size="icon"
+            aria-label="Grid view"
+            onClick={() => setView("grid")}
+          >
+            <LayoutGrid className="h-4 w-4" />
+          </Button>
+          <Button
+            variant={view === "list" ? "default" : "outline"}
+            size="icon"
+            aria-label="List view"
+            onClick={() => setView("list")}
+          >
+            <List className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-44 rounded-lg" />
+          ))}
+        </div>
+      ) : filtered.length === 0 ? (
+        <Card>
+          <CardContent>
+            <EmptyNote>No team members match this search. Adjust the filters or add a member.</EmptyNote>
+          </CardContent>
+        </Card>
+      ) : view === "grid" ? (
+        /* 4 · roster cards */
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {sorted.map((m) => (
+            <Card key={m.id} className="transition-colors hover:border-primary/40">
+              <CardContent className="p-4 space-y-3">
+                <div className="flex items-start justify-between gap-2">
+                  <button type="button" className="flex items-center gap-3 text-left" onClick={() => openDetail(m)}>
+                    <AvatarCircle name={m.name} avatar={m.avatar} size={44} />
+                    <div>
+                      <p className="text-sm font-semibold leading-tight">{m.name}</p>
+                      <p className="text-xs text-muted-foreground">{m.role}</p>
+                      <p className="text-[11px] text-muted-foreground">{m.department}</p>
+                    </div>
+                  </button>
+                  <span
+                    className={cn(
+                      "mt-1 inline-flex items-center gap-1 text-[11px] capitalize",
+                      STATUS_TONE[m.status] ?? "text-muted-foreground",
+                    )}
+                  >
+                    <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden />
+                    {m.status}
+                  </span>
+                </div>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {renderMoodChip(m)}
+                  <Badge variant="outline" className="text-[11px] font-normal">
+                    {m.openTasks} open
+                  </Badge>
+                  <Badge variant="outline" className="text-[11px] font-normal">
+                    {m.doneTasks} done
+                  </Badge>
+                  {m.blockedTasks > 0 && (
+                    <Badge className="text-[11px] font-normal bg-destructive/10 text-destructive border border-destructive/30">
+                      {m.blockedTasks} blocked
+                    </Badge>
+                  )}
+                </div>
+                <div>
+                  <div className="mb-1 flex justify-between text-[11px] text-muted-foreground">
+                    <span>Workload</span>
+                    <span>{m.utilization}%</span>
+                  </div>
+                  <Progress value={m.utilization} className="h-1.5" />
+                </div>
+                <div className="flex justify-end gap-1">
+                  <Button variant="ghost" size="sm" className="h-7 gap-1 text-xs" onClick={() => openEdit(m)}>
+                    <Pencil className="h-3 w-3" /> Edit
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 gap-1 text-xs text-destructive hover:text-destructive"
+                    onClick={() => setConfirmRow(m)}
+                  >
+                    <Trash2 className="h-3 w-3" /> Remove
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        /* 5 · sortable member table */
+        <Card>
+          <CardContent className="p-0 overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b bg-muted/40 text-xs text-muted-foreground">
+                  {sortHeader("name", "Name")}
+                  {sortHeader("role", "Role")}
+                  <th className="px-3 py-2 text-left font-medium">Mood</th>
+                  {sortHeader("workload", "Workload")}
+                  {sortHeader("happiness", "Happiness")}
+                  {sortHeader("xp", "XP")}
+                  {sortHeader("joinedAt", "Joined")}
+                  <th className="px-3 py-2 text-right font-medium">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sorted.map((m) => (
+                  <tr key={m.id} className="border-b last:border-0 hover:bg-muted/30">
+                    <td className="px-3 py-2">
+                      <button type="button" className="flex items-center gap-2 text-left" onClick={() => openDetail(m)}>
+                        <AvatarCircle name={m.name} avatar={m.avatar} size={26} />
+                        <div>
+                          <p className="font-medium leading-tight">{m.name}</p>
+                          <p className="text-[11px] text-muted-foreground">{m.email}</p>
+                        </div>
+                      </button>
+                    </td>
+                    <td className="px-3 py-2 text-muted-foreground">{m.role}</td>
+                    <td className="px-3 py-2">{renderMoodChip(m)}</td>
+                    <td className="px-3 py-2 tabular-nums">
+                      {m.openTasks} open<span className="text-muted-foreground"> · {m.doneTasks} done</span>
+                    </td>
+                    <td className="px-3 py-2 tabular-nums">{m.wellbeingScore ?? "—"}</td>
+                    <td className="px-3 py-2 tabular-nums">
+                      {m.xp} <span className="text-muted-foreground">· Lv {m.level}</span>
+                    </td>
+                    <td className="px-3 py-2 text-muted-foreground">
+                      {m.joinedAt ? new Date(m.joinedAt).toLocaleDateString() : "—"}
+                    </td>
+                    <td className="px-3 py-2">
+                      <div className="flex justify-end gap-1">
+                        <Button variant="ghost" size="icon" className="h-7 w-7" aria-label={`Edit ${m.name}`} onClick={() => openEdit(m)}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-destructive hover:text-destructive"
+                          aria-label={`Remove ${m.name}`}
+                          onClick={() => setConfirmRow(m)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 6 · workload distribution */}
+      <SectionCard title="Workload distribution" icon={<BarChart3 className="h-4 w-4 text-muted-foreground" />}>
+        {loading ? (
+          <Skeleton className="h-56" />
+        ) : workloadData.length === 0 ? (
+          <EmptyNote>No workload data yet — add team members to see their distribution.</EmptyNote>
+        ) : (
+          <ResponsiveContainer width="100%" height={240}>
+            <BarChart data={workloadData} margin={{ top: 4, right: 8, left: -16, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+              <XAxis dataKey="name" tickLine={false} axisLine={false} tick={AXIS} />
+              <YAxis tickLine={false} axisLine={false} tick={AXIS} allowDecimals={false} />
+              <Tooltip {...TOOLTIP_STYLE} cursor={{ fill: "hsl(var(--muted))" }} />
+              <Legend wrapperStyle={{ fontSize: 11 }} />
+              <Bar dataKey="open" name="Open points" stackId="w" fill="hsl(var(--chart-clay))" radius={[3, 3, 0, 0]} />
+              <Bar dataKey="done" name="Done tasks" stackId="w" fill="hsl(var(--chart-pine))" radius={[3, 3, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        )}
+      </SectionCard>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* 7 · happiness trend */}
+        <SectionCard title="Team happiness trend" icon={<Smile className="h-4 w-4 text-muted-foreground" />}>
+          {!overview ? (
+            loading ? (
+              <Skeleton className="h-52" />
+            ) : (
+              <EmptyNote>Wellbeing trend unavailable.</EmptyNote>
+            )
+          ) : overview.wellbeingTrend.length === 0 ? (
+            <EmptyNote>No wellbeing check-ins yet.</EmptyNote>
+          ) : (
+            <ResponsiveContainer width="100%" height={220}>
+              <AreaChart data={overview.wellbeingTrend} margin={{ top: 4, right: 8, left: -24, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="happinessFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="hsl(var(--chart-moss))" stopOpacity={0.35} />
+                    <stop offset="100%" stopColor="hsl(var(--chart-moss))" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                <XAxis dataKey="date" tickFormatter={(d: string) => d.slice(5)} tickLine={false} axisLine={false} tick={AXIS} />
+                <YAxis tickLine={false} axisLine={false} tick={AXIS} domain={[0, 100]} />
+                <Tooltip {...TOOLTIP_STYLE} />
+                <Area
+                  type="monotone"
+                  dataKey="score"
+                  name="Happiness score"
+                  stroke="hsl(var(--chart-moss))"
+                  fill="url(#happinessFill)"
+                  strokeWidth={2}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          )}
+        </SectionCard>
+
+        {/* 8 · role distribution donut */}
+        <SectionCard title="Role distribution" icon={<Users className="h-4 w-4 text-muted-foreground" />}>
+          {loading ? (
+            <Skeleton className="h-52" />
+          ) : roleDonut.length === 0 ? (
+            <EmptyNoRole />
+          ) : (
+            <ResponsiveContainer width="100%" height={220}>
+              <PieChart>
+                <Pie
+                  data={roleDonut}
+                  dataKey="value"
+                  nameKey="name"
+                  innerRadius={52}
+                  outerRadius={80}
+                  paddingAngle={2}
+                  strokeWidth={0}
+                >
+                  {roleDonut.map((_, i) => (
+                    <Cell key={i} fill={PALETTE[i % PALETTE.length]} />
+                  ))}
+                </Pie>
+                <Tooltip {...TOOLTIP_STYLE} />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+              </PieChart>
+            </ResponsiveContainer>
+          )}
+        </SectionCard>
+      </div>
+
+      {/* 9 · mood chips row */}
+      <SectionCard title="Team mood" icon={<Smile className="h-4 w-4 text-muted-foreground" />}>
+        {!overview ? (
+          loading ? (
+            <Skeleton className="h-14" />
+          ) : (
+            <EmptyNote>Team mood unavailable.</EmptyNote>
+          )
+        ) : overview.teamMood.length === 0 ? (
+          <EmptyNote>No one has checked in on their wellbeing yet.</EmptyNote>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {overview.teamMood.map((t) => {
+              const meta = moodMeta(t.mood)
+              return (
+                <Badge key={t.id} variant="outline" className="gap-1.5 py-1 pr-2 font-normal">
+                  <AvatarCircle name={t.name} avatar={t.avatar} size={20} />
+                  <span className="text-xs">{t.name.split(" ")[0]}</span>
+                  <span aria-hidden>{meta.emoji}</span>
+                  <span className="text-[11px] text-muted-foreground">{t.score}</span>
+                </Badge>
+              )
+            })}
+          </div>
+        )}
+      </SectionCard>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* 10 · XP leaderboard */}
+        <SectionCard title="XP leaderboard" icon={<Trophy className="h-4 w-4 text-muted-foreground" />}>
+          {!overview ? (
+            loading ? (
+              <Skeleton className="h-48" />
+            ) : (
+              <EmptyNote>Leaderboard unavailable.</EmptyNote>
+            )
+          ) : overview.leaderboard.length === 0 ? (
+            <EmptyNote>No XP has been earned yet.</EmptyNote>
+          ) : (
+            <ol className="space-y-2">
+              {overview.leaderboard.slice(0, 8).map((row, i) => (
+                <li key={row.id} className="flex items-center gap-3 text-sm">
+                  <span className="w-5 text-right text-xs font-semibold text-muted-foreground">{i + 1}</span>
+                  <AvatarCircle name={row.name} avatar={row.avatar} size={26} />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-medium leading-tight">{row.name}</p>
+                    <p className="text-[11px] text-muted-foreground">Level {row.level}</p>
+                  </div>
+                  <span className="tabular-nums text-xs font-semibold">{row.xp} XP</span>
+                </li>
+              ))}
+            </ol>
+          )}
+        </SectionCard>
+
+        {/* 11 · team activity feed */}
+        <SectionCard title="Team activity" icon={<Bell className="h-4 w-4 text-muted-foreground" />}>
+          {teamActivity.length === 0 ? (
+            loading ? (
+              <Skeleton className="h-48" />
+            ) : (
+              <EmptyNote>No team activity yet. Member changes will show up here.</EmptyNote>
+            )
+          ) : (
+            <ul className="space-y-3">
+              {teamActivity.slice(0, 8).map((n) => (
+                <li key={n.id} className="flex items-start gap-2.5 text-sm">
+                  <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[hsl(var(--chart-pine))]" aria-hidden />
+                  <div className="min-w-0">
+                    <p className="truncate font-medium leading-tight">{n.title}</p>
+                    {n.body && <p className="text-xs text-muted-foreground line-clamp-2">{n.body}</p>}
+                    <p className="text-[11px] text-muted-foreground">{relativeTime(n.createdAt)}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </SectionCard>
+      </div>
+
+      {/* 12 · member detail dialog */}
+      <Dialog open={detailRow !== null} onOpenChange={(open) => !open && setDetailRow(null)}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-3">
+              {detailRow && <AvatarCircle name={detailRow.name} avatar={detailRow.avatar} size={36} />}
+              {detailRow?.name}
+            </DialogTitle>
+            <DialogDescription>{detailRow?.role} · {detailRow?.department}</DialogDescription>
+          </DialogHeader>
+          {detailLoading ? (
+            <div className="space-y-3">
+              <Skeleton className="h-16" />
+              <Skeleton className="h-40" />
+            </div>
+          ) : detail && detailRow ? (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
+                <Stat label="Open tasks" value={detail.aggregates.openTasks} />
+                <Stat label="Done" value={detail.aggregates.doneTasks} />
+                <Stat label="XP" value={`${detail.aggregates.xp} · Lv ${detail.aggregates.level}`} />
+                <Stat
+                  label="Mood"
+                  value={`${moodMeta(detail.aggregates.mood).emoji} ${detail.aggregates.wellbeingScore ?? "—"}`}
                 />
               </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" className="gap-1">
-                <Badge variant="outline" className="text-xs py-0 px-1">
-                  Department: All
-                </Badge>
-              </Button>
-              <Button variant="outline" size="sm" className="gap-1">
-                <Badge variant="outline" className="text-xs py-0 px-1">
-                  Status: All
-                </Badge>
-              </Button>
-            </div>
-          </div>
-
-          {/* Team Members Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredTeamMembers.map((member: TeamMember) => (
-              <Card key={member.id}>
-                <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-12 w-12">
-                        {member.avatar ? <AvatarImage src={member.avatar} /> : null}
-                        <AvatarFallback>
-                          {member.name
-                            .split(" ")
-                            .map((n) => n[0])
-                            .join("")}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <CardTitle className="text-lg">{member.name}</CardTitle>
-                        <CardDescription>{member.role}</CardDescription>
-                      </div>
-                    </div>
-                    <Badge
-                      variant="outline"
-                      className={
-                        member.status === "active"
-                          ? "bg-green-50 text-green-700 border-green-200"
-                          : "bg-amber-50 text-amber-700 border-amber-200"
-                      }
-                    >
-                      {member.status === "active" ? "Active" : "Away"}
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="text-sm flex items-center gap-2">
-                      <Mail className="h-4 w-4 text-muted-foreground" />
-                      <span 
-                        className="text-primary cursor-pointer hover:underline"
-                        onClick={() => handleContactMember('email', member.email)}
-                      >
-                        {member.email}
-                      </span>
-                    </div>
-                    {member.phone && (
-                      <div className="text-sm flex items-center gap-2">
-                        <Phone className="h-4 w-4 text-muted-foreground" />
-                        <span 
-                          className="text-primary cursor-pointer hover:underline"
-                          onClick={() => handleContactMember('phone', member.phone || '')}
-                        >
-                          {member.phone}
+              <Separator />
+              <div className="grid gap-2 text-sm sm:grid-cols-2">
+                <Field label="Email">
+                  <span className="flex items-center gap-1.5">
+                    <Mail className="h-3.5 w-3.5 text-muted-foreground" />
+                    {detail.profile.email}
+                  </span>
+                </Field>
+                <Field label="Location">{detail.profile.location || "—"}</Field>
+                <Field label="Status">
+                  <span className="capitalize">{detail.profile.status ?? "offline"}</span>
+                </Field>
+                <Field label="Joined">
+                  {detail.profile.joinedAt ? new Date(detail.profile.joinedAt).toLocaleDateString() : "—"}
+                </Field>
+                {detail.profile.bio && <Field label="Bio">{detail.profile.bio}</Field>}
+              </div>
+              <div>
+                <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Open tasks
+                </p>
+                {detail.openTasks.length === 0 ? (
+                  <EmptyNote>No open tasks assigned.</EmptyNote>
+                ) : (
+                  <ul className="divide-y rounded-md border">
+                    {detail.openTasks.map((t) => (
+                      <li key={t.id} className="flex items-center justify-between gap-2 px-3 py-2 text-sm">
+                        <span className="min-w-0 truncate">{t.title}</span>
+                        <span className="flex shrink-0 items-center gap-2">
+                          <PriorityPill priority={t.priority} />
+                          <StatusPill status={t.status} />
                         </span>
-                      </div>
-                    )}
-                    <div className="text-sm flex items-center gap-2">
-                      <Users className="h-4 w-4 text-muted-foreground" />
-                      <span>{member.department}</span>
-                    </div>
-                    {member.currentSprint && (
-                      <div className="text-sm flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-muted-foreground" />
-                        <span>
-                          {member.currentSprint.name} • {member.currentSprint.tasks} tasks
-                        </span>
-                      </div>
-                    )}
-                    <div className="mt-3">
-                      <div className="flex justify-between mb-1 text-sm">
-                        <span>Utilization</span>
-                        <span className="font-medium">{member.utilization}%</span>
-                      </div>
-                      <Progress
-                        value={member.utilization}
-                        className={`h-2 ${
-                          member.utilization > 90
-                            ? "bg-amber-100"
-                            : member.utilization < 60
-                              ? "bg-blue-100"
-                              : ""
-                        }`}
-                      />
-                    </div>
-                    <div className="flex flex-wrap gap-1 mt-2">
-                      {member.skills.map((skill, index) => (
-                        <Badge key={index} variant="secondary" className="text-xs">
-                          {skill}
-                        </Badge>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+              {(() => {
+                const related = teamActivity.filter(
+                  (n) => n.metadata?.teamMemberId === detailRow.id,
+                )
+                if (related.length === 0) return null
+                return (
+                  <div>
+                    <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      Recent notifications
+                    </p>
+                    <ul className="space-y-1.5">
+                      {related.slice(0, 5).map((n) => (
+                        <li key={n.id} className="text-xs text-muted-foreground">
+                          <span className="font-medium text-foreground">{n.title}</span> · {relativeTime(n.createdAt)}
+                        </li>
                       ))}
-                    </div>
+                    </ul>
                   </div>
-                </CardContent>
-                <CardFooter className="border-t pt-4">
-                  <div className="flex w-full justify-between gap-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="flex-1"
-                      onClick={() => handleContactMember('chat', member.name)}
-                    >
-                      <MessageSquare className="h-4 w-4 mr-1" />
-                      Message
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      className="flex-1"
-                      onClick={() => handleViewProfile(member.id)}
-                    >
-                      View Profile
-                    </Button>
-                  </div>
-                </CardFooter>
-              </Card>
-            ))}
-          </div>
-        </TabsContent>
+                )
+              })()}
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    if (detailRow) openEdit(detailRow)
+                  }}
+                >
+                  <Pencil className="mr-1 h-4 w-4" /> Edit profile
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    if (detailRow) setConfirmRow(detailRow)
+                  }}
+                >
+                  <Trash2 className="mr-1 h-4 w-4" /> Remove from team
+                </Button>
+              </DialogFooter>
+            </div>
+          ) : (
+            <EmptyNote>Profile could not be loaded.</EmptyNote>
+          )}
+        </DialogContent>
+      </Dialog>
 
-        <TabsContent value="departments" className="space-y-4">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold">Departments</h2>
-            <Button size="sm" className="gap-1" onClick={handleAddDepartment}>
-              <Plus className="h-4 w-4" />
-              <span>Add Department</span>
+      {/* 13 · add / edit member dialog */}
+      <Dialog open={formOpen} onOpenChange={(open) => !open && setFormOpen(false)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{draft?.id == null ? "Add team member" : "Edit team member"}</DialogTitle>
+            <DialogDescription>
+              {draft?.id == null
+                ? "Creates a roster row the member can finish claiming via password reset."
+                : "Changes are visible to the whole team and the member is notified."}
+            </DialogDescription>
+          </DialogHeader>
+          {draft && (
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <Label htmlFor="member-name">Name</Label>
+                <Input
+                  id="member-name"
+                  value={draft.name}
+                  onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+                  placeholder="Ada Lovelace"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="member-email">Email</Label>
+                <Input
+                  id="member-email"
+                  type="email"
+                  value={draft.email}
+                  disabled={draft.id !== null}
+                  onChange={(e) => setDraft({ ...draft, email: e.target.value })}
+                  placeholder="ada@example.com"
+                />
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1">
+                  <Label htmlFor="member-role">Role</Label>
+                  <Input
+                    id="member-role"
+                    value={draft.role}
+                    onChange={(e) => setDraft({ ...draft, role: e.target.value })}
+                    placeholder="Frontend Developer"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="member-department">Department</Label>
+                  <Input
+                    id="member-department"
+                    value={draft.department}
+                    onChange={(e) => setDraft({ ...draft, department: e.target.value })}
+                    placeholder="Engineering"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="member-location">Location</Label>
+                  <Input
+                    id="member-location"
+                    value={draft.location}
+                    onChange={(e) => setDraft({ ...draft, location: e.target.value })}
+                    placeholder="Nairobi"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="member-status">Presence</Label>
+                  <Select value={draft.status} onValueChange={(v) => setDraft({ ...draft, status: v })}>
+                    <SelectTrigger id="member-status">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {STATUSES.filter((s) => s.value !== "all").map((s) => (
+                        <SelectItem key={s.value} value={s.value}>
+                          {s.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="member-avatar">Avatar (path or URL)</Label>
+                <Input
+                  id="member-avatar"
+                  value={draft.avatar}
+                  onChange={(e) => setDraft({ ...draft, avatar: e.target.value })}
+                  placeholder="avatars/… or https://…"
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Upload first via storage, then paste the returned avatar path here.
+                </p>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setFormOpen(false)} disabled={saving}>
+              Cancel
             </Button>
-          </div>
+            <Button onClick={saveMember} disabled={saving}>
+              {saving ? "Saving…" : draft?.id == null ? "Add member" : "Save changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {departments.map((department: Department) => (
-              <Card key={department.id}>
-                <CardHeader>
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                      <UsersRound className="h-5 w-5 text-primary" />
-                    </div>
-                    <div>
-                      <CardTitle>{department.name}</CardTitle>
-                      <CardDescription>{department.memberCount} members</CardDescription>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="text-sm">
-                      <div className="font-medium">Department Lead</div>
-                      <div className="text-muted-foreground">{department.lead}</div>
-                    </div>
-                    <div>
-                      <div className="flex justify-between mb-1 text-sm">
-                        <span>Productivity</span>
-                        <span className="font-medium">{department.productivity}%</span>
-                      </div>
-                      <Progress value={department.productivity} className="h-2" />
-                    </div>
-                  </div>
-                </CardContent>
-                <CardFooter className="border-t pt-4">
-                  <Button variant="outline" size="sm" className="w-full">
-                    View Details
-                  </Button>
-                </CardFooter>
-              </Card>
-            ))}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="utilization" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Team Utilization</CardTitle>
-                  <CardDescription>Current sprint capacity and availability</CardDescription>
-                </div>
-                <Badge variant="outline" className="gap-1">
-                  <RefreshCw className="h-3 w-3" />
-                  <span>Updated daily</span>
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[400px] flex items-center justify-center bg-muted/30 rounded-md mb-6">
-                <div className="text-center">
-                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-2">
-                    <Users className="h-5 w-5 text-primary" />
-                  </div>
-                  <p className="font-medium">Team Utilization Chart</p>
-                  <p className="text-sm text-muted-foreground">Visualization of team workload distribution</p>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <div className="flex justify-between mb-1 text-sm">
-                    <span>Overall Team Utilization</span>
-                    <span className="font-medium">82%</span>
-                  </div>
-                  <Progress value={82} className="h-2" />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-                  <div className="bg-muted/40 rounded-md p-3">
-                    <div className="text-2xl font-bold">85%</div>
-                    <div className="text-xs text-muted-foreground">Engineering</div>
-                  </div>
-                  <div className="bg-muted/40 rounded-md p-3">
-                    <div className="text-2xl font-bold">78%</div>
-                    <div className="text-xs text-muted-foreground">Design</div>
-                  </div>
-                  <div className="bg-muted/40 rounded-md p-3">
-                    <div className="text-2xl font-bold">90%</div>
-                    <div className="text-xs text-muted-foreground">Product</div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-            <CardFooter className="border-t pt-4">
-              <Button variant="outline" size="sm" className="w-full">
-                <Download className="h-4 w-4 mr-1" />
-                Export Utilization Report
-              </Button>
-            </CardFooter>
-          </Card>
-        </TabsContent>
-      </Tabs>
+      {/* 14 · remove confirmation dialog */}
+      <Dialog open={confirmRow !== null} onOpenChange={(open) => !open && setConfirmRow(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Remove {confirmRow?.name}?</DialogTitle>
+            <DialogDescription>
+              This deletes their roster row, wellbeing history and gamification progress. Members with assigned
+              tasks cannot be removed until their work is reassigned.
+            </DialogDescription>
+          </DialogHeader>
+          {confirmRow && (
+            <div className="rounded-md border bg-muted/40 p-3 text-sm">
+              <p>
+                <span className="font-medium">{confirmRow.openTasks}</span> open ·{" "}
+                <span className="font-medium">{confirmRow.doneTasks}</span> done ·{" "}
+                <span className="font-medium">{confirmRow.blockedTasks}</span> blocked task(s)
+              </p>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmRow(null)} disabled={removing}>
+              Keep member
+            </Button>
+            <Button variant="destructive" onClick={removeMember} disabled={removing}>
+              {removing ? "Removing…" : "Remove member"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
-    // Remove the closing </DashboardLayout> tag at the end of the component
   )
 }
 
-function BarChart(props: React.SVGProps<SVGSVGElement>) {
+/* ---------------------------------------------------------- small pieces */
+
+function EmptyNoRole() {
+  return <EmptyNote>No roles to chart yet.</EmptyNote>
+}
+
+function Stat({ label, value }: { label: string; value: string | number }) {
   return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <line x1="12" x2="12" y1="20" y2="10" />
-      <line x1="18" x2="18" y1="20" y2="4" />
-      <line x1="6" x2="6" y1="20" y2="16" />
-    </svg>
+    <Card>
+      <CardContent className="p-3">
+        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</p>
+        <p className="mt-0.5 text-lg font-semibold leading-tight">{value}</p>
+      </CardContent>
+    </Card>
   )
 }
 
-function AlertCircle(props: React.SVGProps<SVGSVGElement>) {
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <circle cx="12" cy="12" r="10" />
-      <line x1="12" y1="8" x2="12" y2="12" />
-      <line x1="12" y1="16" x2="12" y2="16" />
-    </svg>
-  )
-}
-
-function LineChart(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M3 3v18h18" />
-      <path d="M3 14l4-9 5 9 4-5 4 5" />
-    </svg>
+    <div>
+      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className="mt-0.5 break-words">{children}</p>
+    </div>
   )
 }
