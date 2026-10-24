@@ -1,104 +1,155 @@
-import { NextResponse } from "next/server";
-import { getSession } from "@/lib/auth-actions";
+// /api/ethical-metrics/config — alert thresholds for the ethical metrics
+// workspace. Reads and writes users.preferences JSONB under the
+// "ethicalMetrics" namespace (the schema has no config table), so every value
+// round-trips instead of being a hard-coded sample.
+//
+// Response contract is unchanged from the original stub:
+//   GET  -> { success, config }
+//   POST -> { success, message }
 
-// GET handler to fetch ethical metrics configuration
-export async function GET(request: Request) {
-  try {
-    // Get authenticated session
-    const session = await getSession();
-    
-    if (!session || !session.id) {
-      console.log("Ethical Metrics Config API: No valid session found");
-      
-      // In development mode, return sample data
-      if (process.env.NODE_ENV !== 'development') {
-        return NextResponse.json(
-          { success: false, error: "Authentication required" },
-          { status: 401 }
-        );
-      }
+import { NextResponse } from "next/server"
+import { getSession } from "@/lib/auth-actions"
+import { createNotification } from "@/lib/notifications"
+import {
+  DEFAULT_CONFIG,
+  ETHICS_LINK,
+  mergeConfig,
+  readEthicsMeta,
+  writeEthicsMeta,
+  type EthicsConfig,
+} from "../route"
+
+export const dynamic = "force-dynamic"
+
+const NUMERIC_LIMITS: Record<string, [number, number]> = {
+  maxOvertimeHours: [0, 40],
+  overloadRatio: [1, 4],
+  dispersionCeiling: [0.25, 4],
+  priorityConcentrationAlertPct: [10, 100],
+  snapshotStaleDays: [1, 90],
+  payEquityAlertThreshold: [0, 100],
+  workloadBalanceAlertThreshold: [0, 100],
+  deiTaskDistributionAlertThreshold: [0, 100],
+  overtimeAlertThreshold: [0, 40],
+}
+
+function collectErrors(body: Record<string, unknown>): string[] {
+  const errors: string[] = []
+  const check = (value: unknown, key: string, path: string) => {
+    if (value === undefined || value === null) return
+    const n = Number(value)
+    if (!Number.isFinite(n)) {
+      errors.push(`${path} must be a number`)
+      return
     }
-    
-    // In a real implementation, we would fetch the configuration from the database
-    // For now, return sample configuration
-    const sampleConfig = {
-      maxOvertimeHours: 5,
-      enablePayEquityTracking: true,
-      enableWorkloadBalanceTracking: true,
-      enableDeiTaskDistributionTracking: true,
-      enableOvertimeMonitoring: true,
-      alertThresholds: {
-        payEquityAlertThreshold: 95,
-        workloadBalanceAlertThreshold: 85,
-        deiTaskDistributionAlertThreshold: 90,
-        overtimeAlertThreshold: 4
-      }
-    };
+    const [min, max] = NUMERIC_LIMITS[key] ?? [0, 100]
+    if (n < min || n > max) errors.push(`${path} must be between ${min} and ${max}`)
+  }
+  for (const key of ["maxOvertimeHours", "overloadRatio", "dispersionCeiling", "priorityConcentrationAlertPct", "snapshotStaleDays"]) {
+    check(body[key], key, key)
+  }
+  const thresholds = body.alertThresholds
+  if (thresholds && (typeof thresholds !== "object" || Array.isArray(thresholds))) {
+    errors.push("alertThresholds must be an object")
+  } else if (thresholds && typeof thresholds === "object") {
+    const t = thresholds as Record<string, unknown>
+    for (const key of [
+      "payEquityAlertThreshold",
+      "workloadBalanceAlertThreshold",
+      "deiTaskDistributionAlertThreshold",
+      "overtimeAlertThreshold",
+    ]) {
+      check(t[key], key, `alertThresholds.${key}`)
+    }
+  }
+  for (const key of [
+    "enablePayEquityTracking",
+    "enableWorkloadBalanceTracking",
+    "enableDeiTaskDistributionTracking",
+    "enableOvertimeMonitoring",
+  ]) {
+    if (body[key] !== undefined && typeof body[key] !== "boolean") errors.push(`${key} must be a boolean`)
+  }
+  return errors
+}
 
-    return NextResponse.json({ 
-      success: true, 
-      config: sampleConfig
-    });
-  } catch (error: any) {
-    console.error("Error fetching ethical metrics configuration:", error);
+// GET /api/ethical-metrics/config — stored config merged over defaults.
+export async function GET() {
+  try {
+    const session = await getSession()
+    if (!session) {
+      return NextResponse.json({ success: false, error: "Authentication required", message: "Unauthorized" }, { status: 401 })
+    }
+    const meta = await readEthicsMeta(session.id)
+    const config = mergeConfig(meta.config)
+    return NextResponse.json({ success: true, config, defaults: DEFAULT_CONFIG })
+  } catch (error) {
+    console.error("Ethical metrics configuration fetch error:", error)
     return NextResponse.json(
-      { 
-        success: false, 
-        error: error?.message || "Unknown error fetching configuration",
-        details: error?.stack?.toString() || ""
-      },
-      { status: 500 }
-    );
+      { success: false, error: (error as Error).message, message: "Unknown error fetching configuration" },
+      { status: 500 },
+    )
   }
 }
 
-// POST handler to update ethical metrics configuration
+// POST /api/ethical-metrics/config — persist the threshold panel.
 export async function POST(request: Request) {
   try {
-    // Get authenticated session
-    const session = await getSession();
-    if (!session || !session.id) {
-      console.log("Ethical Metrics Config API (POST): No valid session found");
-      
-      // In development mode, proceed anyway
-      if (process.env.NODE_ENV !== 'development') {
-        return NextResponse.json(
-          { success: false, error: "Authentication required" },
-          { status: 401 }
-        );
-      }
+    const session = await getSession()
+    if (!session) {
+      return NextResponse.json({ success: false, error: "Authentication required", message: "Unauthorized" }, { status: 401 })
     }
 
-    // Parse request body
-    const body = await request.json();
-    console.log("Ethical Metrics Config API: Received POST data:", JSON.stringify(body, null, 2));
-    
-    // Validate request body (basic validation)
-    if (typeof body.maxOvertimeHours !== 'number') {
-      return NextResponse.json(
-        { success: false, error: "Invalid maxOvertimeHours value" },
-        { status: 400 }
-      );
+    const body = (await request.json().catch(() => null)) as Record<string, unknown> | null
+    if (!body || typeof body !== "object") {
+      return NextResponse.json({ success: false, error: "Request body is required", message: "Request body is required" }, { status: 400 })
     }
-    
-    // In a real implementation, we would update the configuration in the database
-    // For now, simulate a delay and return success
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    return NextResponse.json({ 
-      success: true, 
-      message: "Configuration updated successfully"
-    });
-  } catch (error: any) {
-    console.error("Error updating ethical metrics configuration:", error);
-    
-    return NextResponse.json(
-      { 
-        success: false, 
-        error: error?.message || "Unknown error updating configuration",
-        details: error?.stack?.toString() || ""
+    // Preserve the legacy validation message the old stub returned.
+    if (body.maxOvertimeHours !== undefined && !Number.isFinite(Number(body.maxOvertimeHours))) {
+      return NextResponse.json({ success: false, error: "Invalid maxOvertimeHours value", message: "Invalid maxOvertimeHours value" }, { status: 400 })
+    }
+
+    const errors = collectErrors(body)
+    if (errors.length > 0) {
+      return NextResponse.json({ success: false, error: errors.join("; "), message: errors.join("; ") }, { status: 400 })
+    }
+
+    const meta = await readEthicsMeta(session.id)
+    const merged: EthicsConfig = mergeConfig({
+      ...mergeConfig(meta.config),
+      ...body,
+      alertThresholds: {
+        ...mergeConfig(meta.config).alertThresholds,
+        ...((body.alertThresholds as EthicsConfig["alertThresholds"] | undefined) ?? {}),
       },
-      { status: 500 }
-    );
+    })
+    await writeEthicsMeta(session.id, { config: merged })
+
+    await createNotification({
+      userId: session.id,
+      type: "system",
+      title: "Ethical metrics thresholds updated",
+      body: `Weekly overtime limit ${merged.maxOvertimeHours}h · overload ratio ${merged.overloadRatio}x · floors W ${merged.alertThresholds.workloadBalanceAlertThreshold} / DEI ${merged.alertThresholds.deiTaskDistributionAlertThreshold} / pay ${merged.alertThresholds.payEquityAlertThreshold}.`,
+      link: ETHICS_LINK,
+      metadata: { action: "ethics_config_updated", config: merged },
+    })
+
+    return NextResponse.json({
+      success: true,
+      message: "Configuration updated successfully",
+      data: { config: merged },
+    })
+  } catch (error) {
+    console.error("Ethical metrics configuration update error:", error)
+    return NextResponse.json(
+      { success: false, error: (error as Error).message, message: "Unknown error updating configuration" },
+      { status: 500 },
+    )
   }
+}
+
+// PUT mirrors POST so callers that speak PUT (the workspace panel) hit the same
+// persistence path.
+export async function PUT(request: Request) {
+  return POST(request)
 }
