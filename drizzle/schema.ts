@@ -32,6 +32,7 @@ export const chats = pgTable("chats", {
   id: uuid("id").defaultRandom().primaryKey(),
   type: varchar("type", { length: 20 }).notNull(), // 'individual' or 'group'
   name: text("name").notNull(),
+  description: text("description"),
   avatar: text("avatar"),
   isPinned: boolean("is_pinned").default(false),
   isMuted: boolean("is_muted").default(false),
@@ -46,6 +47,11 @@ export const chatParticipants = pgTable("chat_participants", {
   userId: integer("user_id").notNull().references(() => users.id),
   joinedAt: timestamp("joined_at").defaultNow(),
   lastRead: timestamp("last_read"),
+  // Per-participant settings blob: { isMuted, isPinned, isBlocked, isAdmin,
+  // notificationLevel ('all' | 'mentions' | 'none'), theme }. Kept as one jsonb
+  // column instead of six booleans so the chat workspace can evolve without
+  // migrations.
+  settings: jsonb("settings").notNull().default({}),
 }, (table): { pk: ReturnType<typeof primaryKey> } => {
   return {
     pk: primaryKey({ columns: [table.chatId, table.userId] }),
@@ -67,6 +73,14 @@ export const messages = pgTable("messages", {
   senderId: integer("sender_id").notNull().references(() => users.id),
   // Handle replyToId separately with a plain UUID column
   replyToId: uuid("reply_to_id"),
+  // Reaction map stored inline: { "👍": [userId, ...], ... }. Toggled by
+  // /api/chat/messages/[messageId]/reactions (PUT/POST).
+  reactions: jsonb("reactions").notNull().default({}),
+  // Original content preserved when a message is soft-deleted so the restore
+  // flow can put it back verbatim.
+  originalContent: text("original_content"),
+  // Set by the edit (PATCH) flow; rendered as an "edited" badge.
+  editedAt: timestamp("edited_at"),
 })
 
 // Define relations for the messages table

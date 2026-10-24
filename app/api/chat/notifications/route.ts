@@ -7,6 +7,8 @@ import { getCurrentUser } from "@/lib/session";
 // Session-scoped bulk endpoints kept for the chat/notification surfaces.
 // Single-row CRUD lives under /api/notifications.
 
+export const dynamic = "force-dynamic";
+
 // GET - Fetch the signed-in user's notifications
 export async function GET(req: NextRequest) {
   try {

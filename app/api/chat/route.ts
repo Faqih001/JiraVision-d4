@@ -1,316 +1,292 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { chats, messages, chatParticipants, users } from "@/drizzle/schema";
-import { eq, and, inArray } from "drizzle-orm";
-import { randomUUID } from "crypto";
+import { chats, chatParticipants, messages, users } from "@/drizzle/schema";
+import { and, eq, inArray, isNull, or, sql } from "drizzle-orm";
 import { getSession } from "@/lib/auth-actions";
+import {
+  DEFAULT_SETTINGS,
+  normalizeSettings,
+  previewFor,
+} from "@/app/api/chat/api-helpers";
 
-export async function GET(req: NextRequest) {
+export const dynamic = "force-dynamic";
+
+/**
+ * GET /api/chat — every chat the signed-in user belongs to.
+ * unreadCount is real (messages after this participant's lastRead), pin/mute
+ * flags are per-viewer and live in chat_participants.settings (jsonb).
+ */
+export async function GET() {
   try {
-    console.log("API: Fetching chats for user...");
-    
-    // Get the current user from the session
     const session = await getSession();
-    
-    console.log("API: Session check result:", {
-      hasSession: !!session,
-      hasId: session ? !!session.id : false,
-      userId: session?.id
-    });
-    
     if (!session || !session.id) {
-      console.error("API: Unauthorized - No valid session found");
-      return NextResponse.json(
-        { error: "Unauthorized", details: "No valid session found" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    
     const userId = session.id;
-    console.log(`API: Fetching chats for user ${userId} (${session.name || 'Unknown'})`);
-    
-    // First, get the chat IDs where the current user is a participant
-    const userChatIds = await db
-      .select({ chatId: chatParticipants.chatId })
-          .from(chatParticipants)
+
+    const myParts = await db
+      .select({
+        chatId: chatParticipants.chatId,
+        settings: chatParticipants.settings,
+        lastRead: chatParticipants.lastRead,
+      })
+      .from(chatParticipants)
       .where(eq(chatParticipants.userId, userId));
-    
-    if (userChatIds.length === 0) {
-      console.log(`API: User ${userId} has no chats.`);
+
+    if (myParts.length === 0) {
       return NextResponse.json([]);
     }
-    
-    const chatIdValues = userChatIds.map(row => row.chatId);
-    console.log(`API: Found ${chatIdValues.length} chat IDs for user ${userId}`);
-    
-    try {
-      // Fetch the chats - without complex relations to diagnose issues
-      const chatResults = await db
+    const chatIds = myParts.map((p) => p.chatId);
+
+    interface LastMessageRow {
+      id: string;
+      chat_id: string;
+      content: string;
+      type: string;
+      timestamp: Date;
+      sender_id: number;
+      file_url: string | null;
+      file_name: string | null;
+      file_size: number | null;
+      deleted: boolean;
+    }
+    const lastMessageRows = (await db.execute(sql`
+        select distinct on (m.chat_id) m.id, m.chat_id, m.content, m.type, m.timestamp,
+               m.sender_id, m.file_url, m.file_name, m.file_size, m.deleted
+        from messages m
+        where m.chat_id in (${sql.join(
+          chatIds.map((id) => sql`${id}`),
+          sql`, `,
+        )})
+        order by m.chat_id, m.timestamp desc`)) as unknown as LastMessageRow[];
+
+    const [chatRows, participantRows, unreadRows] = await Promise.all([
+      db
         .select()
         .from(chats)
-        .where(inArray(chats.id, chatIdValues));
-      
-      console.log(`API: Successfully retrieved ${chatResults.length} basic chats`);
-      
-      // Manually fetch participant information
-      const chatIds = chatResults.map(chat => chat.id);
-      
-      // Get all participants for these chats
-      const participantsResults = await db
+        .where(inArray(chats.id, chatIds)),
+      listParticipantsForMany(chatIds),
+      // Unread = non-deleted messages from other people newer than lastRead.
+      db
         .select({
           chatId: chatParticipants.chatId,
-          userId: chatParticipants.userId,
+          count: sql<number>`count(*)::int`,
         })
         .from(chatParticipants)
-        .where(inArray(chatParticipants.chatId, chatIds));
-      
-      // Get unique user IDs to fetch user info
-      const userIds = [...new Set(participantsResults.map(p => p.userId))];
-      
-      // Fetch user information for all participants
-      const userResults = await db
-        .select({
-          id: users.id,
-          name: users.name,
-          avatar: users.avatar,
-        })
-        .from(users)
-        .where(inArray(users.id, userIds));
-      
-      // Create a map for easier lookup
-      const userMap = new Map(userResults.map(user => [user.id, user]));
-      
-      // Group participants by chat
-      const chatParticipantsMap = new Map();
-      participantsResults.forEach(p => {
-        if (!chatParticipantsMap.has(p.chatId)) {
-          chatParticipantsMap.set(p.chatId, []);
-        }
-        const user = userMap.get(p.userId);
-        if (user) {
-          chatParticipantsMap.get(p.chatId).push({
-            userId: p.userId,
-            user: user
-          });
-        }
+        .innerJoin(
+          messages,
+          and(
+            eq(messages.chatId, chatParticipants.chatId),
+            eq(messages.deleted, false),
+            sql`${messages.senderId} <> ${chatParticipants.userId}`,
+            or(
+              isNull(chatParticipants.lastRead),
+              sql`${messages.timestamp} > ${chatParticipants.lastRead}`,
+            ),
+          ),
+        )
+        .where(eq(chatParticipants.userId, userId))
+        .groupBy(chatParticipants.chatId),
+    ]);
+
+    const lastMessageMap = new Map<string, LastMessageRow>();
+    for (const row of lastMessageRows) {
+      lastMessageMap.set(row.chat_id, row);
+    }
+
+    const unreadMap = new Map<string, number>();
+    for (const row of unreadRows) {
+      unreadMap.set(row.chatId, Number(row.count ?? 0));
+    }
+
+    const participantsByChat = new Map<
+      string,
+      { userId: number; name: string; avatar: string | null; isAdmin: boolean }[]
+    >();
+    for (const p of participantRows) {
+      const list = participantsByChat.get(p.chatId) ?? [];
+      list.push({
+        userId: p.userId,
+        name: p.name,
+        avatar: p.avatar,
+        isAdmin: normalizeSettings(p.settings).isAdmin,
       });
-      
-      // Fetch last message for each chat
-      const lastMessagesPromises = chatIds.map(async chatId => {
-        const messageResult = await db
-          .select()
-          .from(messages)
-          .where(eq(messages.chatId, chatId))
-          .orderBy(messages.timestamp)
-          .limit(1);
-          
-        return messageResult.length > 0 ? { chatId, message: messageResult[0] } : null;
-      });
-      
-      const lastMessagesResults = await Promise.all(lastMessagesPromises);
-      const lastMessagesMap = new Map();
-      
-      lastMessagesResults.forEach(result => {
-        if (result) {
-          lastMessagesMap.set(result.chatId, result.message);
-        }
-      });
-      
-      // Transform the data to match the Chat type used in the frontend
-      const transformedChats = chatResults.map(chat => {
-        const participants = chatParticipantsMap.get(chat.id) || [];
-        const participantIds = participants.map(p => p.userId);
-        const lastMessage = lastMessagesMap.get(chat.id);
-      
-      // Find the other participant(s) for individual chats to get the name/avatar
+      participantsByChat.set(p.chatId, list);
+    }
+
+    const settingsByChat = new Map(myParts.map((p) => [p.chatId, p]));
+
+    const transformed = chatRows.map((chat) => {
+      const participants = participantsByChat.get(chat.id) ?? [];
+      const myPart = settingsByChat.get(chat.id);
+      const settings = normalizeSettings(myPart?.settings);
+      const lastMessage = lastMessageMap.get(chat.id);
+
       let chatName = chat.name;
       let chatAvatar = chat.avatar;
-      
-      // For individual chats, use the other participant's name and avatar
-      if (chat.type === 'individual') {
-          const otherParticipant = participants.find(p => p.userId !== userId)?.user;
-        if (otherParticipant) {
-          chatName = otherParticipant.name;
-          chatAvatar = otherParticipant.avatar;
+      let otherUserId: number | undefined;
+      if (chat.type === "individual") {
+        const other = participants.find((p) => p.userId !== userId);
+        if (other) {
+          chatName = other.name;
+          chatAvatar = other.avatar;
+          otherUserId = other.userId;
         }
       }
-      
+
       return {
         id: chat.id,
         type: chat.type,
         name: chatName,
+        description: chat.description,
         avatar: chatAvatar || "",
-          participants: participantIds,
+        participants: participants.map((p) => p.userId),
+        participantsDetail: participants.map((p) => ({
+          userId: p.userId,
+          user: { id: p.userId, name: p.name, avatar: p.avatar || "" },
+          isAdmin: p.isAdmin,
+        })),
+        settings: { ...DEFAULT_SETTINGS, ...settings },
         createdAt: chat.createdAt,
-        lastMessage: lastMessage ? {
-          id: lastMessage.id,
-          content: lastMessage.content,
-          timestamp: lastMessage.timestamp,
-          senderId: lastMessage.senderId,
-          type: lastMessage.type,
-          fileUrl: lastMessage.fileUrl || undefined,
-          fileName: lastMessage.fileName || undefined,
-          fileSize: lastMessage.fileSize || undefined,
-          deleted: lastMessage.deleted,
-        } : undefined,
-        unreadCount: 0, // Would need a separate query to calculate this
-        isPinned: chat.isPinned,
-        isMuted: chat.isMuted,
-        isArchived: chat.isArchived,
-        isGroupAdmin: chat.isGroupAdmin,
-        online: chat.type === 'individual' ? 
-            false : // Always set to false since status field doesn't exist
-          false,
-        lastMessageTime: lastMessage ? 
-          lastMessage.timestamp.toISOString() : 
-          undefined,
-        preview: lastMessage ? 
-          (lastMessage.deleted ? 'This message was deleted' : 
-            lastMessage.type === 'text' ? lastMessage.content : 
-            lastMessage.type === 'image' ? '📷 Photo' : 
-            lastMessage.type === 'video' ? '📹 Video' : 
-            lastMessage.type === 'document' ? '📄 Document' : 
-            lastMessage.type === 'audio' ? '🎵 Audio' : 
-            lastMessage.type === 'voice' ? '🎤 Voice message' : 
-            'Message'
-          ) : 
-          'Start a conversation',
+        lastMessage: lastMessage
+          ? {
+              id: lastMessage.id,
+              content: lastMessage.deleted ? "" : lastMessage.content,
+              timestamp: lastMessage.timestamp,
+              senderId: lastMessage.sender_id,
+              type: lastMessage.type,
+              fileUrl: lastMessage.file_url || undefined,
+              fileName: lastMessage.file_name || undefined,
+              fileSize: lastMessage.file_size || undefined,
+              deleted: lastMessage.deleted,
+            }
+          : undefined,
+        unreadCount: unreadMap.get(chat.id) ?? 0,
+        // Per-viewer flags win; the legacy chat-level columns are kept for
+        // older consumers but should never override participant settings.
+        isPinned: settings.isPinned,
+        isMuted: settings.isMuted,
+        isArchived: chat.isArchived === true,
+        isGroupAdmin: settings.isAdmin,
+        online: false,
+        lastMessageTime: lastMessage ? lastMessage.timestamp.toISOString() : undefined,
+        preview: lastMessage ? previewFor(lastMessage) : "Start a conversation",
+        otherUserId,
+        lastRead: myPart?.lastRead ? myPart.lastRead.toISOString() : undefined,
       };
     });
 
-    console.log(`API: Returning ${transformedChats.length} transformed chats`);
-    return NextResponse.json(transformedChats);
-    } catch (innerError) {
-      console.error("API Inner error fetching chats:", innerError);
-      
-      // Fallback to a minimal chat list if the full query fails
-      const simpleChatResults = await db
-        .select({
-          id: chats.id,
-          type: chats.type,
-          name: chats.name,
-          avatar: chats.avatar,
-          createdAt: chats.createdAt,
-        })
-        .from(chats)
-        .where(inArray(chats.id, chatIdValues));
-      
-      console.log(`API: Fallback - returning ${simpleChatResults.length} minimal chats`);
-      
-      // Return minimal chat objects
-      const minimalChats = simpleChatResults.map(chat => ({
-        id: chat.id,
-        type: chat.type,
-        name: chat.name,
-        avatar: chat.avatar || "",
-        participants: [],
-        createdAt: chat.createdAt,
-        preview: "Chat data partially loaded",
-      }));
-      
-      return NextResponse.json(minimalChats);
-    }
+    return NextResponse.json(transformed);
   } catch (error) {
     console.error("API Error fetching chats:", error);
     return NextResponse.json(
-      { error: "Failed to fetch chats", details: error instanceof Error ? error.message : String(error) },
-      { status: 500 }
+      {
+        error: "Failed to fetch chats",
+        details: error instanceof Error ? error.message : String(error),
+      },
+      { status: 500 },
     );
   }
 }
 
+/** Participants + user info for many chats in one query. */
+async function listParticipantsForMany(chatIds: string[]) {
+  if (chatIds.length === 0) return [];
+  return db
+    .select({
+      chatId: chatParticipants.chatId,
+      userId: chatParticipants.userId,
+      settings: chatParticipants.settings,
+      name: users.name,
+      avatar: users.avatar,
+    })
+    .from(chatParticipants)
+    .innerJoin(users, eq(users.id, chatParticipants.userId))
+    .where(inArray(chatParticipants.chatId, chatIds));
+}
+
+/**
+ * POST /api/chat — create a group or individual chat.
+ * Body: { type, name, participants: number[], avatar?, description?, message? }
+ * Kept for the existing lib/api-chat + ChatContext consumers.
+ * The creator is marked isAdmin inside chat_participants.settings.
+ */
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { type, name, participants, message } = body;
-    
-    // Validate required fields
-    if (!type || !name || !participants || participants.length === 0) {
-      return NextResponse.json(
-        { error: "Missing required fields" },
-        { status: 400 }
-      );
-    }
-    
-    // Get the current user from the session
     const session = await getSession();
     if (!session || !session.id) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    
     const userId = session.id;
-    console.log(`Creating ${type} chat for user ${userId} (${session.name}) with ${participants.length} participants`);
-    
-    // Create a new chat
-    const chatId = randomUUID();
-    const [newChat] = await db.insert(chats)
+
+    const body = await req.json();
+    const { type, name, participants, message, description } = body;
+
+    if (!type || !name || !Array.isArray(participants) || participants.length === 0) {
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    }
+    if (type !== "group" && type !== "individual") {
+      return NextResponse.json({ error: "type must be 'group' or 'individual'" }, { status: 400 });
+    }
+    const otherIds = [...new Set<number>(participants.map(Number))].filter(
+      (id) => Number.isInteger(id) && id > 0 && id !== userId,
+    );
+
+    const [newChat] = await db
+      .insert(chats)
       .values({
-        id: chatId,
         type,
-        name,
-        avatar: body.avatar || null
+        name: String(name),
+        description: description ? String(description) : null,
+        avatar: body.avatar ? String(body.avatar) : null,
       })
       .returning();
-    
-    // Add participants
-    await Promise.all([
-      // Add current user
-      db.insert(chatParticipants)
-        .values({
-          id: randomUUID(),
-          chatId,
-          userId,
-          joinedAt: new Date()
-        }),
-      
-      // Add other participants
-      ...participants.map((participantId: number) => 
-        db.insert(chatParticipants)
-          .values({
-            id: randomUUID(),
-            chatId,
-            userId: participantId,
-            joinedAt: new Date()
-          })
-      )
+
+    // Composite primary key — never pass an `id` here.
+    await db.insert(chatParticipants).values([
+      {
+        chatId: newChat.id,
+        userId,
+        joinedAt: new Date(),
+        settings: { ...DEFAULT_SETTINGS, isAdmin: type === "group" },
+      },
+      ...otherIds.map((participantId) => ({
+        chatId: newChat.id,
+        userId: participantId,
+        joinedAt: new Date(),
+        settings: { ...DEFAULT_SETTINGS },
+      })),
     ]);
-    
-    // If initial message is provided, create it
+
     if (message) {
-      await db.insert(messages)
-        .values({
-          id: randomUUID(),
-          content: message,
-          type: 'text',
-          chatId,
-          senderId: userId,
-          timestamp: new Date()
-        });
+      await db.insert(messages).values({
+        content: String(message),
+        type: "text",
+        chatId: newChat.id,
+        senderId: userId,
+        timestamp: new Date(),
+      });
     }
-    
-    console.log(`Successfully created chat with ID: ${chatId}`);
-    
+
     return NextResponse.json({
       id: newChat.id,
       type: newChat.type,
       name: newChat.name,
+      description: newChat.description,
       avatar: newChat.avatar || "",
-      participants: [...participants, userId],
+      participants: [userId, ...otherIds],
       createdAt: newChat.createdAt,
       unreadCount: 0,
-      isPinned: newChat.isPinned,
-      isMuted: newChat.isMuted,
-      isArchived: newChat.isArchived,
-      isGroupAdmin: newChat.isGroupAdmin,
+      isPinned: false,
+      isMuted: false,
+      isArchived: false,
+      isGroupAdmin: type === "group",
     });
   } catch (error) {
     console.error("Error creating chat:", error);
     return NextResponse.json(
       { error: "Failed to create chat" },
-      { status: 500 }
+      { status: 500 },
     );
   }
-} 
+}

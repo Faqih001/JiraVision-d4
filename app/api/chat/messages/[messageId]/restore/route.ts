@@ -2,61 +2,56 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { messages } from "@/drizzle/schema";
 import { eq } from "drizzle-orm";
+import { getSession } from "@/lib/auth-actions";
 
-// POST - Restore a soft-deleted message
+export const dynamic = "force-dynamic";
+
+// POST - restore a soft-deleted message from messages.original_content
+// (the column the old code referenced before it existed).
 export async function POST(
-  req: NextRequest,
-  { params }: { params: { messageId: string } }
+  _req: NextRequest,
+  { params }: { params: Promise<{ messageId: string }> },
 ) {
+  const { messageId } = await params;
   try {
-    const { messageId } = params;
-    
-    // In a real app, you would get the userId from the session
-    const userId = 1; // Hardcoded for demo purposes
-    
-    // Find the message
-    const message = await db.query.messages.findFirst({
-      where: (messages, { eq }) => eq(messages.id, messageId),
-    });
-    
-    if (!message) {
-      return NextResponse.json(
-        { error: "Message not found" },
-        { status: 404 }
-      );
+    const session = await getSession();
+    if (!session || !session.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    
-    // Check if the user is the sender
+    const userId = session.id;
+
+    const [message] = await db
+      .select()
+      .from(messages)
+      .where(eq(messages.id, messageId))
+      .limit(1);
+
+    if (!message) {
+      return NextResponse.json({ error: "Message not found" }, { status: 404 });
+    }
     if (message.senderId !== userId) {
       return NextResponse.json(
         { error: "You can only restore your own messages" },
-        { status: 403 }
+        { status: 403 },
       );
     }
-    
-    // Check if the message is actually deleted
     if (!message.deleted) {
-      return NextResponse.json(
-        { error: "Message is not deleted" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Message is not deleted" }, { status: 400 });
     }
-    
-    // Restore the message
-    const [restoredMessage] = await db.update(messages)
+
+    const [restored] = await db
+      .update(messages)
       .set({
         deleted: false,
-        content: message.originalContent || message.content, // Use original content if available
+        content: message.originalContent || message.content,
+        originalContent: null,
       })
       .where(eq(messages.id, messageId))
       .returning();
-    
-    return NextResponse.json(restoredMessage);
+
+    return NextResponse.json(restored);
   } catch (error) {
     console.error("Error restoring message:", error);
-    return NextResponse.json(
-      { error: "Failed to restore message" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to restore message" }, { status: 500 });
   }
-} 
+}

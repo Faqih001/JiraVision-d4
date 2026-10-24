@@ -1,80 +1,79 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { reactions, messages } from "@/drizzle/schema";
-import { eq, and } from "drizzle-orm";
-import { randomUUID } from "crypto";
+import { messages } from "@/drizzle/schema";
+import { eq } from "drizzle-orm";
+import { getSession } from "@/lib/auth-actions";
+import { normalizeReactions, type ReactionMap } from "@/app/api/chat/api-helpers";
+
+export const dynamic = "force-dynamic";
+
+/**
+ * Toggle the caller's reaction on a message. The map { emoji: userIds[] }
+ * lives in messages.reactions (jsonb) — the old code inserted into the legacy
+ * `reactions` table with a non-existent `id` column (TS2769).
+ * PUT is the canonical verb; POST is kept for the legacy lib/api-chat client.
+ */
+async function toggle(req: NextRequest, messageId: string) {
+  try {
+    const session = await getSession();
+    if (!session || !session.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const userId = session.id;
+
+    const body = await req.json().catch(() => ({}));
+    const emoji = typeof body.emoji === "string" ? body.emoji : "";
+    if (!emoji) {
+      return NextResponse.json({ error: "Emoji is required" }, { status: 400 });
+    }
+
+    const [message] = await db
+      .select({ id: messages.id, reactions: messages.reactions })
+      .from(messages)
+      .where(eq(messages.id, messageId))
+      .limit(1);
+
+    if (!message) {
+      return NextResponse.json({ error: "Message not found" }, { status: 404 });
+    }
+
+    const map: ReactionMap = normalizeReactions(message.reactions);
+    const current = map[emoji] ?? [];
+    const removed = current.includes(userId);
+    const next = removed ? current.filter((id) => id !== userId) : [...current, userId];
+
+    if (next.length === 0) {
+      delete map[emoji];
+    } else {
+      map[emoji] = next;
+    }
+
+    await db
+      .update(messages)
+      .set({ reactions: map })
+      .where(eq(messages.id, messageId));
+
+    // Consumers of the old endpoint checked `removed`; keep that field plus
+    // the fresh map so the UI can re-render chips without a refetch.
+    return NextResponse.json({ removed, reactions: map });
+  } catch (error) {
+    console.error("Error handling reaction:", error);
+    return NextResponse.json({ error: "Failed to process reaction" }, { status: 500 });
+  }
+}
+
+export async function PUT(
+  req: NextRequest,
+  { params }: { params: Promise<{ messageId: string }> },
+) {
+  const { messageId } = await params;
+  return toggle(req, messageId);
+}
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { messageId: string } }
+  { params }: { params: Promise<{ messageId: string }> },
 ) {
-  try {
-    const { messageId } = params;
-    const body = await req.json();
-    const { emoji } = body;
-    
-    // Validate required fields
-    if (!emoji) {
-      return NextResponse.json(
-        { error: "Emoji is required" },
-        { status: 400 }
-      );
-    }
-    
-    // In a real app, you would get the userId from the session
-    const userId = 1; // Hardcoded for demo purposes
-    
-    // Check if message exists
-    const message = await db.query.messages.findFirst({
-      where: (messages, { eq }) => eq(messages.id, messageId),
-    });
-    
-    if (!message) {
-      return NextResponse.json(
-        { error: "Message not found" },
-        { status: 404 }
-      );
-    }
-    
-    // Check if user already reacted with this emoji
-    const existingReaction = await db.query.reactions.findFirst({
-      where: (reactions, { eq, and }) => and(
-        eq(reactions.messageId, messageId),
-        eq(reactions.userId, userId),
-        eq(reactions.emoji, emoji)
-      ),
-    });
-    
-    if (existingReaction) {
-      // Remove the reaction if it exists
-      await db.delete(reactions)
-        .where(
-          and(
-            eq(reactions.messageId, messageId),
-            eq(reactions.userId, userId),
-            eq(reactions.emoji, emoji)
-          )
-        );
-      
-      return NextResponse.json({ removed: true });
-    } else {
-      // Add the reaction
-      const [newReaction] = await db.insert(reactions)
-        .values({
-          id: randomUUID(),
-          messageId,
-          userId,
-          emoji,
-        })
-        .returning();
-      
-      return NextResponse.json(newReaction);
-    }
-  } catch (error) {
-    console.error("Error handling reaction:", error);
-    return NextResponse.json(
-      { error: "Failed to process reaction" },
-      { status: 500 }
-    );
-  }
-} 
+  const { messageId } = await params;
+  return toggle(req, messageId);
+}

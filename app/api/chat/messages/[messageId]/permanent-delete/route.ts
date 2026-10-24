@@ -2,49 +2,46 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { messages } from "@/drizzle/schema";
 import { eq } from "drizzle-orm";
+import { getSession } from "@/lib/auth-actions";
 
-// DELETE - Permanently delete a message
+export const dynamic = "force-dynamic";
+
+// DELETE - permanently remove one of the caller's own messages.
 export async function DELETE(
-  req: NextRequest,
-  { params }: { params: { messageId: string } }
+  _req: NextRequest,
+  { params }: { params: Promise<{ messageId: string }> },
 ) {
+  const { messageId } = await params;
   try {
-    const { messageId } = params;
-    
-    // In a real app, you would get the userId from the session
-    const userId = 1; // Hardcoded for demo purposes
-    
-    // Find the message
-    const message = await db.query.messages.findFirst({
-      where: (messages, { eq }) => eq(messages.id, messageId),
-    });
-    
-    if (!message) {
-      return NextResponse.json(
-        { error: "Message not found" },
-        { status: 404 }
-      );
+    const session = await getSession();
+    if (!session || !session.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    
-    // Check if the user is the sender or has admin rights
-    // In a real app, you would check for admin rights here
+    const userId = session.id;
+
+    const [message] = await db
+      .select({ senderId: messages.senderId })
+      .from(messages)
+      .where(eq(messages.id, messageId))
+      .limit(1);
+
+    if (!message) {
+      return NextResponse.json({ error: "Message not found" }, { status: 404 });
+    }
     if (message.senderId !== userId) {
       return NextResponse.json(
         { error: "You can only delete your own messages" },
-        { status: 403 }
+        { status: 403 },
       );
     }
-    
-    // Permanently delete the message
-    await db.delete(messages)
-      .where(eq(messages.id, messageId));
-    
+
+    await db.delete(messages).where(eq(messages.id, messageId));
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Error permanently deleting message:", error);
     return NextResponse.json(
       { error: "Failed to permanently delete message" },
-      { status: 500 }
+      { status: 500 },
     );
   }
-} 
+}
