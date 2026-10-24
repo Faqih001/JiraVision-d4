@@ -11,7 +11,7 @@ import { sql } from "drizzle-orm"
 import { db } from "@/lib/db"
 import { getSession } from "@/lib/auth-actions"
 import { createNotification, notifyMany } from "@/lib/notifications"
-import { computeProgress } from "../shared"
+import { computeProgress } from "../../shared"
 import {
   badRequest,
   fetchCheckinsForGoal,
@@ -19,7 +19,7 @@ import {
   parseIdParam,
   serverError,
   unauthorized,
-} from "../queries"
+} from "../../queries"
 
 export const dynamic = "force-dynamic"
 

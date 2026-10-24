@@ -92,6 +92,8 @@ export function serializeGoalRow(row: GoalRawRow): GoalDto {
   const { progressPct, formula } = computeProgress(metric)
   const left = daysLeft(dates.dueDate)
   return {
+    ...metric,
+    ...dates,
     id: row.id,
     title: row.title,
     description: row.description,

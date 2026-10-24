@@ -351,7 +351,6 @@ export default function RetrospectivesWorkspace() {
 
   /* ------------------------------------------------------------- selectors */
 
-  const selected = useMemo(() => items.find((r) => r.id === selectedId) ?? null, [items, selectedId])
   const agenda = useMemo(() => items.filter((r) => r.status === "scheduled"), [items])
   const retroFeed = useMemo(
     () => notifications.filter((n) => (n.metadata as { link?: string } | null | undefined)?.link === "/dashboard/retros"),
