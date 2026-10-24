@@ -16,6 +16,13 @@ import Link from "next/link"
 import { Input } from "@/components/ui/input"
 import Image from "next/image"
 
+import type { Metadata } from "next"
+
+export const metadata: Metadata = {
+  title: "Blog",
+  description: "Articles on AI-native project management, wellbeing and ethical metrics.",
+}
+
 export default function BlogPage() {
   return (
     <div className="flex min-h-screen flex-col">

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { ArrowLeft, Calendar, Clock, Share2, ThumbsUp, MessageSquare, Download } from "lucide-react"
+import { ArrowLeft, Calendar, Clock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -242,12 +242,6 @@ export default function WebinarPage({ params }: { params: { slug: string } }) {
             </TabsList>
             <TabsContent value="transcript" className="space-y-4">
               <div className="whitespace-pre-line bg-muted/30 p-6 rounded-lg">{webinar.transcript}</div>
-              <div className="flex justify-end">
-                <Button variant="outline" className="gap-2">
-                  <Download className="h-4 w-4" />
-                  Download Transcript
-                </Button>
-              </div>
             </TabsContent>
             <TabsContent value="slides">
               <div className="bg-muted/30 p-6 rounded-lg">
@@ -258,57 +252,21 @@ export default function WebinarPage({ params }: { params: { slug: string } }) {
                   height={600}
                   className="rounded-lg mx-auto"
                 />
-                <div className="flex justify-end mt-4">
-                  <Button variant="outline" className="gap-2">
-                    <Download className="h-4 w-4" />
-                    Download Slides
-                  </Button>
-                </div>
               </div>
             </TabsContent>
             <TabsContent value="resources">
               <div className="bg-muted/30 p-6 rounded-lg">
                 <h3 className="text-lg font-medium mb-4">Additional Resources</h3>
-                <ul className="space-y-3">
-                  <li>
-                    <Link href="#" className="text-primary hover:underline flex items-center gap-2">
-                      <Download className="h-4 w-4" />
-                      Webinar Handout (PDF)
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="text-primary hover:underline flex items-center gap-2">
-                      <Download className="h-4 w-4" />
-                      Code Samples (ZIP)
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="#" className="text-primary hover:underline flex items-center gap-2">
-                      <Download className="h-4 w-4" />
-                      Research Paper (PDF)
-                    </Link>
-                  </li>
-                </ul>
+                <p className="text-sm text-muted-foreground">
+                  Session handouts aren&apos;t published yet. Ask for slides or follow-up material through{" "}
+                  <Link href="/contact" className="text-primary hover:underline">
+                    the contact form
+                  </Link>
+                  .
+                </p>
               </div>
             </TabsContent>
           </Tabs>
-
-          <div className="flex items-center justify-between mt-8 border-t border-b py-4">
-            <div className="flex items-center gap-6">
-              <Button variant="ghost" size="sm" className="gap-2">
-                <ThumbsUp className="h-4 w-4" />
-                <span>{webinar.likes}</span>
-              </Button>
-              <Button variant="ghost" size="sm" className="gap-2">
-                <MessageSquare className="h-4 w-4" />
-                <span>{webinar.comments}</span>
-              </Button>
-            </div>
-            <Button variant="ghost" size="sm" className="gap-2">
-              <Share2 className="h-4 w-4" />
-              Share
-            </Button>
-          </div>
         </div>
 
         <div>

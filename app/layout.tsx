@@ -22,8 +22,19 @@ const fraunces = Fraunces({
 })
 
 export const metadata: Metadata = {
-  title: "JiraVision - AI-Native Project Management",
+  metadataBase: new URL("https://jiravision.vercel.app"),
+  title: {
+    default: "JiraVision - AI-Native Project Management",
+    template: "%s | JiraVision",
+  },
   description: "The AI-Native Project Management Platform powered by IBM Granite",
+  openGraph: {
+    type: "website",
+    siteName: "JiraVision",
+    url: "https://jiravision.vercel.app",
+    title: "JiraVision - AI-Native Project Management",
+    description: "Capacity-aware sprint planning, wellbeing signals and ethical metrics, built on Atlassian Jira.",
+  },
 }
 
 export default function RootLayout({

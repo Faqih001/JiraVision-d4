@@ -17,6 +17,13 @@ import {
 import Link from "next/link"
 import Image from "next/image"
 
+import type { Metadata } from "next"
+
+export const metadata: Metadata = {
+  title: "Webinars",
+  description: "Product demos and deep-dive sessions.",
+}
+
 export default function WebinarsPage() {
   return (
     <div className="flex min-h-screen flex-col">

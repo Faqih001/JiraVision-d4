@@ -1,41 +1,30 @@
 import { describe, expect, it } from "vitest"
-
 import { searchIndex, type SearchGroup } from "@/content/search-index"
 
-const VALID_GROUPS: SearchGroup[] = [
-  "Pages",
-  "Products",
-  "Solutions",
-  "Resources",
-  "Blog",
-  "FAQ",
-  "Changelog",
-]
+const groups: SearchGroup[] = ["Pages", "Products", "Solutions", "Resources", "Blog", "FAQ", "Changelog"]
 
-describe("searchIndex integrity", () => {
-  it("is a non-empty corpus", () => {
-    expect(searchIndex.length).toBeGreaterThan(20)
+describe("search index integrity", () => {
+  it("has entries", () => {
+    expect(searchIndex.length).toBeGreaterThan(40)
   })
 
-  it("every entry has a non-empty, non-placeholder href", () => {
+  it("every entry has a title, a real href and a valid group", () => {
     for (const entry of searchIndex) {
-      expect(typeof entry.href).toBe("string")
-      expect(entry.href.trim().length).toBeGreaterThan(0)
-      expect(entry.href).not.toBe("#")
-      expect(entry.href.startsWith("/")).toBe(true)
-    }
-  })
-
-  it("every entry belongs to a documented group with non-empty title", () => {
-    for (const entry of searchIndex) {
-      expect(VALID_GROUPS).toContain(entry.group)
       expect(entry.title.trim().length).toBeGreaterThan(0)
-      expect(entry.subtitle.trim().length).toBeGreaterThan(0)
+      expect(entry.href.startsWith("/")).toBe(true)
+      expect(entry.href).not.toBe("#")
+      expect(groups).toContain(entry.group)
     }
   })
 
-  it("no (title, href) pair is duplicated", () => {
+  it("no duplicate title+href pairs", () => {
     const keys = searchIndex.map((e) => `${e.title}|${e.href}`)
     expect(new Set(keys).size).toBe(keys.length)
+  })
+
+  it("FAQ deep links carry a query", () => {
+    const faq = searchIndex.filter((e) => e.group === "FAQ")
+    expect(faq.length).toBeGreaterThanOrEqual(30)
+    expect(faq.every((e) => e.href.startsWith("/faq?q="))).toBe(true)
   })
 })

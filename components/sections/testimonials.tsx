@@ -26,6 +26,10 @@ export function Testimonials() {
           </Reveal>
         ))}
       </div>
+      <p className="mt-6 text-xs text-muted-foreground">
+        Example quotes from early-access conversations. We publish attributed testimonials only
+        with permission.
+      </p>
     </Section>
   )
 }

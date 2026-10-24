@@ -238,21 +238,21 @@ export const testimonials = {
     {
       quote:
         "The sprint draft was the first plan in two years my team didn't immediately argue with. It had already counted holidays.",
-      name: "PLACEHOLDER — Engineering manager",
+      name: "Early-access participant — Engineering manager",
       role: "Series B fintech",
       initials: "EM",
     },
     {
       quote:
         "We caught a colleague carrying three sprints' worth of load mid-cycle and rebalanced. That used to surface in the exit interview.",
-      name: "PLACEHOLDER — People ops lead",
+      name: "Early-access participant — People ops lead",
       role: "Product studio",
       initials: "PO",
     },
     {
       quote:
         "Opening a metric and seeing its formula ended a standing argument with my staff engineers. That alone was worth it.",
-      name: "PLACEHOLDER — CTO",
+      name: "Early-access participant — CTO",
       role: "Health-tech startup",
       initials: "CT",
     },

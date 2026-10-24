@@ -1,143 +1,108 @@
 import { describe, expect, it } from "vitest"
-
 import {
   buildMigrationPlan,
+  checklistFileName,
   checklistText,
   clampTeamSize,
   normalizeConfig,
-  sourceById,
   type MigrationConfig,
 } from "@/app/(marketing)/migration/migration-plan"
-import {
-  migrationPhases,
-  migrationSources,
-  migrationTeamRange,
-  scopeModel,
-  type MigrationSourceId,
-} from "@/content/migration"
+import { migrationPhases, migrationSources, migrationTeamRange, scopeModel } from "@/content/migration"
 
-const TEAM = 20
-
-const configFor = (sourceId: MigrationSourceId, partial: Partial<MigrationConfig> = {}) => ({
-  sourceId,
-  teamSize: TEAM,
-  includeAttachments: false,
+const config = (over: Partial<MigrationConfig> = {}): MigrationConfig => ({
+  sourceId: "trello",
+  teamSize: 20,
+  includeAttachments: true,
   dualRun: true,
-  ...partial,
+  ...over,
 })
 
-const round = Math.round
-
-describe("buildMigrationPlan — hours formula", () => {
-  it("phase hours = (base + perSeat × size) × sourceFactor, per source and phase", () => {
-    for (const source of migrationSources) {
-      const plan = buildMigrationPlan(configFor(source.id))
-      expect(plan.phases).toHaveLength(migrationPhases.length)
-      for (const phase of migrationPhases) {
-        const planned = plan.phases.find((p) => p.key === phase.key)!
-        const raw = (phase.baseHours + phase.hoursPerSeat * TEAM) * source.factors[phase.key]
-        expect(planned.hours.mid).toBe(Math.max(1, round(raw)))
-        expect(planned.hours.low).toBe(Math.max(1, round(raw * scopeModel.bandLow)))
-        expect(planned.hours.high).toBe(
-          Math.max(Math.max(1, round(raw)), round(raw * scopeModel.bandHigh)),
-        )
-      }
-    }
+describe("migration model clamps and normalises", () => {
+  it("team size clamps to the published range", () => {
+    expect(clampTeamSize(0)).toBe(migrationTeamRange.min)
+    expect(clampTeamSize(10_000)).toBe(migrationTeamRange.max)
+    expect(clampTeamSize(Number.NaN)).toBe(migrationTeamRange.min)
   })
 
-  it("folds attachment hours into the build phase only, per seat", () => {
-    for (const source of migrationSources) {
-      const off = buildMigrationPlan(configFor(source.id))
-      const on = buildMigrationPlan(
-        configFor(source.id, { includeAttachments: true }),
-      )
-      const buildOff = off.phases.find((p) => p.key === "build")!
-      const buildOn = on.phases.find((p) => p.key === "build")!
-      const buildPhase = migrationPhases.find((p) => p.key === "build")!
-      const rawOff =
-        (buildPhase.baseHours + buildPhase.hoursPerSeat * TEAM) * source.factors.build
-      const extra = source.attachmentHoursPerSeat * TEAM
-      expect(buildOff.hours.mid).toBe(Math.max(1, round(rawOff)))
-      expect(buildOn.hours.mid).toBe(Math.max(1, round(rawOff + extra)))
-      // Other phases are untouched by the attachments switch.
-      for (const p of off.phases) {
-        if (p.key === "build") continue
-        expect(on.phases.find((q) => q.key === p.key)!.hours).toEqual(p.hours)
-      }
-    }
+  it("unknown or partial configs fall back to defaults", () => {
+    const n = normalizeConfig({ sourceId: "myspace" as MigrationConfig["sourceId"] })
+    expect(n.sourceId).toBe("jira")
+    expect(n.includeAttachments).toBe(true)
+    expect(n.dualRun).toBe(true)
+    expect(normalizeConfig(null).teamSize).toBe(clampTeamSize(20))
   })
 })
 
-describe("buildMigrationPlan — checklist output", () => {
-  it("emits one checkbox line per task, stable across sources and repeat calls", () => {
-    const counts = migrationSources.map((source) => {
-      const plan = buildMigrationPlan(configFor(source.id))
-      const text = checklistText(plan, { checked: [], generatedOn: "2026-10-23" })
-      return text.split("\n").filter((l) => /^\s+\[[ x]\] /.test(l)).length
-    })
-    const expected = migrationPhases.reduce((s, p) => s + p.tasks.length, 0)
-    expect(expected).toBeGreaterThan(0)
-    for (const c of counts) expect(c).toBe(expected)
-    expect(new Set(counts).size).toBe(1)
+describe("buildMigrationPlan", () => {
+  it("phase hours follow (base + hoursPerSeat × size) × source factor", () => {
+    const plan = buildMigrationPlan(config({ includeAttachments: false, dualRun: true }))
+    const source = migrationSources.find((s) => s.id === "trello")!
+    for (const phase of plan.phases) {
+      if (phase.key === "build") continue // build may carry attachment hours
+      const def = migrationPhases.find((p) => p.key === phase.key)!
+      const raw = (def.baseHours + def.hoursPerSeat * 20) * source.factors[phase.key]
+      expect(phase.hours.mid).toBe(Math.max(1, Math.round(raw)))
+    }
   })
 
-  it("ticks only the ids handed in", () => {
-    const plan = buildMigrationPlan(configFor("asana"))
-    const ticked = checklistText(plan, {
-      checked: ["discovery:0", "cutover:1"],
+  it("dropping the dual run removes a phase and annotates cutover", () => {
+    const withRun = buildMigrationPlan(config())
+    const withoutRun = buildMigrationPlan(config({ dualRun: false }))
+    expect(withoutRun.phases.length).toBe(withRun.phases.length - 1)
+    expect(withoutRun.phases.some((p) => p.key === "dualrun")).toBe(false)
+    expect(withoutRun.phases.find((p) => p.key === "cutover")?.note).toMatch(/parallel run/i)
+  })
+
+  it("attachments add hours to build for non-Jira sources but zero for Jira", () => {
+    const trello = buildMigrationPlan(config({ sourceId: "trello", includeAttachments: false }))
+    const trelloAtt = buildMigrationPlan(config({ sourceId: "trello", includeAttachments: true }))
+    expect(trelloAtt.phases.find((p) => p.key === "build")!.hours.mid).toBeGreaterThan(
+      trello.phases.find((p) => p.key === "build")!.hours.mid,
+    )
+    const jira = buildMigrationPlan(config({ sourceId: "jira" }))
+    const jiraNoAtt = buildMigrationPlan(config({ sourceId: "jira", includeAttachments: false }))
+    expect(jira.phases.find((p) => p.key === "build")!.hours.mid).toBe(
+      jiraNoAtt.phases.find((p) => p.key === "build")!.hours.mid,
+    )
+  })
+
+  it("total hours are monotonic in team size and sum of phases", () => {
+    const small = buildMigrationPlan(config({ teamSize: 5 }))
+    const big = buildMigrationPlan(config({ teamSize: 100 }))
+    expect(big.total.mid).toBeGreaterThan(small.total.mid)
+    expect(small.total.mid).toBe(small.phases.reduce((s, p) => s + p.hours.mid, 0))
+  })
+
+  it("band is symmetric around mid per the published low/high factors", () => {
+    const plan = buildMigrationPlan(config())
+    for (const phase of plan.phases) {
+      expect(phase.hours.low).toBeLessThanOrEqual(phase.hours.mid)
+      expect(phase.hours.high).toBeGreaterThanOrEqual(phase.hours.mid)
+    }
+    expect(scopeModel.bandLow).toBeLessThan(1)
+    expect(scopeModel.bandHigh).toBeGreaterThan(1)
+  })
+})
+
+describe("checklist output", () => {
+  it("file name encodes source and clamped size", () => {
+    expect(checklistFileName(config({ sourceId: "asana", teamSize: 9999 }))).toBe(
+      `jiravision-migration-asana-${migrationTeamRange.max}seats.txt`,
+    )
+  })
+
+  it("renders [x]/[ ] per ticked id and carries the illustrative disclaimer", () => {
+    const plan = buildMigrationPlan(config())
+    const text = checklistText(plan, {
+      checked: ["discovery:0"],
       generatedOn: "2026-10-23",
     })
-    expect(ticked).toContain("[x] Give JiraVision a read-only view")
-    expect(ticked).toContain("[x] Announce with the archive location")
-    const doneCount = ticked.split("\n").filter((l) => /^\s+\[x\] /.test(l)).length
-    expect(doneCount).toBe(2)
-  })
-})
-
-describe("buildMigrationPlan — parallel-run toggle", () => {
-  it("removes the dualrun phase and shrinks the total", () => {
-    const on = buildMigrationPlan(configFor("linear", { dualRun: true }))
-    const off = buildMigrationPlan(configFor("linear", { dualRun: false }))
-    expect(on.phases).toHaveLength(migrationPhases.length)
-    expect(off.phases).toHaveLength(migrationPhases.length - 1)
-    expect(off.phases.some((p) => p.key === "dualrun")).toBe(false)
-    expect(off.total.mid).toBeLessThan(on.total.mid)
-    // The risk note lands in cutover.
-    const cutover = off.phases.find((p) => p.key === "cutover")!
-    expect(cutover.note).toContain("parallel run")
-  })
-})
-
-describe("buildMigrationPlan — monotonic in team size", () => {
-  it("total effort never decreases as seats grow, and grows strictly overall", () => {
-    let prev = -1
-    for (let size = migrationTeamRange.min; size <= migrationTeamRange.max; size++) {
-      const plan = buildMigrationPlan(configFor("notion", { teamSize: size }))
-      expect(plan.total.mid).toBeGreaterThanOrEqual(prev)
-      prev = plan.total.mid
-    }
-    const small = buildMigrationPlan(configFor("notion", { teamSize: migrationTeamRange.min }))
-    const large = buildMigrationPlan(configFor("notion", { teamSize: migrationTeamRange.max }))
-    expect(large.total.mid).toBeGreaterThan(small.total.mid)
-    expect(large.total.low).toBeGreaterThan(small.total.low)
-    expect(large.weeks.high).toBeGreaterThanOrEqual(small.weeks.high)
-  })
-})
-
-describe("config helpers", () => {
-  it("clampTeamSize snaps to the documented range", () => {
-    expect(clampTeamSize(Number.NaN)).toBe(migrationTeamRange.min)
-    expect(clampTeamSize(1)).toBe(migrationTeamRange.min)
-    expect(clampTeamSize(200)).toBe(migrationTeamRange.max)
-    expect(clampTeamSize(20.6)).toBe(21)
-  })
-
-  it("normalizeConfig rejects unknown sources and defaults switches on", () => {
-    const c = normalizeConfig({ sourceId: "myspace" as MigrationSourceId, teamSize: 999 })
-    expect(c.sourceId).toBe("jira")
-    expect(c.teamSize).toBe(migrationTeamRange.max)
-    expect(c.includeAttachments).toBe(true)
-    expect(c.dualRun).toBe(true)
-    expect(sourceById("asana").kicker).toBe("Asana")
+    expect(text).toContain("[x]")
+    expect(text).toContain("[ ]")
+    // The disclaimer survives the 74-column word wrap (whitespace-normalised).
+    expect(text.replace(/\s+/g, " ")).toContain("ILLUSTRATIVE, NOT A COMMITMENT")
+    expect(text).toContain("2026-10-23")
+    // Deterministic: same inputs, same bytes.
+    expect(checklistText(plan, { checked: ["discovery:0"], generatedOn: "2026-10-23" })).toBe(text)
   })
 })

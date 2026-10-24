@@ -20,6 +20,13 @@ import {
 import Link from "next/link"
 import Image from "next/image"
 
+import type { Metadata } from "next"
+
+export const metadata: Metadata = {
+  title: "Documentation",
+  description: "Setup guides and references for JiraVision.",
+}
+
 export default function DocumentationPage() {
   return (
     <div className="flex min-h-screen flex-col">

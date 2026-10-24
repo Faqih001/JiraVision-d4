@@ -15,6 +15,13 @@ import {
 import Link from "next/link"
 import Image from "next/image"
 
+import type { Metadata } from "next"
+
+export const metadata: Metadata = {
+  title: "Case Studies",
+  description: "How teams change their planning practice with JiraVision.",
+}
+
 export default function CaseStudiesPage() {
   return (
     <div className="flex min-h-screen flex-col">

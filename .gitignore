@@ -32,3 +32,7 @@ yarn-error.log*
 next-env.d.ts
 # Runtime data-layer storage (created by lib/data adapters; never commit user submissions)
 /data/
+
+# playwright artifacts
+test-results/
+playwright-report/

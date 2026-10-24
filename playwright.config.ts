@@ -1,27 +1,24 @@
 import { defineConfig, devices } from "@playwright/test"
 
-// Smoke e2e against the already-running dev server. reuseExistingServer keeps a
-// hand-started `npm run dev` on :3000; the command is only used if nothing is
-// listening yet.
+// Smoke suite runs against the marketing site. It reuses a `npm run dev`
+// server on :3000 when one is already up, and starts its own otherwise.
 export default defineConfig({
   testDir: "./tests/e2e",
-  timeout: 120_000,
-  expect: { timeout: 15_000 },
-  fullyParallel: false,
-  workers: 1,
-  retries: 0,
+  fullyParallel: true,
   reporter: [["list"]],
+  timeout: 90_000,
+  expect: { timeout: 15_000 },
   use: {
     baseURL: "http://localhost:3000",
-    // Dev-server first compile per route can take 10-20s.
-    navigationTimeout: 60_000,
     trace: "off",
-    video: "off",
+    navigationTimeout: 45_000,
   },
   projects: [
     {
       name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
+      // Full Chromium build (not the separate headless-shell package), so a
+      // plain `playwright install chromium` is enough on a fresh checkout.
+      use: { ...devices["Desktop Chrome"], channel: "chromium" },
     },
   ],
   webServer: {
