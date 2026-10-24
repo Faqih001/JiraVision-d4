@@ -3,6 +3,8 @@ import { getSession } from "@/lib/auth-actions"
 import { db } from "@/lib/db"
 import { aiInsights } from "@/drizzle/schema"
 
+export const dynamic = "force-dynamic"
+
 export async function POST(request: Request) {
   try {
     // Check authentication
@@ -12,15 +14,17 @@ export async function POST(request: Request) {
     }
 
     const data = await request.json()
-    const { sprintId, taskIds } = data
-    
+    const { sprintId, taskIds, type, title, description } = data
+
     if (!sprintId) {
       return NextResponse.json({ error: "Sprint ID is required" }, { status: 400 })
     }
 
     // Generate AI recommendation
     // In a real implementation, this would use an AI model or service
-    // For now, we'll return a simulated recommendation
+    // When the client (AI Scrum Master workspace) sends a concrete,
+    // data-derived recommendation we persist it verbatim; otherwise we
+    // fall back to the original simulated suggestions.
 
     const recommendations = [
       "Based on your team's velocity and current capacity, I recommend reducing the sprint commitment by 15% this week. Three team members have PTO scheduled, and there's a company all-hands meeting.",
@@ -29,23 +33,31 @@ export async function POST(request: Request) {
       "Code quality metrics indicate increased technical debt. I recommend allocating 20% of the next sprint for refactoring and paying down technical debt.",
       "Team morale indicators suggest scheduling a retrospective focused on work-life balance would be beneficial this week."
     ]
-    
-    // Select a random recommendation
-    const randomRecommendation = recommendations[Math.floor(Math.random() * recommendations.length)]
-    
+
+    const clientDescription =
+      typeof description === "string" && description.trim() ? description.trim() : null
+    const clientTitle = typeof title === "string" && title.trim() ? title.trim() : null
+    const clientType = typeof type === "string" && type.trim() ? type.trim() : null
+
+    const insightDescription =
+      clientDescription ?? recommendations[Math.floor(Math.random() * recommendations.length)]
+    const insightTitle = clientTitle ?? "Sprint Planning Recommendation"
+    const insightType = clientType ?? "sprint_planning"
+    void taskIds
+
     // Store the recommendation in the database
     const [newInsight] = await db
       .insert(aiInsights)
       .values({
-        type: "sprint_planning",
-        title: "Sprint Planning Recommendation",
-        description: randomRecommendation,
+        type: insightType,
+        title: insightTitle,
+        description: insightDescription,
         status: "active",
         createdAt: new Date(),
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // Expires in 7 days
       })
       .returning()
-    
+
     return NextResponse.json({
       success: true,
       recommendation: {
@@ -54,7 +66,7 @@ export async function POST(request: Request) {
         title: newInsight.title,
         description: newInsight.description,
         status: newInsight.status,
-        generatedAt: newInsight.createdAt.toISOString()
+        generatedAt: newInsight.createdAt ? newInsight.createdAt.toISOString() : new Date().toISOString()
       }
     })
   } catch (error) {
