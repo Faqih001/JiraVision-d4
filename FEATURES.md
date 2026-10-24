@@ -75,6 +75,52 @@ below with its real implementation status; §3 lists gaps honestly.
   `PLACEHOLDERS.md`). Submissions still store and report success.
 - `GoogleMap` on `/contact` renders only when `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` is set;
   otherwise a fallback card links to Google Maps search (`components/google-map.tsx`).
-- Legacy `/resources/{blog,case-studies,webinars,documentation}` pages are live but still
-  contain v0-era fabricated testimonials and stats — see `PLACEHOLDERS.md` §Content; they
-  contradict the site's honesty conventions and are a launch blocker.
+- Legacy `/resources` fabrications: **documentation, case-studies and webinars are rewritten**
+  (see §5). `blog/[slug]` still carries fake authors and invented stats — the remaining
+  launch blocker in `PLACEHOLDERS.md` §4.
+
+## 5. Documentation, webinars and case studies (rewritten 2026-10-23/24)
+
+All three were rebuilt around a single rule: **one content module drives both the index and the
+detail page**, so a card can never link to an entry that does not exist. Unit tests enforce it.
+
+| Route | Content module | What it renders |
+|---|---|---|
+| `/resources/documentation` + `/[slug]` | `content/documentation.ts` (29 docs, 6 categories) | Searchable index, category browse, FAQ, developer resources; reader with derived section nav, in-doc search, copy, Content/Examples/Endpoints tabs |
+| `/resources/webinars` + `/[slug]` | `content/webinars.ts` (3 sessions) | Session outlines with working search + topic filters; detail page shows the outline, related docs, related product page and the live dashboard route. Renders "No recording published" unless a `videoUrl` is added |
+| `/resources/case-studies` + `/[slug]` | `content/case-studies.ts` (3 scenarios) | Illustrative deployment scenarios (fictitious Acme/GlobalTech/StartupX) with a visible banner: situation → ordered setup steps (each linking to the real route + doc) → measures that state where the number is computed. No result figures, no attributed quotes |
+
+Shared behavior across all three:
+
+- `generateStaticParams()` + `export const dynamicParams = false` on each `[slug]` route, so an
+  unknown slug is a genuine framework **404**. Without this, `notFound()` inside the `(marketing)`
+  group rendered the group boundary under HTTP 200 (dev streaming commits headers first) — curl
+  reported 200 and only a real browser showed the truth.
+- Server components compose, client islands interact: `doc-index.tsx` / `webinar-index.tsx` /
+  `case-study-index.tsx` hold the search and filter state; the pages themselves are server
+  components that only supply metadata.
+- No nested `<main>` — `app/(marketing)/layout.tsx` already provides `<main id="main">`, and the
+  duplicate landmark was an a11y defect on these five pages.
+- All colors are design tokens (`bg-card`, `bg-surface`, `border`, `text-clay`, `text-success`).
+  The legacy slate/white/amber values ignored dark mode entirely. CTA bands use the homepage
+  `bg-primary text-primary-foreground` idiom rather than a gradient (gradients were removed in
+  Phase A).
+- `components/newsletter-form.tsx` is shared by the footer and both CTA bands; it posts to the
+  real `/api/newsletter` (5/min per IP, honeypot `company` field) and resolves against
+  `--primary-foreground` on the inverse variant so it stays legible in dark mode.
+- Guards: `tests/unit/documentation.test.ts` scans doc prose for `/resources/documentation/<slug>`
+  references and fails on a dead one; `webinars.test.ts` and `case-studies.test.ts` assert every
+  `relatedDocs` slug resolves, every `route`/`demoRoute`/`relatedProduct` maps to a real directory,
+  and that no scenario asserts a result figure or an attributed quote.
+
+## 6. Team workspace settings (V3-6)
+
+- `/dashboard/team/settings` + `GET|PUT /api/team/settings`, `PATCH /api/team/members/[id]/role`.
+- **GET is readable by any signed-in member** (the page renders read-only and reports
+  `canManage: false`); **PUT and role changes require a super-admin** and return 403 otherwise,
+  401 when unauthenticated. Verified by curl on 2026-10-24.
+- Writes emit a `system` notification listing exactly what changed (team name, default member
+  role, each notification switch), and role changes are journaled — the page shows the last 12.
+- Pure logic lives in `lib/team-settings-model.ts` (no `lib/db` import) so vitest can exercise it:
+  `tests/unit/team-settings-model.test.ts`, 17 tests.
+
