@@ -15,24 +15,12 @@ import {
 } from "@/components/sections/page-kit"
 import { Section, SectionHeading } from "@/components/sections/section"
 import { Check } from "lucide-react"
-import {
-  pricingHero,
-  pricingNav,
-  pricingProblem,
-  includedEverywhere,
-  billingMethod,
-  compareGroups,
-  seatEconomics,
-  trialSteps,
-  chooseAudience,
-  discounts,
-  pricingPrinciples,
-  pricingQuotes,
-  pricingFaq,
-  pricingRelated,
-  pricingCta,
-} from "@/content/pricing-page"
+import { pricingNav, compareGroups } from "@/content/pricing-page"
+import { getPageContent } from "@/lib/cms"
 import { PricingPlans, CostVsTimeEstimator } from "./pricing-calculator"
+
+// CMS overrides are read from Postgres per request; never serve a build-time snapshot.
+export const dynamic = "force-dynamic"
 
 export function generateMetadata(): Metadata {
   return {
@@ -116,6 +104,21 @@ function CompareTable() {
 }
 
 export default async function PricingPage() {
+  const {
+    pricingHero,
+    pricingProblem,
+    includedEverywhere,
+    billingMethod,
+    seatEconomics,
+    trialSteps,
+    chooseAudience,
+    discounts,
+    pricingPrinciples,
+    pricingQuotes,
+    pricingFaq,
+    pricingRelated,
+    pricingCta,
+  } = await getPageContent("pricing")
   return (
     <>
       <PageHero

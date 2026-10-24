@@ -13,42 +13,49 @@ import { PricingSeats } from "@/components/sections/pricing-seats"
 import { Testimonials } from "@/components/sections/testimonials"
 import { FaqTeaser } from "@/components/sections/faq-teaser"
 import { CtaBand } from "@/components/sections/home-misc"
-import { hero } from "@/content/home"
+import { getPageContent } from "@/lib/cms"
 
-export const metadata: Metadata = {
-  title: "JiraVision — AI-native project management",
-  description:
-    "Capacity-aware sprint planning, mood-aware workload balancing and ethical team metrics — powered by IBM Granite, with a human approving every decision.",
-  alternates: { canonical: "/" },
-  openGraph: {
-    title: hero.title,
-    description: hero.subtitle,
-    url: "/",
-    type: "website",
-  },
+// CMS overrides are read from Postgres per request; never serve a build-time snapshot.
+export const dynamic = "force-dynamic"
+
+export async function generateMetadata(): Promise<Metadata> {
+  const { hero } = await getPageContent("home")
+  return {
+    title: "JiraVision — AI-native project management",
+    description:
+      "Capacity-aware sprint planning, mood-aware workload balancing and ethical team metrics — powered by IBM Granite, with a human approving every decision.",
+    alternates: { canonical: "/" },
+    openGraph: {
+      title: hero.title,
+      description: hero.subtitle,
+      url: "/",
+      type: "website",
+    },
+  }
 }
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  const cms = await getPageContent("home")
   return (
     <>
       <Hero />
       <ProblemSolution />
       <Pillars />
       <HowItWorks />
-      <ProductTour />
+      <ProductTour tour={cms.tour} />
       <SandboxDemo />
       <GamificationDemo />
       <EquityExplorer />
       <ResponsibleAi />
-      <UseCases />
+      <UseCases useCases={cms.useCases} />
       <Integrations />
       <Outcomes />
       <CalculatorsDemo />
       <TemplatesCarousel />
       <Testimonials />
       <KeyboardFirst />
-      <PricingSeats />
-      <FaqTeaser />
+      <PricingSeats pricingTeaser={cms.pricingTeaser} seatModel={cms.seatModel} />
+      <FaqTeaser content={cms.faqTeaser} />
       <CtaBand />
     </>
   )

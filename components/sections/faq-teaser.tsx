@@ -1,16 +1,17 @@
 "use client"
 
+import Link from "next/link"
+import { ArrowRight } from "lucide-react"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Section, SectionHeading } from "@/components/sections/section"
-import { FaqMoreLink } from "@/components/sections/home-misc"
-import { faqTeaser } from "@/content/home"
+import { faqTeaser as defaultFaqTeaser } from "@/content/home"
 
-export function FaqTeaser() {
+export function FaqTeaser({ content = defaultFaqTeaser }: { content?: typeof defaultFaqTeaser }) {
   return (
     <Section bg="hatch" className="border-t bg-surface">
-      <SectionHeading eyebrow="FAQ" title={faqTeaser.title} />
+      <SectionHeading eyebrow="FAQ" title={content.title} />
       <Accordion type="single" collapsible className="max-w-3xl divide-y divide-border border-y">
-        {faqTeaser.items.map((item, i) => (
+        {content.items.map((item, i) => (
           <AccordionItem key={item.q} value={`faq-${i}`} className="border-0">
             <AccordionTrigger className="text-left text-sm font-medium hover:no-underline md:text-base">
               {item.q}
@@ -19,7 +20,13 @@ export function FaqTeaser() {
           </AccordionItem>
         ))}
       </Accordion>
-      <FaqMoreLink />
+      <Link
+        href={content.moreLink.href}
+        className="mt-8 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+      >
+        {content.moreLink.label}
+        <ArrowRight className="h-4 w-4" />
+      </Link>
     </Section>
   )
 }

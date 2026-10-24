@@ -2,9 +2,10 @@ import Link from "next/link"
 import { ArrowRight, Check } from "lucide-react"
 import { mockups } from "@/components/mockups/product-mockups"
 import { Section, SectionHeading, Reveal } from "@/components/sections/section"
-import { pillars } from "@/content/home"
+import { getPageContent } from "@/lib/cms"
 
-export function Pillars() {
+export async function Pillars() {
+  const { pillars } = await getPageContent("home")
   return (
     <Section bg="grain">
       <SectionHeading

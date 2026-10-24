@@ -1,8 +1,9 @@
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Section, SectionHeading, Reveal } from "@/components/sections/section"
-import { testimonials } from "@/content/home"
+import { getPageContent } from "@/lib/cms"
 
-export function Testimonials() {
+export async function Testimonials() {
+  const { testimonials } = await getPageContent("home")
   return (
     <Section bg="dots">
       <SectionHeading eyebrow="Testimonials" title={testimonials.title} />

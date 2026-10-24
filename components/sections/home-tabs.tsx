@@ -3,9 +3,9 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { mockups } from "@/components/mockups/product-mockups"
 import { Section, SectionHeading } from "@/components/sections/section"
-import { tour, useCases } from "@/content/home"
+import { tour as defaultTour, useCases as defaultUseCases } from "@/content/home"
 
-export function ProductTour() {
+export function ProductTour({ tour = defaultTour }: { tour?: typeof defaultTour }) {
   return (
     <Section bg="hatch" className="border-y bg-surface">
       <SectionHeading eyebrow="Product tour" title="See the working views" className="mx-auto text-center" />
@@ -36,7 +36,7 @@ export function ProductTour() {
   )
 }
 
-export function UseCases() {
+export function UseCases({ useCases = defaultUseCases }: { useCases?: typeof defaultUseCases }) {
   return (
     <Section bg="contour" className="border-y bg-surface">
       <SectionHeading eyebrow="Use cases" title={useCases.title} className="mx-auto text-center" />

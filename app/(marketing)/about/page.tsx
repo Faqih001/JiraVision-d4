@@ -16,21 +16,10 @@ import {
   CtaSection,
 } from "@/components/sections/page-kit"
 import { changelog } from "@/content/changelog"
-import {
-  hero,
-  origin,
-  story,
-  values,
-  howWeWork,
-  team,
-  decisions,
-  transparency,
-  honestFit,
-  milestones,
-  faq,
-  related,
-  cta,
-} from "@/content/about"
+import { getPageContent } from "@/lib/cms"
+
+// CMS overrides are read from Postgres per request; never serve a build-time snapshot.
+export const dynamic = "force-dynamic"
 
 export function generateMetadata(): Metadata {
   return {
@@ -41,7 +30,22 @@ export function generateMetadata(): Metadata {
   }
 }
 
-export default function AboutPage() {
+export default async function AboutPage() {
+  const {
+    hero,
+    origin,
+    story,
+    values,
+    howWeWork,
+    team,
+    decisions,
+    transparency,
+    honestFit,
+    milestones,
+    faq,
+    related,
+    cta,
+  } = await getPageContent("about")
   const shipped = changelog.slice(0, 5)
 
   return (

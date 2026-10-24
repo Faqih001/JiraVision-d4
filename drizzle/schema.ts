@@ -1,4 +1,4 @@
-import { pgTable, serial, text, varchar, timestamp, boolean, date, integer, decimal, jsonb, primaryKey, uuid } from "drizzle-orm/pg-core"
+import { pgTable, serial, text, varchar, timestamp, boolean, date, integer, decimal, jsonb, primaryKey, unique, uuid } from "drizzle-orm/pg-core"
 import { relations } from "drizzle-orm"
 
 // Users table
@@ -297,4 +297,32 @@ export const savedReports = pgTable("saved_reports", {
   description: text("description"),
   config: jsonb("config").default({}),
   createdAt: timestamp("created_at").defaultNow(),
+})
+
+// Landing-page CMS: per-section content overrides edited by super-admins.
+// One row per (page, section); `fields` holds only paths declared in
+// lib/cms-registry.ts. Additive-only; nothing existing refers to it.
+export const cmsContentOverrides = pgTable(
+  "cms_content_overrides",
+  {
+    id: serial("id").primaryKey(),
+    pageId: varchar("page_id", { length: 64 }).notNull(),
+    sectionId: varchar("section_id", { length: 64 }).notNull(),
+    fields: jsonb("fields").notNull().default({}),
+    isPublished: boolean("is_published").notNull().default(true),
+    updatedBy: integer("updated_by"),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => [unique("cms_overrides_page_section").on(table.pageId, table.sectionId)],
+)
+
+// Audit trail for CMS mutations (save / publish / unpublish / reset).
+export const cmsAuditLog = pgTable("cms_audit_log", {
+  id: serial("id").primaryKey(),
+  pageId: varchar("page_id", { length: 64 }).notNull(),
+  sectionId: varchar("section_id", { length: 64 }).notNull(),
+  action: varchar("action", { length: 32 }).notNull(),
+  userId: integer("user_id"),
+  detail: jsonb("detail").notNull().default({}),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 })

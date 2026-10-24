@@ -2,17 +2,10 @@ import Link from "next/link"
 import { ArrowRight, CalendarClock, CircleDot, Plug, ShieldCheck, TrendingUp, Users } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Section, SectionHeading, Reveal } from "@/components/sections/section"
-import {
-  finalCta,
-  faqTeaser,
-  howItWorks,
-  integrations,
-  outcomes,
-  problem,
-  responsibleAi,
-} from "@/content/home"
+import { getPageContent } from "@/lib/cms"
 
-export function ProblemSolution() {
+export async function ProblemSolution() {
+  const { problem } = await getPageContent("home")
   return (
     <Section bg="dots" className="border-y bg-surface">
       <SectionHeading eyebrow="The problem" title={problem.title} intro={problem.intro} />
@@ -33,7 +26,8 @@ export function ProblemSolution() {
 
 const stepIcons = [Plug, CircleDot, CalendarClock, TrendingUp]
 
-export function HowItWorks() {
+export async function HowItWorks() {
+  const { howItWorks } = await getPageContent("home")
   return (
     <Section id={howItWorks.id} bg="grid">
       <SectionHeading eyebrow="How it works" title={howItWorks.title} intro={howItWorks.intro} />
@@ -58,7 +52,8 @@ export function HowItWorks() {
   )
 }
 
-export function Integrations() {
+export async function Integrations() {
+  const { integrations } = await getPageContent("home")
   return (
     <Section bg="band-clay">
       <SectionHeading eyebrow="Integrations" title={integrations.title} intro={integrations.intro} />
@@ -88,7 +83,8 @@ export function Integrations() {
   )
 }
 
-export function ResponsibleAi() {
+export async function ResponsibleAi() {
+  const { responsibleAi } = await getPageContent("home")
   return (
     <Section bg="inverse" watermark="J">
       <SectionHeading eyebrow="Trust" title={responsibleAi.title} intro={responsibleAi.intro} />
@@ -113,7 +109,8 @@ export function ResponsibleAi() {
   )
 }
 
-export function Outcomes() {
+export async function Outcomes() {
+  const { outcomes } = await getPageContent("home")
   return (
     <Section bg="band-sage" className="border-y bg-surface">
       <SectionHeading eyebrow="Results" title={outcomes.title} intro={outcomes.intro} />
@@ -134,16 +131,8 @@ export function Outcomes() {
   )
 }
 
-export function FaqMoreLink() {
-  return (
-    <Link href={faqTeaser.moreLink.href} className="mt-8 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline">
-      {faqTeaser.moreLink.label}
-      <ArrowRight className="h-4 w-4" />
-    </Link>
-  )
-}
-
-export function CtaBand() {
+export async function CtaBand() {
+  const { finalCta } = await getPageContent("home")
   return (
     <section className="bg-primary text-primary-foreground">
       <div className="container flex flex-col items-start gap-6 py-16 md:flex-row md:items-center md:justify-between md:py-20">

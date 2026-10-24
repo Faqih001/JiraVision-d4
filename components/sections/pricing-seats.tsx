@@ -7,13 +7,19 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
 import { Section, SectionHeading } from "@/components/sections/section"
-import { pricingTeaser, seatModel } from "@/content/home"
+import { pricingTeaser as defaultTeaser, seatModel as defaultSeatModel } from "@/content/home"
 import { cn } from "@/lib/utils"
 
 const usd = (v: number) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(v)
 
-export function PricingSeats() {
+export function PricingSeats({
+  pricingTeaser = defaultTeaser,
+  seatModel = defaultSeatModel,
+}: {
+  pricingTeaser?: typeof defaultTeaser
+  seatModel?: typeof defaultSeatModel
+}) {
   const [seats, setSeats] = useState(seatModel.defaultSeats)
   const [annual, setAnnual] = useState(true)
 

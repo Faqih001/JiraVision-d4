@@ -2,9 +2,10 @@ import Link from "next/link"
 import { ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { SprintBoardMock } from "@/components/mockups/product-mockups"
-import { builtOn, hero } from "@/content/home"
+import { getPageContent } from "@/lib/cms"
 
-export function Hero() {
+export async function Hero() {
+  const { hero, builtOn } = await getPageContent("home")
   return (
     <section className="border-b bg-surface">
       <div className="container grid items-center gap-12 py-16 md:py-24 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16">
