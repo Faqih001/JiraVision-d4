@@ -84,9 +84,11 @@ below with its real implementation status; §3 lists gaps honestly.
   The older `app/context/chat/ChatContext.tsx` + `components/chat/*` stack was never imported by
   anything and its provider hard-coded ~24 actions to `() => {}`, so it was deleted (2026-10-25)
   along with its orphaned clients `lib/api-chat.ts`, `lib/chat-client.ts`, `lib/socket-client.ts`,
-  `lib/socket.ts`, `utils/socketUtil.ts` and the broken `server/websocket.ts`. `socket.io-client`
-  now has no importer; `socket.io` is used only by `lib/websocket-manager.js` behind
-  `npm run dev:socket`.
+  `lib/socket.ts`, `utils/socketUtil.ts` and the broken `server/websocket.ts`. The rest of the
+  socket.io layer followed: `server.js`, `lib/websocket-manager.js`, both `socket.io*` deps, the
+  `dev:socket`/`start:socket` scripts and `NEXT_PUBLIC_WEBSOCKET_URL`/`NEXT_PUBLIC_SOCKET_URL`.
+  A persistent socket server could never run on Vercel anyway (see `REDESIGN_PLAN.md`), so polling
+  is the delivery model rather than a fallback.
 - Four chat endpoints have no client left and are working-but-unreachable: `[chatId]/mute` (the UI
   mutes through `[chatId]/settings` instead), `[chatId]/read` (the messages GET marks read on a
   full stream), `messages/[messageId]/permanent-delete`, and `chat/notifications` (the UI reads

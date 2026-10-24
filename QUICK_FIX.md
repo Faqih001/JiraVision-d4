@@ -58,9 +58,6 @@ JWT_SECRET=your-generated-jwt-secret-here
 ```bash
 # Email (if using Resend)
 RESEND_API_KEY=your-resend-api-key-here
-
-# WebSocket (if using)
-NEXT_PUBLIC_SOCKET_URL=https://your-app.vercel.app
 ```
 
 ### Step 3: Redeploy

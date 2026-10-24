@@ -302,9 +302,11 @@ Inventory findings this build (what already exists):
   team(+settings), team-wellbeing).
 - ~60 API routes; drizzle Postgres (Neon) with 26 tables incl. `users.role` (default "user") and
   `notifications` (userId/type/title/body/isRead/metadata).
-- Realtime today is dead code: socket.io lives in `server/websocket.ts` + `lib/websocket-manager.ts`
-  but `npm run dev/start` never boots a custom server, and Vercel (the deploy target) cannot host a
+- Realtime today is dead code: socket.io lived in `server/websocket.ts` + `lib/websocket-manager.ts`
+  but `npm run dev/start` never booted a custom server, and Vercel (the deploy target) cannot host a
   persistent socket server. → Realtime ships as SSE + polling fallback, DB as source of truth.
+  **Resolved 2026-10-25**: the whole socket.io layer was deleted (server.js, lib/websocket-manager.js,
+  both `socket.io*` deps, the `dev:socket`/`start:socket` scripts and the two socket env vars).
 - Bell dropdown in the shell is hardcoded fake notifications; `app/api/chat/notifications` uses a
   hardcoded userId=1. recharts 2.15.0 available. Middleware protects /dashboard via session cookies.
 

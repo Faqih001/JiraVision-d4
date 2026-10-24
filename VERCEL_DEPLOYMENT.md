@@ -60,8 +60,6 @@ JWT_SECRET='your-generated-secure-secret-here'
 
 ```bash
 RESEND_API_KEY='your-resend-api-key-here'
-
-NEXT_PUBLIC_SOCKET_URL='https://your-socket-server.com'
 ```
 
 ## 🚀 Deployment Steps
@@ -142,12 +140,7 @@ eslint: {
 }
 ```
 
-### Issue 5: Socket.IO Connection Fails
-**Fix:**
-- Update `NEXT_PUBLIC_SOCKET_URL` to your socket server URL
-- If not using WebSockets, set to `https://your-app.vercel.app`
-
-### Issue 6: Image Optimization Fails
+### Issue 5: Image Optimization Fails
 **Note:** Already handled in `next.config.mjs`
 
 ```javascript
@@ -209,7 +202,6 @@ If deployment failed:
 | `NEXT_PUBLIC_APP_URL` | ✅ Yes | Your Vercel app URL |
 | `JWT_SECRET` | ✅ Yes | Secure random 64-char string |
 | `RESEND_API_KEY` | ❌ No | For email functionality |
-| `NEXT_PUBLIC_SOCKET_URL` | ❌ No | For WebSocket functionality |
 
 ## 🛡️ Security Best Practices
 

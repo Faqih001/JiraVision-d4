@@ -215,7 +215,6 @@ NODE_ENV=production                      # ⚠️ Update for production
 JWT_SECRET='...'                         # ⚠️ Update from default
 NEXT_PUBLIC_APP_URL=https://...         # ⚠️ Update for production
 RESEND_API_KEY='...'                     # ✅ Configured (optional)
-NEXT_PUBLIC_SOCKET_URL=https://...      # ⚠️ Update for production
 ```
 
 ---

@@ -1,7 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   typescript: {
-    // TODO(redesign phase F): pre-existing type debt (~100 errors); remove this once `npm run typecheck` is clean
+    // TODO(redesign phase F): 40 pre-existing type errors across 14 files as of 2026-10-25 —
+    // mostly drizzle/run-migrations, lib/seed-data and the dashboard APIs, plus components that
+    // import packages that are not installed (@mui/material, @prisma/client). Remove once clean.
     ignoreBuildErrors: true,
   },
   images: {
@@ -13,12 +15,6 @@ const nextConfig = {
       },
     ],
   },
-  // Make sure modules used for WebSockets are correctly bundled
-  serverExternalPackages: ['socket.io', 'socket.io-client'],
-  // Enable the custom server for WebSocket support
-  // NOTE: This disables automatic static optimization
-  // You may want to keep this disabled in production and handle WebSockets separately
-  useFileSystemPublicRoutes: true,
   // Add async rewrites to proxy aitopia.ai requests
   async rewrites() {
     return [
@@ -30,19 +26,6 @@ const nextConfig = {
   },
   // Font optimization is now handled automatically by Next.js
   turbopack: {},
-  webpack: (config, { isServer }) => {
-    // Handle client-side polyfills for socket.io
-    if (!isServer) {
-      config.resolve.fallback = {
-        ...config.resolve.fallback,
-        // Ensure client-side socket.io has these polyfills
-        net: false,
-        tls: false,
-        fs: false,
-      };
-    }
-    return config;
-  },
 }
 
 export default nextConfig

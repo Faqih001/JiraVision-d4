@@ -3,7 +3,7 @@ import nextConfig from "eslint-config-next"
 export default [
   ...nextConfig,
   {
-    ignores: ["drizzle/**", "scripts/**", "public/**", "generate-jwt-secret.js", "server.js"],
+    ignores: ["drizzle/**", "scripts/**", "public/**", "generate-jwt-secret.js"],
   },
   {
     files: ["**/*.ts", "**/*.tsx"],
