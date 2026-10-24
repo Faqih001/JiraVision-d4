@@ -87,6 +87,11 @@ export default function ResetPasswordPage() {
 
   return (
     <AuthShell
+      image="https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=1200&q=80"
+      imageAlt="A desk with a calculator and scheduling notes"
+      imageSide="right"
+      panelTitle="One last step"
+      panelBody="Set a new password and you’re straight back in. If this link has already been used, request a fresh one."
       title={isSubmitted ? "Password reset" : "Create a new password"}
       subtitle={
         isSubmitted

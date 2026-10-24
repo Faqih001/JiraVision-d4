@@ -48,6 +48,7 @@ export default function LoginPage() {
     <AuthShell
       image="https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=1200&q=80"
       imageAlt="A team collaborating around laptops"
+      imageSide="left"
       panelTitle="Welcome back"
       panelBody="Log in to your JiraVision account to pick up where your team left off."
       title="Sign in to your account"

@@ -43,6 +43,11 @@ export default function ForgotPasswordPage() {
 
   return (
     <AuthShell
+      image="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80"
+      imageAlt="Laptops and notebooks on a busy small-team desk"
+      imageSide="left"
+      panelTitle="Account recovery"
+      panelBody="Reset links go to the address already on your account, and your password stays unchanged until you follow one."
       title="Reset your password"
       subtitle="Enter your email address and we’ll send you a link to reset your password."
     >
