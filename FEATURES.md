@@ -75,13 +75,13 @@ below with its real implementation status; §3 lists gaps honestly.
   `PLACEHOLDERS.md`). Submissions still store and report success.
 - `GoogleMap` on `/contact` renders only when `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` is set;
   otherwise a fallback card links to Google Maps search (`components/google-map.tsx`).
-- Legacy `/resources` fabrications: **documentation, case-studies and webinars are rewritten**
-  (see §5). `blog/[slug]` still carries fake authors and invented stats — the remaining
-  launch blocker in `PLACEHOLDERS.md` §4.
+- Legacy `/resources` fabrications: **documentation, webinars, case-studies and blog are all
+  rewritten** (see §5). No `blocks launch` row remains in `PLACEHOLDERS.md` §4 — what is left there
+  is owner-supplied material (a real customer reference, webinar recordings, confirmed bylines).
 
-## 5. Documentation, webinars and case studies (rewritten 2026-10-23/24)
+## 5. Documentation, webinars, case studies and blog (rewritten 2026-10-23/24/25)
 
-All three were rebuilt around a single rule: **one content module drives both the index and the
+All four were rebuilt around a single rule: **one content module drives both the index and the
 detail page**, so a card can never link to an entry that does not exist. Unit tests enforce it.
 
 | Route | Content module | What it renders |
@@ -89,29 +89,45 @@ detail page**, so a card can never link to an entry that does not exist. Unit te
 | `/resources/documentation` + `/[slug]` | `content/documentation.ts` (29 docs, 6 categories) | Searchable index, category browse, FAQ, developer resources; reader with derived section nav, in-doc search, copy, Content/Examples/Endpoints tabs |
 | `/resources/webinars` + `/[slug]` | `content/webinars.ts` (3 sessions) | Session outlines with working search + topic filters; detail page shows the outline, related docs, related product page and the live dashboard route. Renders "No recording published" unless a `videoUrl` is added |
 | `/resources/case-studies` + `/[slug]` | `content/case-studies.ts` (3 scenarios) | Illustrative deployment scenarios (fictitious Acme/GlobalTech/StartupX) with a visible banner: situation → ordered setup steps (each linking to the real route + doc) → measures that state where the number is computed. No result figures, no attributed quotes |
+| `/resources/blog` + `/[slug]` | `content/blog.ts` (7 posts, 4 categories) | Index with search, category chips and real per-category counts, one featured card, and an explicit "what you will not find here" list; reader with a sticky in-page search + derived table of contents, related docs, product link and the live dashboard route, working copy-link share, and prev/next navigation. No bylines, no result figures, no view/like counters |
 
-Shared behavior across all three:
+Shared behavior across all four:
 
 - `generateStaticParams()` + `export const dynamicParams = false` on each `[slug]` route, so an
   unknown slug is a genuine framework **404**. Without this, `notFound()` inside the `(marketing)`
   group rendered the group boundary under HTTP 200 (dev streaming commits headers first) — curl
-  reported 200 and only a real browser showed the truth.
+  reported 200 and only a real browser showed the truth. The blog also had a *static* directory
+  (`blog/ai-scrum-master-guide/page.tsx`) shadowing the `[slug]` value; deleting it lets the dynamic
+  route serve that slug.
+- `lib/markdown-lite.ts` is the one parser behind both readers (`parseMarkdown`, `sectionsOf`,
+  `blockMatches`, `slugifyHeading`, `wordCount`). Extracting it removed ~90 duplicated lines from
+  `doc-reader.tsx`, fixed a real bug where a wrapped list item was split into a stray paragraph, and
+  let the blog drop `dangerouslySetInnerHTML` — article bodies are typed blocks, never HTML strings.
+  The blog's `readingMinutes()` derives from `wordCount()` at 200 wpm rather than being stated by hand.
+- `app/sitemap.ts` and `content/search-index.ts` both derive their blog entries from `blogList`, so
+  the Cmd/Ctrl+K palette and the sitemap cannot drift from the catalogue. `tests/unit/blog.test.ts`
+  fails if they do.
 - Server components compose, client islands interact: `doc-index.tsx` / `webinar-index.tsx` /
-  `case-study-index.tsx` hold the search and filter state; the pages themselves are server
-  components that only supply metadata.
+  `case-study-index.tsx` / `blog-index.tsx` hold the search and filter state; `blog-reader.tsx` holds
+  the in-page search and copy-link state. The pages themselves are server components that only supply
+  metadata.
 - No nested `<main>` — `app/(marketing)/layout.tsx` already provides `<main id="main">`, and the
-  duplicate landmark was an a11y defect on these five pages.
+  duplicate landmark was an a11y defect on these pages. The root `app/not-found.tsx` (which *does* own
+  the landmark for non-marketing 404s, and is embedded in every page's flight payload) was the last
+  slate/gradient/indigo holdout and is now token-based.
 - All colors are design tokens (`bg-card`, `bg-surface`, `border`, `text-clay`, `text-success`).
   The legacy slate/white/amber values ignored dark mode entirely. CTA bands use the homepage
   `bg-primary text-primary-foreground` idiom rather than a gradient (gradients were removed in
   Phase A).
-- `components/newsletter-form.tsx` is shared by the footer and both CTA bands; it posts to the
+- `components/newsletter-form.tsx` is shared by the footer and the CTA bands; it posts to the
   real `/api/newsletter` (5/min per IP, honeypot `company` field) and resolves against
   `--primary-foreground` on the inverse variant so it stays legible in dark mode.
 - Guards: `tests/unit/documentation.test.ts` scans doc prose for `/resources/documentation/<slug>`
   references and fails on a dead one; `webinars.test.ts` and `case-studies.test.ts` assert every
   `relatedDocs` slug resolves, every `route`/`demoRoute`/`relatedProduct` maps to a real directory,
-  and that no scenario asserts a result figure or an attributed quote.
+  and that no scenario asserts a result figure or an attributed quote. `blog.test.ts` additionally
+  fails on a legacy byline, a percentage, an attributed quote, an engagement counter, raw HTML in a
+  post body, or a search-index entry that is not in the catalogue.
 
 ## 6. Team workspace settings (V3-6)
 

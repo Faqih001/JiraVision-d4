@@ -155,7 +155,10 @@ Observed, enforced-in-practice rules (REDESIGN_PLAN V2-1/V2-3 + homepage impleme
   islands sit in `components/features/`, `components/forms/`, `components/sections/demo-*.tsx`.
   Exception: islands shared by an index route *and* its `[slug]` sibling live at `components/`
   root (`doc-index.tsx` + `doc-reader.tsx`, `webinar-index.tsx`, `case-study-index.tsx`,
-  `newsletter-form.tsx`), because they are not scoped to one route directory.
+  `blog-index.tsx` + `blog-reader.tsx`, `newsletter-form.tsx`), because they are not scoped to
+  one route directory. `doc-reader.tsx` and `blog-reader.tsx` both parse through
+  `lib/markdown-lite.ts` — a db-free module, so vitest can import it (`content/blog.ts` and
+  `content/documentation.ts` are db-free for the same reason).
 - **localStorage-backed state goes through `useSyncExternalStore` with a cached,
   hydration-stable snapshot (server snapshot = default/empty) — never `setState` in an
   effect.** Implemented this way in: `announcement-bar.tsx` (dismissal), `site-search.tsx`
@@ -179,11 +182,10 @@ Observed, enforced-in-practice rules (REDESIGN_PLAN V2-1/V2-3 + homepage impleme
   disclaimer "Example quotes from early-access conversations. We publish attributed
   testimonials only with permission."
 - Where a number is unverified, the UI says so instead of showing it: `Outcomes`
-  (`home-misc.tsx:128`) suppresses the stat row while `content/home.ts` values are
-  `"PLACEHOLDER"` and shows "Measured outcomes coming soon…".
-  Caveat: the homepage `Testimonials` section does NOT gate names — `content/home.ts`
-  still feeds literal "PLACEHOLDER — Engineering manager" strings there (owner item in
-  `PLACEHOLDERS.md`).
+  (`home-misc.tsx:125`) suppresses the stat row while `content/home.ts` values are
+  `"PLACEHOLDER"` and shows "Measured outcomes coming soon…". That suppression is the only
+  place the literal string still reaches a component; every testimonial name now reads
+  "Early-access participant — Role" (`content/home.ts:241,248,255`).
 - Illustrative models are labelled: burnout/ROI calculators ("illustrative, not clinical"),
   migration hour model, ROI disclaimer on `/pricing`.
 - Compare pages: no competitor prices/logos/scores, "verify current details on their site"
@@ -195,3 +197,11 @@ Observed, enforced-in-practice rules (REDESIGN_PLAN V2-1/V2-3 + homepage impleme
   asserting a result, and `tests/unit/case-studies.test.ts` fails if any entry carries a
   percentage, an attributed quote, or a `customer` field the owner has not supplied.
   `/resources/webinars` renders "No recording published" unless a `videoUrl` exists.
+- `/resources/blog` publishes **no bylines, no result figures and no engagement theatre**.
+  Posts are credited "JiraVision team"; the `author` field in `content/blog.ts` is reserved for a
+  confirmed real person and is currently absent from every post. Category counts come from
+  `postsByCategory()` and read time from `readingMinutes()` (word count ÷ 200 wpm), so neither is
+  typed by hand. Where the old articles asserted an outcome ("40% reduction in admin time"), the
+  rewrite instead names the dashboard page where the reader can compute that number for their own
+  team. `tests/unit/blog.test.ts` fails on a legacy byline, a percentage, an attributed quote, a
+  view/like/comment counter, or raw HTML in a post body.

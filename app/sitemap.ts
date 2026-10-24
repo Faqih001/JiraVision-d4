@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next"
+import { blogList } from "@/content/blog"
 import { caseStudySlugs } from "@/content/case-studies"
 import { changelog } from "@/content/changelog"
 import { docSlugs } from "@/content/documentation"
@@ -7,7 +8,13 @@ import { webinarSlugs } from "@/content/webinars"
 const site = "https://jiravision.vercel.app"
 
 // Auth and transactional pages are excluded (they carry noindex at page level).
-const marketing: { path: string; changeFrequency: MetadataRoute.Sitemap[number]["changeFrequency"]; priority: number }[] = [
+const marketing: {
+  path: string
+  changeFrequency: MetadataRoute.Sitemap[number]["changeFrequency"]
+  priority: number
+  /** ISO date. Falls back to the shared last-review date below. */
+  lastModified?: string
+}[] = [
   { path: "/", changeFrequency: "weekly", priority: 1 },
   { path: "/pricing", changeFrequency: "monthly", priority: 0.9 },
   { path: "/about", changeFrequency: "monthly", priority: 0.6 },
@@ -38,19 +45,11 @@ const marketing: { path: string; changeFrequency: MetadataRoute.Sitemap[number][
     priority: 0.7,
   })),
   { path: "/resources/blog", changeFrequency: "weekly", priority: 0.6 },
-  { path: "/resources/blog/ai-scrum-master-guide", changeFrequency: "yearly", priority: 0.5 },
-  // The four dynamic posts from blogPosts in
-  // app/(marketing)/resources/blog/[slug]/page.tsx — kept in sync by hand
-  // because that list is not importable from a page module.
-  ...[
-    "ai-transforming-agile",
-    "improve-team-wellbeing",
-    "gamification-science",
-    "ethical-ai-project-management",
-  ].map((slug) => ({
-    path: `/resources/blog/${slug}`,
+  ...blogList.map((post) => ({
+    path: `/resources/blog/${post.slug}`,
     changeFrequency: "yearly" as const,
     priority: 0.5,
+    lastModified: post.publishedOn,
   })),
   { path: "/resources/documentation", changeFrequency: "monthly", priority: 0.5 },
   ...docSlugs().map((slug) => ({
@@ -80,10 +79,10 @@ const marketing: { path: string; changeFrequency: MetadataRoute.Sitemap[number][
 export default function sitemap(): MetadataRoute.Sitemap {
   return marketing.map((entry) => ({
     url: `${site}${entry.path}`,
-    lastModified:
-      entry.path === "/changelog"
-        ? new Date(changelog[0]!.date)
-        : new Date("2026-10-23"),
+    lastModified: new Date(
+      entry.lastModified ??
+        (entry.path === "/changelog" ? changelog[0]!.date : "2026-10-23"),
+    ),
     changeFrequency: entry.changeFrequency,
     priority: entry.priority,
   }))

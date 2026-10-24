@@ -7,115 +7,17 @@ import { ArrowLeft, Check, ChevronRight, Copy, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { slugifyHeading, type DocEntry, type DocSection } from "@/content/documentation"
-
-type Line =
-  | { kind: "heading"; level: 1 | 2 | 3; text: string }
-  | { kind: "ul"; items: string[] }
-  | { kind: "ol"; items: string[] }
-  | { kind: "code"; lines: string[] }
-  | { kind: "para"; text: string }
-
-const HEADING = /^(#{1,3})\s+(.*)$/
-const BULLET = /^-\s+(.*)$/
-const STEP = /^\d+\.\s+(.*)$/
-
-/** markdown-lite parser: headings, bullet runs, numbered runs, indented code, paragraphs. */
-function parse(markdown: string): Line[] {
-  const lines = markdown.split("\n")
-  const out: Line[] = []
-  let index = 0
-
-  while (index < lines.length) {
-    const line = lines[index]
-
-    if (line.trim() === "") {
-      index += 1
-      continue
-    }
-
-    const heading = HEADING.exec(line)
-    if (heading) {
-      out.push({ kind: "heading", level: heading[1].length as 1 | 2 | 3, text: heading[2].trim() })
-      index += 1
-      continue
-    }
-
-    if (/^\s{4}\S/.test(line)) {
-      const code: string[] = []
-      while (index < lines.length && (/^\s{4}\S/.test(lines[index]) || lines[index].trim() === "")) {
-        code.push(lines[index].replace(/^ {4}/, ""))
-        index += 1
-      }
-      while (code.length && code[code.length - 1].trim() === "") code.pop()
-      out.push({ kind: "code", lines: code })
-      continue
-    }
-
-    const bullet = BULLET.exec(line)
-    if (bullet) {
-      const items: string[] = []
-      while (index < lines.length) {
-        const match = BULLET.exec(lines[index])
-        if (!match) break
-        items.push(match[1])
-        index += 1
-      }
-      out.push({ kind: "ul", items })
-      continue
-    }
-
-    const step = STEP.exec(line)
-    if (step) {
-      const items: string[] = []
-      while (index < lines.length) {
-        const match = STEP.exec(lines[index])
-        if (!match) break
-        items.push(match[1])
-        index += 1
-      }
-      out.push({ kind: "ol", items })
-      continue
-    }
-
-    const paragraph: string[] = []
-    while (
-      index < lines.length &&
-      lines[index].trim() !== "" &&
-      !HEADING.test(lines[index]) &&
-      !BULLET.test(lines[index]) &&
-      !STEP.test(lines[index]) &&
-      !/^\s{4}\S/.test(lines[index])
-    ) {
-      paragraph.push(lines[index].trim())
-      index += 1
-    }
-    out.push({ kind: "para", text: paragraph.join(" ") })
-  }
-
-  return out
-}
-
-function matchesQuery(line: Line, needle: string) {
-  if (!needle) return true
-  const text =
-    line.kind === "heading" || line.kind === "para"
-      ? line.text
-      : line.kind === "code"
-        ? line.lines.join(" ")
-        : line.items.join(" ")
-  return text.toLowerCase().includes(needle)
-}
+import { type DocEntry } from "@/content/documentation"
+import { blockMatches, parseMarkdown, sectionsOf, slugifyHeading } from "@/lib/markdown-lite"
 
 export default function DocReader({ doc, related }: { doc: DocEntry; related: DocEntry[] }) {
   const [query, setQuery] = useState("")
   const [copied, setCopied] = useState(false)
 
   const needle = query.trim().toLowerCase()
-  const blocks = parse(doc.content).filter((block) => matchesQuery(block, needle))
-  const sections: DocSection[] = parse(doc.content)
-    .filter((block): block is Extract<Line, { kind: "heading" }> => block.kind === "heading" && block.level > 1)
-    .map((block) => ({ id: slugifyHeading(block.text), title: block.text, depth: block.level as 2 | 3 }))
+  const parsed = parseMarkdown(doc.content)
+  const blocks = parsed.filter((block) => blockMatches(block, needle))
+  const sections = sectionsOf(doc.content)
 
   const copy = async () => {
     try {

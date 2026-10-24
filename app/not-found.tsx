@@ -1,32 +1,61 @@
 import type { Metadata } from "next"
 import Link from "next/link"
+import { LifeBuoy, Search } from "lucide-react"
 
 export const metadata: Metadata = {
   title: "Page not found",
   robots: { index: false, follow: true },
 }
 
+// Root boundary: routes outside app/(marketing) have no other not-found, and
+// none of their layouts render a <main>, so this one owns the landmark.
 export default function NotFound() {
   return (
-    <main className="min-h-screen flex items-center justify-center bg-gradient-to-b from-slate-50 to-white py-16 px-6">
-      <div className="max-w-3xl w-full text-center">
-        <div className="inline-flex items-center justify-center w-28 h-28 rounded-full bg-gradient-to-br from-indigo-500 to-rose-500 text-white mx-auto mb-8 shadow-lg">
-          <svg className="w-12 h-12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
-            <path d="M11 7a4 4 0 100 8 4 4 0 000-8z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M21 21l-4.35-4.35" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </div>
+    <main className="flex min-h-screen items-center justify-center bg-surface px-6 py-16">
+      <div className="w-full max-w-3xl text-center">
+        <p className="font-display text-sm tracking-[0.2em] text-muted-foreground uppercase">404</p>
+        <h1 className="font-display mt-4 text-4xl font-medium tracking-tight md:text-5xl">
+          Page not found
+        </h1>
+        <p className="prose-body mx-auto mt-4 text-lg text-muted-foreground">
+          We can&apos;t find the page you&apos;re looking for. It may have been moved or deleted, or
+          the address may have been typed incorrectly.
+        </p>
 
-        <h1 className="text-4xl sm:text-5xl font-extrabold text-slate-900 mb-4">Page not found</h1>
-        <p className="text-slate-600 mb-8 max-w-2xl mx-auto">We can't find the page you're looking for. It may have been moved or deleted, or you may have typed the URL incorrectly.</p>
-
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-          <Link href="/" className="inline-flex items-center gap-2 px-5 py-3 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white font-medium shadow-sm transition">
-            Home
+        <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+          <Link
+            href="/"
+            className="inline-flex items-center justify-center rounded-md bg-primary px-5 py-3 font-medium text-primary-foreground shadow-soft transition hover:bg-primary/90"
+          >
+            Back to home
           </Link>
-
-          <Link href="/contact" className="inline-flex items-center gap-2 px-5 py-3 rounded-md border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition">Contact support</Link>
+          <Link
+            href="/contact"
+            className="inline-flex items-center justify-center gap-2 rounded-md border border-border bg-card px-5 py-3 font-medium text-foreground shadow-soft transition hover:bg-muted"
+          >
+            <LifeBuoy className="h-4 w-4" aria-hidden="true" />
+            Contact support
+          </Link>
         </div>
+
+        <p className="mt-10 text-sm text-muted-foreground">
+          <Search className="mr-1 inline h-4 w-4 align-text-bottom" aria-hidden="true" />
+          Press{" "}
+          <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-xs">
+            ⌘
+          </kbd>{" "}
+          <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-xs">
+            K
+          </kbd>{" "}
+          (or{" "}
+          <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-xs">
+            Ctrl
+          </kbd>{" "}
+          <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-xs">
+            K
+          </kbd>
+          ) anywhere to search the site.
+        </p>
       </div>
     </main>
   )

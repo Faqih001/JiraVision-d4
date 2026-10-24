@@ -6,8 +6,6 @@
 // repo (dashboard routes, /api routes, lib helpers). No SDKs, no bearer tokens,
 // no external docs/community sites — those do not exist and are not claimed.
 
-export type DocSection = { id: string; title: string; depth: 2 | 3 }
-
 export type DocEndpoint = {
   method: "GET" | "POST" | "PATCH" | "PUT" | "DELETE"
   path: string
@@ -25,15 +23,6 @@ export type DocEntry = {
   content: string
   endpoints?: DocEndpoint[]
   examples?: DocExample[]
-}
-
-/** Anchor id for a heading — matches the id the doc reader puts on the element. */
-export function slugifyHeading(title: string) {
-  return title
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, "")
-    .trim()
-    .replace(/\s+/g, "-")
 }
 
 export type DocCategoryId =

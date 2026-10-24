@@ -1,3 +1,4 @@
+import { blogList } from "@/content/blog"
 import { changelog } from "@/content/changelog"
 import { faqEntries } from "@/content/faq"
 import { productItems, resourceItems, solutionItems } from "@/content/site"
@@ -33,14 +34,12 @@ export const searchIndex: SearchEntry[] = [
   ...nav(productItems, "Products"),
   ...nav(solutionItems, "Solutions"),
   ...nav(resourceItems, "Resources"),
-  ...[
-    ["AI Scrum Master: the complete guide", "/resources/blog/ai-scrum-master-guide"],
-    ["How AI is transforming agile project management", "/resources/blog/ai-transforming-agile"],
-    ["Ethical AI in project management", "/resources/blog/ethical-ai-project-management"],
-    ["The science of gamification for engineering teams", "/resources/blog/gamification-science"],
-    ["Improving team wellbeing, one sprint at a time", "/resources/blog/improve-team-wellbeing"],
-    ["Preventing burnout: a practical guide for leads", "/resources/blog/preventing-burnout-guide"],
-  ].map(([title, href]) => ({ title, subtitle: "Blog article", href, group: "Blog" as SearchGroup })),
+  ...blogList.map((post) => ({
+    title: post.title,
+    subtitle: post.excerpt.slice(0, 90) + "…",
+    href: `/resources/blog/${post.slug}`,
+    group: "Blog" as SearchGroup,
+  })),
   ...faqEntries.map((entry) => ({
     title: entry.q,
     subtitle: `${entry.category} FAQ`,

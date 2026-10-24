@@ -10,8 +10,8 @@ import {
   readingTime,
   relatedDocs,
   searchDocs,
-  slugifyHeading,
 } from "@/content/documentation"
+import { slugifyHeading } from "@/lib/markdown-lite"
 
 describe("catalogue integrity", () => {
   it("has a doc for every category and no orphan category", () => {
