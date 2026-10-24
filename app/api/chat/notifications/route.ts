@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { notifications } from "@/drizzle/schema";
 import { eq, and, desc, inArray } from "drizzle-orm";
 import { getCurrentUser } from "@/lib/session";
+import { NOTIFICATION_TYPES, type NotificationType } from "@/lib/notifications";
 
 // Session-scoped bulk endpoints kept for the chat/notification surfaces.
 // Single-row CRUD lives under /api/notifications.
@@ -19,8 +20,22 @@ export async function GET(req: NextRequest) {
     const limit = Math.min(Number(searchParams.get("limit") || "20"), 100);
     const offset = Number(searchParams.get("offset") || "0");
 
+    // Filtering has to happen here, not in the caller: limit applies before any
+    // client-side narrowing, so a chat surface asking for "mentions" would be
+    // starved by the user's newest task/sprint/system rows.
+    const requested = (searchParams.get("type") ?? "")
+      .split(",")
+      .map((t) => t.trim())
+      .filter(Boolean);
+    const types = requested.filter((t): t is NotificationType =>
+      (NOTIFICATION_TYPES as readonly string[]).includes(t),
+    );
+
+    const conditions = [eq(notifications.userId, user.id)];
+    if (types.length > 0) conditions.push(inArray(notifications.type, types));
+
     const userNotifications = await db.query.notifications.findMany({
-      where: eq(notifications.userId, user.id),
+      where: and(...conditions),
       orderBy: [desc(notifications.createdAt)],
       limit,
       offset,

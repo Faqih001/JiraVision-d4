@@ -13,20 +13,29 @@
  * "mention" notification per participant per message.
  *
  * Sections:
- *  1  Page header / sync bar
+ *  1  Page header / sync bar (unread total excludes muted chats + mark-all-read)
  *  2  Chat list sidebar (search, unread, pin/mute, groups + DMs)
  *  3  Conversation header (participants, admin group-info edit, toggles)
- *  4  Message stream (day dividers, replies, edit/delete/restore, reactions)
+ *  4  Message stream (day dividers, replies, edit/delete/restore, reactions,
+ *     permanent delete behind a confirm)
  *  5  Composer (Enter send, Shift+Enter newline, emoji picks, @autocomplete,
  *     reply quoting, edit-in-place; attachments honestly disabled — the only
  *     verified upload API in this app is the avatar route)
  *  6  Right rail · Members (admin markers, DM mute/block, presence demo label)
  *  7  Right rail · Chat stats (messages/day, top-reacted, most active)
- *  8  Right rail · @me highlights (+ mention cross-feed from /api/notifications)
+ *  8  Right rail · @me highlights (+ mention cross-feed from
+ *     /api/chat/notifications, mark-read and dismiss)
  *  9  Right rail · Archives (restore/unarchive)
  *  10 Create-group dialog
  *  11 Start-DM dialog (open-or-create via /api/chat/dm)
  *  12 Polling engine + honest sync status
+ *  13 Read receipts + mute semantics: opening a chat — and every poll that
+ *     brings someone else's message into an open chat — POSTs
+ *     /api/chat/{id}/read, which advances chat_participants.last_read and is
+ *     what actually clears unreadCount. Mute writes through
+ *     /api/chat/{id}/mute, drops the chat from the header total and suppresses
+ *     its mention notifications server-side; the row badge stays so nothing is
+ *     silently hidden.
  */
 
 import {
@@ -52,6 +61,7 @@ import {
   BarChart3,
   BellOff,
   Bell,
+  CheckCheck,
   Crown,
   Lock,
   MessageCircle,
@@ -69,6 +79,7 @@ import {
   Users,
   X,
 } from "lucide-react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
@@ -84,6 +95,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 import {
@@ -169,8 +190,9 @@ interface MentionNotification {
   type: string
   title: string
   body: string | null
+  isRead: boolean
   createdAt: string
-  metadata?: { chatId?: string } | null
+  metadata?: { chatId?: string; link?: string } | null
 }
 
 interface Profile {
@@ -288,6 +310,7 @@ function MessageSkeleton() {
 
 export default function ChatWorkspace() {
   const { toast } = useToast()
+  const router = useRouter()
 
   /* -------------------------------------------------- 1 · global state */
 
@@ -313,6 +336,8 @@ export default function ChatWorkspace() {
     "members",
   )
   const [mentionFeed, setMentionFeed] = useState<MentionNotification[]>([])
+  const [markingAllRead, setMarkingAllRead] = useState(false)
+  const [confirmPermanent, setConfirmPermanent] = useState<ChatMessage | null>(null)
 
   const [showCreateGroup, setShowCreateGroup] = useState(false)
   const [showStartDm, setShowStartDm] = useState(false)
@@ -407,6 +432,25 @@ export default function ChatWorkspace() {
     }
   }, [toast])
 
+  /** Advances chat_participants.last_read — the only thing that clears
+   *  unreadCount server-side. Optimistic; resynced from /api/chat on failure.
+   *  Declared with the loaders because the selection and polling effects both
+   *  list it as a dependency. */
+  const markChatRead = useCallback(
+    async (chatId: string) => {
+      setChats((prev) =>
+        prev.map((c) => (c.id === chatId && c.unreadCount > 0 ? { ...c, unreadCount: 0 } : c)),
+      )
+      try {
+        const res = await fetch(`/api/chat/${chatId}/read`, { method: "POST" })
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      } catch {
+        await loadChats({ silent: true })
+      }
+    },
+    [loadChats],
+  )
+
   const loadTeamMembers = useCallback(async () => {
     try {
       const res = await fetch("/api/team/members", { cache: "no-store" })
@@ -418,17 +462,67 @@ export default function ChatWorkspace() {
     }
   }, [])
 
+  // /api/chat/notifications returns a bare array (limit/offset/type); the shell
+  // bell uses /api/notifications, which wraps { items, unreadCount } instead.
+  // type=mention is filtered server-side on purpose — limit is applied before
+  // any client-side narrowing, so filtering here would let a busy user's newer
+  // task/system rows push every mention out of the window.
   const loadMentionFeed = useCallback(async () => {
     try {
-      const res = await fetch("/api/notifications?limit=30", { cache: "no-store" })
+      const res = await fetch("/api/chat/notifications?type=mention&limit=30", { cache: "no-store" })
       if (!res.ok) return
       const data = await res.json()
-      const items: MentionNotification[] = Array.isArray(data?.items) ? data.items : []
-      setMentionFeed(items.filter((n) => n.type === "mention") as MentionNotification[])
+      const items: MentionNotification[] = Array.isArray(data) ? data : []
+      setMentionFeed(items)
     } catch {
-      // cross-feed optional
+      // The rail is a convenience surface; a failed fetch must not break chat.
     }
   }, [])
+
+  const markFeedRead = useCallback(
+    async (ids: number[]) => {
+      if (ids.length === 0) return
+      setMentionFeed((prev) => prev.map((n) => (ids.includes(n.id) ? { ...n, isRead: true } : n)))
+      try {
+        const res = await fetch("/api/chat/notifications", {
+          method: "POST",
+          headers: jsonHeaders(),
+          body: JSON.stringify({ notificationIds: ids }),
+        })
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      } catch (err) {
+        toast({
+          title: "Could not mark notifications read",
+          description: err instanceof Error ? err.message : String(err),
+          variant: "destructive",
+        })
+        loadMentionFeed()
+      }
+    },
+    [loadMentionFeed, toast],
+  )
+
+  const dismissFeedItem = useCallback(
+    async (id: number) => {
+      setMentionFeed((prev) => prev.filter((n) => n.id !== id))
+      try {
+        const res = await fetch("/api/chat/notifications", {
+          method: "DELETE",
+          headers: jsonHeaders(),
+          body: JSON.stringify({ notificationIds: [id] }),
+        })
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      } catch (err) {
+        toast({
+          title: "Could not dismiss notification",
+          description: err instanceof Error ? err.message : String(err),
+          variant: "destructive",
+        })
+        loadMentionFeed()
+      }
+    },
+    [loadMentionFeed, toast],
+  )
 
   useEffect(() => {
     loadProfile()
@@ -461,6 +555,9 @@ export default function ChatWorkspace() {
           merged.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
           return merged
         })
+        // An open conversation stays read: advance last_read whenever the poll
+        // delivers someone else's message, or the badge reappears next tick.
+        if (delta.some((m) => m.senderId !== profile?.id)) markChatRead(selectedChatId)
       } catch {
         // transient poll failures are swallowed; next tick retries
       }
@@ -469,7 +566,7 @@ export default function ChatWorkspace() {
     // `messages` intentionally excluded: the interval reads the latest value
     // through the closure we refresh whenever the tail changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedChatId, messages.length, loadChats, loadMentionFeed])
+  }, [selectedChatId, messages.length, loadChats, loadMentionFeed, markChatRead, profile?.id])
 
   /* ------------------------------------------------- selection handling */
 
@@ -480,8 +577,8 @@ export default function ChatWorkspace() {
     }
     setReplyTo(null)
     setEditing(null)
-    loadMessages(selectedChatId)
-  }, [selectedChatId, loadMessages])
+    void loadMessages(selectedChatId).then(() => markChatRead(selectedChatId))
+  }, [selectedChatId, loadMessages, markChatRead])
 
   useEffect(() => {
     const el = streamRef.current
@@ -508,8 +605,20 @@ export default function ChatWorkspace() {
 
   const archivedChats = useMemo(() => chats.filter((c) => c.isArchived), [chats])
 
+  // Muted conversations are excluded on purpose — that is what muting means.
+  // Their rows still carry a badge, so nothing is hidden, only de-escalated.
   const totalUnread = useMemo(
-    () => chats.reduce((sum, c) => sum + (c.isArchived ? 0 : c.unreadCount ?? 0), 0),
+    () =>
+      chats.reduce(
+        (sum, c) => sum + (c.isArchived || c.isMuted ? 0 : c.unreadCount ?? 0),
+        0,
+      ),
+    [chats],
+  )
+
+  // Counts muted chats too: mark-all-read clears badges, which mute only hides.
+  const unreadChatCount = useMemo(
+    () => chats.filter((c) => !c.isArchived && c.unreadCount > 0).length,
     [chats],
   )
 
@@ -537,17 +646,76 @@ export default function ChatWorkspace() {
     [loadChats, toast],
   )
 
-  const toggleChatFlag = useCallback(
-    async (chat: ChatSummary, flag: "isPinned" | "isMuted") => {
-      const next = !chat[flag]
-      setChats((prev) =>
-        prev.map((c) => (c.id === chat.id ? { ...c, [flag]: next } : c)),
-      )
-      const ok = await patchChatSettings(chat.id, { [flag]: next })
-      if (!ok) setChats((prev) => prev.map((c) => (c.id === chat.id ? { ...c, [flag]: !next } : c)))
+  const togglePin = useCallback(
+    async (chat: ChatSummary) => {
+      const next = !chat.isPinned
+      setChats((prev) => prev.map((c) => (c.id === chat.id ? { ...c, isPinned: next } : c)))
+      const ok = await patchChatSettings(chat.id, { isPinned: next })
+      if (!ok) setChats((prev) => prev.map((c) => (c.id === chat.id ? { ...c, isPinned: !next } : c)))
     },
     [patchChatSettings],
   )
+
+  /** Mute gets its own endpoint because it changes server behaviour too:
+   *  notifyMentions() skips muted participants, so muting really does silence
+   *  the bell instead of only swapping the row icon. */
+  const toggleMute = useCallback(
+    async (chat: ChatSummary) => {
+      const next = !chat.isMuted
+      setChats((prev) => prev.map((c) => (c.id === chat.id ? { ...c, isMuted: next } : c)))
+      try {
+        const res = await fetch(`/api/chat/${chat.id}/mute`, {
+          method: "PATCH",
+          headers: jsonHeaders(),
+          body: JSON.stringify({ isMuted: next }),
+        })
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}))
+          throw new Error(body?.error ?? `HTTP ${res.status}`)
+        }
+        toast({
+          title: next ? "Chat muted" : "Chat unmuted",
+          description: next
+            ? "No bell notifications from this conversation. The unread badge stays on the row."
+            : "Bell notifications are back on for this conversation.",
+        })
+      } catch (err) {
+        setChats((prev) => prev.map((c) => (c.id === chat.id ? { ...c, isMuted: !next } : c)))
+        toast({
+          title: "Could not update mute",
+          description: err instanceof Error ? err.message : String(err),
+          variant: "destructive",
+        })
+      }
+    },
+    [toast],
+  )
+
+  /* ------------------------------------------------------ 13 · read state */
+
+  const markAllChatsRead = useCallback(async () => {
+    const targets = chats.filter((c) => !c.isArchived && c.unreadCount > 0)
+    if (targets.length === 0) return
+    setMarkingAllRead(true)
+    try {
+      const results = await Promise.all(
+        targets.map((c) => fetch(`/api/chat/${c.id}/read`, { method: "POST" })),
+      )
+      const failed = results.filter((r) => !r.ok).length
+      if (failed > 0) throw new Error(`${failed} of ${targets.length} conversations failed`)
+      setChats((prev) => prev.map((c) => (c.isArchived ? c : { ...c, unreadCount: 0 })))
+      toast({ title: `Marked ${targets.length} conversation${targets.length === 1 ? "" : "s"} read` })
+    } catch (err) {
+      toast({
+        title: "Mark-all-read incomplete",
+        description: err instanceof Error ? err.message : String(err),
+        variant: "destructive",
+      })
+      await loadChats({ silent: true })
+    } finally {
+      setMarkingAllRead(false)
+    }
+  }, [chats, loadChats, toast])
 
   const toggleArchive = useCallback(
     async (chatId: string, isArchived: boolean) => {
@@ -708,6 +876,35 @@ export default function ChatWorkspace() {
       toast({ title: "Message restored" })
     },
     [loadMessages, selectedChatId, toast],
+  )
+
+  /** Hard delete: the row is gone, so there is nothing left to restore. Only
+   *  offered on messages that are already soft-deleted, behind a confirm. */
+  const permanentDelete = useCallback(
+    async (messageId: string) => {
+      try {
+        const res = await fetch(`/api/chat/messages/${messageId}/permanent-delete`, {
+          method: "DELETE",
+        })
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}))
+          throw new Error(body?.error ?? `HTTP ${res.status}`)
+        }
+        setMessages((prev) => prev.filter((m) => m.id !== messageId))
+        if (editing?.id === messageId) setEditing(null)
+        if (replyTo?.id === messageId) setReplyTo(null)
+        toast({ title: "Message permanently deleted" })
+      } catch (err) {
+        toast({
+          title: "Could not delete message",
+          description: err instanceof Error ? err.message : String(err),
+          variant: "destructive",
+        })
+      } finally {
+        setConfirmPermanent(null)
+      }
+    },
+    [editing, replyTo, toast],
   )
 
   /* --------------------------------------------------- mention autocomplete */
@@ -878,6 +1075,11 @@ export default function ChatWorkspace() {
       .reverse()
   }, [messages, profile])
 
+  const unreadFeedCount = useMemo(
+    () => mentionFeed.filter((n) => !n.isRead).length,
+    [mentionFeed],
+  )
+
   /* =============================================================== render */
 
   if (!profileReady) {
@@ -928,6 +1130,16 @@ export default function ChatWorkspace() {
           <span className="text-[11px] text-muted-foreground" title="Chat updates arrive by polling — Neon Realtime only backs notifications">
             polling · {lastSync ? `synced ${relativeTime(lastSync)}` : "waiting"}
           </span>
+          <Button
+            size="sm"
+            variant="ghost"
+            disabled={markingAllRead || unreadChatCount === 0}
+            onClick={markAllChatsRead}
+            title="Advance your read marker on every conversation that still has unread messages"
+          >
+            <CheckCheck className={cn("mr-1 h-4 w-4", markingAllRead && "animate-pulse")} />
+            Mark all read
+          </Button>
           <Button
             size="sm"
             variant="ghost"
@@ -993,8 +1205,8 @@ export default function ChatWorkspace() {
                     chat={c}
                     active={c.id === selectedChatId}
                     onSelect={setSelectedChatId}
-                    onTogglePin={toggleChatFlag}
-                    onToggleMute={toggleChatFlag}
+                    onTogglePin={togglePin}
+                    onToggleMute={toggleMute}
                     onArchive={toggleArchive}
                   />
                 )} />
@@ -1004,8 +1216,8 @@ export default function ChatWorkspace() {
                     chat={c}
                     active={c.id === selectedChatId}
                     onSelect={setSelectedChatId}
-                    onTogglePin={toggleChatFlag}
-                    onToggleMute={toggleChatFlag}
+                    onTogglePin={togglePin}
+                    onToggleMute={toggleMute}
                     onArchive={toggleArchive}
                   />
                 )} />
@@ -1015,8 +1227,8 @@ export default function ChatWorkspace() {
                     chat={c}
                     active={c.id === selectedChatId}
                     onSelect={setSelectedChatId}
-                    onTogglePin={toggleChatFlag}
-                    onToggleMute={toggleChatFlag}
+                    onTogglePin={togglePin}
+                    onToggleMute={toggleMute}
                     onArchive={toggleArchive}
                   />
                 )} />
@@ -1086,7 +1298,7 @@ export default function ChatWorkspace() {
                     className="h-8 w-8"
                     aria-label={selectedChat.isPinned ? "Unpin chat" : "Pin chat"}
                     title={selectedChat.isPinned ? "Unpin" : "Pin"}
-                    onClick={() => toggleChatFlag(selectedChat, "isPinned")}
+                    onClick={() => togglePin(selectedChat)}
                   >
                     {selectedChat.isPinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
                   </Button>
@@ -1096,7 +1308,7 @@ export default function ChatWorkspace() {
                     className="h-8 w-8"
                     aria-label={selectedChat.isMuted ? "Unmute chat" : "Mute chat"}
                     title={selectedChat.isMuted ? "Unmute" : "Mute"}
-                    onClick={() => toggleChatFlag(selectedChat, "isMuted")}
+                    onClick={() => toggleMute(selectedChat)}
                   >
                     {selectedChat.isMuted ? <Bell className="h-4 w-4" /> : <BellOff className="h-4 w-4" />}
                   </Button>
@@ -1188,13 +1400,22 @@ export default function ChatWorkspace() {
                               >
                                 This message was deleted
                                 {own && (
-                                  <button
-                                    type="button"
-                                    className="ml-2 font-semibold not-italic text-primary underline-offset-2 hover:underline"
-                                    onClick={() => restoreMessage(msg.id)}
-                                  >
-                                    Restore
-                                  </button>
+                                  <>
+                                    <button
+                                      type="button"
+                                      className="ml-2 font-semibold not-italic text-primary underline-offset-2 hover:underline"
+                                      onClick={() => restoreMessage(msg.id)}
+                                    >
+                                      Restore
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="ml-2 font-semibold not-italic text-destructive underline-offset-2 hover:underline"
+                                      onClick={() => setConfirmPermanent(msg)}
+                                    >
+                                      Delete permanently
+                                    </button>
+                                  </>
                                 )}
                               </div>
                             ) : (
@@ -1547,7 +1768,7 @@ export default function ChatWorkspace() {
                                 size="sm"
                                 variant="ghost"
                                 className="h-6 px-1.5 text-[10px]"
-                                onClick={() => toggleChatFlag(selectedChat, "isMuted")}
+                                onClick={() => toggleMute(selectedChat)}
                               >
                                 {selectedChat.isMuted ? "Unmute" : "Mute"}
                               </Button>
@@ -1653,7 +1874,9 @@ export default function ChatWorkspace() {
           {railTab === "mentions" && (
             <SectionCard title="Mentions of you" icon={<AtSign className="h-4 w-4" />}>
               <p className="mb-2 text-[10px] text-muted-foreground">
-                Live filter of this chat + recent mention notifications (cross-feed).
+                Live filter of this chat, plus your mention notifications from{" "}
+                <code className="font-mono text-[9px]">/api/chat/notifications</code> — click one to
+                jump to its chat and mark it read, or dismiss it with the ×.
               </p>
               {selfMentions.length === 0 && mentionFeed.length === 0 ? (
                 <EmptyNote>No one has mentioned you recently. Use @Name in the composer.</EmptyNote>
@@ -1674,29 +1897,70 @@ export default function ChatWorkspace() {
                     </ul>
                   )}
                   {mentionFeed.length > 0 && (
-                    <ul className="space-y-1.5">
-                      {mentionFeed.slice(0, 8).map((n) => (
-                        <li key={n.id} className="text-xs">
-                          <button
-                            type="button"
-                            className="w-full rounded-md border border-dashed bg-muted/30 p-2 text-left hover:bg-muted/60"
-                            onClick={() => {
-                              const chatId = n.metadata?.chatId
-                              if (chatId && chats.some((c) => c.id === chatId)) {
-                                setSelectedChatId(chatId)
-                                setRailTab("members")
-                              } else {
-                                toast({ title: "That chat is not in your list (anymore)." })
-                              }
-                            }}
-                          >
-                            <b>{n.title}</b>
-                            {n.body && <p className="mt-0.5 line-clamp-1 text-muted-foreground">{n.body}</p>}
-                            <span className="text-[10px] text-muted-foreground">{relativeTime(n.createdAt)}</span>
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
+                    <div>
+                      <div className="mb-1.5 flex items-center justify-between gap-2">
+                        <span className="text-[10px] text-muted-foreground">
+                          {unreadFeedCount === 0
+                            ? "All caught up"
+                            : `${unreadFeedCount} unread notification${unreadFeedCount === 1 ? "" : "s"}`}
+                        </span>
+                        <button
+                          type="button"
+                          className="text-[10px] font-semibold text-primary hover:underline disabled:pointer-events-none disabled:opacity-40"
+                          disabled={unreadFeedCount === 0}
+                          onClick={() =>
+                            markFeedRead(mentionFeed.filter((n) => !n.isRead).map((n) => n.id))
+                          }
+                        >
+                          Mark all read
+                        </button>
+                      </div>
+                      <ul className="space-y-1.5">
+                        {mentionFeed.slice(0, 8).map((n) => (
+                          <li key={n.id} className="flex items-start gap-1 text-xs">
+                            <button
+                              type="button"
+                              className={cn(
+                                "min-w-0 flex-1 rounded-md border p-2 text-left hover:bg-muted/60",
+                                n.isRead
+                                  ? "border-dashed bg-muted/30"
+                                  : "border-primary/40 bg-primary/5",
+                              )}
+                              onClick={() => {
+                                if (!n.isRead) markFeedRead([n.id])
+                                const chatId = n.metadata?.chatId
+                                const link = n.metadata?.link
+                                if (chatId && chats.some((c) => c.id === chatId)) {
+                                  setSelectedChatId(chatId)
+                                  setRailTab("members")
+                                } else if (link) {
+                                  // Pre-chat mention rows carry a route instead of a chatId.
+                                  router.push(link)
+                                } else {
+                                  toast({
+                                    title: "That conversation is no longer in your list.",
+                                    description: "It may have been deleted, or you were removed from it.",
+                                  })
+                                }
+                              }}
+                            >
+                              <b>{n.title}</b>
+                              {n.body && <p className="mt-0.5 line-clamp-1 text-muted-foreground">{n.body}</p>}
+                              <span className="text-[10px] text-muted-foreground">{relativeTime(n.createdAt)}</span>
+                            </button>
+                            <button
+                              type="button"
+                              aria-label="Dismiss notification"
+                              title="Dismiss"
+                              className="mt-1 rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+                              onClick={() => dismissFeedItem(n.id)}
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   )}
                 </div>
               )}
@@ -1891,6 +2155,36 @@ export default function ChatWorkspace() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* ============================ 4b · permanent-delete confirm */}
+      <AlertDialog
+        open={confirmPermanent !== null}
+        onOpenChange={(open) => {
+          if (!open) setConfirmPermanent(null)
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this message permanently?</AlertDialogTitle>
+            <AlertDialogDescription>
+              The row is removed from the database for everyone in the conversation and cannot be
+              restored. A soft-deleted message still keeps its original content server-side until
+              you do this.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep it</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (confirmPermanent) permanentDelete(confirmPermanent.id)
+              }}
+            >
+              Delete permanently
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
@@ -1928,8 +2222,8 @@ function ChatRow({
   chat: ChatSummary
   active: boolean
   onSelect: (id: string) => void
-  onTogglePin: (chat: ChatSummary, flag: "isPinned") => void
-  onToggleMute: (chat: ChatSummary, flag: "isMuted") => void
+  onTogglePin: (chat: ChatSummary) => void
+  onToggleMute: (chat: ChatSummary) => void
   onArchive: (chatId: string, isArchived: boolean) => void
 }) {
   return (
@@ -1979,7 +2273,7 @@ function ChatRow({
           className="rounded p-1 hover:bg-muted"
           onClick={(e) => {
             e.stopPropagation()
-            onTogglePin(chat, "isPinned")
+            onTogglePin(chat)
           }}
         >
           {chat.isPinned ? <PinOff className="h-3 w-3" /> : <Pin className="h-3 w-3" />}
@@ -1991,7 +2285,7 @@ function ChatRow({
           className="rounded p-1 hover:bg-muted"
           onClick={(e) => {
             e.stopPropagation()
-            onToggleMute(chat, "isMuted")
+            onToggleMute(chat)
           }}
         >
           {chat.isMuted ? <Bell className="h-3 w-3" /> : <BellOff className="h-3 w-3" />}

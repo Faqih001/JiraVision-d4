@@ -240,6 +240,9 @@ export async function notifyMentions(params: {
   for (const userId of mentionedIds) {
     const settings = normalizeSettings(byId.get(userId)?.settings);
     if (settings.notificationLevel === "none") continue;
+    // Muting is a promise to stay quiet, so it suppresses the bell too. The
+    // unread badge still counts on the chat row — mute hides noise, not messages.
+    if (settings.isMuted) continue;
     if (settings.isBlocked) continue;
     try {
       await createNotification({
