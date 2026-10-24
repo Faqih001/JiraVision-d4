@@ -83,7 +83,7 @@ export async function POST(request: NextRequest, context: Context) {
     `)
 
     const updated = await fetchGoalById(id)
-    if (!updated) return serverError(new Date(), "reload goal after check-in")
+    if (!updated) return serverError(new Error("goal vanished after check-in"), "reload goal after check-in")
 
     // 3) Notifications: teammate check-in → owner; auto-achieve → creator+owner.
     if (session.id !== goal.ownerId) {
@@ -91,7 +91,7 @@ export async function POST(request: NextRequest, context: Context) {
         userId: goal.ownerId,
         type: "sprint",
         title: `New check-in on "${goal.title}"`,
-        body: `${session.name} logged ${value}${goal.metricType === "currency" ? "" : ""} — ${updated.progressPct}% of target.`,
+        body: `${session.name} logged a check-in of ${value} — now at ${updated.progressPct}% of target.`,
         link: "/dashboard/goals",
         metadata: { goalId: id, action: "checkin", checkinId: row?.id ?? null, authorId: session.id },
       })
