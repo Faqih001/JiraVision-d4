@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 
-export function middleware(request: NextRequest) {
+// Redirect-only gate: it trusts the presence of the session cookies, so it can
+// never be the security boundary. The data routes re-check the session themselves.
+export function proxy(request: NextRequest) {
   const sessionId = request.cookies.get("session_id")?.value
   const userId = request.cookies.get("user_id")?.value
 
