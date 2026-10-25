@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { tasks } from "@/drizzle/schema"
+import { pickTaskUpdates } from "@/lib/task-updates"
 import { eq, and, inArray } from "drizzle-orm"
 import { getSession } from "@/lib/auth-actions"
 
@@ -44,22 +45,18 @@ export async function POST(request: Request) {
     let result
     
     switch (action) {
-      case 'update':
-        // Validate update data
-        if (!updateData || Object.keys(updateData).length === 0) {
+      case 'update': {
+        // Whitelist + dueDate normalisation shared with the production routes.
+        const updates = pickTaskUpdates(updateData)
+        if ("error" in updates) {
           return NextResponse.json(
-            { success: false, message: "Update data is required for 'update' action" },
+            { success: false, message: updates.error },
             { status: 400 }
           )
         }
-        
-        // Add updated timestamp. tasks.dueDate is a string-mode date() column,
-        // so a Date arriving from a client has to be normalised first.
+
         const dataWithTimestamp = {
-          ...updateData,
-          ...(updateData.dueDate
-            ? { dueDate: new Date(updateData.dueDate).toISOString().slice(0, 10) }
-            : {}),
+          ...updates.patch,
           updatedAt: new Date()
         }
         
@@ -71,6 +68,7 @@ export async function POST(request: Request) {
           .returning()
         
         break
+      }
       
       case 'delete':
         // Delete all specified tasks

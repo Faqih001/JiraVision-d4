@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { getSession } from "@/lib/auth-actions"
 import { db } from "@/lib/db"
 import { tasks } from "@/drizzle/schema"
+import { pickTaskUpdates } from "@/lib/task-updates"
 import { eq, and, inArray } from "drizzle-orm"
 
 // POST handler for /api/tasks/bulk - Performs bulk actions on multiple tasks
@@ -45,18 +46,20 @@ export async function POST(request: Request) {
     let result
     
     switch (action) {
-      case 'update':
-        // Validate update data
-        if (!updateData || Object.keys(updateData).length === 0) {
+      case 'update': {
+        // Only whitelisted task columns reach `.set()` — drizzle interpolates every
+        // key it is handed as a column identifier, so the old `{...updateData}`
+        // spread let a caller write to `id` or craft an identifier.
+        const updates = pickTaskUpdates(updateData)
+        if ("error" in updates) {
           return NextResponse.json(
-            { success: false, message: "Update data is required for 'update' action" },
+            { success: false, message: updates.error },
             { status: 400 }
           )
         }
-        
-        // Add updated timestamp
+
         const dataWithTimestamp = {
-          ...updateData,
+          ...updates.patch,
           updatedAt: new Date()
         }
         
@@ -68,6 +71,7 @@ export async function POST(request: Request) {
           .returning()
         
         break
+      }
       
       case 'delete':
         // Delete all specified tasks

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { getTaskById, updateTask, deleteTask } from "@/lib/data-access"
+import { pickTaskUpdates } from "@/lib/task-updates"
 import { getSession } from "@/lib/auth-actions"
 
 // Development helpers for exercising the task endpoints from a script. They
@@ -85,15 +86,16 @@ export async function PUT(
     // Get update data from request
     const data = await request.json()
 
-    // Prepare update data. tasks.dueDate is a drizzle date() column — string
-    // mode, so it binds "YYYY-MM-DD" rather than a Date.
-    const updateData = {
-      ...data,
-      dueDate: data.dueDate ? new Date(data.dueDate).toISOString().slice(0, 10) : existingTask.dueDate
+    // Only whitelisted task columns reach the update, and dueDate is normalised
+    // because tasks.dueDate is a drizzle date() column — string mode, so it binds
+    // "YYYY-MM-DD" rather than a Date.
+    const updates = pickTaskUpdates(data)
+    if ("error" in updates) {
+      return NextResponse.json({ success: false, message: updates.error }, { status: 400 })
     }
 
     // Update the task
-    const updatedTask = await updateTask(id, updateData)
+    const updatedTask = await updateTask(id, updates.patch)
     
     return NextResponse.json({
       success: true,

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { getSession } from "@/lib/auth-actions"
 import { getTaskById, updateTask, deleteTask } from "@/lib/data-access"
+import { pickTaskUpdates } from "@/lib/task-updates"
 import { createNotification } from "@/lib/notifications"
 
 type Context = { params: Promise<{ id: string }> }
@@ -93,11 +94,14 @@ export async function PUT(
     // Get update data from request
     const data = await request.json()
 
-    // Prepare update data, ensuring proper date formatting for dueDate
-    const updateData = {
-      ...data,
-      dueDate: data.dueDate ? new Date(data.dueDate) : existingTask.dueDate
+    const updates = pickTaskUpdates(data)
+    if ("error" in updates) {
+      return NextResponse.json(
+        { success: false, message: updates.error },
+        { status: 400 }
+      )
     }
+    const updateData = updates.patch
 
     // Update the task
     const updatedTask = await updateTask(id, updateData)
@@ -107,8 +111,8 @@ export async function PUT(
     const actorName = session.name || "A teammate"
     const link = "/dashboard/tasks"
     if (
-      data.status !== undefined &&
-      data.status !== existingTask.status &&
+      updateData.status !== undefined &&
+      updateData.status !== existingTask.status &&
       notifyId &&
       notifyId !== actorId
     ) {
@@ -121,8 +125,8 @@ export async function PUT(
         metadata: { taskId: id, action: "status_changed", from: existingTask.status, to: updatedTask.status },
       })
     } else if (
-      data.assigneeId !== undefined &&
-      data.assigneeId !== existingTask.assigneeId &&
+      updateData.assigneeId !== undefined &&
+      updateData.assigneeId !== existingTask.assigneeId &&
       notifyId &&
       notifyId !== actorId
     ) {

@@ -107,3 +107,22 @@ describe("auth escape hatches are production-inert", () => {
     expect(codeOnly(src("app/api/user/current/route.ts"))).not.toMatch(/Demo User/)
   })
 })
+
+describe("task writes go through the column whitelist", () => {
+  // drizzle's `.set()` interpolates every key it receives as a column identifier,
+  // so spreading a request body let callers write to `id` or craft an identifier.
+  const writers = [
+    "app/api/tasks/[id]/route.ts",
+    "app/api/tasks/bulk/route.ts",
+    "app/api/test/tasks/[id]/route.ts",
+    "app/api/test/tasks/bulk/route.ts",
+  ]
+
+  it.each(writers)("%s imports pickTaskUpdates", (file) => {
+    expect(src(file)).toMatch(/pickTaskUpdates/)
+  })
+
+  it.each(writers)("%s spreads no raw request body into a write", (file) => {
+    expect(codeOnly(src(file))).not.toMatch(/\.\.\.\s*(data|updateData|body|patch)\s*[,}]/)
+  })
+})
