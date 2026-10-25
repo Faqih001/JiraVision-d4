@@ -13,17 +13,20 @@ declare global {
   }
 }
 
-const PLAUSUAL_DOMAIN = process.env.NEXT_PUBLIC_PLAUSUAL_DOMAIN
+// The name must match .env.example (NEXT_PUBLIC_PLAUSIBLE_DOMAIN). The previous
+// "PLAUSUAL" spelling meant a configured domain never reached this check, so the
+// script silently never loaded.
+const PLAUSIBLE_DOMAIN = process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN
 
 let scriptInjected = false
 
 export function syncAnalyticsScript(): void {
   if (scriptInjected || typeof document === "undefined") return
-  if (!PLAUSUAL_DOMAIN) return
+  if (!PLAUSIBLE_DOMAIN) return
   if (!getConsentSnapshot()?.analytics) return
   const script = document.createElement("script")
   script.defer = true
-  script.dataset.domain = PLAUSUAL_DOMAIN
+  script.dataset.domain = PLAUSIBLE_DOMAIN
   script.src = "https://plausible.io/js/script.js"
   document.head.appendChild(script)
   scriptInjected = true
