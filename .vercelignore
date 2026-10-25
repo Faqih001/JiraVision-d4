@@ -1,0 +1,8 @@
+# `.env` is a symlink to `.env.local`. Vercel uploads the link without its
+# target, and `next build` stats every root entry, so the dangling link aborts
+# the build with ENOENT. Environment values come from the project's env config.
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
