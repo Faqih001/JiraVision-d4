@@ -3,6 +3,19 @@
 import { useEffect, useRef, useState } from "react"
 import { Loader2 } from "lucide-react"
 
+// Only the two constructors this file calls; the Maps JS API is loaded at
+// runtime by the script tag below, so nothing larger needs describing here.
+declare global {
+  interface Window {
+    google?: {
+      maps: {
+        Map: new (element: HTMLElement, options: Record<string, unknown>) => unknown
+        Marker: new (options: Record<string, unknown>) => unknown
+      }
+    }
+  }
+}
+
 interface GoogleMapProps {
   apiKey?: string
   center: {
@@ -20,9 +33,11 @@ export function GoogleMap({ apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
     if (!apiKey) return
 
     const createMap = () => {
-      if (!mapRef.current) return
+      // Re-guard here: the outer check does not narrow across this closure.
+      const maps = mapRef.current ? window.google?.maps : undefined
+      if (!mapRef.current || !maps) return
       try {
-        const map = new window.google.maps.Map(mapRef.current, {
+        const map = new maps.Map(mapRef.current, {
           center,
           zoom,
           mapTypeControl: true,
@@ -30,7 +45,7 @@ export function GoogleMap({ apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
           fullscreenControl: true,
           zoomControl: true,
         })
-        new window.google.maps.Marker({
+        new maps.Marker({
           position: center,
           map,
           title: "JiraVision",

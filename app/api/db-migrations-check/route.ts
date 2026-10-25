@@ -19,7 +19,7 @@ export async function GET() {
     const migrationsTableExists = existingTables.includes('drizzle_migrations');
     
     // If migrations table exists, check migration history
-    let migrationsRun = [];
+    let migrationsRun: Array<Record<string, unknown>> = [];
     if (migrationsTableExists) {
       const migrationsResult = await db.execute(sql`
         SELECT id, hash, created_at

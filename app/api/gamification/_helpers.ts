@@ -124,7 +124,7 @@ export function serializeSkillTrees(trees: SkillTree[]): Record<string, Omit<Ski
 export function normalizeAchievements(value: unknown): AchievementEntry[] {
   if (!Array.isArray(value)) return []
   return value
-    .map((item) => {
+    .map((item): AchievementEntry | null => {
       if (typeof item === "string") return { name: item, unlockedAt: null }
       const obj = item as Partial<AchievementEntry>
       if (!obj || typeof obj.name !== "string") return null

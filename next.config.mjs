@@ -1,11 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  typescript: {
-    // TODO(redesign phase F): 40 pre-existing type errors across 14 files as of 2026-10-25 —
-    // mostly drizzle/run-migrations, lib/seed-data and the dashboard APIs, plus components that
-    // import packages that are not installed (@mui/material, @prisma/client). Remove once clean.
-    ignoreBuildErrors: true,
-  },
   images: {
     unoptimized: true,
     remotePatterns: [

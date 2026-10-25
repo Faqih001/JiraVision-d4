@@ -17,6 +17,14 @@ import bcrypt from "bcryptjs"
 // Check if we're using SQLite
 const USE_SQLITE = false // Override any environment variable setting to force PostgreSQL
 
+/**
+ * drizzle's date() columns are string-mode, so they bind "YYYY-MM-DD" and reject
+ * a Date. The seeder passed Date objects to sprints.startDate/endDate,
+ * wellbeingMetrics.date, ethicalMetrics.date and kanbanTasks.dueDate, which both
+ * fails typecheck and would bind a timestamp into a date column.
+ */
+const toDateOnly = (d: Date) => d.toISOString().slice(0, 10)
+
 export async function seedDatabase() {
   try {
     console.log("Checking if database needs seeding...")
@@ -136,15 +144,20 @@ export async function seedDatabase() {
     }
 
     // Create sprints
-    const currentDate = new Date()
-    const twoWeeksFromNow = new Date(currentDate)
-    twoWeeksFromNow.setDate(currentDate.getDate() + 14)
+    const nowDate = new Date()
+    const twoWeeksOut = new Date(nowDate)
+    twoWeeksOut.setDate(nowDate.getDate() + 14)
 
-    const pastSprintEnd = new Date(currentDate)
-    pastSprintEnd.setDate(currentDate.getDate() - 1)
+    const yesterdayDate = new Date(nowDate)
+    yesterdayDate.setDate(nowDate.getDate() - 1)
 
-    const pastSprintStart = new Date(pastSprintEnd)
-    pastSprintStart.setDate(pastSprintEnd.getDate() - 14)
+    const fortnightAgo = new Date(yesterdayDate)
+    fortnightAgo.setDate(yesterdayDate.getDate() - 14)
+
+    const currentDate = toDateOnly(nowDate)
+    const twoWeeksFromNow = toDateOnly(twoWeeksOut)
+    const pastSprintEnd = toDateOnly(yesterdayDate)
+    const pastSprintStart = toDateOnly(fortnightAgo)
 
     let demoSprints;
     if (USE_SQLITE) {
@@ -267,9 +280,11 @@ export async function seedDatabase() {
     await db.insert(tasks).values(tasksData);
 
     // Create wellbeing metrics
-    const today = new Date()
-    const yesterday = new Date(today)
-    yesterday.setDate(today.getDate() - 1)
+    const todayStamp = new Date()
+    const yesterdayStamp = new Date(todayStamp)
+    yesterdayStamp.setDate(todayStamp.getDate() - 1)
+    const today = toDateOnly(todayStamp)
+    const yesterday = toDateOnly(yesterdayStamp)
 
     for (const user of demoUsers) {
       await db.insert(wellbeingMetrics).values([
@@ -280,7 +295,7 @@ export async function seedDatabase() {
           mood: ["energized", "focused", "balanced"][Math.floor(Math.random() * 3)],
           workload: ["low", "balanced", "high"][Math.floor(Math.random() * 3)],
           stressLevel: Math.floor(Math.random() * 30) + 20, // 20-50
-          overtimeHours: Math.random() * 2, // 0-2 hours
+          overtimeHours: (Math.random() * 2).toFixed(2), // 0-2 hours; decimal() is string-mode
           createdAt: new Date(),
         },
         {
@@ -290,7 +305,7 @@ export async function seedDatabase() {
           mood: ["energized", "focused", "balanced"][Math.floor(Math.random() * 3)],
           workload: ["low", "balanced", "high"][Math.floor(Math.random() * 3)],
           stressLevel: Math.floor(Math.random() * 30) + 20, // 20-50
-          overtimeHours: Math.random() * 2, // 0-2 hours
+          overtimeHours: (Math.random() * 2).toFixed(2), // 0-2 hours; decimal() is string-mode
           createdAt: new Date(),
         },
       ])
@@ -430,7 +445,7 @@ export async function seedDatabase() {
         status: "backlog",
         columnId: kanbanColumnsData[0].id,
         assigneeId: demoUsers[0].id,
-        dueDate: new Date(new Date().setDate(new Date().getDate() + 10)),
+        dueDate: toDateOnly(new Date(new Date().setDate(new Date().getDate() + 10))),
         order: 10,
         tags: ["Research", "Marketing"],
         attachments: 2,
@@ -458,7 +473,7 @@ export async function seedDatabase() {
         status: "todo",
         columnId: kanbanColumnsData[1].id,
         assigneeId: demoUsers[1].id,
-        dueDate: new Date(new Date().setDate(new Date().getDate() + 5)),
+        dueDate: toDateOnly(new Date(new Date().setDate(new Date().getDate() + 5))),
         order: 10,
         tags: ["Design", "UI/UX"],
         attachments: 5,
@@ -486,7 +501,7 @@ export async function seedDatabase() {
         status: "in_progress",
         columnId: kanbanColumnsData[2].id,
         assigneeId: demoUsers[0].id,
-        dueDate: new Date(new Date().setDate(new Date().getDate() + 3)),
+        dueDate: toDateOnly(new Date(new Date().setDate(new Date().getDate() + 3))),
         order: 10,
         tags: ["Frontend", "Data Visualization"],
         attachments: 1,

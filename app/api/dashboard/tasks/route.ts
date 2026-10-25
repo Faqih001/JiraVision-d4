@@ -1,8 +1,17 @@
 import { NextResponse } from "next/server"
 import { getSession } from "@/lib/auth-actions"
 import { db } from "@/lib/db"
-import { tasks, sprints } from "@/drizzle/schema"
-import { eq, and, desc, gte, lte } from "drizzle-orm"
+import { tasks } from "@/drizzle/schema"
+import { eq, and } from "drizzle-orm"
+
+// tasks.dueDate is a drizzle date() column, which is string-mode: it binds
+// "YYYY-MM-DD" and rejects a Date. Clients may send either a bare date or a
+// full ISO timestamp, so normalise instead of trusting the shape.
+function toDueDate(value: unknown): string | null {
+  if (value === null || value === undefined || value === "") return null
+  const parsed = new Date(value as string | number)
+  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString().slice(0, 10)
+}
 
 export async function GET(request: Request) {
   try {
@@ -16,19 +25,22 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const sprintId = searchParams.get("sprintId")
     const status = searchParams.get("status")
-    
-    // Build query
-    let query = db.select().from(tasks)
 
-    // Add filters
+    // Build query. Chaining .where() twice replaces the previous predicate
+    // instead of ANDing it, so collect the filters and apply one .where().
+    const filters = []
     if (sprintId) {
-      query = query.where(eq(tasks.sprintId, parseInt(sprintId)))
+      const parsed = parseInt(sprintId)
+      if (!Number.isNaN(parsed)) filters.push(eq(tasks.sprintId, parsed))
     }
-    
     if (status) {
-      query = query.where(eq(tasks.status, status))
+      filters.push(eq(tasks.status, status))
     }
-    
+
+    const query = filters.length
+      ? db.select().from(tasks).where(and(...filters))
+      : db.select().from(tasks)
+
     const results = await query
     
     return NextResponse.json({
@@ -56,7 +68,14 @@ export async function POST(request: Request) {
     }
 
     const data = await request.json()
-    
+
+    if (typeof data.title !== "string" || data.title.trim() === "") {
+      return NextResponse.json(
+        { success: false, message: "Task title is required" },
+        { status: 400 }
+      )
+    }
+
     // Insert new task
     const [newTask] = await db
       .insert(tasks)
@@ -68,7 +87,7 @@ export async function POST(request: Request) {
         storyPoints: data.storyPoints || 0,
         assigneeId: session.id,
         sprintId: data.sprintId,
-        dueDate: data.dueDate ? new Date(data.dueDate) : null,
+        dueDate: toDueDate(data.dueDate),
         tags: data.tags || []
       })
       .returning()
@@ -114,7 +133,7 @@ export async function PUT(request: Request) {
         storyPoints: data.storyPoints,
         assigneeId: data.assigneeId || session.id,
         sprintId: data.sprintId,
-        dueDate: data.dueDate ? new Date(data.dueDate) : null,
+        dueDate: data.dueDate === undefined ? undefined : toDueDate(data.dueDate),
         tags: data.tags || [],
         updatedAt: new Date()
       })

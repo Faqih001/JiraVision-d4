@@ -124,8 +124,12 @@ async function applyProfileUpdate(userId: number, rawBody: unknown) {
     return NextResponse.json({ error: "No updatable fields provided" }, { status: 400 })
   }
 
+  // `name` is the only NOT NULL column in UPDATABLE_FIELDS and validateField()
+  // above already rejects anything but a non-empty string for it, so the null
+  // arm is unreachable — ?? undefined just tells the compiler that.
   const success = await updateUserProfile(userId, {
     ...updates,
+    name: updates.name ?? undefined,
     updatedAt: new Date(),
   }).catch((error) => {
     console.error(`Error updating profile for user ${userId}:`, error)
