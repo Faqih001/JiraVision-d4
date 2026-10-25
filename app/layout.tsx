@@ -14,12 +14,16 @@ const inter = Inter({
   variable: "--font-sans",
 })
 
+// weight must be "variable" for `axes` to have any effect at all — next/font's
+// getFontAxes() discards axes for a static weight list. It also fixes a real
+// gap: `font-display font-bold` (700) is used once but 700 was never loaded.
+// opsz is honoured because font-optical-sizing defaults to `auto`.
 const fraunces = Fraunces({
   subsets: ["latin"],
   display: "swap",
   variable: "--font-display",
-  axis: "opsz",
-  weight: ["400", "500", "600"],
+  weight: "variable",
+  axes: ["opsz"],
 })
 
 export const metadata: Metadata = {
