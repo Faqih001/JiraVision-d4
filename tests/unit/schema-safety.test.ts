@@ -31,6 +31,10 @@ describe("auth no longer bootstraps the schema", () => {
     expect(src("lib/auth-actions.ts")).not.toContain("initializeDatabase")
   })
 
+  it("signup stamps the role instead of leaving the grant implicit", () => {
+    expect(src("lib/auth-actions.ts")).toMatch(/role:\s*roleForSignup\(email\)/)
+  })
+
   it("only the setup route calls initializeDatabase", () => {
     const callers = filesIn("app")
       .filter((f) => src(f).includes("initializeDatabase(") && !f.endsWith("lib/db-init.ts"))
@@ -45,7 +49,7 @@ describe("seeders are non-destructive", () => {
   const seeders = ["drizzle/seed-team.ts", "scripts/seed-team.js", "lib/seed-data.ts"]
 
   it.each(seeders)("%s has no unscoped delete on users", (file) => {
-    const unscoped = /\.delete\(\s*users\s*\)(?!\s*\.where)/s.test(codeOnly(src(file)))
+    const unscoped = /\.delete\(\s*users\s*\)(?!\s*\.where)/.test(codeOnly(src(file)))
     expect(unscoped).toBe(false)
   })
 

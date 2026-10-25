@@ -8,7 +8,8 @@ import { NextResponse } from "next/server"
 import { asc, sql } from "drizzle-orm"
 import { db } from "@/lib/db"
 import { users } from "@/drizzle/schema"
-import { getCurrentUser, isSuperAdmin } from "@/lib/session"
+import { getCurrentUser } from "@/lib/session"
+import { isSuperAdmin } from "@/lib/roles"
 import { createNotification } from "@/lib/notifications"
 import {
   DEFAULT_TEAM_SETTINGS,

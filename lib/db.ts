@@ -166,6 +166,7 @@ export async function createUser(data: {
   email: string;
   passwordHash: string;
   avatar?: string;
+  role?: string;
 }): Promise<User> {
   try {
     const [newUser] = await db.insert(users)
@@ -174,7 +175,7 @@ export async function createUser(data: {
         email: data.email,
         passwordHash: data.passwordHash,
         avatar: data.avatar,
-        role: "user",
+        role: data.role ?? "user",
         emailVerified: false,
         language: "en-US",
         timezone: "Africa/Nairobi",

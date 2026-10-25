@@ -4,7 +4,8 @@
 import { NextResponse } from "next/server"
 import { sql } from "drizzle-orm"
 import { db } from "@/lib/db"
-import { getCurrentUser, isSuperAdmin, parseAdminEmails, type SessionUser } from "@/lib/session"
+import { getCurrentUser, type SessionUser } from "@/lib/session"
+import { isSuperAdmin, parseAdminEmails } from "@/lib/roles"
 import { notifyMany } from "@/lib/notifications"
 
 export type CmsGate = { user: SessionUser } | { error: NextResponse }

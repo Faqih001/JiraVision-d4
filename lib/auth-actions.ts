@@ -17,6 +17,7 @@ import {
 import { Resend } from "resend"
 import { users } from "@/drizzle/schema"
 import { eq } from "drizzle-orm"
+import { roleForSignup } from "./roles"
 
 const resend = new Resend(process.env.JIRAVISION_RESEND_API)
 
@@ -178,6 +179,7 @@ export async function signup(formData: FormData) {
       email,
       passwordHash,
       avatar,
+      role: roleForSignup(email),
     })
 
     const { passwordHash: _, ...userWithoutPassword } = newUser

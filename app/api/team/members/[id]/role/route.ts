@@ -9,7 +9,8 @@ import { NextResponse } from "next/server"
 import { and, eq, ne, sql } from "drizzle-orm"
 import { db } from "@/lib/db"
 import { users } from "@/drizzle/schema"
-import { getCurrentUser, isSuperAdmin } from "@/lib/session"
+import { getCurrentUser } from "@/lib/session"
+import { isSuperAdmin } from "@/lib/roles"
 import { createNotification } from "@/lib/notifications"
 import {
   listRoleChanges,
