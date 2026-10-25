@@ -212,7 +212,7 @@ export async function getTasksByStatus(status: string) {
 
 import { getTasks } from "@/app/actions";
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 
 export function TasksList() {
   const [tasks, setTasks] = useState([]);
@@ -223,7 +223,11 @@ export function TasksList() {
         const data = await getTasks();
         setTasks(data);
       } catch (error) {
-        toast.error("Failed to load tasks");
+        toast({
+          title: "Failed to load tasks",
+          description: error instanceof Error ? error.message : undefined,
+          variant: "destructive",
+        });
         console.error(error);
       }
     }
