@@ -162,10 +162,17 @@ Observed, enforced-in-practice rules (REDESIGN_PLAN V2-1/V2-3 + homepage impleme
 - **localStorage-backed state goes through `useSyncExternalStore` with a cached,
   hydration-stable snapshot (server snapshot = default/empty) — never `setState` in an
   effect.** Implemented this way in: `announcement-bar.tsx` (dismissal), `site-search.tsx`
-  (recent searches), `lib/consent.ts` + `cookie-consent.tsx`, `lib/i18n/*` +
-  `language-selector.tsx`, `bottom-bar.tsx` (desktop float dismissal, scroll state),
-  `migration-planner.tsx` (saved plan), `demo-form.tsx` (timezone). 10 source files follow the
-  pattern (grep `useSyncExternalStore`).
+  (recent searches), `lib/consent.ts` + `cookie-consent.tsx`, `lib/accessibility.ts` +
+  `accessibility-widget.tsx` (via `subscribeAccessibility`/`getAccessibilitySnapshot`),
+  `google-translate.tsx` (chosen language), `bottom-bar.tsx` (desktop float dismissal, scroll
+  state), `migration-planner.tsx` (saved plan), `demo-form.tsx` (timezone). 13 source files
+  follow the pattern (grep `useSyncExternalStore`).
+- **Visual adjustments are attribute-driven, never JS-styled.** `lib/accessibility.ts` maps each
+  state key to a `data-jv-*` attribute and `app/accessibility.css` owns every rule; a
+  pre-paint inline `bootstrapScript()` in `app/layout.tsx` restores the attributes before the
+  first frame. Colour/contrast modes rewrite the HSL token triples rather than applying a CSS
+  `filter` to a wrapper — a filter on an ancestor makes it the containing block for every
+  `position: fixed` descendant (navbar, bottom bar, cookie bar, dialogs).
 - Icons: **lucide-react only**, decorative ones get `aria-hidden`. No emoji anywhere in the
   marketing kit (the old chatbot `👋` was removed in D1 fix).
 - Cards: `rounded-lg border bg-card shadow-soft`; prose: `prose-body`; headings: `font-display`.

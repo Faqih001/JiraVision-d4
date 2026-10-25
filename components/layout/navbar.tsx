@@ -36,17 +36,16 @@ import {
 import { ChevronDown, Menu, Search } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { OPEN_SEARCH_EVENT } from "@/components/features/site-search"
-import { useLocale } from "@/lib/i18n/use-locale"
 
-const menuGroups: { title: keyof typeof menuFeatures; i18nKey: string; items: NavItem[] }[] = [
-  { title: "Products", i18nKey: "nav.products", items: productItems },
-  { title: "Solutions", i18nKey: "nav.solutions", items: solutionItems },
-  { title: "Resources", i18nKey: "nav.resources", items: resourceItems },
+const menuGroups: { title: keyof typeof menuFeatures; items: NavItem[] }[] = [
+  { title: "Products", items: productItems },
+  { title: "Solutions", items: solutionItems },
+  { title: "Resources", items: resourceItems },
 ]
 
 const directLinks = [
-  { title: "Pricing", i18nKey: "nav.pricing", href: "/pricing" },
-  { title: "Contact", i18nKey: "nav.contact", href: "/contact" },
+  { title: "Pricing", href: "/pricing" },
+  { title: "Contact", href: "/contact" },
 ]
 
 const triggerInk =
@@ -124,7 +123,6 @@ export function Navbar() {
   const [scrolled, setScrolled] = useState(false)
   const lastScrollY = useRef(0)
   const pathname = usePathname()
-  const { t } = useLocale()
 
   useEffect(() => {
     const onScroll = () => {
@@ -185,7 +183,7 @@ export function Navbar() {
             <NavigationMenuList>
               {menuGroups.map((group) => (
                 <NavigationMenuItem key={group.title}>
-                  <NavigationMenuTrigger className={triggerInk}>{t(group.i18nKey)}</NavigationMenuTrigger>
+                  <NavigationMenuTrigger className={triggerInk}>{group.title}</NavigationMenuTrigger>
                   <NavigationMenuContent>
                     <div className="grid w-[720px] grid-cols-[1fr_1fr_220px] gap-4 p-3">
                       <div className="col-span-2 grid grid-cols-2 gap-1">
@@ -211,7 +209,7 @@ export function Navbar() {
                         pathname === link.href && "text-primary",
                       )}
                     >
-                      {t(link.i18nKey)}
+                      {link.title}
                     </Link>
                   </NavigationMenuLink>
                 </NavigationMenuItem>
@@ -228,17 +226,17 @@ export function Navbar() {
               onClick={() => window.dispatchEvent(new Event(OPEN_SEARCH_EVENT))}
             >
               <Search className="h-4 w-4" aria-hidden="true" />
-              <span>{t("nav.search")}</span>
+              <span>Search</span>
               <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
                 &#8984;K
               </kbd>
             </Button>
             <ThemeToggle />
             <Button asChild variant="ghost" size="sm">
-              <Link href="/login">{t("nav.login")}</Link>
+              <Link href="/login">Log in</Link>
             </Button>
             <Button asChild size="sm">
-              <Link href="/signup">{t("nav.getStarted")}</Link>
+              <Link href="/signup">Get started</Link>
             </Button>
           </div>
 
@@ -267,12 +265,12 @@ export function Navbar() {
                     className="mx-4 mb-2 flex min-h-[48px] items-center gap-2 rounded-md border border-border bg-background px-3 text-sm text-muted-foreground"
                   >
                     <Search className="h-4 w-4" aria-hidden="true" />
-                    {t("nav.search")}
+                    Search
                   </button>
                   {menuGroups.map((group) => (
                     <MobileGroup
                       key={group.title}
-                      title={t(group.i18nKey)}
+                      title={group.title}
                       items={group.items}
                       onNavigate={() => setOpen(false)}
                     />
@@ -284,15 +282,15 @@ export function Navbar() {
                       onClick={() => setOpen(false)}
                       className="min-h-[48px] px-5 py-3 text-sm font-medium hover:bg-accent"
                     >
-                      {t(link.i18nKey)}
+                      {link.title}
                     </Link>
                   ))}
                   <div className="mt-2 flex flex-col gap-2 border-t border-border px-5 pt-4">
                     <Button asChild variant="outline" onClick={() => setOpen(false)}>
-                      <Link href="/login">{t("nav.login")}</Link>
+                      <Link href="/login">Log in</Link>
                     </Button>
                     <Button asChild onClick={() => setOpen(false)}>
-                      <Link href="/signup">{t("nav.getStarted")}</Link>
+                      <Link href="/signup">Get started</Link>
                     </Button>
                   </div>
                 </nav>

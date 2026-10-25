@@ -302,7 +302,7 @@ export const cookiesDoc: {
   sections: LegalSection[]
 } = {
   title: "Cookie Policy",
-  lastUpdated: "May 1, 2025",
+  lastUpdated: "October 25, 2026",
   closingNote: "If you have any questions about our Cookie Policy, please contact our privacy team.",
   sections: [
     {
@@ -357,6 +357,29 @@ export const cookiesDoc: {
       heading: "Third-Party Cookies",
       paragraphs: [
         "Some cookies are placed by third parties on our website. These third parties may include analytics providers, advertising networks, and social media platforms. These third parties may use cookies, web beacons, and similar technologies to collect information about your use of our website and other websites.",
+      ],
+    },
+    {
+      id: "translation-by-google",
+      heading: "Translation by Google",
+      paragraphs: [
+        "The footer offers a Translate control powered by Google Translate. It stays inactive until you choose a language: only then does your browser load Google's script, which reads the text of the page and stores the translation in a googtrans cookie on this domain.",
+        "Your language choice is also remembered locally (jv-translate-lang) so the site comes back in the same language. Choosing \"Show original\" clears both and reloads the page in English.",
+        "Machine translation is a convenience, not a guarantee. The English text remains the authoritative version of any legal or product statement.",
+      ],
+    },
+    {
+      id: "preferences-stored-on-your-device",
+      heading: "Preferences Stored on Your Device",
+      paragraphs: [
+        "Several choices are saved in your browser's local storage instead of being sent to us, so the site can honour them before it paints:",
+      ],
+      bullets: [
+        "jv-consent-v1 — your cookie category choice",
+        "jv-accessibility-v1 — the adjustments selected in the accessibility menu (text size, contrast, colour, motion, reading aids)",
+        "jv-translate-lang — the translation language, if you use the Translate control",
+        "jv-announcement-dismissed — whether you closed the announcement bar",
+        "theme — your light or dark theme choice",
       ],
     },
     {
@@ -474,7 +497,7 @@ export const accessibilityDoc: {
   sections: LegalSection[]
 } = {
   title: "Accessibility Statement",
-  lastUpdated: "May 1, 2025",
+  lastUpdated: "October 25, 2026",
   // The closing sentence now lives as the "Questions and Assistance" section, so the
   // standalone closing band stays empty to avoid rendering it twice.
   closingNote: "",
@@ -506,6 +529,9 @@ export const accessibilityDoc: {
       heading: "Accessibility Features",
       paragraphs: ["Our website includes the following accessibility features:"],
       bullets: [
+        "An accessibility menu on every page (bottom-left), with profiles for visual impairment, seizure and epilepsy risk, colour vision deficiency, ADHD and learning differences",
+        "From the same menu: text size, line height and letter spacing, readable font, heading/link/button highlighting, image hiding, control tooltips, read-aloud, stop animations, eight contrast and colour modes (one at a time), a reading guide, a reading mask and enlarged cursors",
+        "Translation of the whole site into any language Google Translate supports, from the footer",
         "Semantic HTML to ensure proper structure and navigation",
         "ARIA landmarks to identify regions of the page",
         "Alt text for images",

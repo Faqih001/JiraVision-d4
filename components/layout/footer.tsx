@@ -2,13 +2,13 @@
 
 import Image from "next/image"
 import Link from "next/link"
-import { ArrowRight, ArrowUp, ChevronDown, Github, Linkedin, Twitter } from "lucide-react"
+import { ArrowRight, ArrowUp, ChevronDown, Accessibility, Github, Linkedin, Twitter } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import NewsletterForm from "@/components/newsletter-form"
-import { LanguageSelector } from "@/components/layout/language-selector"
+import { GoogleTranslate } from "@/components/layout/google-translate"
 import { ThemeToggle } from "@/components/layout/theme-toggle"
+import { OPEN_A11Y_EVENT } from "@/lib/accessibility"
 import { OPEN_CONSENT_EVENT } from "@/lib/consent"
-import { useLocale } from "@/lib/i18n/use-locale"
 import { overallStatus, services } from "@/content/status"
 import {
   footerClosing,
@@ -39,8 +39,7 @@ function StatusChip() {
 }
 
 function FooterColumnNav({ column }: { column: FooterColumn }) {
-  const { t } = useLocale()
-  const label = t(`footer.${column.title.toLowerCase()}`)
+  const label = column.title
   return (
     <>
       <details className="group border-b border-border/60 lg:hidden">
@@ -81,7 +80,6 @@ function FooterColumnNav({ column }: { column: FooterColumn }) {
 }
 
 export function Footer() {
-  const { t } = useLocale()
   const backToTop = () => {
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches
     window.scrollTo({ top: 0, behavior: reduced ? "auto" : "smooth" })
@@ -124,7 +122,6 @@ export function Footer() {
             <div className="mt-5 flex flex-wrap items-center gap-3">
               <StatusChip />
               <ThemeToggle className="h-8 w-8" />
-              <LanguageSelector className="rounded-full border border-border bg-background px-3 py-1.5 text-xs" />
             </div>
             {socialLinks.length > 0 && (
               <ul className="mt-5 flex gap-2">
@@ -164,6 +161,14 @@ export function Footer() {
           <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
             <button
               type="button"
+              onClick={() => window.dispatchEvent(new Event(OPEN_A11Y_EVENT))}
+              className="inline-flex items-center gap-1.5 text-xs transition-colors duration-150 hover:text-foreground"
+            >
+              <Accessibility className="h-3.5 w-3.5" aria-hidden="true" />
+              Accessibility settings
+            </button>
+            <button
+              type="button"
               onClick={() => window.dispatchEvent(new Event(OPEN_CONSENT_EVENT))}
               className="text-xs transition-colors duration-150 hover:text-foreground"
             >
@@ -182,6 +187,7 @@ export function Footer() {
                   ))}
               </ul>
             </nav>
+            <GoogleTranslate />
           </div>
           <button
             type="button"
@@ -189,7 +195,7 @@ export function Footer() {
             className="inline-flex min-h-[40px] items-center gap-1.5 self-start text-sm font-medium transition-colors duration-150 hover:text-foreground md:self-auto lg:mr-16"
           >
             <ArrowUp className="h-4 w-4" />
-            {t("footer.backToTop")}
+            Back to top
           </button>
         </div>
       </div>
