@@ -143,16 +143,24 @@ export default async function CaseStudyPage({ params }: Props) {
                 {study.setup.map((step, index) => {
                   const doc = step.doc ? getDoc(step.doc) : null
                   return (
-                    <li key={step.title} className="flex gap-4">
-                      <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 font-mono text-sm text-primary">
+                    // The badge column costs 48px, so on a 360px phone the card only
+                    // has ~224px for content — less than a nowrap "Open /dashboard/…"
+                    // label needs. Stacking the badge above the card reclaims it.
+                    <li key={step.title} className="flex flex-col gap-3 sm:flex-row sm:gap-4">
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 font-mono text-sm text-primary">
                         {index + 1}
                       </span>
-                      <div className="flex-1 rounded-lg border bg-card p-5 shadow-soft">
+                      <div className="min-w-0 flex-1 rounded-lg border bg-card p-4 shadow-soft sm:p-5">
                         <h3 className="font-display text-lg font-medium">{step.title}</h3>
                         <p className="mt-2 leading-relaxed text-muted-foreground">{step.detail}</p>
-                        <div className="mt-4 flex flex-wrap gap-3">
+                        <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-3">
                           {step.route ? (
-                            <Button size="sm" variant="outline" asChild>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              asChild
+                              className="h-auto min-h-9 whitespace-normal break-words px-3 py-1.5"
+                            >
                               <Link href={step.route}>
                                 Open {step.route}
                                 <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
@@ -160,7 +168,12 @@ export default async function CaseStudyPage({ params }: Props) {
                             </Button>
                           ) : null}
                           {doc ? (
-                            <Button size="sm" variant="outline" asChild>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              asChild
+                              className="h-auto min-h-9 whitespace-normal break-words px-3 py-1.5"
+                            >
                               <Link href={`/resources/documentation/${doc.slug}`}>
                                 <BookOpen className="h-3.5 w-3.5" aria-hidden="true" />
                                 {doc.title}

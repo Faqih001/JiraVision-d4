@@ -109,7 +109,10 @@ export default function DocReader({ doc, related }: { doc: DocEntry; related: Do
           </div>
         </div>
 
-        <div className="md:col-span-3">
+        {/* break-words: authored prose embeds raw endpoint strings like
+            "GET /api/reports/export?dataset=tasks&range=30d", which are single
+            unbreakable tokens and otherwise widen the document past 360px. */}
+        <div className="md:col-span-3 break-words">
           <div className="bg-muted/30 p-6 rounded-lg mb-6 flex justify-between items-start gap-4">
             <div>
               <h1 className="text-2xl font-bold">{doc.title}</h1>
