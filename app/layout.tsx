@@ -2,11 +2,14 @@ import type React from "react"
 import type { Metadata } from "next"
 import { Inter, Fraunces } from "next/font/google"
 import "./globals.css"
+import "./accessibility.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { AuthProvider } from "@/context/auth-context"
 import { Toaster } from "@/components/ui/toaster"
 import LandingChatbot from "@/components/landing-chatbot"
 import ClientCorsWrapper from "@/app/providers/client-cors-wrapper"
+import { AccessibilityWidget } from "@/components/accessibility/accessibility-widget"
+import { bootstrapScript } from "@/lib/accessibility"
 
 const inter = Inter({
   subsets: ["latin"],
@@ -50,13 +53,21 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} ${fraunces.variable} font-sans antialiased`}>
+        {/* Restores saved accessibility choices onto <html> before the body paints,
+            so a large-text or high-contrast user never sees a default-sized flash. */}
+        <script dangerouslySetInnerHTML={{ __html: bootstrapScript() }} />
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          <AuthProvider>{children}</AuthProvider>
+          <AuthProvider>
+            {/* Scoping root for the accessibility stylesheet: adjustments reach the page
+                but never the widget's own panel, the toaster or the chatbot. */}
+            <div id="jv-page">{children}</div>
+          </AuthProvider>
         </ThemeProvider>
         {/* Every mutation surface reports through useToast(); without this the
             376 toast() call sites resolve into a store nothing ever renders. */}
         <Toaster />
         <LandingChatbot />
+        <AccessibilityWidget />
         {/* Add CORS handler in development mode via client wrapper */}
         <ClientCorsWrapper />
       </body>

@@ -1,0 +1,718 @@
+/*
+ * Accessibility engine — the visual half of lib/accessibility.ts.
+ *
+ * Every rule keys off a data-jv-* attribute on <html>, which is what the panel
+ * toggles and what the pre-paint bootstrap script restores from localStorage.
+ * Nothing here is scoped to a component, so the adjustments hold on marketing
+ * pages, the dashboard and the auth screens alike.
+ *
+ * Colour adjustments deliberately rewrite the design tokens instead of applying a
+ * CSS `filter` to a wrapper: a filter makes an ancestor the containing block of any
+ * position: fixed descendant, which would knock the mobile bottom bar, the cookie
+ * banner and the dashboard drawer off the screen. Media elements are leaves, so the
+ * equivalent filter is safe on them and keeps photographs in step with the palette.
+ */
+
+/* The page content is wrapped in #jv-page so adjustments can be scoped away from the
+   widget's own panel, the toaster and the chatbot — those live outside it in <body>.
+   The wrapper paints nothing of its own; the body keeps the background. */
+
+/* ---------------------------------------------------------------- typography */
+
+/* Tailwind sizes everything in rem, so scaling the root font size scales the whole
+   interface — headings, cards, charts and tables included. */
+html[data-jv-text-size="1"] {
+  font-size: 112.5%;
+}
+html[data-jv-text-size="2"] {
+  font-size: 125%;
+}
+html[data-jv-text-size="3"] {
+  font-size: 150%;
+}
+
+html[data-jv-line-height="1"] :is(p, li, dd, dt, blockquote, figcaption, label, td, th, h1, h2, h3, h4, h5, h6) {
+  line-height: 1.75;
+}
+html[data-jv-line-height="2"] :is(p, li, dd, dt, blockquote, figcaption, label, td, th, h1, h2, h3, h4, h5, h6) {
+  line-height: 2;
+}
+html[data-jv-line-height="3"] :is(p, li, dd, dt, blockquote, figcaption, label, td, th, h1, h2, h3, h4, h5, h6) {
+  line-height: 2.4;
+}
+
+html[data-jv-text-spacing="1"] :is(p, li, dd, dt, blockquote, h1, h2, h3, h4, h5, h6, a, span) {
+  letter-spacing: 0.05em;
+  word-spacing: 0.1em;
+}
+html[data-jv-text-spacing="2"] :is(p, li, dd, dt, blockquote, h1, h2, h3, h4, h5, h6, a, span) {
+  letter-spacing: 0.1em;
+  word-spacing: 0.16em;
+}
+html[data-jv-text-spacing="3"] :is(p, li, dd, dt, blockquote, h1, h2, h3, h4, h5, h6, a, span) {
+  letter-spacing: 0.16em;
+  word-spacing: 0.24em;
+}
+
+/* A plain humanist sans with wide counters and no optical sizing, replacing the
+   display serif that carries the brand elsewhere. */
+html[data-jv-readable-font] #jv-page :is(body, h1, h2, h3, h4, h5, h6, p, li, a, button, input, td, th, label, span) {
+  font-family: Verdana, Geneva, Tahoma, "DejaVu Sans", sans-serif !important;
+  font-variation-settings: normal !important;
+  letter-spacing: normal;
+}
+
+/* ---------------------------------------------------------------- highlights */
+
+html[data-jv-highlight-headings] #jv-page :is(h1, h2, h3, h4, h5, h6) {
+  background-color: hsl(var(--foreground));
+  color: hsl(var(--background));
+  box-shadow: 0 0 0 0.35rem hsl(var(--foreground));
+}
+
+html[data-jv-highlight-links] #jv-page a[href] {
+  text-decoration: underline !important;
+  text-decoration-thickness: 2px !important;
+  text-underline-offset: 0.18em !important;
+  font-weight: 600;
+  background-color: hsl(var(--warning) / 0.18);
+}
+
+html[data-jv-highlight-buttons] #jv-page :is(button, [role="button"], input[type="submit"], summary) {
+  outline: 2px solid hsl(var(--foreground));
+  outline-offset: 2px;
+}
+
+html[data-jv-hide-images] #jv-page :is(img, picture, video, canvas, iframe, svg[aria-hidden="true"]) {
+  display: none !important;
+}
+
+/* Tooltips surface the accessible name of every control on hover and focus, which
+   is what people scanning for "what does this button do" ask for. */
+html[data-jv-tooltips] #jv-page :is(a[href], button, [role="button"], input, select, textarea) {
+  position: relative;
+}
+html[data-jv-tooltips] #jv-page :is(a[href], button, [role="button"]):hover::after,
+html[data-jv-tooltips] #jv-page :is(a[href], button, [role="button"]):focus-visible::after {
+  content: attr(data-jv-tip);
+  position: absolute;
+  left: 0;
+  top: 100%;
+  z-index: 60;
+  max-width: 20rem;
+  width: max-content;
+  padding: 0.375rem 0.5rem;
+  border: 1px solid hsl(var(--foreground));
+  border-radius: 0.375rem;
+  background-color: hsl(var(--popover));
+  color: hsl(var(--popover-foreground));
+  font-family: var(--font-sans), sans-serif;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: normal;
+  word-spacing: normal;
+  text-transform: none;
+  white-space: normal;
+  box-shadow: var(--shadow-md);
+  pointer-events: none;
+}
+
+html[data-jv-read-aloud] #jv-page :is(p, li, h1, h2, h3, h4, blockquote, dd, figcaption) {
+  cursor: pointer;
+}
+html[data-jv-read-aloud] #jv-page :is(p, li, h1, h2, h3, h4, blockquote, dd, figcaption):hover {
+  background-color: hsl(var(--accent) / 0.16);
+  box-shadow: 0 0 0 0.25rem hsl(var(--accent) / 0.16);
+}
+
+html[data-jv-stop-animations] #jv-page *,
+html[data-jv-stop-animations] #jv-page *::before,
+html[data-jv-stop-animations] #jv-page *::after {
+  animation-duration: 0s !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0s !important;
+  transition-delay: 0s !important;
+  scroll-behavior: auto !important;
+}
+html[data-jv-stop-animations] {
+  scroll-behavior: auto !important;
+}
+
+/* --------------------------------------------------------------- colour media */
+
+/* Photographs and video sit outside the token system, so the equivalent filter is
+   applied to them directly. They are leaves, so nothing positionally fixed lives
+   inside them and the containing-block problem cannot happen. SVG is deliberately
+   excluded: icons and charts paint with the tokens, so they already follow. */
+html[data-jv-invert] #jv-page :is(img, picture, video, canvas) {
+  filter: invert(1) hue-rotate(180deg);
+}
+html[data-jv-rotate-hues] #jv-page :is(img, picture, video, canvas) {
+  filter: hue-rotate(145deg);
+}
+html[data-jv-high-saturation] #jv-page :is(img, picture, video, canvas) {
+  filter: saturate(1.9);
+}
+html[data-jv-low-saturation] #jv-page :is(img, picture, video, canvas) {
+  filter: saturate(0.3);
+}
+html[data-jv-monochrome] #jv-page :is(img, picture, video, canvas) {
+  filter: grayscale(1);
+}
+
+/* ---------------------------------------------------------------- contrast */
+
+/* Dark contrast forces the night palette and pushes the ink/surface gap to the
+   widest the token set allows, whatever the theme toggle says. */
+html[data-jv-dark-contrast] {
+  --background: 0 0% 6%;
+  --surface: 0 0% 10%;
+  --surface-2: 0 0% 16%;
+  --card: 0 0% 10%;
+  --card-foreground: 0 0% 100%;
+  --popover: 0 0% 10%;
+  --popover-foreground: 0 0% 100%;
+  --foreground: 0 0% 100%;
+  --ink-muted: 0 0% 82%;
+  --muted: 0 0% 16%;
+  --muted-foreground: 0 0% 82%;
+  --primary: 0 0% 100%;
+  --primary-foreground: 0 0% 0%;
+  --accent: 60 100% 60%;
+  --accent-foreground: 0 0% 0%;
+  --secondary: 0 0% 20%;
+  --secondary-foreground: 0 0% 100%;
+  --clay: 30 100% 70%;
+  --clay-foreground: 0 0% 0%;
+  --border: 0 0% 45%;
+  --input: 0 0% 45%;
+  --ring: 60 100% 60%;
+  --success: 90 90% 65%;
+  --success-foreground: 0 0% 0%;
+  --warning: 60 100% 65%;
+  --warning-foreground: 0 0% 0%;
+  --destructive: 10 100% 70%;
+  --destructive-foreground: 0 0% 0%;
+  --chart-pine: 148 60% 60%;
+  --chart-stone: 0 0% 80%;
+  --chart-clay: 30 100% 70%;
+  --chart-moss: 90 90% 65%;
+}
+
+html[data-jv-light-contrast] {
+  --background: 0 0% 100%;
+  --surface: 0 0% 97%;
+  --surface-2: 0 0% 92%;
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 0%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 0%;
+  --foreground: 0 0% 0%;
+  --ink-muted: 0 0% 18%;
+  --muted: 0 0% 94%;
+  --muted-foreground: 0 0% 18%;
+  --primary: 0 0% 0%;
+  --primary-foreground: 0 0% 100%;
+  --accent: 210 100% 30%;
+  --accent-foreground: 0 0% 100%;
+  --secondary: 0 0% 88%;
+  --secondary-foreground: 0 0% 0%;
+  --clay: 210 100% 25%;
+  --clay-foreground: 0 0% 100%;
+  --border: 0 0% 30%;
+  --input: 0 0% 30%;
+  --ring: 210 100% 30%;
+  --success: 120 100% 18%;
+  --success-foreground: 0 0% 100%;
+  --warning: 40 100% 22%;
+  --warning-foreground: 0 0% 100%;
+  --destructive: 0 100% 27%;
+  --destructive-foreground: 0 0% 100%;
+  --chart-pine: 210 100% 30%;
+  --chart-stone: 0 0% 25%;
+  --chart-clay: 0 100% 27%;
+  --chart-moss: 120 100% 18%;
+}
+
+/* High contrast is the widest setting of all: pure black on white (or the inverse
+   in dark mode), heavier borders, and a focus ring that cannot be missed. */
+html[data-jv-high-contrast] {
+  --background: 0 0% 100%;
+  --surface: 0 0% 100%;
+  --surface-2: 0 0% 93%;
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 0%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 0%;
+  --foreground: 0 0% 0%;
+  --ink-muted: 0 0% 0%;
+  --muted: 0 0% 93%;
+  --muted-foreground: 0 0% 0%;
+  --primary: 0 0% 0%;
+  --primary-foreground: 0 0% 100%;
+  --accent: 0 0% 0%;
+  --accent-foreground: 0 0% 100%;
+  --secondary: 0 0% 88%;
+  --secondary-foreground: 0 0% 0%;
+  --clay: 0 0% 0%;
+  --clay-foreground: 0 0% 100%;
+  --border: 0 0% 0%;
+  --input: 0 0% 0%;
+  --ring: 0 0% 0%;
+  --success: 0 0% 0%;
+  --success-foreground: 0 0% 100%;
+  --warning: 0 0% 0%;
+  --warning-foreground: 0 0% 100%;
+  --destructive: 0 0% 0%;
+  --destructive-foreground: 0 0% 100%;
+  --chart-pine: 0 0% 0%;
+  --chart-stone: 0 0% 35%;
+  --chart-clay: 0 0% 55%;
+  --chart-moss: 0 0% 18%;
+}
+
+html[data-jv-high-contrast].dark {
+  --background: 0 0% 0%;
+  --surface: 0 0% 0%;
+  --surface-2: 0 0% 12%;
+  --card: 0 0% 0%;
+  --card-foreground: 0 0% 100%;
+  --popover: 0 0% 0%;
+  --popover-foreground: 0 0% 100%;
+  --foreground: 0 0% 100%;
+  --ink-muted: 0 0% 100%;
+  --muted: 0 0% 12%;
+  --muted-foreground: 0 0% 100%;
+  --primary: 0 0% 100%;
+  --primary-foreground: 0 0% 0%;
+  --accent: 0 0% 100%;
+  --accent-foreground: 0 0% 0%;
+  --secondary: 0 0% 18%;
+  --secondary-foreground: 0 0% 100%;
+  --clay: 0 0% 100%;
+  --clay-foreground: 0 0% 0%;
+  --border: 0 0% 100%;
+  --input: 0 0% 100%;
+  --ring: 0 0% 100%;
+  --success: 0 0% 100%;
+  --success-foreground: 0 0% 0%;
+  --warning: 0 0% 100%;
+  --warning-foreground: 0 0% 0%;
+  --destructive: 0 0% 100%;
+  --destructive-foreground: 0 0% 0%;
+  --chart-pine: 0 0% 100%;
+  --chart-stone: 0 0% 70%;
+  --chart-clay: 0 0% 50%;
+  --chart-moss: 0 0% 85%;
+}
+
+/* Generated from the base tokens in globals.css — see the header note above. */
+html[data-jv-rotate-hues] {
+  --background: 190 27% 96%;
+  --surface: 189 22% 92%;
+  --surface-2: 187 18% 88%;
+  --card: 190 27% 96%;
+  --card-foreground: 185 9% 10%;
+  --popover: 190 30% 97%;
+  --popover-foreground: 185 9% 10%;
+  --foreground: 185 9% 10%;
+  --ink-muted: 186 11% 30%;
+  --muted: 188 19% 90%;
+  --muted-foreground: 185 9% 36%;
+  --primary: 305 23% 24%;
+  --primary-foreground: 190 27% 96%;
+  --accent: 298 18% 52%;
+  --accent-foreground: 303 22% 11%;
+  --secondary: 187 13% 77%;
+  --secondary-foreground: 185 9% 16%;
+  --clay: 165 34% 46%;
+  --clay-foreground: 190 27% 96%;
+  --border: 188 20% 84%;
+  --input: 188 20% 84%;
+  --ring: 305 23% 24%;
+  --success: 233 29% 28%;
+  --success-foreground: 190 27% 96%;
+  --warning: 209 25% 25%;
+  --warning-foreground: 190 27% 96%;
+  --destructive: 155 47% 33%;
+  --destructive-foreground: 190 27% 96%;
+  --chart-pine: 305 23% 24%;
+  --chart-stone: 185 9% 36%;
+  --chart-clay: 165 34% 46%;
+  --chart-moss: 233 29% 28%;
+}
+
+html[data-jv-rotate-hues].dark {
+  --background: 205 6% 9%;
+  --surface: 190 8% 14%;
+  --surface-2: 189 9% 19%;
+  --card: 190 8% 12%;
+  --card-foreground: 186 18% 87%;
+  --popover: 190 8% 12%;
+  --popover-foreground: 186 18% 87%;
+  --foreground: 186 18% 87%;
+  --ink-muted: 187 17% 57%;
+  --muted: 189 9% 19%;
+  --muted-foreground: 187 17% 57%;
+  --primary: 293 17% 52%;
+  --primary-foreground: 303 22% 11%;
+  --accent: 293 25% 68%;
+  --accent-foreground: 303 22% 11%;
+  --secondary: 189 9% 19%;
+  --secondary-foreground: 186 18% 87%;
+  --clay: 163 42% 62%;
+  --clay-foreground: 160 40% 12%;
+  --border: 189 8% 22%;
+  --input: 189 8% 22%;
+  --ring: 293 17% 52%;
+  --success: 231 27% 58%;
+  --success-foreground: 233 30% 12%;
+  --warning: 188 52% 52%;
+  --warning-foreground: 185 60% 12%;
+  --destructive: 159 47% 55%;
+  --destructive-foreground: 155 45% 12%;
+  --chart-pine: 293 17% 52%;
+  --chart-stone: 187 17% 57%;
+  --chart-clay: 163 42% 62%;
+  --chart-moss: 231 27% 58%;
+}
+
+html[data-jv-high-saturation] {
+  --background: 45 51% 96%;
+  --surface: 44 42% 92%;
+  --surface-2: 42 34% 88%;
+  --card: 45 51% 96%;
+  --card-foreground: 40 17% 10%;
+  --popover: 45 57% 97%;
+  --popover-foreground: 40 17% 10%;
+  --foreground: 40 17% 10%;
+  --ink-muted: 41 21% 30%;
+  --muted: 43 36% 90%;
+  --muted-foreground: 40 17% 36%;
+  --primary: 160 44% 24%;
+  --primary-foreground: 45 51% 96%;
+  --accent: 153 34% 52%;
+  --accent-foreground: 158 42% 11%;
+  --secondary: 42 25% 77%;
+  --secondary-foreground: 40 17% 16%;
+  --clay: 20 65% 46%;
+  --clay-foreground: 45 51% 96%;
+  --border: 43 38% 84%;
+  --input: 43 38% 84%;
+  --ring: 160 44% 24%;
+  --success: 88 55% 28%;
+  --success-foreground: 45 51% 96%;
+  --warning: 64 48% 25%;
+  --warning-foreground: 45 51% 96%;
+  --destructive: 10 89% 33%;
+  --destructive-foreground: 45 51% 96%;
+  --chart-pine: 160 44% 24%;
+  --chart-stone: 40 17% 36%;
+  --chart-clay: 20 65% 46%;
+  --chart-moss: 88 55% 28%;
+}
+
+html[data-jv-high-saturation].dark {
+  --background: 60 11% 9%;
+  --surface: 45 15% 14%;
+  --surface-2: 44 17% 19%;
+  --card: 45 15% 12%;
+  --card-foreground: 41 34% 87%;
+  --popover: 45 15% 12%;
+  --popover-foreground: 41 34% 87%;
+  --foreground: 41 34% 87%;
+  --ink-muted: 42 32% 57%;
+  --muted: 44 17% 19%;
+  --muted-foreground: 42 32% 57%;
+  --primary: 148 32% 52%;
+  --primary-foreground: 158 42% 11%;
+  --accent: 148 48% 68%;
+  --accent-foreground: 158 42% 11%;
+  --secondary: 44 17% 19%;
+  --secondary-foreground: 41 34% 87%;
+  --clay: 18 80% 62%;
+  --clay-foreground: 15 76% 12%;
+  --border: 44 15% 22%;
+  --input: 44 15% 22%;
+  --ring: 148 32% 52%;
+  --success: 86 51% 58%;
+  --success-foreground: 88 57% 12%;
+  --warning: 43 99% 52%;
+  --warning-foreground: 40 100% 12%;
+  --destructive: 14 89% 55%;
+  --destructive-foreground: 10 86% 12%;
+  --chart-pine: 148 32% 52%;
+  --chart-stone: 42 32% 57%;
+  --chart-clay: 18 80% 62%;
+  --chart-moss: 86 51% 58%;
+}
+
+html[data-jv-low-saturation] {
+  --background: 45 8% 96%;
+  --surface: 44 7% 92%;
+  --surface-2: 42 5% 88%;
+  --card: 45 8% 96%;
+  --card-foreground: 40 3% 10%;
+  --popover: 45 9% 97%;
+  --popover-foreground: 40 3% 10%;
+  --foreground: 40 3% 10%;
+  --ink-muted: 41 3% 30%;
+  --muted: 43 6% 90%;
+  --muted-foreground: 40 3% 36%;
+  --primary: 160 7% 24%;
+  --primary-foreground: 45 8% 96%;
+  --accent: 153 5% 52%;
+  --accent-foreground: 158 7% 11%;
+  --secondary: 42 4% 77%;
+  --secondary-foreground: 40 3% 16%;
+  --clay: 20 10% 46%;
+  --clay-foreground: 45 8% 96%;
+  --border: 43 6% 84%;
+  --input: 43 6% 84%;
+  --ring: 160 7% 24%;
+  --success: 88 9% 28%;
+  --success-foreground: 45 8% 96%;
+  --warning: 64 8% 25%;
+  --warning-foreground: 45 8% 96%;
+  --destructive: 10 14% 33%;
+  --destructive-foreground: 45 8% 96%;
+  --chart-pine: 160 7% 24%;
+  --chart-stone: 40 3% 36%;
+  --chart-clay: 20 10% 46%;
+  --chart-moss: 88 9% 28%;
+}
+
+html[data-jv-low-saturation].dark {
+  --background: 60 2% 9%;
+  --surface: 45 2% 14%;
+  --surface-2: 44 3% 19%;
+  --card: 45 2% 12%;
+  --card-foreground: 41 5% 87%;
+  --popover: 45 2% 12%;
+  --popover-foreground: 41 5% 87%;
+  --foreground: 41 5% 87%;
+  --ink-muted: 42 5% 57%;
+  --muted: 44 3% 19%;
+  --muted-foreground: 42 5% 57%;
+  --primary: 148 5% 52%;
+  --primary-foreground: 158 7% 11%;
+  --accent: 148 8% 68%;
+  --accent-foreground: 158 7% 11%;
+  --secondary: 44 3% 19%;
+  --secondary-foreground: 41 5% 87%;
+  --clay: 18 13% 62%;
+  --clay-foreground: 15 12% 12%;
+  --border: 44 2% 22%;
+  --input: 44 2% 22%;
+  --ring: 148 5% 52%;
+  --success: 86 8% 58%;
+  --success-foreground: 88 9% 12%;
+  --warning: 43 16% 52%;
+  --warning-foreground: 40 18% 12%;
+  --destructive: 14 14% 55%;
+  --destructive-foreground: 10 14% 12%;
+  --chart-pine: 148 5% 52%;
+  --chart-stone: 42 5% 57%;
+  --chart-clay: 18 13% 62%;
+  --chart-moss: 86 8% 58%;
+}
+
+html[data-jv-monochrome] {
+  --background: 45 0% 96%;
+  --surface: 44 0% 92%;
+  --surface-2: 42 0% 88%;
+  --card: 45 0% 96%;
+  --card-foreground: 40 0% 10%;
+  --popover: 45 0% 97%;
+  --popover-foreground: 40 0% 10%;
+  --foreground: 40 0% 10%;
+  --ink-muted: 41 0% 30%;
+  --muted: 43 0% 90%;
+  --muted-foreground: 40 0% 36%;
+  --primary: 160 0% 24%;
+  --primary-foreground: 45 0% 96%;
+  --accent: 153 0% 52%;
+  --accent-foreground: 158 0% 11%;
+  --secondary: 42 0% 77%;
+  --secondary-foreground: 40 0% 16%;
+  --clay: 20 0% 46%;
+  --clay-foreground: 45 0% 96%;
+  --border: 43 0% 84%;
+  --input: 43 0% 84%;
+  --ring: 160 0% 24%;
+  --success: 88 0% 28%;
+  --success-foreground: 45 0% 96%;
+  --warning: 64 0% 25%;
+  --warning-foreground: 45 0% 96%;
+  --destructive: 10 0% 33%;
+  --destructive-foreground: 45 0% 96%;
+  --chart-pine: 160 0% 24%;
+  --chart-stone: 40 0% 36%;
+  --chart-clay: 20 0% 46%;
+  --chart-moss: 88 0% 28%;
+}
+
+html[data-jv-monochrome].dark {
+  --background: 60 0% 9%;
+  --surface: 45 0% 14%;
+  --surface-2: 44 0% 19%;
+  --card: 45 0% 12%;
+  --card-foreground: 41 0% 87%;
+  --popover: 45 0% 12%;
+  --popover-foreground: 41 0% 87%;
+  --foreground: 41 0% 87%;
+  --ink-muted: 42 0% 57%;
+  --muted: 44 0% 19%;
+  --muted-foreground: 42 0% 57%;
+  --primary: 148 0% 52%;
+  --primary-foreground: 158 0% 11%;
+  --accent: 148 0% 68%;
+  --accent-foreground: 158 0% 11%;
+  --secondary: 44 0% 19%;
+  --secondary-foreground: 41 0% 87%;
+  --clay: 18 0% 62%;
+  --clay-foreground: 15 0% 12%;
+  --border: 44 0% 22%;
+  --input: 44 0% 22%;
+  --ring: 148 0% 52%;
+  --success: 86 0% 58%;
+  --success-foreground: 88 0% 12%;
+  --warning: 43 0% 52%;
+  --warning-foreground: 40 0% 12%;
+  --destructive: 14 0% 55%;
+  --destructive-foreground: 10 0% 12%;
+  --chart-pine: 148 0% 52%;
+  --chart-stone: 42 0% 57%;
+  --chart-clay: 18 0% 62%;
+  --chart-moss: 86 0% 58%;
+}
+
+html[data-jv-invert] {
+  --background: 225 27% 4%;
+  --surface: 224 22% 8%;
+  --surface-2: 222 18% 12%;
+  --card: 225 27% 4%;
+  --card-foreground: 220 9% 90%;
+  --popover: 225 30% 3%;
+  --popover-foreground: 220 9% 90%;
+  --foreground: 220 9% 90%;
+  --ink-muted: 221 11% 70%;
+  --muted: 223 19% 10%;
+  --muted-foreground: 220 9% 64%;
+  --primary: 340 23% 76%;
+  --primary-foreground: 225 27% 4%;
+  --accent: 333 18% 48%;
+  --accent-foreground: 338 22% 89%;
+  --secondary: 222 13% 23%;
+  --secondary-foreground: 220 9% 84%;
+  --clay: 200 34% 54%;
+  --clay-foreground: 225 27% 4%;
+  --border: 223 20% 16%;
+  --input: 223 20% 16%;
+  --ring: 340 23% 76%;
+  --success: 268 29% 72%;
+  --success-foreground: 225 27% 4%;
+  --warning: 244 25% 75%;
+  --warning-foreground: 225 27% 4%;
+  --destructive: 190 47% 67%;
+  --destructive-foreground: 225 27% 4%;
+  --chart-pine: 340 23% 76%;
+  --chart-stone: 220 9% 64%;
+  --chart-clay: 200 34% 54%;
+  --chart-moss: 268 29% 72%;
+}
+
+html[data-jv-invert].dark {
+  --background: 240 6% 91%;
+  --surface: 225 8% 86%;
+  --surface-2: 224 9% 81%;
+  --card: 225 8% 88%;
+  --card-foreground: 221 18% 13%;
+  --popover: 225 8% 88%;
+  --popover-foreground: 221 18% 13%;
+  --foreground: 221 18% 13%;
+  --ink-muted: 222 17% 43%;
+  --muted: 224 9% 81%;
+  --muted-foreground: 222 17% 43%;
+  --primary: 328 17% 48%;
+  --primary-foreground: 338 22% 89%;
+  --accent: 328 25% 32%;
+  --accent-foreground: 338 22% 89%;
+  --secondary: 224 9% 81%;
+  --secondary-foreground: 221 18% 13%;
+  --clay: 198 42% 38%;
+  --clay-foreground: 195 40% 88%;
+  --border: 224 8% 78%;
+  --input: 224 8% 78%;
+  --ring: 328 17% 48%;
+  --success: 266 27% 42%;
+  --success-foreground: 268 30% 88%;
+  --warning: 223 52% 48%;
+  --warning-foreground: 220 60% 88%;
+  --destructive: 194 47% 45%;
+  --destructive-foreground: 190 45% 88%;
+  --chart-pine: 328 17% 48%;
+  --chart-stone: 222 17% 43%;
+  --chart-clay: 198 42% 38%;
+  --chart-moss: 266 27% 42%;
+}
+
+html[data-jv-high-contrast] :focus-visible,
+html[data-jv-dark-contrast] :focus-visible,
+html[data-jv-light-contrast] :focus-visible {
+  outline: 3px solid hsl(var(--ring)) !important;
+  outline-offset: 2px;
+}
+
+html[data-jv-high-contrast] #jv-page :is(a, button) {
+  text-decoration-thickness: 1.5px;
+}
+
+/* ---------------------------------------------------------------- cursors */
+
+html[data-jv-big-black-cursor] #jv-page,
+html[data-jv-big-black-cursor] #jv-page :is(a, button, input, select, textarea, summary, label) {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='36'%3E%3Cpath d='M4 2l22 12-9 2 5 9-4 2-5-9-6 7z' fill='%23000' stroke='%23fff' stroke-width='2'/%3E%3C/svg%3E")
+      4 2,
+    auto !important;
+}
+
+html[data-jv-big-white-cursor] #jv-page,
+html[data-jv-big-white-cursor] #jv-page :is(a, button, input, select, textarea, summary, label) {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='36'%3E%3Cpath d='M4 2l22 12-9 2 5 9-4 2-5-9-6 7z' fill='%23fff' stroke='%23000' stroke-width='2'/%3E%3C/svg%3E")
+      4 2,
+    auto !important;
+}
+
+/* ------------------------------------------------------- reading overlays */
+
+/* Both are pointer-tracking bands mounted by the widget outside #jv-page. The mask
+   darkens everything but its own clear window, which the 100vmax spread paints. */
+.jv-reading-overlay {
+  position: fixed;
+  left: 0;
+  width: 100%;
+  z-index: 39;
+  pointer-events: none;
+  display: none;
+}
+html[data-jv-reading-guide] .jv-reading-guide,
+html[data-jv-reading-mask] .jv-reading-mask {
+  display: block;
+}
+.jv-reading-guide {
+  height: 3.5rem;
+  border-block: 2px solid hsl(var(--clay));
+  background-color: hsl(var(--clay) / 0.18);
+}
+.jv-reading-mask {
+  height: 8rem;
+  box-shadow: 0 0 0 100vmax hsl(0 0% 0% / 0.7);
+}
+
+@media print {
+  .jv-reading-overlay {
+    display: none !important;
+  }
+}
