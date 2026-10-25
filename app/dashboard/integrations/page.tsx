@@ -226,7 +226,7 @@ const CATALOG: CatalogDef[] = [
   {
     key: "zapier",
     name: "Zapier",
-    description: "Stub for future automation recipes.",
+    description: "Store a Zapier catch hook — configuration only, Zaps do not fire.",
     icon: Zap,
     effect: "config-only",
     fields: [
