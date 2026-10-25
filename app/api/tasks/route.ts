@@ -3,8 +3,13 @@ import { getSession } from "@/lib/auth-actions"
 import { createTask, getPaginatedTasks } from "@/lib/data-access"
 import { createNotification } from "@/lib/notifications"
 
-// For local development and testing - set to false in production
-const ENABLE_TEST_MODE = process.env.NODE_ENV === 'development' || process.env.ENABLE_TEST_MODE === 'true';
+// Anonymous access is a convenience for local development and scripted runs only.
+// The previous expression ORed in ENABLE_TEST_MODE unconditionally, so a stray
+// ENABLE_TEST_MODE=true in a production deploy opened these endpoints to
+// unauthenticated reads and writes attributed to user 1.
+const ENABLE_TEST_MODE =
+  process.env.NODE_ENV !== "production" &&
+  (process.env.NODE_ENV === "development" || process.env.ENABLE_TEST_MODE === "true")
 
 // GET handler for /api/tasks - Returns all tasks with pagination and filtering
 export async function GET(request: Request) {

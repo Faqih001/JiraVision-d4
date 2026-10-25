@@ -27,6 +27,24 @@ export type User = {
   updatedAt: Date | null;
 };
 
+// users.skills is a jsonb column, so postgres-js hands back a parsed array — but
+// rows written before the column existed, and the raw-SQL paths in
+// app/api/team/members/[id], can surface a JSON string or a list of non-strings.
+// Accepted values are stringified rather than dropped so a malformed row degrades
+// to usable text instead of silently emptying a profile.
+function toSkills(value: unknown): string[] | null {
+  let parsed = value;
+  if (typeof parsed === "string") {
+    try {
+      parsed = JSON.parse(parsed);
+    } catch {
+      return null;
+    }
+  }
+  if (!Array.isArray(parsed)) return null;
+  return parsed.map((s) => String(s));
+}
+
 // Use Neon connection string from .env
 const connectionString = process.env.DATABASE_URL!;
 
@@ -97,7 +115,7 @@ export async function getUserById(id: number): Promise<User | null> {
       department: user.department,
       location: user.location,
       bio: user.bio,
-      skills: [], // TODO: Implement skills once schema is updated
+      skills: toSkills(user.skills),
       language: user.language,
       timezone: user.timezone,
       preferences: user.preferences as Record<string, unknown>,
@@ -130,7 +148,7 @@ export async function getUserByEmail(email: string): Promise<User | null> {
       department: user.department,
       location: user.location,
       bio: user.bio,
-      skills: [], // TODO: Implement skills once schema is updated
+      skills: toSkills(user.skills),
       language: user.language,
       timezone: user.timezone,
       preferences: user.preferences as Record<string, unknown>,
@@ -198,7 +216,7 @@ export async function createUser(data: {
       department: newUser.department,
       location: newUser.location,
       bio: newUser.bio,
-      skills: [], // TODO: Implement skills once schema is updated
+      skills: toSkills(newUser.skills),
       language: newUser.language,
       timezone: newUser.timezone,
       preferences: newUser.preferences as Record<string, unknown>,

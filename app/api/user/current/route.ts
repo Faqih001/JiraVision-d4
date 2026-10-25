@@ -29,26 +29,9 @@ export async function GET() {
       });
     
     if (!session?.id) {
-      console.log("Current User API: No valid session found, returning demo user for development");
-      
-      // In development, return a fake user profile if no session exists
-      // This helps avoid 401 errors during frontend development
-      if (process.env.NODE_ENV === 'development') {
-        return NextResponse.json({
-          success: true,
-          user: {
-            id: 1,
-            name: 'Demo User',
-            email: 'demo@example.com',
-            role: 'user',
-            avatar: 'https://ui-avatars.com/api/?name=Demo+User',
-            department: 'Development',
-            status: 'online',
-            preferences: {},
-          }
-        });
-      }
-      
+      // No fabricated fallback: this endpoint is published in the API reference as
+      // "the signed-in user row, or 401", so returning a demo account made an
+      // anonymous caller look authenticated to every client that trusts it.
       return NextResponse.json(
         { error: "Unauthorized", details: "No valid session found" },
         { status: 401 }

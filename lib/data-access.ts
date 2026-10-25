@@ -11,9 +11,6 @@ import {
   aiInsights,
 } from "../drizzle/schema"
 
-// For local development and testing - set to false in production
-const ENABLE_TEST_MODE = process.env.NODE_ENV === 'development' || process.env.ENABLE_TEST_MODE === 'true';
-
 // User functions
 export async function getUserProfile(userId: number) {
   try {

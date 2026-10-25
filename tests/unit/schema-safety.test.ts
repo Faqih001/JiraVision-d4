@@ -73,3 +73,37 @@ describe("route handlers use Next 16 async params", () => {
     expect(codeOnly(src(file))).not.toMatch(/params:\s*\{[^}]*\}\s*\}/)
   })
 })
+
+describe("user mappers read the skills column", () => {
+  // users.skills is a real jsonb column (drizzle/schema.ts) and the team
+  // directory writes it, but both auth-side User mappers hardcoded `skills: []`
+  // behind a "once schema is updated" TODO — so every session reported an empty
+  // skill list no matter what was stored.
+  it.each(["lib/db.ts", "lib/db.js"])("%s has no discarded-skills literal", (file) => {
+    expect(codeOnly(src(file))).not.toMatch(/skills:\s*\[\]/)
+  })
+
+  it("lib/db.ts passes the row value through a normaliser", () => {
+    const source = src("lib/db.ts")
+    expect(source).toMatch(/function toSkills\(/)
+    expect(source.match(/skills: toSkills\(/g)).toHaveLength(3)
+  })
+})
+
+describe("auth escape hatches are production-inert", () => {
+  // app/api/tasks/route.ts used to OR in ENABLE_TEST_MODE unconditionally, so one
+  // stray environment variable in a production deploy made task reads and writes
+  // anonymous. The published API reference promises 401 in production.
+  it("ENABLE_TEST_MODE is only defined behind a non-production check", () => {
+    const files = filesIn("app")
+      .concat(filesIn("lib"))
+      .filter((f) => src(f).includes("ENABLE_TEST_MODE"))
+    expect(files).toEqual(["app/api/tasks/route.ts"])
+    const source = codeOnly(src("app/api/tasks/route.ts"))
+    expect(source).toMatch(/NODE_ENV\s*!==?\s*["']production["'][\s\S]{0,120}ENABLE_TEST_MODE/)
+  })
+
+  it("no route fabricates a signed-in user", () => {
+    expect(codeOnly(src("app/api/user/current/route.ts"))).not.toMatch(/Demo User/)
+  })
+})
