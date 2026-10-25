@@ -602,7 +602,7 @@ owners. Each write goes through /api/retros/<id>/notes, /api/retros/<id>/notes/<
       { method: "GET", path: "/api/ai-insights", description: "List stored insights." },
       { method: "POST", path: "/api/ai-insights", description: "Store an insight." },
       { method: "DELETE", path: "/api/ai-insights/<id>", description: "Delete an insight." },
-      { method: "POST", path: "/api/ai/generate", description: "Chat-style generation; returns the model that answered." },
+      { method: "POST", path: "/api/ai/generate", description: "Chat-style generation. Simulated text until a provider key is configured; the reply labels the model it emulated." },
       { method: "GET", path: "/api/retros", description: "List retrospectives." },
     ],
   },
@@ -1112,7 +1112,7 @@ Angle brackets mean a path parameter. All routes are same-origin JSON endpoints 
 
 - POST /api/auth/register, /api/auth/signup, /api/auth/login, /api/auth/logout
 - GET /api/auth/session, /api/auth/verify-token
-- POST /api/auth/forgot-password, /api/auth/reset-password, /api/send-reset-email
+- POST /api/auth/forgot-password, /api/auth/reset-password
 - GET /api/user/current; GET/PATCH /api/user/profile
 - POST /api/user/avatar/upload, /api/user/avatar/remove
 
@@ -1202,7 +1202,7 @@ Angle brackets mean a path parameter. All routes are same-origin JSON endpoints 
 - GET /api/status (public), GET /api/health (authenticated)
 - POST /api/contact, /api/newsletter, /api/newsletter/confirm, /api/careers, /api/quote
 - GET /api/storage/<...key>
-- POST /api/setup; GET /api/db-migrations-check, /api/db-test, /api/demo
+- POST /api/setup (only while the users table is empty), GET /api/demo
 - /api/test/tasks, /api/test/tasks/<id>, /api/test/tasks/bulk (development only)
     `,
     endpoints: [
@@ -1786,7 +1786,6 @@ report is the fastest way to see which of them are live in a given environment.
     endpoints: [
       { method: "GET", path: "/api/status", description: "Public liveness check." },
       { method: "GET", path: "/api/health", description: "Authenticated per-service reachability." },
-      { method: "GET", path: "/api/db-migrations-check", description: "Report which migrations have run." },
     ],
   },
 

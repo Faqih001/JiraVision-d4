@@ -126,3 +126,63 @@ describe("task writes go through the column whitelist", () => {
     expect(codeOnly(src(file))).not.toMatch(/\.\.\.\s*(data|updateData|body|patch)\s*[,}]/)
   })
 })
+
+describe("no anonymous route leaks the schema or relays mail", () => {
+  // Found by enumerating every route handler that lacks a session check. Three of
+  // them were reachable without credentials on the production domain:
+  // /api/db-test and /api/db-migrations-check answered with the table list and full
+  // column types, and /api/send-reset-email emailed any address a link built from a
+  // caller-supplied token. They are deleted, and this guards the same class of bug.
+  const authGated = (file: string) =>
+    /getCurrentUser|getSession|isSuperAdmin|requireSuperAdmin|requireRole|requireUser|requireAdmin|verifySession/.test(
+      codeOnly(src(file)),
+    )
+
+  const apiRoutes = filesIn("app/api").filter((f) => f.endsWith("/route.ts"))
+
+  it.each([
+    "app/api/db-test/route.ts",
+    "app/api/db-migrations-check/route.ts",
+    "app/api/send-reset-email/route.ts",
+  ])("%s stays deleted", (file) => {
+    expect(apiRoutes).not.toContain(file)
+  })
+
+  it("only a gated route reads information_schema", () => {
+    const leakers = apiRoutes
+      .filter((f) => codeOnly(src(f)).includes("information_schema"))
+      .filter((f) => !authGated(f))
+    expect(leakers).toEqual([])
+  })
+
+  it("no route emails a token it was handed in the body", () => {
+    const offenders = apiRoutes
+      .filter((f) => codeOnly(src(f)).includes("resetUrl"))
+      .filter((f) => /const\s*\{[^}]*resetToken[^}]*\}\s*=\s*await\s+\w+\.json\(\)/.test(codeOnly(src(f))))
+    expect(offenders).toEqual([])
+  })
+
+  it("the documented public endpoints are the only ones without a session check", () => {
+    const ungated = apiRoutes.filter((f) => !authGated(f))
+    expect(ungated.sort()).toEqual(
+      [
+        "app/api/ai/generate/route.ts", // mock model output, no user data — see PLACEHOLDERS.md
+        "app/api/aitopia/[...path]/route.ts",
+        "app/api/auth/forgot-password/route.ts",
+        "app/api/auth/login/route.ts",
+        "app/api/auth/logout/route.ts",
+        "app/api/auth/register/route.ts",
+        "app/api/auth/reset-password/route.ts",
+        "app/api/auth/signup/route.ts",
+        "app/api/auth/verify-token/route.ts",
+        "app/api/careers/route.ts",
+        "app/api/contact/route.ts",
+        "app/api/demo/route.ts",
+        "app/api/newsletter/confirm/route.ts",
+        "app/api/newsletter/route.ts",
+        "app/api/quote/route.ts",
+        "app/api/status/route.ts",
+      ].sort(),
+    )
+  })
+})
