@@ -17,7 +17,6 @@ import {
 import { Resend } from "resend"
 import { users } from "@/drizzle/schema"
 import { eq } from "drizzle-orm"
-import { initializeDatabase } from "./db-init"
 
 const resend = new Resend(process.env.JIRAVISION_RESEND_API)
 
@@ -166,9 +165,6 @@ export async function signup(formData: FormData) {
   }
 
   try {
-    // Ensure database tables exist
-    await initializeDatabase()
-
     const existingUser = await getUserByEmail(email)
     if (existingUser) {
       return { success: false, message: "Email already in use" }
@@ -216,9 +212,6 @@ export async function forgotPassword(formData: FormData) {
   }
 
   try {
-    // Ensure database tables exist
-    await initializeDatabase()
-
     const user = await getUserByEmail(email)
     if (!user) {
       // Don't reveal that the email doesn't exist for security reasons
@@ -279,9 +272,6 @@ export async function verifyResetToken(token: string) {
   }
 
   try {
-    // Ensure database tables exist
-    await initializeDatabase()
-
     const resetToken = await getPasswordResetToken(token)
     if (!resetToken) {
       return { valid: false, message: "Invalid or expired token" }
@@ -313,9 +303,6 @@ export async function resetPassword(formData: FormData) {
   }
 
   try {
-    // Ensure database tables exist
-    await initializeDatabase()
-
     const resetToken = await getPasswordResetToken(token)
     if (!resetToken) {
       return { success: false, message: "Invalid or expired token" }

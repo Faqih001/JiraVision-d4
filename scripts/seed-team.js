@@ -58,13 +58,15 @@ async function seedTeamMembers() {
       }
     ];
 
-    // Clear existing team members
-    await db.delete(users);
-    console.log('Cleared existing team members');
-
-    // Insert team members
+    // Insert only what is missing. This used to start with `db.delete(users)` —
+    // an unconditional truncate of the whole table — so running the script on a
+    // live database destroyed every account. drizzle/seed-team.ts is the
+    // canonical seeder; this file only exists for manual runs.
     for (const member of teamMembers) {
-      await db.insert(users).values(member);
+      await db
+        .insert(users)
+        .values(member)
+        .onConflictDoNothing({ target: users.email });
     }
 
     console.log('Team members seeded successfully');
