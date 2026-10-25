@@ -2,13 +2,19 @@ import { NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { tasks } from "@/drizzle/schema"
 import { eq, and, inArray } from "drizzle-orm"
+import { getSession } from "@/lib/auth-actions"
 
-// These are TEST endpoints for development purposes only
-// They do not require authentication and should NOT be used in production
+// Development helper for exercising bulk actions from a script. It mutates
+// real rows, so it requires the same session cookie as the production routes.
 
 // POST handler for /api/test/tasks/bulk - Performs bulk actions on multiple tasks
 export async function POST(request: Request) {
   try {
+    const session = await getSession()
+    if (!session) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
+    }
+
     // Get bulk action data from request
     const data = await request.json()
     
@@ -47,9 +53,13 @@ export async function POST(request: Request) {
           )
         }
         
-        // Add updated timestamp
+        // Add updated timestamp. tasks.dueDate is a string-mode date() column,
+        // so a Date arriving from a client has to be normalised first.
         const dataWithTimestamp = {
           ...updateData,
+          ...(updateData.dueDate
+            ? { dueDate: new Date(updateData.dueDate).toISOString().slice(0, 10) }
+            : {}),
           updatedAt: new Date()
         }
         

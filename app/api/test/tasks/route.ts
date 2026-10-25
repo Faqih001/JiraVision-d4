@@ -1,12 +1,19 @@
 import { NextResponse } from "next/server"
 import { createTask, getPaginatedTasks } from "@/lib/data-access"
+import { getSession } from "@/lib/auth-actions"
 
-// These are TEST endpoints for development purposes only
-// They do not require authentication and should NOT be used in production
+// Development helpers for exercising the task endpoints from a script. They
+// read and mutate real rows, so they require the same session cookie as the
+// production routes instead of being open to anonymous requests.
 
 // GET handler for test tasks endpoint with pagination and filtering
 export async function GET(request: Request) {
   try {
+    const session = await getSession()
+    if (!session) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
+    }
+
     // Get query parameters
     const { searchParams } = new URL(request.url)
     
@@ -51,6 +58,11 @@ export async function GET(request: Request) {
 // POST handler for test tasks endpoint
 export async function POST(request: Request) {
   try {
+    const session = await getSession()
+    if (!session) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
+    }
+
     // Get task data from request
     const data = await request.json()
     
@@ -69,9 +81,9 @@ export async function POST(request: Request) {
       status: data.status || "todo",
       priority: data.priority || "medium",
       storyPoints: data.storyPoints || 0,
-      assigneeId: data.assigneeId || 1, // Use user ID 1 for testing
+      assigneeId: data.assigneeId || session.id,
       sprintId: data.sprintId || null,
-      dueDate: data.dueDate || null, // Keep as string for PostgreSQL compatibility
+      dueDate: data.dueDate || null, // date() column is string-mode
       tags: data.tags || []
     }
     
