@@ -3277,10 +3277,11 @@ The lifecycle is enforced by `DELIVERABLE_NEXT` through `pickDeliverableUpdates`
 **Interfaces:**
 - Consumes: `deliverables`, `workLogEntries`, `tasks` from `@/drizzle/schema`;
   `readDeliverableCreate`, `pickDeliverableUpdates`, `DELIVERABLE_MUTABLE_FIELDS` from
-  `@/lib/worklog/entry-fields`; `DELIVERABLE_NEXT`, `DELIVERABLE_STATUSES`,
-  `isDeliverableStatus`, `DeliverableStatus` from `@/lib/worklog/entries`; `isIsoDate` from
-  `@/lib/worklog/local-day`; `deliverableColumns`, `mapDeliverable`, `worklogSession` and the
-  envelope helpers from `../../_shared`.
+  `@/lib/worklog/entry-fields`; `DELIVERABLE_STATUSES`, `isDeliverableStatus`,
+  `DeliverableStatus` from `@/lib/worklog/entries` (`DELIVERABLE_NEXT` is consumed by
+  `pickDeliverableUpdates`, not by a route — importing it here would be a lint error);
+  `isIsoDate`, `localDay` from `@/lib/worklog/local-day`; `deliverableColumns`,
+  `mapDeliverable`, `worklogSession` and the envelope helpers from `../../_shared`.
 - Produces:
   - `GET /api/worklog/deliverables?status=&q=&from=&to=` → `{ success: true, data: { deliverables: DeliverableDto[] } }`
   - `POST /api/worklog/deliverables` → `{ success: true, data: { deliverable: DeliverableDto } }` (201)
@@ -3315,6 +3316,10 @@ describe("work log deliverables routes", () => {
   it("refuses a forward-dated producedOn", () => {
     expect(list()).toMatch(/isIsoDate/u)
     expect(list()).toMatch(/future|producedOn must/iu)
+    // The same day rule at both ends of the noun's life: a save must not be able to date a
+    // deliverable ahead of today when a create cannot.
+    expect(row()).toMatch(/localDay/u)
+    expect(row()).toMatch(/produced in the future/iu)
   })
 
   it("says 404 for a deliverable that is not yours", () => {
@@ -3340,12 +3345,12 @@ Create `app/api/worklog/deliverables/route.ts`:
 // POST → one draft deliverable. owner_id and created_by are always the session.
 
 import { NextRequest, NextResponse } from "next/server"
-import { and, desc, eq, sql } from "drizzle-orm"
+import { and, desc, eq, sql, type SQL } from "drizzle-orm"
 import { db } from "@/lib/db"
 import { deliverables, tasks } from "@/drizzle/schema"
 import { readDeliverableCreate } from "@/lib/worklog/entry-fields"
-import { DELIVERABLE_STATUSES, isDeliverableStatus, type DeliverableStatus } from "@/lib/worklog/entries"
-import { isIsoDate } from "@/lib/worklog/local-day"
+import { DELIVERABLE_STATUSES, isDeliverableStatus } from "@/lib/worklog/entries"
+import { isIsoDate, localDay } from "@/lib/worklog/local-day"
 import {
   badRequest,
   deliverableSelect,
@@ -3365,7 +3370,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const params = request.nextUrl.searchParams
-    const conditions = [eq(deliverables.ownerId, session.id)]
+    const conditions: SQL[] = [eq(deliverables.ownerId, session.id)]
 
     const status = params.get("status")
     if (status && status !== "all") {
@@ -3413,7 +3418,9 @@ export async function POST(request: NextRequest) {
     const value = parsed.value
 
     if (value.producedOn) {
-      const today = new Date().toISOString().slice(0, 10)
+      // The member's own today, not UTC: a draft started at 23:40 must not be refused for
+      // being "tomorrow" because the server clock had already crossed midnight.
+      const today = localDay(new Date(), session.timezone)
       if (value.producedOn > today) return badRequest("A deliverable cannot be produced in the future.")
     }
     if (value.taskId !== null) {
@@ -3459,6 +3466,7 @@ import { db } from "@/lib/db"
 import { deliverables, tasks } from "@/drizzle/schema"
 import { pickDeliverableUpdates } from "@/lib/worklog/entry-fields"
 import type { DeliverableStatus } from "@/lib/worklog/entries"
+import { localDay } from "@/lib/worklog/local-day"
 import {
   badRequest,
   deliverableSelect,
@@ -3505,6 +3513,14 @@ export async function PUT(request: NextRequest, context: Context) {
     const result = pickDeliverableUpdates(body, existing.status as DeliverableStatus)
     if ("error" in result) return badRequest(result.error)
 
+    const produced = result.patch.producedOn
+    if (typeof produced === "string") {
+      // The create route refuses this, so the edit route has to as well — otherwise a
+      // deliverable could be walked forward into tomorrow by saving it instead of creating it.
+      const today = localDay(new Date(), session.timezone)
+      if (produced > today) return badRequest("A deliverable cannot be produced in the future.")
+    }
+
     const set = { ...result.patch, updatedAt: new Date() }
     const updated = await db
       .update(deliverables)
@@ -3513,6 +3529,7 @@ export async function PUT(request: NextRequest, context: Context) {
       .returning({ id: deliverables.id })
 
     if (updated.length === 0) return notFound("Deliverable not found")
+    // Re-read for the joined task title and the row count: .returning() only sees this table.
     const row = await loadOwned(numericId, session.id)
     return NextResponse.json({ success: true, data: { deliverable: mapDeliverable(row ?? existing) } })
   } catch (error) {
@@ -3558,7 +3575,33 @@ git add app/api/worklog/deliverables tests/unit/worklog-api.test.ts
 git commit -m "feat(worklog): deliverables CRUD with lifecycle transitions and log row counts"
 git push
 ```
-Expected: 22 guard tests, typecheck 0 errors, lint 0 errors / 70 warnings.
+Expected: 29 guard tests in `worklog-api` (Task 8 left 21; +6 here, and +2 because its
+session-gating `it.each` re-enumerates `app/api/worklog` and found two new route files),
+typecheck 0 errors, lint 0 errors / 70 warnings. Full suite: 34 files / 597 tests — the other
+2 come from `schema-safety`'s per-route `it.each`, which already learned in Task 6 to treat
+`worklogSession` as a gate.
+
+**As shipped (2026-10-26, `1ce691b`) — three corrections.**
+
+1. The list route does not import `type DeliverableStatus`. The plan's import list carries it,
+   the route never uses it, and an unused import is a lint error here, not a warning. The row
+   route does use it, in the `existing.status as DeliverableStatus` cast the guard pins.
+2. `new Date().toISOString().slice(0, 10)` is **UTC** today. Task 6 settled that the day a
+   member is allowed to write is the day in *their* timezone, and `workLogEntries` carries that
+   comment in `drizzle/schema.ts` (`worked_on` is resolved through the member's timezone at
+   write time). A deliverable dated against a UTC midnight is the same bug the log refused, so
+   both routes now call `localDay(new Date(), session.timezone)`. The plan's version would
+   refuse a 23:40 draft in Jakarta and accept a phantom "tomorrow" one in Los Angeles.
+3. **The edit route refuses a forward-dated `producedOn` too, and the guard test says so.** The
+   plan only checked it on create, which left `PUT` able to walk a deliverable into tomorrow
+   after the fact — the same "a plan is not a log" rule, half-applied. Because
+   `pickDeliverableUpdates` types the patch field as the column's insert type, the check narrows
+   with `typeof produced === "string"` instead of trusting it.
+
+`conditions` also needs the `SQL[]` annotation (the plan writes `const conditions = [eq(…)]`).
+It typechecks either way in isolation — I tested that — but the annotation is what lets the
+`type SQL` import stay honest and matches `entryFilters` in `_shared.ts`, which the same review
+process reads next to it.
 
 ---
 
