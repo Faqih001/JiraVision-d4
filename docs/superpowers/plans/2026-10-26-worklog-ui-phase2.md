@@ -4652,13 +4652,15 @@ filters, view toolbar — and the data layer every later section reads from.
   `EmptyNote` from `@/components/dashboard-kit`; `useToast` from `@/hooks/use-toast`.
 - Produces (used by Tasks 13–17):
   - `WorklogClient()` — the only component that holds page state: `state`, `todayIso`,
-    `deliverables`, `summary`, `tasks`, `loading`, `saving`. `entries` (the rows) and the
-    `selection` set join it in Tasks 13 and 15, the tasks that render and act on them; holding
-    either a task earlier is an unused local and breaks the warning gate.
+    `deliverables`, `summary`, `tasks`, `loading`, `saving`. The `selection` set joins it in
+    Task 15, the task that acts on it; holding a set a task earlier is an unused local and breaks
+    the warning gate. No `entries` state ships at all — the rows the view renders are read from
+    `summary.days`.
   - `readJson(res)` / `mutate(path, init)` — module-local helpers; `mutate` returns an error
     message or `null`, so every section reports failures the same way
-  - `WorklogSkeleton()` in `sections.tsx`, plus `KindBadge`, `EntryLine` and `EmptySection`
-    exported for Tasks 13–15 (they are rendered there, not left idle)
+  - `WorklogSkeleton()` in `sections.tsx`, plus `KindBadge` and `EntryLine` (both rendered by
+    Task 13) and `EmptySection` (first rendered by Task 16) — exported as primitives, not left
+    idle in a rendered component
   - the four section components `TotalsSection`, `QuickAddSection`, `FilterSection`,
     `ViewToolbarSection` and the `DisciplinePicker` inside the filter
 
@@ -5232,9 +5234,10 @@ export default function WorklogClient() {
 
 `readJson` returns `any` on purpose: the three endpoints share the `{ success, data | message }`
 envelope, and each call site narrows it once with `json?.success` before reading `data`. The
-entries response also carries the rows, which are held in state by Task 13 when the view slot
-renders them, and the `deliverableById` map is built there for the same reason — a map nothing
-reads yet is a lint warning, and the 70-warning baseline is a gate.
+entries response is fetched for its `today` and `timezone`, not for its rows — the rows the view
+slot renders come from `summary.days`, which is the same arithmetic already feeding the totals. A
+`deliverableById` map is built in Task 16, where a row first has a deliverable to name; a map
+nothing reads yet is a lint warning, and the 70-warning baseline is a gate.
 
 - [ ] **Step 7: Write the four section components**
 
@@ -5646,9 +5649,9 @@ discipline clears the selection rather than showing one thing and sending anothe
 
 This task lands sections 1–4 only. Section 5 and the four other view bodies arrive in Task 13, the row actions and bulk bar in
 Tasks 14–15, and sections 6–11 in Task 16. Each of those lands as its own commit, so the
-deployed route is never left with a control that does nothing: `EmptySection` and `EntryLine`
-exported from `sections.tsx` are first rendered by Task 13, and an `EntryLine` without handlers
-renders no buttons at all.
+deployed route is never left with a control that does nothing: nothing in sections 1–4 renders a
+row, so `EntryLine` ships inert and is rendered for real by Task 13 (`EmptySection`, a card rather
+than a control, waits for Task 16), and an `EntryLine` without handlers renders no buttons at all.
 
 - [ ] **Step 8: Run the guards and gates**
 
@@ -5683,9 +5686,10 @@ against them — none of them would have failed a test that had been executed:
    still rejects the effect's own echo. The `stateRef` the plan declared for this purpose was
    assigned and never read, so it is gone; the functional updater reads `prev` instead.
 4. **`entries` state and the `deliverableById` map were dead locals here.** Nothing in sections
-   1–4 renders a row, and an unused local is a lint warning that breaks the 70-warning gate — so
-   both arrive with Task 13, the task that renders them. The entries fetch still happens, because
-   that response is where the member's `today` and `timezone` come from.
+   1–4 renders a row, and an unused local is a lint warning that breaks the 70-warning gate.
+   Neither survived: Task 13's bodies read `summary.days` instead of a second copy of the rows, and
+   the deliverable map waits for the task that shows a row's deliverable. The entries fetch still
+   happens, because that response is where the member's `today` and `timezone` come from.
 5. **A stale browser day would be pinned into the URL.** Once `todayIso` moved to the server's
    value, the still-default `state.day` (the browser's) became a *difference* from the base and
    `serializeViewState` wrote `?day=<yesterday>` for a member who had chosen nothing. Shipped
@@ -5718,9 +5722,12 @@ mirror in the URL (`?v=week`) is what makes a view shareable. Every body reads t
 - Test: `tests/unit/worklog-page.test.ts` (append the cases below)
 
 **Interfaces:**
-- Consumes: `DayBucket`, `EntryDto`, `KIND_LABEL`, `formatMinutes` from `@/lib/worklog/entries`;
-  `VIEW_LABEL`, `WorklogView`, `ViewState` from `@/lib/worklog/view-state`; `DISCIPLINE_LABEL`
-  from `@/lib/roles`; `EmptyNote`, `SectionCard` from `@/components/dashboard-kit`.
+- Consumes: `DayBucket`, `EntryDto`, `KIND_COLOUR`, `KIND_LABEL`, `WORK_LOG_KINDS`,
+  `formatMinutes` from `@/lib/worklog/entries`; `VIEW_LABEL`, `WorklogView` from
+  `@/lib/worklog/view-state`; `EmptyNote`, `SectionCard` from `@/components/dashboard-kit`;
+  `Button` from `@/components/ui/button`; the `CalendarDays` icon, `Skeleton`, `KindBadge` and
+  `EntryLine` the file already imports or exports. (`DISCIPLINE_LABEL` and `ViewState` stay for
+  `DisciplinePicker`, written in Task 12.)
 - Produces: `LogSection({ view, days, loading, todayIso, onPickDay })` in `sections.tsx`, plus the
   read-only row bodies `DayBody`, `WeekBody`, `ListBody`, `BoardBody`, `HeatBody`. Task 14 adds the
   optional action props (`onEdit`/`onDelete`/`onConvert`/`onToggle`/`selection`) to `LogSection`,
@@ -5738,19 +5745,31 @@ describe("work log views", () => {
 
   it("renders the active view in one section slot", () => {
     expect(client()).toMatch(/<LogSection/u)
-    expect(client()).toMatch(/title=\{VIEW_LABEL\[state\.view\]\}/u)
+    expect(client()).toMatch(/view=\{state\.view\}/u)
+    // One slot, one heading, and the heading comes from the same VIEW_LABEL the toolbar buttons
+    // read, so a renamed view is renamed in both places at once.
+    expect(sections()).toMatch(/VIEW_LABEL\[view\]/u)
   })
 
   it("builds all five bodies", () => {
     for (const name of ["DayBody", "WeekBody", "ListBody", "BoardBody", "HeatBody"]) {
       expect(sections()).toContain(`function ${name}(`)
     }
+    // The switch is exhaustive over WorklogView: a sixth view with no body is a compile error,
+    // not a blank card.
     expect(sections()).toMatch(/case "heat":/u)
   })
 
   it("lets a week or heat cell jump to that day", () => {
-    expect(sections()).toMatch(/onPickDay=\{day\}/u)
+    expect(sections()).toMatch(/onPickDay\(bucket\.day\)/u)
     expect(client()).toMatch(/patchState\(\{ day, view: "day" \}\)/u)
+  })
+
+  it("keeps the day view on the picked day and the others on the member's today", () => {
+    // The picker in section 4 is what the member navigated to; the highlight in week and heat
+    // answers a different question — is this cell the day they are standing on.
+    expect(client()).toMatch(/todayIso=\{state\.view === "day" \? state\.day : todayIso\}/u)
+    expect(sections()).toMatch(/case "day":\n\s+return <DayBody days=\{days\} day=\{todayIso\}/u)
   })
 
   it("never encodes a value in colour alone", () => {
@@ -5777,13 +5796,34 @@ describe("work log views", () => {
 - [ ] **Step 2: Run them to verify they fail**
 
 Run: `npm test -- worklog-page`
-Expected: FAIL — `LogSection` is not rendered by the client yet.
+Expected: FAIL — 6 of the 7 new guards. `LogSection` is not rendered by the client yet and no body
+exists; the seventh ("keeps presentation honest: no fetch, no page data") already holds, because
+`sections.tsx` has never fetched or routed.
 
 - [ ] **Step 3: Write the bodies**
 
 Append to `app/dashboard/worklog/sections.tsx`. `HeatBody` and `WeekBody` read `days` (the whole
 range, empty days included, as the summary builds it), so a quiet week is visible as a quiet week
-rather than as a shorter list:
+rather than as a shorter list.
+
+Three import lines change in that file first: `Button` joins the primitives, the entries import
+gains `WORK_LOG_KINDS` and `type DayBucket`, and the view-state import becomes a value import —
+
+```tsx
+import { Button } from "@/components/ui/button"
+import {
+  KIND_COLOUR,
+  KIND_LABEL,
+  WORK_LOG_KINDS,
+  formatMinutes,
+  type DayBucket,
+  type EntryDto,
+  type WorkLogKind,
+} from "@/lib/worklog/entries"
+import { VIEW_LABEL, type ViewState, type WorklogView } from "@/lib/worklog/view-state"
+```
+
+Then the bodies themselves, and the section that picks between them:
 
 ```tsx
 function DayList({ entries }: { entries: EntryDto[] }) {
@@ -6013,14 +6053,15 @@ export function LogSection({
 }
 ```
 
-`DayBody` takes the day to show as a prop, so Task 14 can pass the picker's day; until then
-`LogSection` hands it `todayIso`. Note the switch is exhaustive over `WorklogView`, so adding a
-sixth view without a body is a compile error rather than a blank card.
+`DayBody` takes the day to show as a prop, and the client hands it the picker's day when the view
+is `day` (Step 4) — the prop is named `todayIso` because the same value answers "which cell is
+today" in week and heat. Note the switch is exhaustive over `WorklogView`, so adding a sixth view
+without a body is a compile error rather than a blank card.
 
 - [ ] **Step 4: Render it in the client**
 
-In `app/dashboard/worklog/worklog-client.tsx`, add `LogSection` to the `./sections` import, extend
-the `view-days` selector the client already owns, and put the slot after the four sections:
+In `app/dashboard/worklog/worklog-client.tsx`, add `LogSection` to the `./sections` import, add the
+`view-days` selector, and put the slot after the four sections:
 
 ```tsx
   const viewDaysList = useMemo(() => summary?.days ?? [], [summary])
@@ -6049,7 +6090,7 @@ stay on the member's real today for their "is this today" highlight.
 - [ ] **Step 5: Run the guards**
 
 Run: `npm test -- worklog-page`
-Expected: PASS — 12 Task-12 guards plus 6 new view guards.
+Expected: PASS — 23 guards in the file: 2 page shell, 14 client, 7 views.
 
 - [ ] **Step 6: Gates and commit**
 
@@ -6059,7 +6100,34 @@ git add app/dashboard/worklog tests/unit/worklog-page.test.ts
 git commit -m "feat(worklog): day, week, list, board and calendar heat views"
 git push
 ```
-Expected: typecheck 0 errors, lint 0 errors / 70 warnings, full suite green.
+Expected: typecheck 0 errors, lint 0 errors / 70 warnings, the full suite at 36 files / 644 tests.
+
+#### As shipped (2026-10-26, `d95c8db`)
+
+Two of this task's own guard matchers could not match the code they were written against, so both
+were narrowed to what the guard actually intends:
+
+1. `title={VIEW_LABEL[state.view]}` — the client passes `view={state.view}` and the section builds
+   the heading itself, so the label lookup lives on the other side of the prop. Shipped as
+   `view={state.view}` in the client plus `VIEW_LABEL[view]` in `sections.tsx`, which is also the
+   stronger guard: one heading, built where the view is known.
+2. `onPickDay={day}` — that is a JSX attribute shape the client never uses; the call inside the
+   body is `onPickDay(bucket.day)`. Shipped matcher on the call, plus the client's
+   `patchState({ day, view: "day" })`.
+
+Three notes on what the task turned out not to need:
+
+- **`EmptySection` stayed unused.** It was exported on the assumption a view body would answer "no
+  rows" with a whole empty card. None did: each body puts its own `EmptyNote` inside the live slot,
+  so the section heading and the View toolbar stay reachable. It is kept exported for Task 16's
+  conditional sections.
+- **The rows come from `summary.days`, not a new `entries` state.** `buildSummary` already buckets
+  every fetched entry into a `DayBucket` with its `entries` array, over exactly the range the
+  filters picked. Re-bucketing the entries response in the client would be a second arithmetic over
+  the same rows — the one thing this section exists to avoid. So the view reads
+  `viewDaysList = summary?.days ?? []`, and the `entries` state Task 12 deferred was never added.
+- **`deliverableById` still has no reader.** The map is useful when a row shows the deliverable it
+  is linked to; that is Task 16's `DeliverableDialog` and rows-with-deliverables, not this task.
 
 ---
 
