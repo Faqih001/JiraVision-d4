@@ -457,3 +457,65 @@ describe("sections 6 to 11", () => {
     expect(client()).toMatch(/key=\{deliverableDraft\.id \?\? "new"\}/u)
   })
 })
+
+describe("dashboard today strip", () => {
+  const dash = () => src("app/dashboard/page.tsx")
+  // The strip is one function inside a 1,200-line page whose inputs legitimately carry
+  // `placeholder` hints. The "nothing invented here" rule is about the strip's own body, so it
+  // is read from there — a file-wide assertion would pass only by accident.
+  const strip = () => {
+    const code = dash()
+    const start = code.indexOf("function TodayStrip(")
+    if (start === -1) return ""
+    const end = code.indexOf("export default function", start)
+    return code.slice(start, end === -1 ? undefined : end)
+  }
+
+  it("fetches the day through the shared summary endpoint", () => {
+    // `v` is the key parseViewState reads; a `view=` param is silently ignored and would ask
+    // the route for its default range instead of today.
+    expect(dash()).toMatch(/fetch\("\/api\/worklog\/summary\?v=day"\)/u)
+    // One Promise.all: a slow log endpoint cannot hold the sprint data behind it.
+    expect(dash()).toMatch(/const \[ovRes, spRes, todayRes\] = await Promise\.all\(\[/u)
+  })
+
+  it("keeps the day on the server's calendar, not the browser's", () => {
+    expect(dash()).toMatch(/localDay\(new Date\(\)/u)
+    expect(dash()).not.toMatch(/new Date\(\)\.toISOString\(\)\.slice\(0, ?10\)/u)
+    // The heading reads the summary's own resolved day, which the route took from users.timezone.
+    expect(dash()).toMatch(/today\?\.range\.from \?\? localDay\(new Date\(\)\)/u)
+  })
+
+  it("degrades to a link when the summary call fails", () => {
+    const code = dash()
+    expect(code).toMatch(/setToday\(null\)/u)
+    expect(code).toMatch(/\/dashboard\/worklog/u)
+    expect(code).not.toMatch(/catch \{\s*\}/u)
+    // A null summary is its own branch: zeros would be a claim about a day nobody read.
+    expect(strip()).toMatch(/summary === null/u)
+    expect(strip()).toMatch(/Could not read your log/u)
+  })
+
+  it("shows the three numbers the strip exists for", () => {
+    const code = strip()
+    expect(code).toMatch(/totals\.entries/u)
+    expect(code).toMatch(/totals\.minutes/u)
+    expect(code).toMatch(/streak\.current/u)
+  })
+
+  it("links every row it previews to the log filtered by that day", () => {
+    expect(strip()).toMatch(
+      /`\/dashboard\/worklog\?\$\{new URLSearchParams\(\{ v: "day", day: todayIso \}\)\}`/u,
+    )
+  })
+
+  it("does not fake a section when there is nothing logged", () => {
+    const code = strip()
+    expect(code).toMatch(/EmptyNote/u)
+    expect(code).toMatch(/Nothing logged today/u)
+    expect(code).not.toMatch(/lorem|placeholder/iu)
+    // The cap is stated, not silent: five rows shown of nine must not read as the whole day.
+    expect(code).toMatch(/\.slice\(0, 5\)/u)
+    expect(code).toMatch(/more in the work log/u)
+  })
+})

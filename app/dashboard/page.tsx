@@ -71,6 +71,10 @@ import {
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 import type { DashboardOverview } from "@/lib/dashboard-data"
+import { DISCIPLINE_COLOUR } from "@/lib/roles"
+import { KIND_LABEL, formatMinutes } from "@/lib/worklog/entries"
+import { localDay } from "@/lib/worklog/local-day"
+import type { WorklogSummary } from "@/lib/worklog/summary"
 import {
   AXIS,
   AvatarCircle,
@@ -111,6 +115,109 @@ type OverviewTask = DashboardOverview["myTasks"][number]
 // backlog gets its own sentinel and is mapped to null at the API boundary.
 const BACKLOG = "backlog"
 
+/* ------------------------------------------------------------- today strip */
+
+// A preview with three jobs: what is logged today, what moved today, and one keystroke to the log
+// itself. It deliberately has no input — quick add lives on the work log page, because a strip that
+// also writes rows is two places to learn.
+function TodayStrip({
+  summary,
+  loading,
+  todayIso,
+}: {
+  summary: WorklogSummary | null
+  loading: boolean
+  todayIso: string
+}) {
+  const logHref = `/dashboard/worklog?${new URLSearchParams({ v: "day", day: todayIso })}`
+  // `?v=day` resolves to exactly one bucket, so days[0] is the day the heading names.
+  const day = summary?.days[0]
+  const dayRows = day?.entries.length ?? 0
+  const shown = (day?.entries ?? []).slice(0, 5)
+  const moved = summary?.transitions.length ?? 0
+  return (
+    <SectionCard
+      title={`Today — ${todayIso}`}
+      icon={<CalendarClock className="h-4 w-4" />}
+      action={
+        <Button asChild variant="ghost" size="sm" className="h-7 text-xs">
+          <Link href={logHref}>
+            Open work log
+            <ArrowRight className="ml-1 h-3.5 w-3.5" aria-hidden />
+          </Link>
+        </Button>
+      }
+    >
+      {loading ? (
+        <Skeleton className="h-20 w-full" />
+      ) : summary === null ? (
+        <EmptyNote>
+          Could not read your log right now.{" "}
+          <Link href={logHref} className="underline underline-offset-2">
+            Open the work log
+          </Link>{" "}
+          to try again.
+        </EmptyNote>
+      ) : summary.totals.entries === 0 ? (
+        <EmptyNote>
+          Nothing logged today yet. The work log takes one line — what you did, roughly how long, and
+          which kind of work it was.
+        </EmptyNote>
+      ) : (
+        <div className="space-y-3">
+          <div className="flex flex-wrap gap-2">
+            <span className="rounded-md bg-muted px-2 py-1 text-xs tabular-nums">
+              {summary.totals.entries} {summary.totals.entries === 1 ? "entry" : "entries"}
+            </span>
+            <span className="rounded-md bg-muted px-2 py-1 text-xs tabular-nums">
+              {formatMinutes(summary.totals.minutes)} recorded
+            </span>
+            <span className="rounded-md bg-muted px-2 py-1 text-xs tabular-nums">
+              {summary.streak.current} {summary.streak.current === 1 ? "day" : "days"} in a row
+            </span>
+            {summary.openBlockers > 0 && (
+              <span className="rounded-md bg-destructive/10 px-2 py-1 text-xs font-medium text-destructive tabular-nums">
+                {summary.openBlockers} open {summary.openBlockers === 1 ? "blocker" : "blockers"}
+              </span>
+            )}
+          </div>
+          <ul className="divide-y divide-border">
+            {shown.map((e) => (
+              <li key={e.id} className="flex items-baseline gap-2 py-1.5 text-xs first:pt-0 last:pb-0">
+                <span
+                  className="h-2 w-2 shrink-0 translate-y-0.5 rounded-full"
+                  style={{
+                    background: e.discipline ? DISCIPLINE_COLOUR[e.discipline] : "hsl(var(--muted-foreground))",
+                  }}
+                  aria-hidden
+                />
+                <span className="min-w-0 flex-1 truncate">{e.title}</span>
+                <span className="shrink-0 text-muted-foreground">
+                  {KIND_LABEL[e.kind]}
+                  {e.minutes ? ` · ${formatMinutes(e.minutes)}` : ""}
+                </span>
+              </li>
+            ))}
+          </ul>
+          {moved > 0 && (
+            <p className="text-[11px] text-muted-foreground">
+              {moved} {moved === 1 ? "task" : "tasks"} changed status today —{" "}
+              {summary.transitions.slice(0, 4).map((t) => t.toStatus).join(", ")}
+              {moved > 4 ? ` (+${moved - 4} more)` : ""}
+            </p>
+          )}
+          {/* The cap is said out loud: five rows shown of nine must not read as the whole day. */}
+          {dayRows > shown.length && (
+            <p className="text-[11px] text-muted-foreground">
+              {dayRows - shown.length} more in the work log.
+            </p>
+          )}
+        </div>
+      )}
+    </SectionCard>
+  )
+}
+
 /* --------------------------------------------------------------- the page */
 
 export default function DashboardHome() {
@@ -119,6 +226,10 @@ export default function DashboardHome() {
   const [sprints, setSprints] = useState<SprintOption[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
+  // Today's work log, read from the same summary endpoint the work log page renders. A null here
+  // means "could not read", which is not the same claim as "nothing logged".
+  const [today, setToday] = useState<WorklogSummary | null>(null)
+  const [todayLoading, setTodayLoading] = useState(true)
 
   // task view state
   const [view, setView] = useState<"grid" | "list">("grid")
@@ -136,8 +247,15 @@ export default function DashboardHome() {
 
   const load = useCallback(async () => {
     setLoading(true)
+    setTodayLoading(true)
     try {
-      const [ovRes, spRes] = await Promise.all([fetch("/api/dashboard/overview"), fetch("/api/sprints")])
+      // Three in parallel, and the log is the third rather than a follow-up: a slow summary
+      // route must not push the sprint data behind it.
+      const [ovRes, spRes, todayRes] = await Promise.all([
+        fetch("/api/dashboard/overview"),
+        fetch("/api/sprints"),
+        fetch("/api/worklog/summary?v=day"),
+      ])
       const ovJson = await ovRes.json()
       if (!ovJson.success) throw new Error(ovJson.message ?? "Failed to load dashboard")
       setOverview(ovJson.data)
@@ -150,10 +268,16 @@ export default function DashboardHome() {
             status: s.status,
           })),
         )
+      // A failed read stays a failure: the strip falls back to a link instead of reporting a
+      // day of zeros the member never checked.
+      const todayJson = await todayRes.json().catch(() => null)
+      setToday(todayRes.ok && todayJson?.success ? (todayJson.data as WorklogSummary) : null)
     } catch (err) {
       toast({ variant: "destructive", title: "Dashboard", description: (err as Error).message })
+      setToday(null)
     } finally {
       setLoading(false)
+      setTodayLoading(false)
     }
   }, [toast])
 
@@ -694,6 +818,15 @@ export default function DashboardHome() {
           </CardContent>
         </Card>
       )}
+
+      {/* 20 — Today in the work log. It heads the analytics stack rather than the page: "what did
+          I do today" outranks "how is the sprint trending", and the task table above it is the
+          member's own backlog, not a chart. */}
+      <TodayStrip
+        summary={today}
+        loading={todayLoading}
+        todayIso={today?.range.from ?? localDay(new Date())}
+      />
 
       {/* 6+7 — Burndown & velocity */}
       <div className="grid gap-4 lg:grid-cols-2">
