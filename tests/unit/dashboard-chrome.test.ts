@@ -1,12 +1,14 @@
 import { describe, expect, it } from "vitest"
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs"
 import path from "node:path"
+import { flagForLanguage, splitGoogleLabel } from "@/lib/language-flags"
 
 const repo = path.resolve(__dirname, "..", "..")
 const read = (relative: string) => readFileSync(path.join(repo, relative), "utf8")
 
 const layout = read("components/dashboard-layout.tsx")
 const bell = read("components/notifications-bell.tsx")
+const translate = read("components/layout/google-translate.tsx")
 const launcher = read("components/accessibility/accessibility-launcher.tsx")
 const widget = read("components/accessibility/accessibility-widget.tsx")
 const chatbot = read("components/landing-chatbot.tsx")
@@ -63,6 +65,19 @@ describe("dashboard account menu", () => {
       expect(href, `${href} is not a rendered route`).toSatisfy(isLiveRoute)
     }
   })
+
+  it("shows one theme icon: the mode the click goes to", () => {
+    const row = /<DropdownMenuItem onClick=\{\(\) => setTheme[\s\S]*?<\/DropdownMenuItem>/.exec(accountMenuBody())
+    expect(row, "the account menu has no theme action").not.toBeNull()
+    // Both faces live in the source because they sit in opposite branches of one
+    // ternary; the old paired row dimmed the inactive half, which is what must not
+    // come back.
+    expect(row![0]).not.toContain("text-muted-foreground/60")
+    expect((row![0].match(/<(?:Sun|Moon)\b/g) ?? [])).toHaveLength(2)
+    // One icon each, so no wrapper span to hold a pair.
+    expect(row![0]).not.toMatch(/<span[^>]*>\s*<(?:Sun|Moon)/)
+    expect(row![0]).toContain('{isDark ? "Switch to light mode" : "Switch to dark mode"}')
+  })
 })
 
 describe("dashboard top bar", () => {
@@ -86,6 +101,46 @@ describe("dashboard top bar", () => {
     expect(hrefsIn(layout)).not.toContain("#")
     expect(layout).toContain("{!isMobile && <GoogleTranslateSelect />}")
     expect(layout).toContain("{isMobile && (")
+  })
+})
+
+describe("language picker", () => {
+  it("replaces Google's wordy select with a searchable flag list", () => {
+    expect(translate).toContain("<CommandInput")
+    expect(translate).toContain("Search languages")
+    expect(translate).toContain("flagForLanguage(")
+    // The header control owns the vocabulary, so Google's select is only the engine.
+    expect(translate).toContain('className="jv-translate-engine"')
+    expect(read("app/globals.css")).toMatch(/\.jv-translate-engine\s*\{[^}]*clip-path: inset\(50%\)/)
+  })
+
+  it("keeps Google's widget out of the accessibility tree, and the credit in it", () => {
+    expect(translate).toMatch(/<span id=\{HEADER_ELEMENT_ID\}[^>]*aria-hidden="true"/)
+    expect(translate).toContain("Translation by Google Translate")
+  })
+
+  it("holds its own labels back from the translator", () => {
+    // The panel is portalled to the body, so the wrapper's notranslate cannot reach it.
+    expect(translate).toMatch(/<PopoverContent[^>]*notranslate/)
+  })
+
+  it("never hands an empty value to a Radix select", () => {
+    // Google's own "show original" option is the empty string, which crashes
+    // SelectItem at render; the picker names it "original" instead.
+    expect(translate).not.toContain("<SelectItem")
+    expect(translate).toContain('value="original"')
+  })
+
+  it("flags a language from its region and stays quiet without one", () => {
+    expect(flagForLanguage("de")).toBe("🇩🇪")
+    expect(flagForLanguage("pt-BR")).toBe("🇧🇷")
+    expect(flagForLanguage("eo")).toBeNull()
+    expect(flagForLanguage(null)).toBeNull()
+  })
+
+  it("splits Google's label into the language and its native name", () => {
+    expect(splitGoogleLabel("Spanish - Español")).toEqual({ english: "Spanish", native: "Español" })
+    expect(splitGoogleLabel("English")).toEqual({ english: "English", native: null })
   })
 })
 

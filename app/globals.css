@@ -419,37 +419,24 @@ body {
   padding: 0.25rem 0.5rem;
 }
 
-/* Header variant: the select sits inside an already bordered pill, so it drops its
-   own chrome and inherits the pill's typography and caret spacing instead. Google's
-   sprite credit is hidden here — the pill carries an sr-only "Translation by Google
-   Translate" and the footer control keeps the visible credit. */
-.jv-translate-pill .goog-te-gadget {
-  font-size: 0.75rem;
-  color: inherit;
-  display: inline-flex;
-  align-items: center;
-}
-
-.jv-translate-pill .goog-te-gadget a.goog-logo-link {
-  display: none;
-}
-
-.jv-translate-pill select.goog-te-combo {
-  background-color: transparent;
-  color: hsl(var(--foreground));
-  border: 0;
-  border-radius: 0;
-  font: inherit;
-  outline: none;
-  cursor: pointer;
+/* Header variant: the flag list is ours, so Google's gadget is kept in the DOM only as
+   the translation engine — it still reads and writes the `googtrans` cookie, so it is
+   clipped rather than removed. The credit is announced with an sr-only label instead. */
+.jv-translate-engine {
+  position: absolute;
+  width: 1px;
+  height: 1px;
   padding: 0;
-  max-width: 9rem;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }
 
-.jv-translate-pill select.goog-te-combo:focus-visible {
-  outline: 2px solid hsl(var(--ring));
-  outline-offset: 2px;
-  border-radius: 0.25rem;
+.jv-translate-engine select.goog-te-combo {
+  font-size: 0.75rem;
 }
 
 /* -------------------------------------------------------------------------

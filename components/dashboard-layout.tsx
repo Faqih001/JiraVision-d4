@@ -112,11 +112,13 @@ function AccountMenuContent() {
         </Link>
       </DropdownMenuItem>
       <DropdownMenuItem onClick={() => setTheme(isDark ? "light" : "dark")} className="flex items-center">
-        <span className="mr-2 flex items-center gap-0.5">
-          <Sun className={cn("h-4 w-4", isDark ? "text-muted-foreground/60" : "text-primary")} aria-hidden="true" />
-          <Moon className={cn("h-4 w-4", isDark ? "text-primary" : "text-muted-foreground/60")} aria-hidden="true" />
-        </span>
-        <span className="text-sm">{isDark ? "Dark mode" : "Light mode"}</span>
+        {/* One icon, and it shows the mode the click is going to, not the one on screen. */}
+        {isDark ? (
+          <Sun className="mr-2 h-4 w-4" aria-hidden="true" />
+        ) : (
+          <Moon className="mr-2 h-4 w-4" aria-hidden="true" />
+        )}
+        <span className="text-sm">{isDark ? "Switch to light mode" : "Switch to dark mode"}</span>
       </DropdownMenuItem>
       <DropdownMenuSeparator />
       <DropdownMenuItem onClick={logout} className="flex items-center">

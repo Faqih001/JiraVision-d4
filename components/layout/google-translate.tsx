@@ -235,7 +235,7 @@ export function GoogleTranslateSelect({ className }: { className?: string }) {
   }
 
   return (
-    <div className={cn("flex min-w-0 items-center", className)}>
+    <div className={cn("notranslate flex min-w-0 items-center", className)} translate="no">
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <button
@@ -262,7 +262,12 @@ export function GoogleTranslateSelect({ className }: { className?: string }) {
           </button>
         </PopoverTrigger>
 
-        <PopoverContent align="end" className="w-[19rem] gap-0 overflow-hidden p-0">
+        {/*
+          The panel is portalled to the body, so it escapes the wrapper above; without
+          its own notranslate, Google rewrites "Deutsch" and "Search languages" into the
+          page language and the list stops naming languages the way their speakers do.
+        */}
+        <PopoverContent align="end" translate="no" className="notranslate w-[19rem] gap-0 overflow-hidden p-0">
           <Command>
             <CommandInput placeholder="Search languages" className="text-sm" />
             <CommandList className="max-h-[16.5rem]">
