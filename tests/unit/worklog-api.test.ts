@@ -202,3 +202,73 @@ describe("work log summary route", () => {
     expect(route()).not.toMatch(/NEXT_PUBLIC_/u)
   })
 })
+
+describe("every worklog route", () => {
+  // The phase-2 sweep over what Tasks 6 to 10 built. `routesIn` rather than a literal list:
+  // a seventh route added later must fail this file open, not pass a list that never knew it.
+  const routes = routesIn("app/api/worklog")
+  const files = [...routes, "app/api/worklog/_shared.ts"]
+
+  it("guards the six routes the phase shipped", () => {
+    expect(routes).toHaveLength(6)
+    for (const expected of [
+      "app/api/worklog/entries/route.ts",
+      "app/api/worklog/entries/[id]/route.ts",
+      "app/api/worklog/entries/bulk/route.ts",
+      "app/api/worklog/deliverables/route.ts",
+      "app/api/worklog/deliverables/[id]/route.ts",
+      "app/api/worklog/summary/route.ts",
+    ]) {
+      expect(routes).toContain(expected)
+    }
+  })
+
+  it.each(routes)("%s scopes by the session user in SQL", (file) => {
+    expect(src(file)).toMatch(/session\.id|userId/u)
+  })
+
+  it("every route that writes goes through a Task 4 whitelist", () => {
+    // Only files exporting a write handler are held to this: a read-only route would have to
+    // import a function it never calls to satisfy the guard.
+    const writers = routes.filter((file) => /export async function (POST|PUT|DELETE)/u.test(src(file)))
+    expect(writers).toHaveLength(5)
+    for (const file of writers) {
+      expect(src(file)).toMatch(
+        /readEntryCreate|pickEntryUpdates|readDeliverableCreate|pickDeliverableUpdates|readBulkRequest/u,
+      )
+      // The whitelist is the whole write: a spread body is the bug lib/task-updates.ts exists for.
+      expect(src(file)).not.toMatch(/values\(\{?\s*\.\.\.body/u)
+    }
+  })
+
+  it.each(files)("%s has no client-only secret and no stub", (file) => {
+    const code = src(file)
+    expect(code).not.toMatch(/NEXT_PUBLIC_/u)
+    expect(code).not.toMatch(/TODO|FIXME|not implemented/iu)
+    expect(code).not.toMatch(/return new Response\("stub"/u)
+  })
+
+  it("imports nothing that reaches lib/db from a pure module", () => {
+    // capture.ts is the one worklog module that writes through db, and it is a server-only
+    // importer by design. Everything the page is allowed to import must stay out of that graph.
+    for (const file of [
+      "lib/worklog/local-day.ts",
+      "lib/worklog/entries.ts",
+      "lib/worklog/quick-add.ts",
+      "lib/worklog/entry-fields.ts",
+      "lib/worklog/view-state.ts",
+      "lib/worklog/bulk.ts",
+      "lib/worklog/summary.ts",
+      "lib/worklog/task-events.ts",
+    ]) {
+      expect(src(file)).not.toMatch(/@\/lib\/db|from "\.\.\/\.\.\/lib\/db"/u)
+    }
+    expect(src("lib/worklog/capture.ts")).toMatch(/@\/lib\/db/u)
+  })
+
+  it("reuses the phase-1 tables instead of declaring a new schema", () => {
+    const all = files.map(src).join("\n")
+    expect(all).toMatch(/@\/drizzle\/schema/u)
+    expect(all).not.toMatch(/CREATE TABLE|ALTER TABLE/u)
+  })
+})

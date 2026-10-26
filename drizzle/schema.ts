@@ -462,7 +462,7 @@ export const deliverables = pgTable(
 )
 
 // The member's own account of a day. `worked_on` is a plain date on purpose: it is
-// resolved through the member's timezone at write time (lib/reports/period.ts, phase 3),
+// resolved through the member's timezone (lib/worklog/local-day.ts, shipped in phase 2),
 // so a 23:40 entry lands on the day the member thinks it is.
 export const workLogEntries = pgTable(
   "work_log_entries",

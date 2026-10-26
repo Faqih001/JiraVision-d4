@@ -73,3 +73,32 @@ All four rows are resolved as of 2026-10-25. What remains is owner-supplied mate
 10. Re-verify compare-page rows against vendor sites (`content/compare.ts` header rule).
 11. Update `onePagerBuildDate` before circulating print/PDF; refresh `statusUpdatedAt` after the final review pass.
 12. (Ops, not placeholder but launch-relevant from FEATURES.md: hosted data persistence for form submissions before real traffic, and V2-6b SEO items — sitemap/robots/metadata.)
+
+## 7. Work log UI (phase 2, 2026-10-26) — no new placeholder
+
+Phase 2 added **no** `NOTE(PLACEHOLDER)` and no dead control: `/dashboard/worklog`, its six
+`/api/worklog/*` routes, the nine modules in `lib/worklog/` (eight of them free of any database
+import, so they unit-test without a connection string) and the `/dashboard` "Today" strip
+are all wired to real reads and writes. `tests/unit/worklog-page.test.ts` and
+`tests/unit/worklog-api.test.ts` sweep the source for `href="#"`, an empty `onClick`, `console.log`,
+`window.alert/confirm`, `TODO|FIXME` and a `Response("stub"`, and they fail on any of them, so this is
+a checked claim rather than an assertion.
+
+Three things a reader should not mistake for a stub, because each is an absent *phase*, stated in the
+UI where it would have been:
+
+| Looks missing | Actually |
+|---|---|
+| No "Group into report draft" in the bulk bar | phase 3; the bar offers only the five actions `POST /api/worklog/entries/bulk` accepts |
+| CSV only, and only over ticked rows | PDF/XLSX and a whole-range file are phase 5; the export that exists is real and client-side |
+| No team/admin day view, no Gantt | phases 4 and 8; the page shows one member's own log, and every read is scoped by `user_id` in SQL |
+
+`playbook_id` / `playbook_version` on `work_log_entries` are storage that exists since phase 1 and has
+no writer yet — that is phase 16 (playbooks), not a forgotten column. They are read-only on the DTO and
+sit in `FORBIDDEN_ENTRY_KEYS` (`lib/worklog/entry-fields.ts:47`), so a request body cannot set them
+either, and the log page never renders a control that implies a playbook is attached.
+
+What phase 2 did **not** touch: the command-palette shortcut, the notification bell and the AI panel
+keep exactly the state they had before it (see §1–§6 for those rows). The work log added no stub and
+closed no pre-existing one.
+

@@ -147,33 +147,58 @@ even when no task existed. Kind is one of `action | time | blocker | note | revi
 into the `deliverables` table rather than duplicating it.
 
 **Deliverables are first-class** because that is what a supervisor asks for. A deliverable row is a named output
-with a type (document, code, design, inspection, audit finding, training, report), a link or attachment, a
-status lifecycle (`draft → in_review → approved | delivered`), the date it was produced, and the task or plan
-item it belongs to. Evidence — the file, the link, the sign-off — lives here, not in a note.
+with a type (`document | code | design | inspection | audit_finding | training | report | other` — the eighth value
+exists because a real log produces things the seven were never going to name), a link or attachment, a status
+lifecycle, the date it was produced, and the task or plan item it belongs to. Evidence — the file, the link, the
+sign-off — lives here, not in a note.
+**Lifecycle as shipped (verified 2026-10-26, `lib/worklog/entries.ts:95`):** `draft → in_review → approved |
+delivered`, plus `draft → delivered` for something that ships without review and one step back
+(`in_review → draft`) for rework. `delivered` is terminal — re-opening accepted evidence is a new deliverable, not
+an edit of history. The same table is read by the server (`pickDeliverableUpdates` refuses an illegal jump) and by
+the State select (it offers only the allowed next states plus the row's own), so a control cannot offer a move that
+the API would reject.
 
 Capture surface, in order of cheapness:
 
 1. **Auto**: task transitions and promotes, no user action.
-2. **Quick add**: one-line input at the top of the day view — text, optional `#minutes`, optional task search,
-   optional discipline; Enter writes the row.
+2. **Quick add**: one-line input at the top of the day view. Two tokens only (`lib/worklog/quick-add.ts`):
+   `#45` is minutes and one of `#action #time #blocker #note #review` is the kind; anything else beginning with `#`
+   is somebody's sentence and stays in the title. `#deliverable` is refused with a pointer to "Convert to
+   deliverable", because a tag cannot create the row the button then needs. The task and the discipline are chosen
+   in the row dialog, not the strip — a parse that guessed a task from a title would attach work to the wrong thing.
 3. **Day view**: the day's rows grouped by task, a running total, and "add deliverable" on any row.
-4. **Week grid**: Mon–Sun columns with per-day totals (rows = tasks or days), edited inline — this is the shape
-   most people actually keep a log in.
+4. **Week grid**: Mon–Sun columns with per-day totals (rows = tasks or days). Editing opens the row dialog rather
+   than turning a grid cell into an input: the same validation, the same whitelist, one place — **correction
+   (2026-10-26)**: "edited inline" as originally written would have meant a second editor with its own rules.
 
 Views and controls, reusing the grammar `/dashboard/tasks` already speaks (`view` state at
 `app/dashboard/tasks/page.tsx:192`, 400ms debounced search at `app/dashboard/tasks/page.tsx:316`): Day · Week ·
 List · Board (by kind) · Calendar heat map (dots per day, click to open that day). Filters: date range with
-presets (today / this week / last 7 days / this month / custom), task, discipline, kind, has-deliverable,
-deliverable status, assignee-neutral "mine only" default, and free-text search over title+body. Every control
-mirrors into URL query params so a view is shareable and survives reload. Bulk: convert entry → deliverable,
-attach to a task, re-date a misdated entry (with the correction recorded, not silently), group into a report
-draft, export selection.
+presets (today / yesterday / this week / last 7 days / this month / custom), task, discipline, kind,
+has-deliverable, deliverable status, and free-text search over title+body. "Mine only" is not a control — every
+read is scoped by `user_id` in SQL, so there is nothing else to see (see §12.7: a discipline switch is a display
+filter, never a permission). Every control mirrors into URL query params so a view is shareable and survives
+reload.
+
+Bulk, **as shipped (2026-10-26)**: the bar offers exactly the five actions `POST /api/worklog/entries/bulk`
+accepts — `delete`, `set-task`, `re-date` (with the correction stamped in `redated_at`, not silently), `set-kind`
+(only the kinds a row can become without inventing content, `BULK_SETTABLE_KINDS`), and `convert-deliverable`.
+Export is CSV, produced client-side from the current selection
+(`entriesToCsv(selectedEntries)` → a `jiravision-worklog-<from>-<to>.csv` download). The control lives on the bulk
+bar, so an export is always a deliberate act over rows the member ticked — there is no "export the range" query the
+page runs behind the view, and no select-all-in-range either; **recorded honestly (2026-10-26)**: this is the one
+place the page exports less than it shows, and a whole-range file is phase 5's job (PDF/XLSX are phase 5 too).
+**"group into a report draft" is phase 3 and the page does not offer it.**
 
 `/dashboard` gains a "Today" strip from the same reads — the log earns its keep by being visible before someone
 has to go look for it.
 
-Timezone matters: `worked_on` is stored as a `date` in the member's own timezone (`users.timezone`, default
-`Africa/Nairobi`), resolved through `lib/reports/period.ts` so a 23:40 entry is on the day the member thinks it
+Timezone matters: `worked_on` is stored as a `date` in the member's own timezone (`users.timezone`, column default
+`Africa/Nairobi`), resolved through **`lib/worklog/local-day.ts`** (`localDay`, `dayBoundsUtc`, `rangeBoundsUtc`,
+`weekStartIso`) — **correction (2026-10-26)**: this section named `lib/reports/period.ts`, which was never created;
+the day math shipped in phase 2 as its own module so the log does not depend on the report period code it predates.
+A null or unparseable `users.timezone` falls back to `UTC` (`FALLBACK_ZONE`), not to the column default, because a
+session row can carry `null` where a new user row would not. So a 23:40 entry is on the day the member thinks it
 is, not the day the server thinks it is.
 
 ## 5. Admin/team visibility
@@ -524,7 +549,7 @@ form pre-filled — accepting is a human write.
 | 2. Profile | name, display name, avatar, job title, phone, country, timezone (detected, editable), language | the existing `app/api/user/profile` PATCH (`users.job_title`, `department`, `location`, `language`, `timezone`, `avatar`) |
 | 3. Workspace | personal · name a team · accept an invitation | §13's `workspace_invitations` row (phase 17); team fields through `/api/team/settings` |
 | 4. Industry | one primary, optional secondaries, or "Not sure yet" | `preferences.settings.onboarding.data.industry` |
-| 5. Role and disciplines | searchable job title with free text, optional department, multi-select work disciplines | `users.job_title`/`department` plus `preferences.workDisciplines` from the canonical `WORK_DISCIPLINES` (`lib/roles.ts:49`) |
+| 5. Role and disciplines | searchable job title with free text, optional department, multi-select work disciplines | `users.job_title`/`department` plus `preferences.workDisciplines` from the canonical `WORK_DISCIPLINES` (`lib/roles.ts:110`, grouped by `DISCIPLINE_CATEGORIES` at `:54`) |
 | 6. Project management | preferred view, default grouping, notification types, work style | only keys the app already reads: `preferences.settings.sprintView`, the `notify*` flags |
 | 7. First project | create · import a scope document · a clearly-labelled sample · skip | existing project APIs plus phase 7's extraction |
 | 8. Review and finish | a summary with a per-step *Edit* link | `status = "completed"`, written only after every save returned ok |
@@ -532,7 +557,7 @@ form pre-filled — accepting is a human write.
 Seven rules the wizard is built on, each because the alternative has hurt someone:
 
 - **State lives in `preferences.settings.onboarding`** through the existing `jsonb_set` merge
-  (`app/api/settings/route.ts:54-65`): `{ status, step, completedAt, version, data }`, where `status` is
+  (`app/api/settings/route.ts:57-68`): `{ status, step, completedAt, version, data }`, where `status` is
   `"not_started"`, `"in_progress"` or `"completed"` and only `status` is read by routing. No new `users` columns, so
   **no migration and no schema change**; a step persists when it
   validates, which is what makes a refresh, a closed tab and a logout-then-signin all lossless. Retrying a step
@@ -546,8 +571,9 @@ Seven rules the wizard is built on, each because the alternative has hurt someon
   shows a resumable banner for the incomplete, not a wall.
 - **Adaptive, not long**: a personal workspace is not asked for an organization, a department or a job title; every
   step but Welcome and Review has *Skip*, and skipping is a valid answer that leaves the default in place.
-- **One vocabulary**: step 5 renders the Phase-2 `DisciplinePicker` over `WORK_DISCIPLINES` and validates each
-  submitted id with `isWorkDiscipline` (`lib/roles.ts:97`), so the wizard cannot mint a competing set of names.
+- **One vocabulary**: step 5 renders the Phase-2 `DisciplinePicker` (`app/dashboard/worklog/sections.tsx:201`) over
+  `WORK_DISCIPLINES`, grouped by `DISCIPLINE_CATEGORIES`, and validates each
+  submitted id with `isWorkDiscipline` (`lib/roles.ts:316`), so the wizard cannot mint a competing set of names.
   Defaults to all disciplines, and a selection is a display filter, never a permission.
 - **Industry suggests and never restricts**: it re-orders packs, templates and disciplines; it cannot hide a
   register kind or a project type.
@@ -659,10 +685,19 @@ labelled "Management & project delivery", "Software, IT & digital", "Analysis, r
 audit & commercial", "Operations & supply chain", "Engineering & built works", "Sales, marketing & customer",
 "People, administration & governance", "Health, science & specialist services", "Creative, service & industry
 work"). The widening is **additive, with no migration**: the five ids already stored in `tasks.discipline`,
-`work_log_entries.discipline`, `deliverables.discipline` and `preferences.workDisciplines` stay valid because they
-are kept verbatim, every new id is ≤ 40 characters so the `varchar(40)` columns are untouched, and the existing
-`isWorkDiscipline` guard (`lib/roles.ts:97`) is what rejects an unknown value at every write. Grouping is a display
-concern of the picker, never a filter value — the URL and the API carry one discipline at a time. A job title, a
+`work_log_entries.discipline` and `deliverables.discipline` stay valid because they are kept verbatim (verified
+2026-10-26: `developer`, `technician`, `designer`, `auditor`, `coordinator` are all still in `WORK_DISCIPLINES`),
+every id is ≤ 40 characters — the longest is 22 — so all four `varchar(40)` columns are untouched, and the existing
+`isWorkDiscipline` guard (`lib/roles.ts:316`; it was at `:97` before phase 2 grew the file) is what rejects an
+unknown value at every write: the entry and deliverable write whitelists (`entry-fields.ts:171`), the URL parser
+(`view-state.ts:102`, so a hand-typed `?discipline=` cannot smuggle an unknown value into a query) and `/api/tasks`
+through `lib/task-updates.ts:127` all call it rather than a page-side copy.
+**Correction (2026-10-26):** this paragraph listed `preferences.workDisciplines` among the stored values that stay
+valid. That key does not exist yet — `users.preferences` is the `jsonb` column and nothing writes a discipline set
+into it; it is what §12.7's step 5 creates, so the honest claim is only that widening the vocabulary cannot break a
+key nobody has written. Grouping is a display concern of the picker (`DisciplinePicker`, `sections.tsx:201` — the
+category narrows the list and is never itself sent), never a filter value — the URL and the API carry one discipline
+at a time. A job title, a
 department and a project type stay three separate dimensions and are not flattened into this one, a selected
 discipline set is a display preference and not an authorization, and industry suggests a starting set without ever
 restricting it. `CAREER_RUNGS` is keyed by discipline and keeps its four levels — a seventy-five-entry ladder would
@@ -781,11 +816,16 @@ errors, `npm run lint` at 0 errors (70-warning baseline), `npm test` green befor
 
 Each phase is a reviewable, green, committed, pushed unit. Pushing auto-deploys to production.
 
-1. **Schema and capture** — the ten new tables, three `tasks` columns, `lib/cadence.ts` extraction with
+1. **Schema and capture** *(shipped 2026-10-26; the migration ran against production Neon with the owner's
+   per-action approval)* — the ten new tables, three `tasks` columns, `lib/cadence.ts` extraction with
    `one-off`/`yearly`, `WORK_DISCIPLINES` + template map, `task_events` writes wired into every existing task
    mutation path, migration + rollback note. No UI yet; the log starts filling on deploy.
-2. **Worklog UI** — `/dashboard/worklog`: day view, quick add, week grid, deliverables CRUD, calendar heat,
-   filters, search, URL params, bulk, the `/dashboard` "Today" strip.
+2. **Worklog UI** *(shipped 2026-10-26)* — `/dashboard/worklog`: day view, quick add, week grid, deliverables CRUD,
+   calendar heat, filters, search, URL params, bulk, the `/dashboard` "Today" strip. What the phase added beyond
+   this line: the log renders five views (day · week grid · list · board-by-kind · calendar heat), the page carries
+   eleven cards — the status-change timeline, time by task, the discipline split, the kind mix and coverage were not
+   in the one-line summary — the discipline vocabulary widened to 75 in 10 groups with **no migration**, and CSV is
+   selection-only (§4), so "export the range" is still open for phase 5.
 3. **Reports** — period math, aggregation, per-discipline templates, `/api/reports/work/*`, the
    `/dashboard/reports-work` builder with its ten sections, save/draft, no AI required.
 4. **Submission, inbox, admin view** — recipients and default reporting line, submit/lock/revise, ack and

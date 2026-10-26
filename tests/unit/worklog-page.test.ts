@@ -412,7 +412,9 @@ describe("sections 6 to 11", () => {
     const code = sections()
     expect(code).toMatch(/onPickDay/u)
     expect(code).toMatch(/gaps\.length === 0/u)
-    expect(code).not.toMatch(/<EmptySection title="Coverage"\/>/u)
+    // The "nothing missing" answer happens inside the live card, so the heading and the View
+    // toolbar stay reachable — a separate empty card was exported for this and never rendered.
+    expect(code).toMatch(/Every day from \{range\.from\} to \{range\.to\} has something in it/u)
     // The cap is in the copy, not silent: a year-long filter shows it stopped counting.
     expect(code).toMatch(/gaps\.slice\(0, 21\)/u)
   })
@@ -517,5 +519,120 @@ describe("dashboard today strip", () => {
     // The cap is stated, not silent: five rows shown of nine must not read as the whole day.
     expect(code).toMatch(/\.slice\(0, 5\)/u)
     expect(code).toMatch(/more in the work log/u)
+  })
+})
+
+describe("the finished page", () => {
+  const client = () => src("app/dashboard/worklog/worklog-client.tsx")
+  const sectionsFile = () => src("app/dashboard/worklog/sections.tsx")
+  const onScreen = () =>
+    [
+      "app/dashboard/worklog/page.tsx",
+      "app/dashboard/worklog/worklog-client.tsx",
+      "app/dashboard/worklog/sections.tsx",
+      "app/dashboard/worklog/dialogs.tsx",
+    ]
+      .map(src)
+      .join("\n")
+
+  it("has eleven always-visible sections and one conditional bar", () => {
+    const code = client()
+    const names = [
+      "TotalsSection",
+      "QuickAddSection",
+      "FilterSection",
+      "ViewToolbarSection",
+      "LogSection",
+      "DeliverablesSection",
+      "TransitionsSection",
+      "TimeByTaskSection",
+      "DisciplineSplitSection",
+      "KindMixSection",
+      "CoverageSection",
+    ]
+    for (const name of names) {
+      expect(code).toMatch(new RegExp(`<${name}[\\s(]`, "u"))
+    }
+    // The bulk bar is the only section that is not on screen by default: it belongs to a selection.
+    expect(code).toMatch(/selectedEntries\.length > 0\s*&&\s*\(\s*<BulkSection/u)
+    expect(sectionsFile()).toMatch(/export const SECTION_TITLES/u)
+  })
+
+  it("declares the section titles it renders", () => {
+    const declared = /export const SECTION_TITLES = \[([\s\S]*?)\] as const/u.exec(sectionsFile())
+    expect(declared).not.toBeNull()
+    const titles = [...declared![1].matchAll(/"([^"]+)"/gu)].map((m) => m[1])
+    expect(titles).toEqual([
+      "This period",
+      "Quick add",
+      "Find in the log",
+      "View",
+      "Deliverables",
+      "Status changes",
+      "Time by task",
+      "Where the time went",
+      "Mix of work",
+      "Coverage",
+    ])
+    // Read from the declaration, then checked against the cards: a heading renamed in one place
+    // without the other fails here, and the list cannot be trimmed to whatever a test repeats.
+    const cards = `${sectionsFile()}\n${client()}`
+    for (const title of titles) {
+      expect(cards).toContain(`title="${title}"`)
+    }
+    // The two sections deliberately outside the list still have their own headings.
+    expect(sectionsFile()).toMatch(/title=\{`\$\{VIEW_LABEL\[view\]\} view`\}/u)
+    expect(sectionsFile()).toMatch(/title=\{`Selected/u)
+  })
+
+  it("leaves no dead affordance anywhere on the page", () => {
+    const code = onScreen()
+    expect(code).not.toMatch(/href="#"/u)
+    expect(code).not.toMatch(/onClick=\{\(\) => \{\}\}/u)
+    expect(code).not.toMatch(/console\.(log|warn)\(/u)
+    expect(code).not.toMatch(/window\.(alert|confirm)\(/u)
+    expect(code).not.toMatch(/TODO|FIXME/iu)
+  })
+
+  it("never treats a discipline preference as a permission", () => {
+    // The filter narrows what the member asks for; the SQL narrows what they may see at all,
+    // and it is the one place that gets to say no.
+    const shared = src("app/api/worklog/_shared.ts")
+    expect(shared).toMatch(/const conditions: SQL\[\] = \[\n    eq\(workLogEntries\.userId, userId\),/u)
+    expect(shared).toMatch(/if \(state\.discipline !== "all"\) conditions\.push\(eq\(workLogEntries\.discipline, state\.discipline\)\)/u)
+    expect(onScreen()).not.toMatch(/if \(state\.discipline/u)
+    expect(onScreen()).not.toMatch(/return null[\s\S]{0,40}state\.discipline/u)
+  })
+
+  it("exports no component that nothing renders", () => {
+    // An exported section nobody calls is how a phase ships a stub beside its own docs. Only
+    // `export function` is held to this: SECTION_TITLES and the colour maps are data, read by a
+    // guard or a later phase, not UI waiting for a caller that never comes.
+    const rendered = [
+      "app/dashboard/worklog/page.tsx",
+      "app/dashboard/worklog/worklog-client.tsx",
+      "app/dashboard/worklog/sections.tsx",
+      "app/dashboard/worklog/dialogs.tsx",
+    ]
+      .map(src)
+      .join("\n")
+    for (const file of ["app/dashboard/worklog/sections.tsx", "app/dashboard/worklog/dialogs.tsx"]) {
+      for (const [, name] of src(file).matchAll(/^export function ([A-Za-z_]+)/gmu)) {
+        expect(rendered.match(new RegExp(`\\b${name}\\b`, "gu"))?.length ?? 0).toBeGreaterThan(1)
+      }
+    }
+  })
+
+  it("keeps the vocabulary in one module per dimension", () => {
+    const page = `${sectionsFile()}\n${client()}\n${src("app/dashboard/worklog/dialogs.tsx")}`
+    expect(page).not.toMatch(/const WORK_LOG_KINDS/u)
+    expect(page).not.toMatch(/const DELIVERABLE_STATUSES/u)
+    expect(page).not.toMatch(/\["draft", "in_review", "approved", "delivered"\]/u)
+  })
+
+  it("wires the nav item that makes the page reachable", () => {
+    const nav = src("components/dashboard-layout.tsx")
+    expect(nav).toMatch(/href: "\/dashboard\/worklog"/u)
+    expect(nav).toMatch(/title: "Work Log"/u)
   })
 })

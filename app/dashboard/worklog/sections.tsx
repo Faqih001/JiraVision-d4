@@ -78,6 +78,24 @@ import type { TaskOption } from "./worklog-client"
 // *every* discipline, which is the opposite of none.
 const NONE = "none"
 
+// The cards that render in every view, in the order the page puts them. `LogSection` and the bulk
+// bar are absent on purpose: their headings come from `VIEW_LABEL[view]` and from the selection
+// count, so they have no fixed string to declare. Nothing here reads the array at runtime — it
+// exists so the page guard can compare the declared inventory with the cards, which a count of
+// `<SectionCard`s cannot do.
+export const SECTION_TITLES = [
+  "This period",
+  "Quick add",
+  "Find in the log",
+  "View",
+  "Deliverables",
+  "Status changes",
+  "Time by task",
+  "Where the time went",
+  "Mix of work",
+  "Coverage",
+] as const
+
 export function WorklogSkeleton() {
   return (
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -176,14 +194,6 @@ export function EntryLine({
         </div>
       ) : null}
     </li>
-  )
-}
-
-export function EmptySection({ title }: { title: string }) {
-  return (
-    <SectionCard title={title}>
-      <EmptyNote>Nothing logged here yet. Quick add above takes one line.</EmptyNote>
-    </SectionCard>
   )
 }
 

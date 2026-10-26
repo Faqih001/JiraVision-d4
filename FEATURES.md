@@ -201,5 +201,41 @@ Shared behavior across all four:
 - Vocabulary has one owner each: `lib/cadence.ts` (`one-off|daily|weekly|monthly|yearly`, the latter
   two new) and `lib/roles.ts` (`WORK_DISCIPLINES` with labels, icons, colours and a report template
   per discipline). `tests/unit/worklog-reports.test.ts` fails if either is re-declared elsewhere.
-- There is **no worklog UI yet** — phase 2 (`/dashboard/worklog`) is the first thing that reads this
-  back. The log is empty until a task's status actually moves.
+- There is **no capture-only story any more**: phase 2 (`/dashboard/worklog`, see §8) is the UI that
+  reads this back. The log is empty until a task's status actually moves or an entry is logged.
+
+## 8. Worklog UI (phase 2, 2026-10-26)
+
+- `/dashboard/worklog` — the day view that reads back what phase 1 captured, plus the record of work
+  that was never a task. Eleven sections on one page, every one visible in every view: totals for the
+  range, quick add (one line, optional `15m` / kind / discipline), filters (search, task, kind,
+  discipline by group, deliverable state, date presets), the view toolbar, the log itself in five
+  renderings (`day`, `week`, `list`, `board`, `heat`), the deliverables board, the status-change
+  timeline read from `task_events`, time by task, the discipline split, the kind mix with open
+  blockers, and coverage with its gap days.
+- Full CRUD on entries and deliverables through dialogs with inline validation; a bulk bar over a
+  selection with exactly the five actions the API accepts (`delete`, `set-task`, `re-date`,
+  `set-kind`, `convert-deliverable`); CSV export built client-side from the rows you ticked — the control is on the
+  bulk bar, so an export is always a deliberate act, and a whole-range file is phase 5's job; every control
+  mirrored into the URL, so a view is a link you can send someone; the member's own day resolved through their own
+  timezone. `/dashboard` gained a "Today" strip from the same summary endpoint.
+- Server routes: `/api/worklog/entries`, `…/entries/[id]`, `…/entries/bulk`, `/api/worklog/deliverables`,
+  `…/deliverables/[id]`, `/api/worklog/summary`. All six are session-gated and scope every read and
+  write by `user_id` in SQL; writes go through one whitelist per shape (`readEntryCreate`,
+  `pickEntryUpdates`, `readBulkRequest`, `readDeliverableCreate`, `pickDeliverableUpdates`) so a
+  request body can never carry a column the client is not allowed to set. A foreign key is not
+  treated as authorization: a deliverable attached to a row is checked as this member's, not merely
+  as existing.
+- The work-discipline vocabulary is now 75 disciplines in 10 category groups, and the five ids shipped
+  in phase 1 keep their spelling, so existing rows and saved preferences stayed valid — this phase
+  added **no migration**.
+- **Deliberately absent.** "Group into report draft" (phase 3), PDF and XLSX export (phase 5), the
+  team/admin day view (phase 4), the Gantt (phase 8). Nothing on the page pretends to do these.
+- **Still separate dimensions.** `lib/roles.ts` holds work classifications only. Job titles,
+  departments and project roles are not in it and are not collapsed into it; they arrive with the
+  phase-15 role packs and the phase-17 onboarding. A discipline preference is a display filter —
+  every read is scoped by `user_id` in SQL regardless of what a member has switched on.
+- Guards: `tests/unit/worklog-{day,entries,quick-add,fields,view-state,bulk,summary,api,page}.test.ts`
+  — nine files, and the suite is 36 files / 711 tests. `worklog-api` and `worklog-page` sweep the
+  source of every route and every section, so a later phase that drops a control fails a test instead
+  of a code review.

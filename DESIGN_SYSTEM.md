@@ -32,13 +32,23 @@ Every statement below describes what is implemented, not aspiration.
 | Success (moss) | `--success` / `-foreground` | `success` | `88 29% 28%` `#485F2D` | `86 27% 58%` |
 | Warning (ochre) | `--warning` / `-foreground` | `warning` | `64 25% 25%` | `43 52% 52%` |
 | Destructive (brick) | `--destructive` / `-foreground` | `destructive` | `10 47% 33%` `#7E3B2D` | `14 47% 55%` |
-| Chart series | `--chart-pine` `--chart-stone` `--chart-clay` `--chart-moss` | `chart.pine` etc. | pine/stone/clay/moss | re-lit for dark |
+| Chart series | `--chart-pine` `--chart-stone` `--chart-clay` `--chart-moss` `--chart-slate` `--chart-teal` `--chart-bark` `--chart-plum` `--chart-sage` `--chart-ochre` | `chart.pine` etc. | pine/stone/clay/moss + the six discipline-category tokens (`globals.css:57–68`) | re-lit for dark |
 | Radius | `--radius: 0.5rem` (8px) | `rounded-lg` = var, `md` = −2px, `sm` = −4px | | |
 | Shadows | `--shadow-sm`, `--shadow-md` (warm-tinted: `hsl(40 9% 10% / .06/.08)`) | `shadow-soft` = sm, `shadow-soft-md` = md | | |
 
 Naming note: there is no separate "sage" or "pine" token. Pine is `--primary`; the
 `band-sage` background variant is a tint of `--primary`. "Sage", "clay", "stone", "moss"
 are descriptive names over the same four variable families.
+
+Chart series tokens are **graphics**, verified to `>= 3:1` on every surface they sit on
+(WCAG 1.4.11), not text colours: `--chart-*` paints dots, bars, lanes and swatch borders, and
+the label beside it is always `--foreground`. Known debt: 15 call sites in eight dashboard pages
+still put a series token on text (`text-[hsl(var(--chart-clay))]` at
+`app/dashboard/team/page.tsx:197`, `app/dashboard/billing/page.tsx:561`,
+`app/dashboard/ai-scrum-master/page.tsx:1144`, `app/dashboard/sprints/page.tsx:748`,
+`app/dashboard/gamification/leaderboard/page.tsx:323` and the rest of that set), which inherits
+the graphic contrast budget for body copy. Four more of the 15 are icons, where the 3:1 rule is
+the right one. None of them were introduced by the work log and none were changed by phase 2.
 
 Layout: container centered, `padding: 1.5rem`, `2xl` screen at 1240px; extra `xs: 475px` breakpoint.
 
@@ -221,3 +231,69 @@ Observed, enforced-in-practice rules (REDESIGN_PLAN V2-1/V2-3 + homepage impleme
   rewrite instead names the dashboard page where the reader can compute that number for their own
   team. `tests/unit/blog.test.ts` fails on a legacy byline, a percentage, an attributed quote, a
   view/like/comment counter, or raw HTML in a post body.
+
+## 11. Work log (`/dashboard/worklog`, phase 2 2026-10-26)
+
+One grid contains the whole page: `grid gap-4 md:grid-cols-2 xl:grid-cols-3`
+(`worklog-client.tsx:436`). Every card is a `SectionCard` from `components/dashboard-kit.tsx:37`
+and owns its own span in `className`, so a section decides how wide it is and the client never
+re-lays-out on data. The same twelve cards render in all five views; `?v=week` changes what is
+inside the log slot, never which cards exist — a member who bookmarks a view gets the page they
+left. `LogSection` and the bulk bar title their own cards (from `VIEW_LABEL[view]` and from the
+selection count), which is why `SECTION_TITLES` in `sections.tsx` lists the other ten and
+`tests/unit/worklog-page.test.ts` compares the declaration against the cards.
+
+### Work log section inventory
+
+| # | Card | Component | Grid span | Data |
+| --- | --- | --- | --- | --- |
+| 1 | This period | `TotalsSection` | 1 cell | `summary.totals`, `.days` |
+| 2 | Quick add | `QuickAddSection` | 1 cell | `parseQuickAdd` → `POST /api/worklog/entries` |
+| 3 | Find in the log | `FilterSection` | 1 cell | `lib/worklog/view-state` |
+| 4 | View | `ViewToolbarSection` | 1 cell | `WORKLOG_VIEWS`, `RANGE_PRESETS` |
+| 5 | `<view>` view | `LogSection` | `md:col-span-2 xl:col-span-3` | `summary.days` |
+| 6 | Deliverables | `DeliverablesSection` | `md:col-span-2 xl:col-span-3` | `/api/worklog/deliverables` |
+| 7 | Status changes | `TransitionsSection` | `md:col-span-2` | `summary.transitions` |
+| 8 | Time by task | `TimeByTaskSection` | `md:col-span-2 xl:col-span-2` | `summary.tasks` |
+| 9 | Where the time went | `DisciplineSplitSection` | `md:col-span-2 xl:col-span-2` | `summary.disciplines` |
+| 10 | Mix of work | `KindMixSection` | `md:col-span-2 xl:col-span-2` | `summary.kinds`, `.openBlockers` |
+| 11 | Coverage | `CoverageSection` | `md:col-span-2 xl:col-span-3` | `summary.gaps`, `.streak`, `.unlinked` |
+| — | Selected — *n* entries | `BulkSection` | `md:col-span-2 xl:col-span-3`, only while rows are ticked | the selection |
+
+Sections 1–4 are defined in `worklog-client.tsx` because their content is the mutation and filter
+form state; 5–11 and the bulk bar live in `sections.tsx`, which is presentation only and imports no
+fetch. A missing `summary` renders a `Skeleton` inside the live card, and an empty one renders an
+`EmptyNote` inside it, so a heading and its View toolbar are always still reachable — a card is
+never replaced by a second "nothing here" card.
+
+### Kind and discipline colour
+
+Kinds take `KIND_COLOUR[kind]` (`lib/worklog/entries.ts:22`): `action→pine`, `time→moss`,
+`note→stone`, `review→clay`, plus `blocker→--destructive` and `deliverable→--accent`. Disciplines
+take `DISCIPLINE_COLOUR[d]`, which is the **category** colour
+(`lib/roles.ts:83`, `delivery→pine`, `technology→slate`, `information→teal`, `finance→moss`,
+`operations→stone`, `engineering→bark`, `market→clay`, `people→plum`, `science→sage`,
+`services→ochre`) — a discipline has no colour of its own, and that is what keeps 75 values legible
+in a chart: ten families, not seventy-five hues.
+
+Every map value is the wrapped form, `hsl(var(--chart-*))`. A bare `var(--chart-pine)` is an invalid
+colour and renders nothing, which is why the wrap lives in the map and not at the call site; the same
+applies to recharts `fill`/`Cell`, which takes the map value verbatim.
+
+Two rules hold across the whole page:
+
+- **Colour never carries meaning alone.** Every badge, bar, lane header and heat cell also prints its
+  label or count (`KindBadge`, `DISCIPLINE_LABEL`, the `title` on each heat cell).
+- **A series token is a graphic (3:1, WCAG 1.4.11), text is `--foreground`.** A chart fill, dot or
+  swatch border may be `--chart-*`; the number beside it may not. Where a badge needs the colour as
+  a background it is `color-mix(in srgb, … 15%, transparent)` behind `--foreground` text
+  (`KindBadge`, `sections.tsx:116`), and the calendar heat cell mixes the same token from 12% to 67%
+  by day intensity while printing the date and count (`sections.tsx:448`).
+
+### Sentinel vocabulary in selects
+
+Radix treats `SelectItem value=""` as "nothing chosen" and shows the placeholder, so an empty string
+is never an option value. Two words carry the two different meanings, and they are not
+interchangeable: `"none"` is *no value* in a **form** answer (the task a deliverable is not attached
+to), `"all"` is *every value* in a **filter** answer (the discipline strip that keeps the URL clean).
+`tests/unit/select-items.test.ts` enforces the empty-string ban repo-wide.
