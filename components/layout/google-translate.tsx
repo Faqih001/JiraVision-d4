@@ -1,8 +1,11 @@
 "use client"
 
 import { useEffect, useState, useSyncExternalStore } from "react"
-import { Globe, RotateCcw } from "lucide-react"
+import { Check, ChevronDown, Globe, RotateCcw } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { flagForLanguage, splitGoogleLabel } from "@/lib/language-flags"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 
 // Google's own translate element, so the list of languages is whatever Google supports
 // today rather than a snapshot we would have to maintain. The choice is remembered in
@@ -106,11 +109,23 @@ function resetTranslation() {
 
 /**
  * Mount Google's gadget into `id`, then keep its <select> in step with the stored choice.
- * Returns whether the dropdown is on screen yet, so the caller can hold a placeholder
- * instead of an empty box while the script is in flight.
+ * Reports whether the dropdown is on screen yet, and the language list Google itself
+ * offers, so the caller can hold a placeholder instead of an empty box while the script
+ * is in flight and never has to maintain its own snapshot of supported languages.
  */
-function useTranslateWidget(id: string, active: boolean) {
-  const [ready, setReady] = useState(false)
+interface TranslateEngine {
+  ready: boolean
+  options: { code: string; english: string; native: string | null }[]
+}
+
+/**
+ * `driveFromList` marks callers that render their own language control: Google's select
+ * then acts as the engine only, so it leaves the tab order and would be hidden from
+ * screen readers to avoid being announced twice. Callers that show Google's select keep
+ * it reachable and give it the name Google never sets.
+ */
+function useTranslateWidget(id: string, active: boolean, driveFromList = false): TranslateEngine {
+  const [engine, setEngine] = useState<TranslateEngine>({ ready: false, options: [] })
 
   useEffect(() => {
     if (!active) return
@@ -118,8 +133,9 @@ function useTranslateWidget(id: string, active: boolean) {
     let cancelled = false
     void waitForCombo(id).then((combo) => {
       if (cancelled || !combo) return
-      // Google gives its select no name at all.
-      if (!combo.getAttribute("aria-label")) {
+      if (driveFromList) {
+        combo.tabIndex = -1
+      } else if (!combo.getAttribute("aria-label")) {
         combo.setAttribute("aria-label", "Translate this page")
       }
       if (combo.dataset.jvWired !== "1") {
@@ -131,14 +147,26 @@ function useTranslateWidget(id: string, active: boolean) {
           combo.dispatchEvent(new Event("change"))
         }
       }
-      setReady(true)
+      // The blank entry means "show original" and is offered as its own row instead.
+      const options = Array.from(combo.options)
+        .filter((option) => option.value !== "")
+        .map((option) => ({ code: option.value, ...splitGoogleLabel(option.textContent ?? "") }))
+      setEngine({ ready: true, options })
     })
     return () => {
       cancelled = true
     }
-  }, [id, active])
+  }, [id, active, driveFromList])
 
-  return ready
+  return engine
+}
+
+/** Drive Google's own select, which is what performs the translation. */
+function selectLanguage(id: string, code: string) {
+  const combo = document.querySelector<HTMLSelectElement>(`#${id} select.goog-te-combo`)
+  if (!combo) return
+  combo.value = code
+  combo.dispatchEvent(new Event("change"))
 }
 
 /** Footer compliance row: nothing is requested from Google until it is opened. */
@@ -148,7 +176,7 @@ export function GoogleTranslate({ className }: { className?: string }) {
   // A saved choice re-opens the control on the next visit, so the page comes back in
   // the same language instead of silently reverting to English.
   const open = revealed || language !== null
-  const ready = useTranslateWidget(FOOTER_ELEMENT_ID, open)
+  const { ready } = useTranslateWidget(FOOTER_ELEMENT_ID, open)
 
   return (
     <div className={cn("flex flex-wrap items-center gap-x-3 gap-y-1", className)}>
@@ -185,42 +213,105 @@ export function GoogleTranslate({ className }: { className?: string }) {
   )
 }
 
-/** Workspace top bar: the language dropdown itself, in a bordered control. */
+/**
+ * Workspace top bar: a compact language picker with a flag per language and a search
+ * field, instead of Google's own dropdown, whose options spell out "Spanish - Español"
+ * and never shrink to fit a crowded header. Choosing a row drives Google's select, so
+ * the translation itself is still Google's and the list is still whatever Google offers
+ * today rather than a list we would have to keep current.
+ */
 export function GoogleTranslateSelect({ className }: { className?: string }) {
   const language = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
-  const ready = useTranslateWidget(HEADER_ELEMENT_ID, true)
+  const { ready, options } = useTranslateWidget(HEADER_ELEMENT_ID, true, true)
+  const [open, setOpen] = useState(false)
+
+  const current = options.find((option) => option.code === language) ?? null
+  const flag = flagForLanguage(language)
+  const triggerLabel = language ? (current?.native ?? current?.english ?? language) : "Translate"
+
+  const choose = (code: string) => {
+    setOpen(false)
+    selectLanguage(HEADER_ELEMENT_ID, code)
+  }
 
   return (
-    <div className={cn("flex min-w-0 items-center gap-2", className)}>
-      <span
-        className={cn(
-          "jv-translate-gadget jv-translate-pill flex h-9 min-w-0 items-center gap-1.5 rounded-full",
-          "border border-border bg-card pl-2.5 pr-3",
-        )}
-      >
-        <Globe className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-        {/* Google replaces the contents of this container with its language <select>. */}
-        <span id={HEADER_ELEMENT_ID} className="min-w-0" />
-        {!ready && <span className="text-xs text-muted-foreground">Languages…</span>}
-        {/* The pill hides Google's logo sprite, so the credit is announced instead. */}
-        <span className="sr-only">Translation by Google Translate</span>
-      </span>
+    <div className={cn("flex min-w-0 items-center", className)}>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            aria-label={language ? `Translate this page (currently ${triggerLabel})` : "Translate this page"}
+            className={cn(
+              "flex h-9 min-w-0 items-center gap-1.5 rounded-full border border-border bg-card pl-2.5 pr-2.5",
+              "text-xs font-medium transition-colors duration-150 hover:bg-muted",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+            )}
+          >
+            {flag ? (
+              <span className="text-sm leading-none" aria-hidden="true">
+                {flag}
+              </span>
+            ) : (
+              <Globe className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+            )}
+            <span className="max-w-[7rem] truncate">{triggerLabel}</span>
+            <ChevronDown
+              className={cn("h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform duration-150", open && "rotate-180")}
+              aria-hidden="true"
+            />
+          </button>
+        </PopoverTrigger>
 
-      {language && (
-        <button
-          type="button"
-          onClick={resetTranslation}
-          className={cn(
-            "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-border bg-card px-3",
-            "text-xs font-medium text-muted-foreground transition-colors duration-150",
-            "hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-          )}
-        >
-          <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
-          <span className="hidden lg:inline">Show original</span>
-          <span className="lg:hidden">Original</span>
-        </button>
-      )}
+        <PopoverContent align="end" className="w-[19rem] gap-0 overflow-hidden p-0">
+          <Command>
+            <CommandInput placeholder="Search languages" className="text-sm" />
+            <CommandList className="max-h-[16.5rem]">
+              <CommandEmpty>No language matches that search.</CommandEmpty>
+              <CommandGroup heading={ready ? `${options.length} languages` : "Loading languages…"}>
+                <CommandItem
+                  value="original"
+                  keywords={["original", "english", "show original"]}
+                  onSelect={resetTranslation}
+                  className="gap-2"
+                >
+                  <RotateCcw className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                  <span>Original (English)</span>
+                  {!language && <Check className="ml-auto h-3.5 w-3.5 shrink-0" aria-hidden="true" />}
+                </CommandItem>
+
+                {options.map(({ code, english, native }) => (
+                  <CommandItem
+                    key={code}
+                    value={code}
+                    keywords={[english, native, code].filter((part): part is string => Boolean(part))}
+                    onSelect={() => choose(code)}
+                    className="gap-2"
+                  >
+                    <span className="w-5 shrink-0 text-center text-sm leading-none" aria-hidden="true">
+                      {flagForLanguage(code) ?? ""}
+                    </span>
+                    <span className="truncate">{native ?? english}</span>
+                    {native && native.toLowerCase() !== english.toLowerCase() && (
+                      <span className="truncate text-xs text-muted-foreground">{english}</span>
+                    )}
+                    {language === code && <Check className="ml-auto h-3.5 w-3.5 shrink-0" aria-hidden="true" />}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+          {/* The pill shows no Google logo, so the credit is stated where it is read. */}
+          <span className="sr-only">Translation by Google Translate</span>
+        </PopoverContent>
+      </Popover>
+
+      {/*
+        Google replaces this container's contents with its <select>, which is what
+        actually translates. It is clipped, not display:none, because the widget reads
+        and writes it, and it is hidden from assistive tech because the list above is
+        the real control.
+      */}
+      <span id={HEADER_ELEMENT_ID} className="jv-translate-engine" aria-hidden="true" />
     </div>
   )
 }
