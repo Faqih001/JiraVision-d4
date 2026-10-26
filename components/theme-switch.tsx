@@ -25,6 +25,8 @@ export function ThemeSwitch({ className }: { className?: string }) {
   const { resolvedTheme, setTheme } = useTheme()
   const mounted = useSyncExternalStore(subscribeNoop, mountedSnapshot, mountedServerSnapshot)
   const [animation, setAnimation] = useState<Animation | null>(null)
+  // `theme` is the preference and is usually "system"; only resolvedTheme says what
+  // the page actually looks like.
   const isDark = mounted && resolvedTheme === "dark"
 
   const toggle = () => {

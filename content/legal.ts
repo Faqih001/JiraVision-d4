@@ -364,6 +364,7 @@ export const cookiesDoc: {
       heading: "Translation by Google",
       paragraphs: [
         "The footer offers a Translate control powered by Google Translate. It stays inactive until you choose a language: only then does your browser load Google's script, which reads the text of the page and stores the translation in a googtrans cookie on this domain.",
+        "The signed-in workspace puts the language dropdown itself in its top bar, so Google's script is requested as soon as a workspace page is opened there. It is the same script and the same cookie, and the control can be dismissed the same way.",
         "Your language choice is also remembered locally (jv-translate-lang) so the site comes back in the same language. Choosing \"Show original\" clears both and reloads the page in English.",
         "Machine translation is a convenience, not a guarantee. The English text remains the authoritative version of any legal or product statement.",
       ],

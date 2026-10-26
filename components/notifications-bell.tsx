@@ -292,7 +292,7 @@ function NotificationPanel({ rows, connection, errorText, unreadCount, onRowsCha
           <div className="max-h-[21rem] overflow-y-auto">
             {groups.map((group) => (
               <section key={group.label}>
-                <h3 className="sticky top-0 z-10 bg-card/95 px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground backdrop-blur-sm">
+                <h3 className="sticky top-0 z-10 bg-popover/95 px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground backdrop-blur-sm">
                   {group.label}
                 </h3>
                 {group.rows.map((row) => {

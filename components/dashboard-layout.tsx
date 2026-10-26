@@ -81,8 +81,10 @@ const badgeCount = (count: number) => (count > 99 ? "99+" : String(count))
  */
 function AccountMenuContent() {
   const { user, logout } = useAuth()
-  const { theme, setTheme } = useTheme()
-  const isDark = theme === "dark"
+  // `theme` is the preference and is usually "system"; only resolvedTheme says what
+  // the page actually looks like.
+  const { resolvedTheme, setTheme } = useTheme()
+  const isDark = resolvedTheme === "dark"
 
   return (
     <>

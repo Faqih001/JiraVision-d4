@@ -173,9 +173,18 @@ Observed, enforced-in-practice rules (REDESIGN_PLAN V2-1/V2-3 + homepage impleme
   first frame. Colour/contrast modes rewrite the HSL token triples rather than applying a CSS
   `filter` to a wrapper — a filter on an ancestor makes it the containing block for every
   `position: fixed` descendant (navbar, bottom bar, cookie bar, dialogs).
+- **Chrome controls declare their edge.** Top-bar and floating controls carry
+  `border border-border bg-card` rather than a bare ghost button, so they stay findable
+  against the page and keep their shape when an accessibility colour mode rewrites the
+  token triples those classes read.
+- **Motion that fires during a theme flip is a keyframe animation, not a transition.**
+  `app/layout.tsx` passes `disableTransitionOnChange` to next-themes, which freezes every
+  CSS transition for the frames around the swap — the only moment a theme control moves.
+  `components/theme-switch.tsx` slides its knob with `@keyframes jv-theme-to-dark`,
+  `jv-theme-to-light` and `jv-theme-pop` (app/globals.css); the inline transform is just
+  the resting state those animations move towards.
 - Icons: **lucide-react only**, decorative ones get `aria-hidden`. No emoji anywhere in the
-  marketing kit (the old chatbot `👋` was removed in D1 fix).
-- Cards: `rounded-lg border bg-card shadow-soft`; prose: `prose-body`; headings: `font-display`.
+  marketing kit (the old chatbot `👋` was removed in D1 fix).- Cards: `rounded-lg border bg-card shadow-soft`; prose: `prose-body`; headings: `font-display`.
 - Chrome is provided once by `app/(marketing)/layout.tsx` (skip link, `<main id="main">`,
   Navbar/Footer/BottomBar/SiteSearch/CookieConsent) — pages never hand-roll it.
 
