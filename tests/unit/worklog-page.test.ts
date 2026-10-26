@@ -271,3 +271,78 @@ describe("work log dialogs", () => {
     expect(dialogs()).not.toMatch(/onDraftChange/u)
   })
 })
+
+describe("bulk bar", () => {
+  const client = () => src("app/dashboard/worklog/worklog-client.tsx")
+  const sections = () => src("app/dashboard/worklog/sections.tsx")
+  const dialogs = () => src("app/dashboard/worklog/dialogs.tsx")
+
+  it("exists only while a selection exists", () => {
+    expect(client()).toMatch(/selectedEntries\.length > 0 && \(\s*<BulkSection/u)
+    expect(sections()).toMatch(/export function BulkSection/u)
+  })
+
+  it("offers every bulk action the API implements", () => {
+    const code = sections()
+    for (const action of ["delete", "set-task", "re-date", "set-kind", "convert-deliverable"]) {
+      expect(code).toContain(`"${action}"`)
+    }
+    expect(code).toMatch(/type BulkAction/u)
+  })
+
+  it("offers only the kinds a bulk reclassify can actually apply", () => {
+    // readBulkRequest refuses `time` (needs per-row minutes) and `deliverable` (needs a linked
+    // deliverable row). A bar that offered them would offer a button that always toasts an error.
+    // The row dialog can still offer all six, because it sends the companion field with them.
+    const code = sections()
+    expect(code).toMatch(/BULK_SETTABLE_KINDS\.map/u)
+    expect(code).toMatch(/WORK_LOG_KINDS\.map/u) // the board keeps all six columns
+  })
+
+  it("posts the selection to the bulk route through one handler", () => {
+    // The client's `mutate` is what calls fetch, so the guard reads the call site: one
+    // path string, used by both applyBulk and confirmBulkDelete.
+    expect(client()).toMatch(/onApply=\{applyBulk\}/u)
+    expect(client()).toMatch(/const bulkUrl = "\/api\/worklog\/entries\/bulk"/u)
+    expect(client()).toMatch(/body: JSON\.stringify\(\{ action, ids: selectedIds/u)
+    // The batch delete sends the same list the bar shows, so a row a changed filter left behind
+    // cannot be deleted without ever having been displayed.
+    expect(client()).toMatch(/body: JSON\.stringify\(\{ action: "delete", ids: selectedIds/u)
+    expect(client()).toMatch(/const selectedIds = useMemo/u)
+  })
+
+  it("asks before deleting a batch", () => {
+    expect(client()).toMatch(/setPendingBulkDelete\(true\)/u)
+    expect(dialogs()).toMatch(/export function ConfirmBulkDelete/u)
+    expect(client()).not.toMatch(/window\.confirm\(/u)
+  })
+
+  it("exports the current selection as a real download", () => {
+    const code = client()
+    expect(code).toMatch(/entriesToCsv/u)
+    expect(code).toMatch(/new Blob\(\[csv\], \{ type: "text\/csv;charset=utf-8" \}\)/u)
+    expect(code).toMatch(/a\.download = `jiravision-worklog-\$\{range\.from\}-\$\{range\.to\}\.csv`/u)
+    expect(code).toMatch(/URL\.revokeObjectURL\(url\)/u)
+  })
+
+  it("clears the selection after a successful action", () => {
+    expect(client()).toMatch(/setSelection\(\[\]\)/u)
+  })
+
+  it("disables every control while a write is in flight", () => {
+    expect(sections()).toMatch(/disabled=\{busy\}/u)
+    // The action lives in the bar, so a stale dialog cannot fire a second write behind it.
+    expect(dialogs()).toMatch(/disabled=\{busy \|\| count === 0\}/u)
+  })
+
+  it("shows the selection it was handed, not a copy of the grid's filtering", () => {
+    // The client filters the loaded rows to the ids it will send, and the bar renders that exact
+    // list. A bar that filtered again could show a minutes total for rows the write never touched.
+    expect(client()).toMatch(/selected=\{selectedEntries\}/u)
+    expect(client()).toMatch(/const selectedEntries = useMemo/u)
+    const code = sections()
+    expect(code).toMatch(/selected: EntryDto\[\]/u)
+    expect(code).toMatch(/minutesTotal\(selected\)/u)
+    expect(code).not.toMatch(/selected\.filter/u)
+  })
+})

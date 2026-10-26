@@ -9,6 +9,7 @@ import {
   WORK_LOG_KINDS,
   canMoveDeliverable,
   countByKind,
+  entriesToCsv,
   formatMinutes,
   gapDays,
   groupByDay,
@@ -150,5 +151,56 @@ describe("streaks and gaps", () => {
     expect(formatMinutes(45)).toBe("45m")
     expect(formatMinutes(90)).toBe("1h 30m")
     expect(formatMinutes(480)).toBe("8h")
+  })
+})
+
+describe("csv", () => {
+  it("starts with the column header", () => {
+    const csv = entriesToCsv([])
+    expect(csv.split("\n")[0]).toBe(
+      '"worked_on","kind","title","body","task","discipline","minutes","deliverable","source"',
+    )
+  })
+
+  it("writes one row per entry in the order given", () => {
+    const csv = entriesToCsv([
+      entry({ id: 1, workedOn: "2026-10-19" }),
+      entry({ id: 2, workedOn: "2026-10-20" }),
+    ])
+    expect(csv.trim().split("\n")).toHaveLength(3)
+  })
+
+  it("quotes every field and doubles the quotes inside it", () => {
+    const csv = entriesToCsv([entry({ title: 'Reboot, then "confirm" the switch' })])
+    expect(csv).toContain('"Reboot, then ""confirm"" the switch"')
+  })
+
+  it("leaves a null body, task and discipline empty rather than printing null", () => {
+    const csv = entriesToCsv([entry({ body: null, taskId: null, taskTitle: null, discipline: null })])
+    const row = csv.trim().split("\n")[1]
+    expect(row).not.toMatch(/\bnull\b/u)
+    expect(row).toContain('"",""')
+  })
+
+  it("writes an empty minutes cell for an untimed row and a number otherwise", () => {
+    // These two rows contain no quotes and no commas, so splitting on `","` reads the columns.
+    const cells = (line: string) => line.replace(/^"|"$/g, "").split('","')
+    const [untimed] = entriesToCsv([entry({ minutes: null })]).trim().split("\n").slice(1)
+    const [timed] = entriesToCsv([entry({ minutes: 45 })]).trim().split("\n").slice(1)
+    expect(cells(untimed)[6]).toBe("")
+    expect(cells(timed)[6]).toBe("45")
+  })
+
+  it("keeps a newline inside its quoted field instead of splitting the record", () => {
+    const csv = entriesToCsv([entry({ body: "line one\nline two" })])
+    expect(csv).toContain('"line one\nline two"')
+  })
+
+  it("puts the deliverable id in its own column, empty when the row is not linked", () => {
+    const cells = (line: string) => line.replace(/^"|"$/g, "").split('","')
+    const [linked] = entriesToCsv([entry({ deliverableId: 7 })]).trim().split("\n").slice(1)
+    const [plain] = entriesToCsv([entry({ deliverableId: null })]).trim().split("\n").slice(1)
+    expect(cells(linked)[7]).toBe("7")
+    expect(cells(plain)[7]).toBe("")
   })
 })

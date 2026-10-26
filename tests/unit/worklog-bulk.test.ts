@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
-import { BULK_ACTIONS, BULK_IDS_CAP, readBulkRequest } from "@/lib/worklog/bulk"
+import { WORK_LOG_KINDS } from "@/lib/worklog/entries"
+import { BULK_ACTIONS, BULK_IDS_CAP, BULK_SETTABLE_KINDS, readBulkRequest } from "@/lib/worklog/bulk"
 
 const TODAY = "2026-10-26"
 
@@ -73,5 +74,17 @@ describe("readBulkRequest", () => {
     expect(why(null)).toMatch(/object/iu)
     expect(why([])).toMatch(/object/iu)
     expect(why("delete")).toMatch(/object/iu)
+  })
+})
+
+describe("BULK_SETTABLE_KINDS", () => {
+  it("is exactly the kinds the reader accepts", () => {
+    // The bar renders this list, so the list and the reader must refuse the same kinds —
+    // otherwise the page shows a button that can only ever toast an error.
+    const refused = WORK_LOG_KINDS.filter(
+      (kind) => "error" in readBulkRequest({ action: "set-kind", ids: [1], kind }, TODAY),
+    )
+    expect(refused).toEqual(["time", "deliverable"])
+    expect([...BULK_SETTABLE_KINDS]).toEqual(WORK_LOG_KINDS.filter((kind) => !refused.includes(kind)))
   })
 })

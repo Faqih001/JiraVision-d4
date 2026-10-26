@@ -244,3 +244,42 @@ export function formatMinutes(minutes: number | null | undefined): string {
   const rest = minutes % 60
   return rest === 0 ? `${hrs}h` : `${hrs}h ${rest}m`
 }
+
+const CSV_HEADER = [
+  "worked_on",
+  "kind",
+  "title",
+  "body",
+  "task",
+  "discipline",
+  "minutes",
+  "deliverable",
+  "source",
+] as const
+
+/**
+ * One quoted field per column, exactly as the activity export does it. A body keeps its
+ * newlines inside the quotes, so a row never splits into two records.
+ */
+function csvCell(value: unknown): string {
+  return `"${String(value ?? "").replace(/"/g, '""')}"`
+}
+
+export function entriesToCsv(entries: readonly EntryDto[]): string {
+  const rows = entries.map((e) =>
+    [
+      e.workedOn,
+      e.kind,
+      e.title,
+      e.body ?? "",
+      e.taskTitle ?? "",
+      e.discipline ?? "",
+      e.minutes ?? "",
+      e.deliverableId ?? "",
+      e.source,
+    ]
+      .map(csvCell)
+      .join(","),
+  )
+  return [CSV_HEADER.map(csvCell).join(","), ...rows].join("\n")
+}

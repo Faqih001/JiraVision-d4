@@ -12,6 +12,13 @@ export type BulkAction = (typeof BULK_ACTIONS)[number]
 
 export const BULK_IDS_CAP = 200
 
+// The kinds a bulk reclassify can set. `time` needs minutes of its own per row and `deliverable`
+// needs a deliverable row to link to, so both are edited one row at a time. The screen builds its
+// Reclassify list from this, so it can never offer a button this reader would refuse.
+export const BULK_SETTABLE_KINDS: readonly WorkLogKind[] = WORK_LOG_KINDS.filter(
+  (kind) => kind !== "time" && kind !== "deliverable",
+)
+
 export type BulkRequest = {
   action: BulkAction
   ids: number[]

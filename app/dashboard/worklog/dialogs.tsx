@@ -337,3 +337,48 @@ export function ConfirmDelete({
     </AlertDialog>
   )
 }
+
+// Deleting a batch is the one action in this phase with no undo and no per-row confirm, so it gets
+// its own dialog. The row-level `ConfirmDelete` above cannot serve it: that one names a title.
+export function ConfirmBulkDelete({
+  count,
+  busy,
+  open,
+  onOpenChange,
+  onConfirm,
+}: {
+  count: number
+  busy: boolean
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onConfirm: () => void
+}) {
+  return (
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle className="text-base">
+            Delete {count} {count === 1 ? "entry" : "entries"}?
+          </AlertDialogTitle>
+          <AlertDialogDescription className="text-xs">
+            These rows leave your work log. A task&apos;s own change history is recorded separately
+            and is not touched. This cannot be undone from the page.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter className="gap-2">
+          <AlertDialogCancel disabled={busy}>Keep them</AlertDialogCancel>
+          <AlertDialogAction
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            disabled={busy || count === 0}
+            onClick={(event) => {
+              event.preventDefault()
+              onConfirm()
+            }}
+          >
+            {busy ? "Deleting…" : `Delete ${count}`}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  )
+}

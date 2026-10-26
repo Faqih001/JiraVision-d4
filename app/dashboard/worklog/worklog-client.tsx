@@ -30,12 +30,14 @@ import {
   DELIVERABLE_STATUSES,
   KIND_LABEL,
   WORK_LOG_KINDS,
+  entriesToCsv,
   formatMinutes,
   type DeliverableDto,
   type DeliverableStatus,
   type EntryDto,
   type WorkLogKind,
 } from "@/lib/worklog/entries"
+import type { BulkAction } from "@/lib/worklog/bulk"
 import type { WorklogSummary } from "@/lib/worklog/summary"
 import {
   PRESET_LABEL,
@@ -49,8 +51,8 @@ import {
   type ViewState,
   type WorklogView,
 } from "@/lib/worklog/view-state"
-import { DisciplinePicker, LogSection } from "./sections"
-import { ConfirmDelete, EntryDialog, toDraft, type EntryDraft } from "./dialogs"
+import { BulkSection, DisciplinePicker, LogSection } from "./sections"
+import { ConfirmBulkDelete, ConfirmDelete, EntryDialog, toDraft, type EntryDraft } from "./dialogs"
 
 export type TaskOption = { id: number; title: string }
 
@@ -83,6 +85,7 @@ export default function WorklogClient() {
   const [selection, setSelection] = useState<number[]>([])
   const [draft, setDraft] = useState<EntryDraft | null>(null)
   const [pendingDelete, setPendingDelete] = useState<EntryDto | null>(null)
+  const [pendingBulkDelete, setPendingBulkDelete] = useState(false)
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
@@ -169,6 +172,20 @@ export default function WorklogClient() {
 
   // One string for the row-scoped routes, so a PUT and a DELETE cannot drift apart from the POST.
   const mutateBase = "/api/worklog/entries"
+  // The bulk route is one path for six actions, so the bar, the row's Convert and the batch
+  // delete all post to the same place.
+  const bulkUrl = "/api/worklog/entries/bulk"
+
+  const range = resolveRange(state, todayIso)
+  // Every body reads the summary's own buckets: the list and the totals above it are the same
+  // arithmetic over the same rows, so they cannot disagree with each other.
+  const viewDaysList = useMemo(() => summary?.days ?? [], [summary])
+  // The bar and the write both act on this list, so what the member reads is what gets sent.
+  const selectedEntries = useMemo(
+    () => viewDaysList.flatMap((bucket) => bucket.entries).filter((entry) => selection.includes(entry.id)),
+    [selection, viewDaysList],
+  )
+  const selectedIds = useMemo(() => selectedEntries.map((entry) => entry.id), [selectedEntries])
 
   const toggleSelect = useCallback((id: number) => {
     setSelection((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
@@ -234,7 +251,7 @@ export default function WorklogClient() {
   const convertEntry = useCallback(
     async (entry: EntryDto) => {
       setBusy(true)
-      const error = await mutate("/api/worklog/entries/bulk", {
+      const error = await mutate(bulkUrl, {
         method: "POST",
         body: JSON.stringify({ action: "convert-deliverable", ids: [entry.id] }),
       })
@@ -250,10 +267,69 @@ export default function WorklogClient() {
     [mutate, refresh, toast],
   )
 
-  const range = resolveRange(state, todayIso)
-  // Every body reads the summary's own buckets: the list and the totals above it are the same
-  // arithmetic over the same rows, so they cannot disagree with each other.
-  const viewDaysList = useMemo(() => summary?.days ?? [], [summary])
+  // One handler for the bar's four non-destructive actions. Delete leaves the selection alone and
+  // opens the dialog instead: a batch has no undo, so it is the one action asked about twice.
+  const applyBulk = useCallback(
+    async (action: BulkAction, payload?: Record<string, unknown>) => {
+      if (selectedIds.length === 0) return
+      if (action === "delete") {
+        setPendingBulkDelete(true)
+        return
+      }
+      const count = selectedIds.length
+      setBusy(true)
+      const error = await mutate(bulkUrl, {
+        method: "POST",
+        body: JSON.stringify({ action, ids: selectedIds, ...payload }),
+      })
+      setBusy(false)
+      if (error) {
+        toast({ variant: "destructive", title: "Bulk action", description: error })
+        return
+      }
+      setSelection([])
+      await refresh()
+      toast({
+        title: "Applied to your log",
+        description: `${count} ${count === 1 ? "entry" : "entries"} · ${action.replace("-", " ")}`,
+      })
+    },
+    [mutate, refresh, selectedIds, toast],
+  )
+
+  const confirmBulkDelete = useCallback(async () => {
+    const count = selectedIds.length
+    setBusy(true)
+    const error = await mutate(bulkUrl, {
+      method: "POST",
+      body: JSON.stringify({ action: "delete", ids: selectedIds }),
+    })
+    setBusy(false)
+    if (error) {
+      toast({ variant: "destructive", title: "Delete", description: error })
+      return
+    }
+    setSelection([])
+    setPendingBulkDelete(false)
+    await refresh()
+    toast({ title: "Entries deleted", description: `${count} removed from your log` })
+  }, [mutate, refresh, selectedIds, toast])
+
+  // Client-side, like the activity export: the file is exactly the rows on screen, so no second
+  // query can widen or narrow what the member just looked at.
+  const exportCsv = useCallback(() => {
+    const csv = entriesToCsv(selectedEntries)
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `jiravision-worklog-${range.from}-${range.to}.csv`
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
+    toast({ title: "CSV exported", description: `${selectedEntries.length} entries` })
+  }, [range.from, range.to, selectedEntries, toast])
 
   return (
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -292,6 +368,17 @@ export default function WorklogClient() {
         }}
         onAddDay={() => openEntry(null)}
       />
+      {selectedEntries.length > 0 && (
+        <BulkSection
+          selected={selectedEntries}
+          busy={busy}
+          todayIso={todayIso}
+          tasks={tasks}
+          onApply={applyBulk}
+          onExport={exportCsv}
+          onClear={() => setSelection([])}
+        />
+      )}
       {draft !== null ? (
         <EntryDialog
           key={draft.id ?? "new"}
@@ -313,6 +400,15 @@ export default function WorklogClient() {
           if (!open) setPendingDelete(null)
         }}
         onConfirm={(entry) => void deleteEntry(entry)}
+      />
+      <ConfirmBulkDelete
+        count={selectedEntries.length}
+        busy={busy}
+        open={pendingBulkDelete}
+        onOpenChange={(open) => {
+          if (!open) setPendingBulkDelete(false)
+        }}
+        onConfirm={() => void confirmBulkDelete()}
       />
     </div>
   )

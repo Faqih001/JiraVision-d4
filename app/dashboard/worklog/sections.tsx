@@ -6,10 +6,12 @@
 // among 75 options and is deliberately never sent anywhere.
 
 import { useState } from "react"
-import { CalendarDays, Plus } from "lucide-react"
+import { CalendarDays, Download, FileStack, Link2, Plus, Trash2, X } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { EmptyNote, SectionCard } from "@/components/dashboard-kit"
 import {
@@ -17,10 +19,12 @@ import {
   KIND_LABEL,
   WORK_LOG_KINDS,
   formatMinutes,
+  minutesTotal,
   type DayBucket,
   type EntryDto,
   type WorkLogKind,
 } from "@/lib/worklog/entries"
+import { BULK_SETTABLE_KINDS, type BulkAction } from "@/lib/worklog/bulk"
 import { VIEW_LABEL, type ViewState, type WorklogView } from "@/lib/worklog/view-state"
 import {
   DISCIPLINE_CATEGORIES,
@@ -30,6 +34,12 @@ import {
   disciplinesInCategory,
   type DisciplineCategory,
 } from "@/lib/roles"
+import type { TaskOption } from "./worklog-client"
+
+// A select cannot hold an empty string — radix reads that as "nothing chosen" and shows its
+// placeholder instead of the label — so "no value" needs a word. `"all"` is already taken here for
+// *every* discipline, which is the opposite of none.
+const NONE = "none"
 
 export function WorklogSkeleton() {
   return (
@@ -457,6 +467,159 @@ export function LogSection({
       ) : (
         body
       )}
+    </SectionCard>
+  )
+}
+
+// The bar exists only while a selection exists, so the client mounts it conditionally and this
+// component never renders an empty state. `BULK_SETTABLE_KINDS` is the reader's own list: a
+// Reclassify button for `time` or `deliverable` could only ever toast an error, because those two
+// need a companion field that differs per row.
+export function BulkSection({
+  selected,
+  busy,
+  todayIso,
+  tasks,
+  onApply,
+  onExport,
+  onClear,
+}: {
+  selected: EntryDto[]
+  busy: boolean
+  todayIso: string
+  tasks: TaskOption[]
+  onApply: (action: BulkAction, payload?: Record<string, unknown>) => void
+  onExport: () => void
+  onClear: () => void
+}) {
+  const [taskId, setTaskId] = useState(NONE)
+  const [kind, setKind] = useState<WorkLogKind>(BULK_SETTABLE_KINDS[0])
+  const [workedOn, setWorkedOn] = useState(todayIso)
+
+  return (
+    <SectionCard
+      title={`Selected — ${selected.length} ${selected.length === 1 ? "entry" : "entries"}`}
+      icon={<FileStack className="h-4 w-4" />}
+      className="md:col-span-2 xl:col-span-3"
+      action={
+        <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={onClear} disabled={busy}>
+          <X className="h-3.5 w-3.5" aria-hidden />
+          Clear
+        </Button>
+      }
+    >
+      <div className="flex flex-wrap items-end gap-2">
+        <div className="space-y-1">
+          <Label htmlFor="bulk-task" className="text-[11px]">
+            Move to task
+          </Label>
+          <Select value={taskId} onValueChange={setTaskId} disabled={busy}>
+            <SelectTrigger id="bulk-task" className="h-8 w-44 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={NONE}>Unlink from any task</SelectItem>
+              {tasks.map((task) => (
+                <SelectItem key={task.id} value={String(task.id)}>
+                  {task.title.slice(0, 44)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-1">
+          <Label htmlFor="bulk-kind" className="text-[11px]">
+            Reclassify as
+          </Label>
+          <Select
+            value={kind}
+            onValueChange={(value) => setKind(value as WorkLogKind)}
+            disabled={busy}
+          >
+            <SelectTrigger id="bulk-kind" className="h-8 w-36 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {BULK_SETTABLE_KINDS.map((option) => (
+                <SelectItem key={option} value={option}>
+                  {KIND_LABEL[option]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-1">
+          <Label htmlFor="bulk-date" className="text-[11px]">
+            Re-date to
+          </Label>
+          <Input
+            id="bulk-date"
+            type="date"
+            value={workedOn}
+            max={todayIso}
+            onChange={(event) => setWorkedOn(event.target.value)}
+            className="h-8 w-40 text-xs"
+            disabled={busy}
+          />
+        </div>
+
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-8 text-xs"
+          disabled={busy}
+          onClick={() => onApply("set-task", { taskId: taskId === NONE ? null : Number(taskId) })}
+        >
+          <Link2 className="h-3.5 w-3.5" aria-hidden />
+          Move
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-8 text-xs"
+          disabled={busy}
+          onClick={() => onApply("set-kind", { kind })}
+        >
+          Reclassify
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-8 text-xs"
+          disabled={busy}
+          onClick={() => onApply("re-date", { workedOn })}
+        >
+          Re-date
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-8 text-xs"
+          disabled={busy}
+          onClick={() => onApply("convert-deliverable")}
+        >
+          To deliverables
+        </Button>
+        <Button variant="outline" size="sm" className="h-8 text-xs" disabled={busy} onClick={onExport}>
+          <Download className="h-3.5 w-3.5" aria-hidden />
+          Export CSV
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-8 text-xs text-destructive hover:text-destructive"
+          disabled={busy}
+          onClick={() => onApply("delete")}
+        >
+          <Trash2 className="h-3.5 w-3.5" aria-hidden />
+          Delete
+        </Button>
+        <span className="text-[11px] text-muted-foreground">
+          {formatMinutes(minutesTotal(selected))} in the selection
+        </span>
+      </div>
     </SectionCard>
   )
 }
