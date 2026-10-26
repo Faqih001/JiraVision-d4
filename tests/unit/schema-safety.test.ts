@@ -186,3 +186,25 @@ describe("no anonymous route leaks the schema or relays mail", () => {
     )
   })
 })
+
+describe("phase 1 worklog migration", () => {
+  // The app's schema file is never pushed — drizzle-kit push can remove columns the
+  // file does not declare, and this database is production. So the tables are added by
+  // one reviewed additive script, and this case is what keeps it additive.
+  it("scripts/create-worklog-tables.mjs is additive only", () => {
+    const script = src("scripts/create-worklog-tables.mjs")
+    const code = codeOnly(script)
+    expect(code).not.toMatch(/\bDROP\b/i)
+    expect(code).not.toMatch(/DELETE FROM/i)
+    expect(code).not.toMatch(/TRUNCATE/i)
+    expect(code).not.toMatch(/ALTER COLUMN/i)
+    expect(code).toMatch(/CREATE TABLE IF NOT EXISTS/i)
+    expect(code).toMatch(/ADD COLUMN IF NOT EXISTS/i)
+    expect(code).toMatch(/information_schema/i)
+  })
+
+  it("the rollback script is gated behind an explicit environment opt-in", () => {
+    const code = codeOnly(src("scripts/rollback-worklog-tables.mjs"))
+    expect(code).toMatch(/WORKLOG_ROLLBACK !== "yes"/)
+  })
+})
