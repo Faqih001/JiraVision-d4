@@ -1,4 +1,4 @@
-import { pgTable, serial, text, varchar, timestamp, boolean, date, integer, decimal, jsonb, primaryKey, unique, uuid } from "drizzle-orm/pg-core"
+import { pgTable, serial, text, varchar, timestamp, boolean, date, integer, decimal, jsonb, primaryKey, unique, uuid, index } from "drizzle-orm/pg-core"
 import { relations } from "drizzle-orm"
 
 // Users table
@@ -138,6 +138,14 @@ export const tasks = pgTable("tasks", {
   tags: jsonb("tags").default("[]"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  // Phase 1 additions (design §13). All nullable: no existing route selects them and no
+  // current behaviour changes. The Gantt needs a start, tasks only had a due date;
+  // discipline is what makes a report role-aware; source_plan_id keeps a promoted task
+  // traceable to the plan that created it, and is written ONLY by the promote route.
+  // Declared last because Postgres ADD COLUMN appends.
+  startDate: date("start_date"),
+  discipline: varchar("discipline", { length: 40 }),
+  sourcePlanId: integer("source_plan_id"),
 })
 
 // Wellbeing metrics table
@@ -352,3 +360,232 @@ export const teamRoleAudit = pgTable("team_role_audit", {
   changedBy: integer("changed_by"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 })
+
+/* ------------------------------------------------------------------ worklog, reports,
+      planner and assistant (design §13, phase 1)
+
+   These tables are created in the live database by scripts/create-worklog-tables.mjs,
+   which is raw SQL. The column names, modes and defaults below must match that DDL
+   line for line — a drift here is a runtime type error against production, not a
+   compile error, because the schema file is never pushed.                             */
+
+// Every status transition on the tasks table, written by lib/worklog/capture.ts.
+// The system of record for "what happened on day X". `cascade` on task_id means a
+// deleted task takes its history with it, which is why there is no `deleted` event.
+export const taskEvents = pgTable(
+  "task_events",
+  {
+    id: serial("id").primaryKey(),
+    taskId: integer("task_id")
+      .notNull()
+      .references(() => tasks.id, { onDelete: "cascade" }),
+    actorId: integer("actor_id").references(() => users.id, { onDelete: "set null" }),
+    fromStatus: varchar("from_status", { length: 50 }).notNull(),
+    toStatus: varchar("to_status", { length: 50 }).notNull(),
+    at: timestamp("at", { withTimezone: true }).defaultNow().notNull(),
+    source: varchar("source", { length: 20 }).notNull().default("route"),
+  },
+  (table) => [
+    index("task_events_task_at_idx").on(table.taskId, table.at),
+    index("task_events_at_idx").on(table.at),
+  ],
+)
+
+export const agentPlans = pgTable("agent_plans", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  summary: text("summary"),
+  sourceKind: varchar("source_kind", { length: 20 }).notNull().default("text"),
+  sourceName: text("source_name"),
+  sourceText: text("source_text"),
+  objectKey: text("object_key"),
+  model: varchar("model", { length: 80 }),
+  horizonStart: date("horizon_start"),
+  horizonEnd: date("horizon_end"),
+  cadence: varchar("cadence", { length: 20 }).notNull().default("weekly"),
+  status: varchar("status", { length: 20 }).notNull().default("draft"),
+  createdBy: integer("created_by").references(() => users.id, { onDelete: "set null" }),
+  promotedAt: timestamp("promoted_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+})
+
+export const planItems = pgTable(
+  "plan_items",
+  {
+    id: serial("id").primaryKey(),
+    planId: integer("plan_id")
+      .notNull()
+      .references(() => agentPlans.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    description: text("description"),
+    discipline: varchar("discipline", { length: 40 }),
+    estimatePoints: integer("estimate_points").notNull().default(0),
+    startDate: date("start_date"),
+    dueDate: date("due_date"),
+    status: varchar("status", { length: 50 }).notNull().default("todo"),
+    dependsOn: jsonb("depends_on").notNull().default("[]"),
+    milestone: boolean("milestone").notNull().default(false),
+    cadence: varchar("cadence", { length: 20 }),
+    // `sort_order`, not `order`: ORDER is a reserved word and every query would need it quoted.
+    sortOrder: integer("sort_order").notNull().default(0),
+    deliverable: jsonb("deliverable"),
+    sourceTaskId: integer("source_task_id"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [index("plan_items_plan_idx").on(table.planId, table.sortOrder)],
+)
+
+export const deliverables = pgTable(
+  "deliverables",
+  {
+    id: serial("id").primaryKey(),
+    name: text("name").notNull(),
+    type: varchar("type", { length: 30 }).notNull().default("other"),
+    taskId: integer("task_id").references(() => tasks.id, { onDelete: "set null" }),
+    planItemId: integer("plan_item_id").references(() => planItems.id, { onDelete: "set null" }),
+    ownerId: integer("owner_id").references(() => users.id, { onDelete: "set null" }),
+    discipline: varchar("discipline", { length: 40 }),
+    status: varchar("status", { length: 20 }).notNull().default("draft"),
+    producedOn: date("produced_on"),
+    link: text("link"),
+    objectKey: text("object_key"),
+    evidence: text("evidence"),
+    createdBy: integer("created_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("deliverables_owner_status_idx").on(table.ownerId, table.status),
+    index("deliverables_produced_idx").on(table.producedOn),
+  ],
+)
+
+// The member's own account of a day. `worked_on` is a plain date on purpose: it is
+// resolved through the member's timezone at write time (lib/reports/period.ts, phase 3),
+// so a 23:40 entry lands on the day the member thinks it is.
+export const workLogEntries = pgTable(
+  "work_log_entries",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    workedOn: date("worked_on").notNull(),
+    taskId: integer("task_id").references(() => tasks.id, { onDelete: "set null" }),
+    planItemId: integer("plan_item_id").references(() => planItems.id, { onDelete: "set null" }),
+    kind: varchar("kind", { length: 20 }).notNull().default("action"),
+    title: text("title").notNull(),
+    body: text("body"),
+    discipline: varchar("discipline", { length: 40 }),
+    minutes: integer("minutes"),
+    deliverableId: integer("deliverable_id").references(() => deliverables.id, {
+      onDelete: "set null",
+    }),
+    // playbook_id gets its foreign key in phase 16, when the playbooks table is created.
+    playbookId: integer("playbook_id"),
+    playbookVersion: integer("playbook_version"),
+    links: jsonb("links").notNull().default("[]"),
+    source: varchar("source", { length: 20 }).notNull().default("manual"),
+    redatedAt: timestamp("redated_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("work_log_entries_user_day_idx").on(table.userId, table.workedOn),
+    index("work_log_entries_task_idx").on(table.taskId),
+  ],
+)
+
+export const workReports = pgTable(
+  "work_reports",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    periodType: varchar("period_type", { length: 10 }).notNull().default("weekly"),
+    periodStart: date("period_start").notNull(),
+    periodEnd: date("period_end").notNull(),
+    title: text("title").notNull(),
+    template: varchar("template", { length: 40 }).notNull().default("general"),
+    status: varchar("status", { length: 20 }).notNull().default("draft"),
+    content: jsonb("content").notNull().default("{}"),
+    metrics: jsonb("metrics").notNull().default("{}"),
+    revisionOf: integer("revision_of").references((): any => workReports.id, {
+      onDelete: "set null",
+    }),
+    submittedAt: timestamp("submitted_at", { withTimezone: true }),
+    acknowledgedAt: timestamp("acknowledged_at", { withTimezone: true }),
+    returnedNote: text("returned_note"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("work_reports_user_period_idx").on(table.userId, table.periodStart),
+    index("work_reports_status_idx").on(table.status),
+  ],
+)
+
+export const workReportRecipients = pgTable(
+  "work_report_recipients",
+  {
+    reportId: integer("report_id")
+      .notNull()
+      .references(() => workReports.id, { onDelete: "cascade" }),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    notifiedAt: timestamp("notified_at", { withTimezone: true }).defaultNow().notNull(),
+    readAt: timestamp("read_at", { withTimezone: true }),
+    ackAt: timestamp("ack_at", { withTimezone: true }),
+    note: text("note"),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.reportId, table.userId] }),
+    userIdx: index("work_report_recipients_user_read_idx").on(table.userId, table.readAt),
+  }),
+)
+
+export const assistantThreads = pgTable("assistant_threads", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  scope: varchar("scope", { length: 20 }).notNull().default("workspace"),
+  title: text("title"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+})
+
+export const assistantMessages = pgTable(
+  "assistant_messages",
+  {
+    id: serial("id").primaryKey(),
+    threadId: uuid("thread_id")
+      .notNull()
+      .references(() => assistantThreads.id, { onDelete: "cascade" }),
+    role: varchar("role", { length: 12 }).notNull(),
+    content: text("content").notNull(),
+    references: jsonb("references").notNull().default("[]"),
+    tokens: integer("tokens").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [index("assistant_messages_thread_idx").on(table.threadId, table.id)],
+)
+
+// The durable half of the public-bot caps (design §7): in-memory rate limiting is
+// per serverless instance, this is the ceiling.
+export const aiUsageDaily = pgTable(
+  "ai_usage_daily",
+  {
+    date: date("date").notNull(),
+    scope: varchar("scope", { length: 20 }).notNull(),
+    calls: integer("calls").notNull().default(0),
+    inputTokens: integer("input_tokens").notNull().default(0),
+    outputTokens: integer("output_tokens").notNull().default(0),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.date, table.scope] }),
+  }),
+)

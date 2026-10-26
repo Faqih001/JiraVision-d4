@@ -36,6 +36,11 @@ phase 1; the log starts filling the moment the migration runs and the routes dep
   is cookie- and DB-free.)
 - **Only `lib/roles.ts` and `lib/cadence.ts` are vocabulary-owning modules.** No route or component may declare its
   own discipline list or cadence list.
+- **Discovered while executing Task 3 (2026-10-26): a second CommonJS shadow exists** — `drizzle/schema.js` is a
+  stale four-table duplicate, and Vite's default extension order tries `.js` before `.ts`, so an extensionless
+  `@/drizzle/schema` import silently loads it under Vitest (Turbopack prefers `.ts`, so the app was never affected).
+  Fixed by pinning the path in `vitest.config.ts`'s `resolve.alias`, above the `"@"` entry. Any later test that
+  needs the real schema relies on that pin. The stale file is left in place; deleting it is a separate decision.
 - Migration is **additive-only**: `CREATE TABLE IF NOT EXISTS` and `ADD COLUMN IF NOT EXISTS`. No `DROP`, no
   `ALTER COLUMN`, no data rewrite, and **`drizzle-kit push` is not used**.
 - Scripts that touch the database run from the **repo root** and read `.env.local` with `/^DATABASE_URL/m` — line 1
@@ -69,6 +74,7 @@ phase 1; the log starts filling the moment the migration runs and the routes dep
 | `scripts/create-worklog-tables.mjs` | **new** — the migration |
 | `scripts/rollback-worklog-tables.mjs` | **new** — flag-gated, never run by this plan |
 | `package.json` | **modify** — two `db:worklog*` scripts |
+| `vitest.config.ts` | **modify** — pin `@/drizzle/schema` to the `.ts` (see Task 3 Step 1) |
 | `tests/unit/cadence.test.ts` | **new** |
 | `tests/unit/worklog-schema.test.ts` | **new** |
 | `tests/unit/worklog-capture.test.ts` | **new** |
@@ -570,7 +576,10 @@ describe("worklog schema", () => {
 })
 ```
 
-- [ ] **Step 2: `npm test -- worklog-schema` → fails; `tasks` column list and every new table are missing.**
+- [ ] **Step 2: `npm test -- worklog-schema` → fails; `tasks` column list and every new table are missing.** If it
+fails with `schema.ts does not export a table named "task_events"` *even after* the tables exist, the test loaded
+`drizzle/schema.js`: pin `@/drizzle/schema` to `drizzle/schema.ts` in `vitest.config.ts`'s `resolve.alias`, keeping
+that entry above `"@"`.
 
 - [ ] **Step 3: Extend the import line.** `drizzle/schema.ts:1` gains `index` from `drizzle-orm/pg-core`:
 
@@ -578,8 +587,9 @@ describe("worklog schema", () => {
 import { pgTable, serial, text, varchar, timestamp, boolean, date, integer, decimal, jsonb, primaryKey, unique, uuid, index } from "drizzle-orm/pg-core"
 ```
 
-- [ ] **Step 4: Add the three `tasks` columns.** In `drizzle/schema.ts:128-141`, after `tags` and before
-`createdAt`, insert:
+- [ ] **Step 4: Add the three `tasks` columns.** In `drizzle/schema.ts:128-141`, **after `updatedAt`, at the end of
+the column block** — Postgres `ADD COLUMN` appends, so the declaration order has to match the live column order or
+the "leaves every pre-existing tasks column alone" assertion is wrong about a table that is fine:
 
 ```ts
   // Phase 1 additions (design §13). All nullable: no existing route selects them and no
