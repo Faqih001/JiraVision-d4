@@ -110,3 +110,22 @@ describe("the list and create route", () => {
     expect(listRoute()).toMatch(/mapReport\(inserted\)/u)
   })
 })
+
+describe("the preview route", () => {
+  const preview = () => src("app/api/reports/work/preview/route.ts")
+
+  it("uses the page's own period grammar, not a second one", () => {
+    expect(preview()).toMatch(/parseReportView\(request\.nextUrl\.searchParams, today\)/u)
+    expect(preview()).toMatch(/resolveReportPeriod\(state\)/u)
+  })
+
+  it("resolves the template from the work, so ?tpl=auto is honest", () => {
+    expect(preview()).toMatch(/effectiveTemplate\(state, aggregate\)/u)
+  })
+
+  it("returns the aggregate and nothing that looks like a lifecycle", () => {
+    expect(preview()).toMatch(/data: \{ period, aggregate, template/u)
+    // A preview is read-only by construction: only GET is exported.
+    expect(codeOnly(preview())).not.toMatch(/export async function (POST|PATCH|PUT|DELETE)|status:\s*"/u)
+  })
+})
