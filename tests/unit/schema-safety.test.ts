@@ -133,8 +133,11 @@ describe("no anonymous route leaks the schema or relays mail", () => {
   // /api/db-test and /api/db-migrations-check answered with the table list and full
   // column types, and /api/send-reset-email emailed any address a link built from a
   // caller-supplied token. They are deleted, and this guards the same class of bug.
+  // `worklogSession` counts because it is the same check behind a different name — it
+  // resolves the cookie session and returns null without one. tests/unit/worklog-api.test.ts
+  // is what proves each work log route acts on that null instead of ignoring it.
   const authGated = (file: string) =>
-    /getCurrentUser|getSession|isSuperAdmin|requireSuperAdmin|requireRole|requireUser|requireAdmin|verifySession/.test(
+    /getCurrentUser|getSession|worklogSession|isSuperAdmin|requireSuperAdmin|requireRole|requireUser|requireAdmin|verifySession/.test(
       codeOnly(src(file)),
     )
 

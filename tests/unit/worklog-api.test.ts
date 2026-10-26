@@ -1,0 +1,84 @@
+import { describe, expect, it } from "vitest"
+import { readFileSync, readdirSync, statSync } from "node:fs"
+import path from "node:path"
+
+const repo = path.resolve(__dirname, "..", "..")
+const src = (relative: string) => readFileSync(path.join(repo, relative), "utf8")
+const shared = () => src("app/api/worklog/_shared.ts")
+
+function routesIn(dir: string): string[] {
+  const out: string[] = []
+  for (const entry of readdirSync(path.join(repo, dir))) {
+    const relative = `${dir}/${entry}`
+    const absolute = path.join(repo, relative)
+    if (statSync(absolute).isDirectory()) out.push(...routesIn(relative))
+    else if (relative.endsWith("/route.ts")) out.push(relative)
+  }
+  return out
+}
+
+describe("every work log route is session-gated", () => {
+  // app/api/worklog/_shared.ts resolves the session, so schema-safety's name-based check
+  // cannot see the gate in a route file. This is the half it cannot check: the route must
+  // act on a missing session instead of carrying on with an undefined user id.
+  const routes = routesIn("app/api/worklog")
+
+  it("finds the routes it is guarding", () => {
+    expect(routes.length).toBeGreaterThanOrEqual(1)
+  })
+
+  it.each(routes)("%s refuses before touching the database", (file) => {
+    const code = src(file)
+    expect(code).toMatch(/const session = await worklogSession\(\)/u)
+    expect(code).toMatch(/if \(!session\) return unauthorized\(\)/u)
+  })
+})
+
+describe("work log shared helpers", () => {
+  it("always puts ownership first in the filter vocabulary", () => {
+    expect(shared()).toMatch(/const conditions: SQL\[\] = \[\n    eq\(workLogEntries\.userId, userId\),/u)
+  })
+
+  it("escapes ilike wildcards before building a pattern", () => {
+    expect(shared()).toMatch(/likePattern/u)
+    expect(shared()).toMatch(/\\\\%_/u)
+    expect(shared()).toMatch(/ilike/u)
+  })
+})
+
+describe("work log entries route", () => {
+  const route = () => src("app/api/worklog/entries/route.ts")
+
+  it("scopes every read and write to the session user", () => {
+    expect(route()).toMatch(/entryFilters\(state, session\.id, from, to\)/u)
+    expect(route()).toMatch(/userId: session\.id/u)
+  })
+
+  it("uses the page's own view state instead of a second filter vocabulary", () => {
+    expect(route()).toMatch(/parseViewState/u)
+    expect(route()).toMatch(/resolveRange/u)
+    // the conditions themselves are built in exactly one place
+    expect(route()).not.toMatch(/isNotNull\(workLogEntries/u)
+  })
+
+  it("only lets a whitelist write the row", () => {
+    expect(route()).toMatch(/readEntryCreate/u)
+    // A spread body is the exact bug lib/task-updates.ts exists for.
+    expect(route()).not.toMatch(/values\(\{?\s*\.\.\.body/u)
+  })
+
+  it("refuses a forward-dated log entry", () => {
+    expect(route()).toMatch(/localDay/u)
+    expect(route()).toMatch(/future/iu)
+  })
+
+  it("checks that a deliverable on a row belongs to this member", () => {
+    // A foreign key alone would accept another member's deliverable and hand their work
+    // to this log, so the ownership predicate is on the check, not only on the schema.
+    expect(route()).toMatch(/eq\(deliverables\.ownerId, session\.id\)/u)
+  })
+
+  it("has no client secret surface", () => {
+    expect(route()).not.toMatch(/NEXT_PUBLIC_/u)
+  })
+})
