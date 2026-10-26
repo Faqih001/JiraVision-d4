@@ -1189,7 +1189,11 @@ describe("pickEntryUpdates", () => {
   })
 
   it("refuses a time entry that drops its minutes", () => {
-    expect(entryPatchError({ kind: "time" })).toMatch(/minutes/iu)
+    // The hazard is a time entry with no minutes: switching to `time` on a row that has
+    // 30 minutes stored is a legitimate change, so the refusal is checked on the row that
+    // has none, and clearing minutes on a time row is checked below.
+    expect(entryPatchError({ kind: "time" }, { ...current, minutes: null })).toMatch(/minutes/iu)
+    expect(entryPatch({ kind: "time" }).patch).toEqual({ kind: "time" })
     expect(entryPatch({ kind: "time", minutes: 60 }).patch).toEqual({ kind: "time", minutes: 60 })
     expect(entryPatchError({ minutes: null }, { ...current, kind: "time" })).toMatch(/minutes/iu)
   })
@@ -1528,7 +1532,7 @@ export function pickEntryUpdates(
     if (isFail(title)) return title
     patch.title = title
   }
-  if ("body" in body) {
+  if (body.body !== undefined) {
     const note = readOptionalText(body.body, "body", MAX_BODY)
     if (isFail(note)) return note
     patch.body = note
@@ -1538,22 +1542,22 @@ export function pickEntryUpdates(
     if (isFail(kind)) return kind
     patch.kind = kind
   }
-  if ("discipline" in body) {
+  if (body.discipline !== undefined) {
     const discipline = readDiscipline(body.discipline)
     if (isFail(discipline)) return discipline
     patch.discipline = discipline
   }
-  if ("minutes" in body) {
+  if (body.minutes !== undefined) {
     const minutes = readMinutes(body.minutes)
     if (isFail(minutes)) return minutes
     patch.minutes = minutes
   }
-  if ("taskId" in body) {
+  if (body.taskId !== undefined) {
     const taskId = readId(body.taskId, "taskId")
     if (isFail(taskId)) return taskId
     patch.taskId = taskId
   }
-  if ("deliverableId" in body) {
+  if (body.deliverableId !== undefined) {
     const deliverableId = readId(body.deliverableId, "deliverableId")
     if (isFail(deliverableId)) return deliverableId
     patch.deliverableId = deliverableId
@@ -1569,10 +1573,11 @@ export function pickEntryUpdates(
   }
 
   const nextKind = patch.kind !== undefined ? (patch.kind as WorkLogKind) : current.kind
-  const nextMinutes = "minutes" in patch ? patch.minutes : current.minutes
+  const nextMinutes = patch.minutes !== undefined ? patch.minutes : current.minutes
   if (nextKind === "time" && !nextMinutes) return { error: "A time entry needs minutes." }
 
-  const nextDeliverable = "deliverableId" in patch ? patch.deliverableId : current.deliverableId
+  const nextDeliverable =
+    patch.deliverableId !== undefined ? patch.deliverableId : current.deliverableId
   if (nextKind === "deliverable" && !nextDeliverable) {
     return { error: "A deliverable entry needs a deliverable — create it with Convert to deliverable." }
   }
@@ -1668,27 +1673,27 @@ export function pickDeliverableUpdates(
       patch.status = status
     }
   }
-  if ("producedOn" in body) {
+  if (body.producedOn !== undefined) {
     const producedOn = readDay(body.producedOn, "producedOn")
     if (isFail(producedOn)) return producedOn
     patch.producedOn = producedOn
   }
-  if ("link" in body) {
+  if (body.link !== undefined) {
     const link = readLink(body.link)
     if (isFail(link)) return link
     patch.link = link
   }
-  if ("evidence" in body) {
+  if (body.evidence !== undefined) {
     const evidence = readOptionalText(body.evidence, "evidence", MAX_BODY)
     if (isFail(evidence)) return evidence
     patch.evidence = evidence
   }
-  if ("taskId" in body) {
+  if (body.taskId !== undefined) {
     const taskId = readId(body.taskId, "taskId")
     if (isFail(taskId)) return taskId
     patch.taskId = taskId
   }
-  if ("discipline" in body) {
+  if (body.discipline !== undefined) {
     const discipline = readDiscipline(body.discipline)
     if (isFail(discipline)) return discipline
     patch.discipline = discipline
@@ -1717,6 +1722,21 @@ git add lib/worklog/entry-fields.ts tests/unit/worklog-fields.test.ts
 git commit -m "feat(worklog): write whitelists for entries and deliverables"
 git push
 ```
+
+**As shipped (2026-10-26, `2569ce1`) — two corrections to the code above.** Both were
+required by the tests, which are the rule:
+
+1. Presence is read as `body.<field> !== undefined`, not `"field" in body`. A JSON body
+   that carries `"body": undefined` means *the client did not send this field*, so it must
+   be skipped; the plan's `in` check would patch it to `null` and blank the note — and would
+   fail this file's own "refuses an update that changes nothing" case. An explicit `null` is
+   still the client asking to clear a column, so the readers accept `null`. The same holds
+   for the invariant merge: `patch.minutes !== undefined ? patch.minutes : current.minutes`.
+2. `expect(entryPatchError({ kind: "time" }))` was wrong: the stored fixture row has
+   `minutes: 30`, so changing kind to `time` legitimately produces a 30-minute time entry.
+   Refusing it would show "A time entry needs minutes" on a row that visibly reads 30m — a
+   dead end with nothing to fix. The assertion now passes a row with `minutes: null`, which
+   is the genuine hazard, and keeps a positive case for the kind-only change.
 
 ---
 
