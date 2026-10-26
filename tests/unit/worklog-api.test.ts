@@ -136,3 +136,42 @@ describe("work log bulk route", () => {
     expect(route()).toMatch(/notFound\("No matching entries"\)/u)
   })
 })
+
+describe("work log deliverables routes", () => {
+  const list = () => src("app/api/worklog/deliverables/route.ts")
+  const row = () => src("app/api/worklog/deliverables/[id]/route.ts")
+
+  it("scopes both list and row routes to the owner", () => {
+    expect(list()).toMatch(/eq\(deliverables\.ownerId, session\.id\)/u)
+    expect(row()).toMatch(/and\(eq\(deliverables\.id, numericId\), eq\(deliverables\.ownerId, session\.id\)\)/u)
+  })
+
+  it("counts the log rows behind each deliverable", () => {
+    expect(list()).toMatch(/deliverableSelect/u)
+    expect(list()).toMatch(/\.select\(deliverableSelect\)/u)
+    expect(row()).toMatch(/deliverableSelect/u)
+  })
+
+  it("sends status changes through the lifecycle whitelist", () => {
+    expect(row()).toMatch(/pickDeliverableUpdates\(body, existing\.status as DeliverableStatus\)/u)
+    expect(row()).not.toMatch(/\.set\(\{ \.\.\.body/u)
+  })
+
+  it("refuses a forward-dated producedOn", () => {
+    expect(list()).toMatch(/isIsoDate/u)
+    expect(list()).toMatch(/future|producedOn must/iu)
+    // The same day rule at both ends of the noun's life: a save must not be able to date a
+    // deliverable ahead of today when a create cannot.
+    expect(row()).toMatch(/localDay/u)
+    expect(row()).toMatch(/produced in the future/iu)
+  })
+
+  it("says 404 for a deliverable that is not yours", () => {
+    expect(row()).toMatch(/notFound\("Deliverable not found"\)/u)
+  })
+
+  it("has no client secret surface", () => {
+    expect(list()).not.toMatch(/NEXT_PUBLIC_/u)
+    expect(row()).not.toMatch(/NEXT_PUBLIC_/u)
+  })
+})
