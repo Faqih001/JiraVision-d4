@@ -449,7 +449,8 @@ Ten hits expected (each defined once for light and once for dark). If a token is
 existing `--chart-*` / `--clay` token for that discipline and keep the `hsl(var(--…))` shape so the test's regex
 still holds.
 
-- [ ] **Step 5: Gates, then commit and push.** `npm test -- roles` → the block's 6 tests pass; `npm run typecheck`
+- [ ] **Step 5: Gates, then commit and push.** `npm test -- roles` → the block's 5 tests pass (11 → 16 in that
+file); `npm run typecheck`
 → 0; `npm run lint` → unchanged.
 
 ```bash
