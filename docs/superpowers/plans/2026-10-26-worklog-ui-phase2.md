@@ -2943,7 +2943,9 @@ export function readBulkRequest(input: unknown, todayIso: string): { value: Bulk
 
   const action = source.action
   if (!isBulkAction(action)) {
-    return { error: `action must be one of: ${BULK_ACTIONS.join(", ")}` }
+    // Naming what was sent, because "action must be one of …" on a typo the caller can see
+    // is only useful if the answer says which half of it the caller got wrong.
+    return { error: `action must be one of: ${BULK_ACTIONS.join(", ")} (got ${String(action).slice(0, 40)})` }
   }
 
   const ids = readIds(source.ids)
@@ -2957,7 +2959,10 @@ export function readBulkRequest(input: unknown, todayIso: string): { value: Bulk
       return { value: request }
 
     case "set-task": {
-      if (!("taskId" in source)) return { error: "set-task needs a taskId (a positive integer, or null to unlink)." }
+      // Same convention as the row whitelist: an absent field is not a request to unlink.
+      if (source.taskId === undefined) {
+        return { error: "set-task needs a taskId (a positive integer, or null to unlink)." }
+      }
       const raw = source.taskId
       if (raw === null || raw === "") {
         request.taskId = null
@@ -3046,6 +3051,7 @@ import { and, eq, inArray } from "drizzle-orm"
 import { db } from "@/lib/db"
 import { deliverables, tasks, workLogEntries } from "@/drizzle/schema"
 import { readBulkRequest, type BulkRequest } from "@/lib/worklog/bulk"
+import { WORK_LOG_KINDS } from "@/lib/worklog/entries"
 import { localDay } from "@/lib/worklog/local-day"
 import {
   badRequest,
@@ -3099,6 +3105,10 @@ export async function POST(request: NextRequest) {
       }
 
       case "re-date": {
+        // The grammar already guarantees this; the column is NOT NULL and the request field
+        // is nullable, so the route narrows rather than handing drizzle a null it would
+        // reject at compile time.
+        if (body.workedOn === null) return badRequest("re-date needs workedOn as YYYY-MM-DD")
         const affected = await db
           .update(workLogEntries)
           .set({ workedOn: body.workedOn, redatedAt: new Date(), updatedAt: new Date() })
@@ -3109,6 +3119,7 @@ export async function POST(request: NextRequest) {
       }
 
       case "set-kind": {
+        if (body.kind === null) return badRequest(`kind must be one of: ${WORK_LOG_KINDS.join(", ")}`)
         const affected = await db
           .update(workLogEntries)
           .set({ kind: body.kind, updatedAt: new Date() })
@@ -3223,7 +3234,32 @@ git add lib/worklog/bulk.ts app/api/worklog/entries/bulk/route.ts tests/unit/wor
 git commit -m "feat(worklog): bulk actions with ownership-filtered ids and honest counts"
 git push
 ```
-Expected: 16 guard tests + 10 bulk tests, typecheck 0 errors, lint 0 errors / 70 warnings.
+Expected: 21 guard tests in `worklog-api` (Task 6's 10, Task 7's 4, this task's 5, plus the
+session-gating case, which now runs for a **third** route file) and 10 in `worklog-bulk`;
+typecheck 0 errors, lint 0 errors / 70 warnings.
+
+**As shipped (2026-10-26, `c7acc86`) — four corrections, and one discovery that Tasks 9–10 must
+know about.**
+
+1. The unknown-action refusal has to name what was sent. `action must be one of: delete, …`
+   on its own fails this task's own `expect(why({ action: "explode", ids: [1] })).toMatch(/explode/u)`,
+   so the message now carries the (truncated) value.
+2. `set-task` reads `source.taskId === undefined`, not `!("taskId" in source)` — the same
+   boundary convention Task 4 settled: an absent field is not a request to unlink.
+3. `tsc` rejects `.set({ workedOn: body.workedOn })` and `.set({ kind: body.kind })`: those
+   request fields are nullable, the columns are `NOT NULL`, and drizzle types the difference.
+   Each case now narrows with a one-line guard. The plan's version does not compile.
+4. The route needs `WORK_LOG_KINDS` imported for the `set-kind` message; the plan never
+   imports it, which is a lint error rather than a type error.
+5. **`tests/unit/worklog-reports.test.ts` changed, and this is not optional for later
+   tasks.** Its "nothing manufactures history" case forbade `workedOn` appearing within 80
+   characters of `updatedAt` in any `app/api/**/route.ts` that touches the log. Phase 1 could
+   afford that blunt window; phase 2 legitimately writes both in one statement (a member
+   re-dates a row, and the row is touched), so the rule now matches a day *derived* from the
+   touch stamp — `workedOn: tasks.updatedAt`, `date(tasks.updated_at) as worked_on`, in either
+   order — and asserts both directions on itself so the narrowing cannot decay into a guard
+   that catches nothing. Tasks 9 and 10 write the same pair and will trip the old shape.
+
 
 ---
 
