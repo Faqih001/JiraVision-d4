@@ -2234,11 +2234,30 @@ describe("work log entries route", () => {
     expect(route()).toMatch(/future/iu)
   })
 
+  it("checks that a deliverable on a row belongs to this member", () => {
+    // A foreign key alone would accept another member's deliverable and hand their work
+    // to this log, so the ownership predicate is on the check, not only on the schema.
+    expect(route()).toMatch(/eq\(deliverables\.ownerId, session\.id\)/u)
+  })
+
   it("has no client secret surface", () => {
     expect(route()).not.toMatch(/NEXT_PUBLIC_/u)
   })
 })
 ```
+
+**Also shipped, not in the plan above:** `tests/unit/schema-safety.test.ts` decides whether a
+route is auth-gated by matching a call **name** in the route's own text. `worklogSession()`
+calls `getSession()` one file over, so every work log route looked anonymous and the
+allowlist case failed. Two changes, both now in the repo:
+
+- that matcher also recognizes `worklogSession`;
+- the name check's blind spot is closed where it matters — `tests/unit/worklog-api.test.ts`
+  enumerates `app/api/worklog/**/route.ts` and asserts each one contains
+  `const session = await worklogSession()` **and** `if (!session) return unauthorized()`.
+  A later work log route that forgets the null branch fails a test instead of silently
+  querying with an undefined user id. **Tasks 7–10 inherit this: keep that exact pair of
+  lines in each new route.**
 
 - [ ] **Step 2: Run them to verify they fail**
 
@@ -2399,7 +2418,7 @@ export const deliverableSelect = {
   ...deliverableColumns,
   entryCount: sql<number>`(
     select count(*) from work_log_entries w
-    where w.deliverable_id = ${deliverables.id} and w.user_id = ${deliverables.owner_id}
+    where w.deliverable_id = ${deliverables.id} and w.user_id = ${deliverables.ownerId}
   )::int`,
 }
 
@@ -2455,7 +2474,7 @@ Create `app/api/worklog/entries/route.ts`:
 import { NextRequest, NextResponse } from "next/server"
 import { and, eq, sql } from "drizzle-orm"
 import { db } from "@/lib/db"
-import { tasks, workLogEntries } from "@/drizzle/schema"
+import { deliverables, tasks, workLogEntries } from "@/drizzle/schema"
 import { readEntryCreate } from "@/lib/worklog/entry-fields"
 import { localDay } from "@/lib/worklog/local-day"
 import { parseViewState, resolveRange } from "@/lib/worklog/view-state"
@@ -2559,7 +2578,9 @@ function readCreateBody(body: unknown, today: string) {
 - [ ] **Step 5: Run the guards and the gates**
 
 Run: `npm test -- worklog-api`
-Expected: PASS, 5 tests.
+Expected: PASS, 10 tests (the 7 above plus the ownership case and the two session-gating
+cases). Also run the whole suite: the session-gate change touches
+`tests/unit/schema-safety.test.ts`, whose allowlist case is the one that fails first.
 
 ```bash
 npm run typecheck && npm run lint && npm test
@@ -2570,10 +2591,21 @@ lint error, so run the whole gate set even though the guard tests are green).
 - [ ] **Step 6: Commit**
 
 ```bash
-git add app/api/worklog/_shared.ts app/api/worklog/entries/route.ts tests/unit/worklog-api.test.ts
+git add app/api/worklog/_shared.ts app/api/worklog/entries/route.ts \
+  tests/unit/worklog-api.test.ts tests/unit/schema-safety.test.ts
 git commit -m "feat(worklog): entries list and create routes"
 git push
 ```
+
+**As shipped (2026-10-26, `16710b8`) — two defects in the code above, both caught by the
+gates rather than by reading:**
+
+1. `POST` uses `deliverables` but the import list only brought in `tasks, workLogEntries`.
+   `tsc` fails; the import is `{ deliverables, tasks, workLogEntries }`.
+2. `deliverableSelect` interpolated `${deliverables.owner_id}`. Drizzle's JS property is
+   `ownerId` (`drizzle/schema.ts:447`) — `owner_id` is the SQL name, and the undefined
+   property would have thrown at query time, which no guard test in this task executes.
+   Fixed to `${deliverables.ownerId}`.
 
 ---
 
