@@ -121,7 +121,7 @@ describe("phase 1 task columns", () => {
   it("rejects a discipline outside WORK_DISCIPLINES rather than storing a new word", () => {
     const result = pickTaskUpdates({ discipline: "engineer" })
     expect("error" in result).toBe(true)
-    if ("error" in result) expect(result.error).toContain("technician")
+    if ("error" in result) expect(result.error).toMatch(/discipline/u)
   })
 
   it("keeps source_plan_id out of reach: only the promote route may set it", () => {

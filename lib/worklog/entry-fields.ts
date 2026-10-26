@@ -4,7 +4,7 @@
 // dropping `source: "auto"` would make the log look machine-written from a browser.
 
 import { deliverables, workLogEntries } from "@/drizzle/schema"
-import { WORK_DISCIPLINES, isWorkDiscipline, type WorkDiscipline } from "@/lib/roles"
+import { DISCIPLINE_HINT, isWorkDiscipline, type WorkDiscipline } from "@/lib/roles"
 import {
   DELIVERABLE_LABEL,
   DELIVERABLE_STATUSES,
@@ -168,9 +168,7 @@ function readMinutes(value: unknown): Read<number | null> {
 function readDiscipline(value: unknown): Read<WorkDiscipline | null> {
   if (value === null || value === undefined || value === "") return null
   const candidate = typeof value === "string" ? value.trim().toLowerCase() : value
-  if (!isWorkDiscipline(candidate)) {
-    return { error: `discipline must be one of: ${WORK_DISCIPLINES.join(", ")}, or null` }
-  }
+  if (!isWorkDiscipline(candidate)) return { error: DISCIPLINE_HINT }
   return candidate
 }
 

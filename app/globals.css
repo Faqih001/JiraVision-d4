@@ -58,6 +58,14 @@
     --chart-stone: 40 9% 36%;
     --chart-clay: 20 34% 46%;
     --chart-moss: 88 29% 28%;
+    /* discipline categories, ten families: >=3:1 on every surface here (WCAG 1.4.11 — these
+       paint dots, bars, lanes and swatch borders; badge and label text is always --foreground) */
+    --chart-slate: 215 18% 34%;
+    --chart-teal: 186 24% 30%;
+    --chart-bark: 24 22% 30%;
+    --chart-plum: 320 16% 34%;
+    --chart-sage: 76 18% 32%;
+    --chart-ochre: 44 46% 33%;
   }
 
   .dark {
@@ -101,6 +109,13 @@
     --chart-stone: 42 17% 57%;
     --chart-clay: 18 42% 62%;
     --chart-moss: 86 27% 58%;
+    /* lighter than the light set: the same 3:1 floor, measured against these dark surfaces */
+    --chart-slate: 212 22% 58%;
+    --chart-teal: 186 26% 55%;
+    --chart-bark: 26 28% 58%;
+    --chart-plum: 320 20% 62%;
+    --chart-sage: 76 22% 60%;
+    --chart-ochre: 44 52% 60%;
   }
 }
 

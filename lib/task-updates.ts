@@ -13,7 +13,7 @@
 // it; letting a client set it would forge that link.
 
 import { tasks } from "@/drizzle/schema"
-import { WORK_DISCIPLINES, isWorkDiscipline } from "@/lib/roles"
+import { DISCIPLINE_HINT, isWorkDiscipline } from "@/lib/roles"
 
 type TaskPatch = Partial<Omit<typeof tasks.$inferInsert, "id" | "createdAt" | "updatedAt">>
 
@@ -125,7 +125,7 @@ export function pickTaskUpdates(input: unknown): TaskPatchResult {
         }
         const candidate = typeof value === "string" ? value.trim().toLowerCase() : value
         if (!isWorkDiscipline(candidate)) {
-          return { error: `discipline must be one of: ${WORK_DISCIPLINES.join(", ")}, or null` }
+          return { error: DISCIPLINE_HINT }
         }
         patch.discipline = candidate
         break
