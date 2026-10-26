@@ -20,6 +20,7 @@
 - "Fully functional" is the acceptance bar: no dead button, no `href="#"`, no `console.log` handler, no static fake number. Every control in §4 of the spec that phase 2 owns is implemented; the two bulk actions that belong to later phases (`group into report draft`, PDF/XLSX exports) are **absent**, not stubbed — recorded in `FEATURES.md`.
 - The page carries **11 numbered sections** (owner rule: 10–14 per dashboard page, ≥15 only on `/dashboard`), each a `SectionCard` from `components/dashboard-kit.tsx:37`, and all 11 render in every view — a view never hides content behind a tab. Section 5 swaps its body between the five views (day, week, all entries, by kind, calendar) so the five views are one section slot, not five. The bulk action bar is a twelfth `SectionCard` that only exists while rows are selected.
 - `shadcn` `SelectItem` must never receive `value=""` (guard `tests/unit/select-items.test.ts:31-62`). Sentinel values in this plan are the literal string `"all"`.
+- **The URL is the view state's serialised form, and the two effects that sync it follow one rule each.** Never compare a serialised state against `window.location.search` raw: the search string keeps its leading `?` and `serializeViewState` does not, so the comparison needs a strip written `/^\?/u` (a `/^?/u` is a syntax error — a u-flagged regex cannot quantify an anchor). Never adopt search params by comparing them with the incoming query string either: adoption compares `serializeViewState(parsed, todayIso)` against `serializeViewState(prev, todayIso)`, because a shared `?v=week` link is already canonical and a URL-vs-URL check would refuse to adopt it and then rewrite the URL back to the default view. Tasks 13–17 add controls through `patchState`; none of them adds a third sync effect.
 - Writes to `work_log_entries` / `deliverables` go through the field whitelists in Task 4. A client can never set `source`, `redatedAt`, `userId`, `ownerId`, `createdBy`, `playbookId` or `planItemId`.
 - Every read and write is scoped by the session user id **in the SQL**, not in the UI (`§5`: a member's log is private to them; the team view is phase 4).
 - `worked_on` is resolved through `users.timezone` (default `Africa/Nairobi`) via `lib/worklog/local-day.ts`. Never `new Date().toISOString().slice(0,10)` for a member-facing day.
@@ -4650,9 +4651,10 @@ filters, view toolbar — and the data layer every later section reads from.
   `@/lib/worklog/local-day`; `WORK_DISCIPLINES` from `@/lib/roles`; `SectionCard`,
   `EmptyNote` from `@/components/dashboard-kit`; `useToast` from `@/hooks/use-toast`.
 - Produces (used by Tasks 13–17):
-  - `WorklogClient()` — the only component that holds page state: `state`, `todayIso`, `entries`,
-    `deliverables`, `summary`, `tasks`, `loading`, `saving`, and the `selection` set Tasks 13 and
-    15 add row buttons to
+  - `WorklogClient()` — the only component that holds page state: `state`, `todayIso`,
+    `deliverables`, `summary`, `tasks`, `loading`, `saving`. `entries` (the rows) and the
+    `selection` set join it in Tasks 13 and 15, the tasks that render and act on them; holding
+    either a task earlier is an unused local and breaks the warning gate.
   - `readJson(res)` / `mutate(path, init)` — module-local helpers; `mutate` returns an error
     message or `null`, so every section reports failures the same way
   - `WorklogSkeleton()` in `sections.tsx`, plus `KindBadge`, `EntryLine` and `EmptySection`
@@ -4676,8 +4678,11 @@ describe("work log page shell", () => {
   const page = () => src("app/dashboard/worklog/page.tsx")
 
   it("wraps the search-param client in Suspense", () => {
-    expect(page()).toMatch(/<Suspense fallback=\{<WorklogSkeleton \/>}\>/u)
-    expect(page()).toMatch(/<WorklogClient \/>/u)
+    // JSX snippets are matched as plain strings: the same text inside a u-flagged regex literal
+    // is a syntax error ("Lone quantifier brackets"), and it fails the whole file before a
+    // single test runs.
+    expect(page()).toMatch("<Suspense fallback={<WorklogSkeleton />}>")
+    expect(page()).toMatch("<WorklogClient />")
     expect(page()).not.toMatch(/"use client"/u)
   })
 
@@ -4692,31 +4697,62 @@ describe("work log client", () => {
   it("mirrors every control into the query string", () => {
     expect(client()).toMatch(/useSearchParams/u)
     expect(client()).toMatch(/serializeViewState\(state, todayIso\)/u)
-    expect(client()).toMatch(/router\.replace\(url, \{ scroll: false \}\)/u)
+    expect(client()).toMatch("router.replace(target, { scroll: false })")
   })
 
   it("only rewrites the URL when the query actually differs", () => {
-    // Without this the replace re-renders, the effect re-runs, and the page loops.
-    expect(client()).toMatch(/next !== window\.location\.search/u)
+    // Without this the replace re-renders, the effect re-runs, and the page loops. The leading
+    // `?` is stripped first: serializeViewState returns `v=week` and location.search returns
+    // `?v=week`, so comparing them raw is always true and rewrites on every render. The `?` in
+    // the pattern is escaped because a u-flagged regex cannot quantify an anchor.
+    expect(client()).toMatch('window.location.search.replace(/^\\?/u, "")')
+    expect(client()).toMatch(/next !== current/u)
   })
 
   it("adopts the URL only when it disagrees with local state", () => {
     // A router.replace pushes new search params back into this same effect; adopting them
-    // unconditionally would overwrite a control the member just touched.
-    expect(client()).toMatch(/serializeViewState\(parsed, todayIso\) !== incoming/u)
+    // unconditionally would overwrite a control the member just touched. Comparing the URL to
+    // itself is not enough either: a shared `?v=week` link is already canonical, so that check
+    // refuses to adopt it and then rewrites the URL back to the default view.
+    expect(client()).toMatch(/serializeViewState\(parsed, todayIso\) !== serializeViewState\(prev, todayIso\)/u)
+  })
+
+  it("moves an unchosen day onto the server's clock", () => {
+    // The browser's zone is a guess until the first response. If the guess is stale and nobody
+    // picked a day, the stale one would be pinned into the URL as `?day=` the moment todayIso
+    // shifts, and the member would open on yesterday.
+    expect(client()).toMatch(/setState\(\(prev\) => \(prev\.day === todayIso \? \{ \.\.\.prev, day: serverToday \} : prev\)\)/u)
   })
 
   it("reads all four endpoints through one fetch set", () => {
     expect(client()).toMatch(/fetch\(`\/api\/worklog\/entries\?\$\{qs\}`\)/u)
     expect(client()).toMatch(/fetch\(`\/api\/worklog\/summary\?\$\{qs\}`\)/u)
     expect(client()).toMatch(/"\/api\/worklog\/deliverables"/u)
-    expect(client()).toMatch(/"\/api\/tasks"/u)
+    // The tasks endpoint is read with an explicit page size; the default of 10 would make the
+    // task filter offer ten rows and hide the rest.
+    expect(client()).toMatch(/"\/api\/tasks\?pageSize=200"/u)
   })
 
   it("takes the member's day and timezone from the server, not the browser", () => {
-    expect(client()).toMatch(/setTodayIso\(entriesJson\.data\.today\)/u)
-    expect(client()).toMatch(/setTimezone\(entriesJson\.data\.timezone\)/u)
+    expect(client()).toMatch(/const serverToday = entriesJson\.data\.today/u)
+    expect(client()).toMatch(/setTodayIso\(serverToday\)/u)
+    expect(client()).toMatch(/setTimezone\(entriesJson\.data\.timezone/u)
     expect(client()).toMatch(/localDay\(new Date\(\), timezone\)/u)
+  })
+
+  it("reads the quick-add parse through the union it actually returns", () => {
+    // parseQuickAdd answers { title, minutes, kind } or { error } — there is no `value` wrapper,
+    // so `parsed.value.title` would be a runtime crash on the one line every member types first.
+    expect(client()).toMatch('if ("error" in parsed)')
+    expect(client()).not.toMatch(/parsed\.value/u)
+    expect(client()).toMatch(/parsed\.title/u)
+  })
+
+  it("gives quick add's task link a control that can set it", () => {
+    // taskId state existed without anything writing to it, so every quick-add row would have been
+    // saved unlinked with no way to say otherwise — the spec asks for an optional task search.
+    expect(client()).toMatch(/aria-label="Link to a task"/u)
+    expect(client()).toMatch(/onValueChange=\{setTaskId\}/u)
   })
 
   it("has no dead affordances", () => {
@@ -4728,6 +4764,7 @@ describe("work log client", () => {
 
   it("uses the repo's sentinel grammar for selects", () => {
     expect(client()).not.toMatch(/SelectItem value=""/u)
+    expect(src("app/dashboard/worklog/sections.tsx")).not.toMatch(/SelectItem value=""/u)
   })
 
   it("narrows the 75 disciplines through the category picker", () => {
@@ -4741,6 +4778,26 @@ describe("work log client", () => {
 
   it("keeps presentation out of the client", () => {
     expect(src("app/dashboard/worklog/sections.tsx")).not.toMatch(/fetch\(/u)
+  })
+
+  it("gives every unlabelled control its own accessible name", () => {
+    // These triggers have no <Label>, so aria-label is the only name a screen reader gets. Two
+    // controls answering to "Entry kind" — the filter and the quick-add line — would read as one
+    // control twice.
+    const names = [...`${client()}${src("app/dashboard/worklog/sections.tsx")}`.matchAll(/aria-label="([^"]+)"/gu)]
+      .map((found) => found[1])
+      .sort()
+    expect(new Set(names).size, `duplicate aria-label in ${names.join(", ")}`).toBe(names.length)
+    expect(names.length).toBeGreaterThanOrEqual(6)
+  })
+
+  it("never paints a label in the series colour", () => {
+    // A --chart-* token is 3:1 against its surface by design (WCAG 1.4.11 non-text), which is not
+    // 4.5:1, so as 11px text it fails AA. The colour rides as a dot; the word keeps the badge's
+    // own --foreground.
+    const sections = src("app/dashboard/worklog/sections.tsx")
+    expect(sections).not.toMatch(/color: KIND_COLOUR/u)
+    expect(sections).toMatch("backgroundColor: KIND_COLOUR[kind]")
   })
 })
 ```
@@ -4771,7 +4828,7 @@ Create `app/dashboard/worklog/page.tsx`:
 
 ```tsx
 import { Suspense } from "react"
-import { DisciplinePicker, WorklogSkeleton } from "./sections"
+import { WorklogSkeleton } from "./sections"
 import WorklogClient from "./worklog-client"
 
 export const dynamic = "force-dynamic"
@@ -4805,6 +4862,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { EmptyNote, SectionCard } from "@/components/dashboard-kit"
 import { KIND_COLOUR, KIND_LABEL, formatMinutes, type EntryDto, type WorkLogKind } from "@/lib/worklog/entries"
 import type { ViewState } from "@/lib/worklog/view-state"
+import {
+  DISCIPLINE_CATEGORIES,
+  DISCIPLINE_CATEGORY,
+  DISCIPLINE_CATEGORY_LABEL,
+  DISCIPLINE_LABEL,
+  disciplinesInCategory,
+  type DisciplineCategory,
+} from "@/lib/roles"
 
 export function WorklogSkeleton() {
   return (
@@ -4816,16 +4881,16 @@ export function WorklogSkeleton() {
   )
 }
 
+// The series colour rides as a dot, never as the text: a --chart-* token is 3:1 against its
+// surface by design (WCAG 1.4.11, for bars and lanes), which is not the 4.5:1 an 11px word needs.
 export function KindBadge({ kind }: { kind: WorkLogKind }) {
   return (
     <Badge
       variant="outline"
-      className="border-transparent text-[10px] font-semibold uppercase tracking-wide"
-      style={{
-        backgroundColor: `color-mix(in srgb, ${KIND_COLOUR[kind]} 15%, transparent)`,
-        color: KIND_COLOUR[kind],
-      }}
+      className="gap-1.5 border-transparent text-[10px] font-semibold uppercase tracking-wide"
+      style={{ backgroundColor: `color-mix(in srgb, ${KIND_COLOUR[kind]} 15%, transparent)` }}
     >
+      <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: KIND_COLOUR[kind] }} aria-hidden />
       {KIND_LABEL[kind]}
     </Badge>
   )
@@ -4987,7 +5052,7 @@ Create `app/dashboard/worklog/worklog-client.tsx`:
 // URL is the state's serialised form, and every mutation goes through mutate() so a failure
 // reads the same wherever it happens.
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { CalendarDays, ChevronLeft, ChevronRight, Copy, RefreshCw, SlidersHorizontal, Sparkles, Timer } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -5007,7 +5072,6 @@ import {
   formatMinutes,
   type DeliverableDto,
   type DeliverableStatus,
-  type EntryDto,
   type WorkLogKind,
 } from "@/lib/worklog/entries"
 import type { WorklogSummary } from "@/lib/worklog/summary"
@@ -5023,10 +5087,11 @@ import {
   type ViewState,
   type WorklogView,
 } from "@/lib/worklog/view-state"
-import { DisciplinePicker, WorklogSkeleton } from "./sections"
+import { DisciplinePicker } from "./sections"
 
 export type TaskOption = { id: number; title: string }
 
+/** The three work-log endpoints share the `{ success, data | message }` envelope. */
 async function readJson(res: Response): Promise<any> {
   return res.json().catch(() => null)
 }
@@ -5045,30 +5110,29 @@ export default function WorklogClient() {
   }, [timezone])
 
   const [state, setState] = useState<ViewState>(() => defaultViewState(localDay(new Date(), null)))
-  const [entries, setEntries] = useState<EntryDto[]>([])
   const [deliverables, setDeliverables] = useState<DeliverableDto[]>([])
   const [summary, setSummary] = useState<WorklogSummary | null>(null)
   const [tasks, setTasks] = useState<TaskOption[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
-  // The state this client last wrote into the URL. A router.replace feeds new search params
-  // back into the effect below; without this the page would adopt its own echo and undo a
-  // control the member had just touched.
-  const stateRef = useRef(state)
-  stateRef.current = state
-
   useEffect(() => {
     const incoming = search.toString()
     const parsed = parseViewState(new URLSearchParams(incoming), todayIso)
-    if (serializeViewState(parsed, todayIso) !== incoming) setState(parsed)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Two views of the same thing are equal only when they serialise the same way, so the
+    // comparison is made against this client's own state rather than against the query string.
+    setState((prev) =>
+      serializeViewState(parsed, todayIso) !== serializeViewState(prev, todayIso) ? parsed : prev,
+    )
   }, [search, todayIso])
 
   useEffect(() => {
     const next = serializeViewState(state, todayIso)
     const target = next ? `/dashboard/worklog?${next}` : "/dashboard/worklog"
-    if (next !== window.location.search) router.replace(target, { scroll: false })
+    // location.search keeps its leading `?` and serializeViewState does not, so the two are
+    // compared after the strip — otherwise every render rewrites the URL and re-runs this effect.
+    const current = window.location.search.replace(/^\?/u, "")
+    if (next !== current) router.replace(target, { scroll: false })
   }, [state, todayIso, router])
 
   const mutate = useCallback(async (path: string, init?: RequestInit): Promise<string | null> => {
@@ -5092,9 +5156,14 @@ export default function WorklogClient() {
       ])
       const entriesJson = await readJson(entriesRes)
       if (!entriesJson?.success) throw new Error(entriesJson?.message ?? "Could not load your work log")
-      setEntries(entriesJson.data.entries as EntryDto[])
+      // The rows arrive with this response and are rendered by the view slot; here only the
+      // member's own day and zone are taken, because a browser clock is not the account clock.
+      const serverToday = entriesJson.data.today as string
       setTimezone(entriesJson.data.timezone as string | null)
-      setTodayIso(entriesJson.data.today as string)
+      setTodayIso(serverToday)
+      // A day nobody chose follows the server's clock. Left alone, a stale browser guess would
+      // be pinned into the URL as `?day=` the moment todayIso moves.
+      setState((prev) => (prev.day === todayIso ? { ...prev, day: serverToday } : prev))
       const summaryJson = await readJson(summaryRes)
       if (summaryJson?.success) setSummary(summaryJson.data as WorklogSummary)
       const deliverablesJson = await readJson(await fetch("/api/worklog/deliverables"))
@@ -5109,7 +5178,7 @@ export default function WorklogClient() {
   }, [state, todayIso, toast])
 
   useEffect(() => {
-    refresh()
+    void refresh()
   }, [refresh])
 
   useEffect(() => {
@@ -5117,9 +5186,7 @@ export default function WorklogClient() {
       .then(readJson)
       .then((json) => {
         if (!json?.success) return
-        setTasks(
-          (json.data as { id: number; title: string }[]).map((t) => ({ id: t.id, title: t.title })).slice(0, 200),
-        )
+        setTasks((json.data as { id: number; title: string }[]).map((t) => ({ id: t.id, title: t.title })))
       })
       .catch(() => {
         /* the task filter offers nothing; every other control still works */
@@ -5132,10 +5199,6 @@ export default function WorklogClient() {
   )
 
   const range = resolveRange(state, todayIso)
-  const deliverableById = useMemo(
-    () => new Map(deliverables.map((d) => [d.id, d])),
-    [deliverables],
-  )
 
   return (
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -5147,6 +5210,7 @@ export default function WorklogClient() {
         mutate={mutate}
         refresh={refresh}
         toast={toast}
+        tasks={tasks}
       />
       <FilterSection
         state={state}
@@ -5164,14 +5228,13 @@ export default function WorklogClient() {
     </div>
   )
 }
-
-export { WorklogSkeleton }
 ```
 
 `readJson` returns `any` on purpose: the three endpoints share the `{ success, data | message }`
 envelope, and each call site narrows it once with `json?.success` before reading `data`. The
-`deliverableById` map is built here and passed to the day view in Task 13, which is where a row's
-deliverable label is rendered.
+entries response also carries the rows, which are held in state by Task 13 when the view slot
+renders them, and the `deliverableById` map is built there for the same reason — a map nothing
+reads yet is a lint warning, and the 70-warning baseline is a gate.
 
 - [ ] **Step 7: Write the four section components**
 
@@ -5242,6 +5305,7 @@ function QuickAddSection({
   mutate,
   refresh,
   toast,
+  tasks,
 }: {
   todayIso: string
   saving: boolean
@@ -5249,6 +5313,7 @@ function QuickAddSection({
   mutate: (path: string, init?: RequestInit) => Promise<string | null>
   refresh: () => Promise<void>
   toast: ReturnType<typeof useToast>["toast"]
+  tasks: TaskOption[]
 }) {
   const [line, setLine] = useState("")
   const [kind, setKind] = useState<WorkLogKind | "auto">("auto")
@@ -5263,9 +5328,9 @@ function QuickAddSection({
     setSaving(true)
     const body = {
       workedOn: todayIso,
-      title: parsed.value.title,
-      minutes: parsed.value.minutes,
-      kind: kind === "auto" ? parsed.value.kind : kind,
+      title: parsed.title,
+      minutes: parsed.minutes,
+      kind: kind === "auto" ? parsed.kind : kind,
       taskId: taskId === "none" ? null : Number(taskId),
     }
     const error = await mutate("/api/worklog/entries", { method: "POST", body: JSON.stringify(body) })
@@ -5276,7 +5341,7 @@ function QuickAddSection({
     }
     setLine("")
     await refresh()
-    toast({ title: "Logged", description: `${body.title}` })
+    toast({ title: "Logged", description: body.title })
   }
 
   return (
@@ -5298,9 +5363,22 @@ function QuickAddSection({
           onChange={(event) => setLine(event.target.value)}
           disabled={saving}
         />
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="grid grid-cols-2 gap-2">
+          <Select value={taskId} onValueChange={setTaskId}>
+            <SelectTrigger className="h-8 text-xs" aria-label="Link to a task">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">No task — a standalone line</SelectItem>
+              {tasks.map((t) => (
+                <SelectItem key={t.id} value={String(t.id)}>
+                  {t.title.slice(0, 40)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Select value={kind} onValueChange={(v) => setKind(v as WorkLogKind | "auto")}>
-            <SelectTrigger className="h-8 w-36 text-xs">
+            <SelectTrigger className="h-8 text-xs" aria-label="Kind for this line">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -5312,6 +5390,8 @@ function QuickAddSection({
               ))}
             </SelectContent>
           </Select>
+        </div>
+        <div className="flex items-center justify-between gap-2">
           <span className="text-[11px] text-muted-foreground">
             <Timer className="mr-1 inline h-3 w-3" aria-hidden />
             #90 = 90 minutes
@@ -5578,9 +5658,53 @@ git add components/dashboard-layout.tsx app/dashboard/worklog tests/unit/worklog
 git commit -m "feat(worklog): work log page with URL-synced view state, quick add and filters"
 git push
 ```
-Expected: 12 page guards, typecheck 0 errors, lint 0 errors / 70 warnings. Visit
-`/dashboard/worklog` in the deployed app — the four sections render, quick add writes a real
-row, and the URL changes with every control. Visual check is the owner's.
+Expected: 16 page guards, typecheck 0 errors, lint 0 errors / 70 warnings, the full suite at 36
+files / 637 tests. Visit `/dashboard/worklog` in the deployed app — the four sections render,
+quick add writes a real row, and the URL changes with every control. Visual check is the owner's.
+
+#### As shipped (2026-10-26, `6dc66c9`)
+
+Five defects in this task's own code, all caught by reading the modules on disk before writing
+against them — none of them would have failed a test that had been executed:
+
+1. **`next !== window.location.search` never stabilised.** `serializeViewState` returns
+   `v=week`; `location.search` returns `?v=week`. The comparison is always true, so every render
+   issued a `router.replace`, which re-rendered, which looped. The shipped effect strips the
+   leading `?` into `const current` first.
+2. **`/parseQuickAdd/`… the union has no `value` wrapper.** `parseQuickAdd` answers
+   `{ title, minutes, kind }` or `{ error }` (`lib/worklog/quick-add.ts:17`), so
+   `parsed.value.title` is a runtime crash on the one line every member types first. Shipped as
+   `parsed.title` after `if ("error" in parsed)`, with a guard that forbids `parsed.value`.
+3. **Adoption compared the URL with itself.** `serializeViewState(parsed, todayIso) !== incoming`
+   is a canonicalisation check, not an adoption check: a shared `?v=week` link is already
+   canonical, so the page refused to adopt it and then rewrote the URL back to the default view —
+   the exact link the mirror exists to support. Shipped by comparing against the client's own
+   state, `serializeViewState(parsed, todayIso) !== serializeViewState(prev, todayIso)`, which
+   still rejects the effect's own echo. The `stateRef` the plan declared for this purpose was
+   assigned and never read, so it is gone; the functional updater reads `prev` instead.
+4. **`entries` state and the `deliverableById` map were dead locals here.** Nothing in sections
+   1–4 renders a row, and an unused local is a lint warning that breaks the 70-warning gate — so
+   both arrive with Task 13, the task that renders them. The entries fetch still happens, because
+   that response is where the member's `today` and `timezone` come from.
+5. **A stale browser day would be pinned into the URL.** Once `todayIso` moved to the server's
+   value, the still-default `state.day` (the browser's) became a *difference* from the base and
+   `serializeViewState` wrote `?day=<yesterday>` for a member who had chosen nothing. Shipped
+   with one rule: `prev.day === todayIso` means nobody chose it, so the day follows the server
+   (`guard "moves an unchosen day onto the server's clock"`).
+
+Two smaller corrections. `page.tsx` imported `DisciplinePicker` it never used (an unused import
+is a lint error), and `sections.tsx`'s import list in this plan omitted the `@/lib/roles` symbols
+`DisciplinePicker` needs. The kind dropdowns also needed distinct accessible names: the filter's
+and quick add's both read "Entry kind", so a screen reader listing form controls heard one control
+twice; quick add's trigger is now "Kind for this line", guarded by the accessible-name case.
+
+**One deviation from the spec, deliberate.** Spec §4 line 157 lists quick add's optional fields
+as "text, optional `#minutes`, optional task search, optional **discipline**". The plan gave the
+form a `taskId` state with no control able to set it — that dropdown is now built — but left
+discipline to the row dialog (Task 14), because a fifth and sixth select would crowd a one-line
+capture into a form. Discipline on a quick-add line is therefore set after the row exists. If the
+owner wants it inline, `readEntryCreate` already accepts `discipline` and `DisciplinePicker`
+already exists; it is two lines in `QuickAddSection`.
 
 ### Task 13: The view slot — day, week, list, board and heat (section 5)
 
