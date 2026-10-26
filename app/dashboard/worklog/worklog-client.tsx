@@ -321,7 +321,7 @@ function QuickAddSection({
             </SelectContent>
           </Select>
           <Select value={kind} onValueChange={(v) => setKind(v as WorkLogKind | "auto")}>
-            <SelectTrigger className="h-8 text-xs" aria-label="Entry kind">
+            <SelectTrigger className="h-8 text-xs" aria-label="Kind for this line">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

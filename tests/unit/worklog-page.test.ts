@@ -108,6 +108,17 @@ describe("work log client", () => {
     expect(src("app/dashboard/worklog/sections.tsx")).not.toMatch(/fetch\(/u)
   })
 
+  it("gives every unlabelled control its own accessible name", () => {
+    // These triggers have no <Label>, so aria-label is the only name a screen reader gets. Two
+    // controls answering to "Entry kind" — the filter and the quick-add line — would read as one
+    // control twice.
+    const names = [...`${client()}${src("app/dashboard/worklog/sections.tsx")}`.matchAll(/aria-label="([^"]+)"/gu)]
+      .map((found) => found[1])
+      .sort()
+    expect(new Set(names).size, `duplicate aria-label in ${names.join(", ")}`).toBe(names.length)
+    expect(names.length).toBeGreaterThanOrEqual(6)
+  })
+
   it("never paints a label in the series colour", () => {
     // A --chart-* token is 3:1 against its surface by design (WCAG 1.4.11 non-text), which is not
     // 4.5:1, so as 11px text it fails AA. The colour rides as a dot; the word keeps the badge's
