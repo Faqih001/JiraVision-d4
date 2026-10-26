@@ -1793,16 +1793,24 @@ import {
   resolveRange,
   serializeViewState,
   viewDays,
+  type ViewState,
 } from "@/lib/worklog/view-state"
 
 const TODAY = "2026-10-26" // a Monday
 
 const sp = (qs: string) => new URLSearchParams(qs)
 
+/** The range controls (preset, custom pair) only drive the fetch for the range views. */
+function listed(overrides: Partial<ViewState> = {}): ViewState {
+  return { ...defaultViewState(TODAY), view: "list", ...overrides }
+}
+
 describe("defaults", () => {
   it("opens on the day view of today", () => {
     expect(defaultViewState(TODAY)).toMatchObject({ view: "day", day: TODAY, preset: "today", q: "" })
     expect(WORKLOG_VIEWS).toEqual(["day", "week", "list", "board", "heat"])
+    expect(VIEW_LABEL.day).toBe("Day")
+    expect(VIEW_LABEL.list).toBe("All entries")
   })
 
   it("omits every default from the query string", () => {
@@ -1849,30 +1857,27 @@ describe("parseViewState", () => {
 
 describe("resolveRange", () => {
   it("maps each preset to real calendar days", () => {
-    expect(resolveRange({ ...defaultViewState(TODAY), preset: "today" }, TODAY)).toEqual({
-      from: "2026-10-26",
-      to: "2026-10-26",
-    })
-    expect(resolveRange({ ...defaultViewState(TODAY), preset: "yesterday" }, TODAY)).toEqual({
+    expect(resolveRange(listed(), TODAY)).toEqual({ from: "2026-10-26", to: "2026-10-26" })
+    expect(resolveRange(listed({ preset: "yesterday" }), TODAY)).toEqual({
       from: "2026-10-25",
       to: "2026-10-25",
     })
-    expect(resolveRange({ ...defaultViewState(TODAY), preset: "this-week" }, TODAY)).toEqual({
+    expect(resolveRange(listed({ preset: "this-week" }), TODAY)).toEqual({
       from: "2026-10-26",
       to: "2026-11-01",
     })
-    expect(resolveRange({ ...defaultViewState(TODAY), preset: "last-7" }, TODAY)).toEqual({
+    expect(resolveRange(listed({ preset: "last-7" }), TODAY)).toEqual({
       from: "2026-10-20",
       to: "2026-10-26",
     })
-    expect(resolveRange({ ...defaultViewState(TODAY), preset: "this-month" }, TODAY)).toEqual({
+    expect(resolveRange(listed({ preset: "this-month" }), TODAY)).toEqual({
       from: "2026-10-01",
       to: "2026-10-31",
     })
   })
 
   it("uses from/to for custom, and repairs a broken pair", () => {
-    const custom = { ...defaultViewState(TODAY), preset: "custom" as const, from: "2026-10-01", to: "2026-10-20" }
+    const custom = listed({ preset: "custom", from: "2026-10-01", to: "2026-10-20" })
     expect(resolveRange(custom, TODAY)).toEqual({ from: "2026-10-01", to: "2026-10-20" })
     expect(resolveRange({ ...custom, from: "2026-10-20", to: "2026-10-01" }, TODAY)).toEqual({
       from: "2026-10-01",
@@ -1886,6 +1891,10 @@ describe("resolveRange", () => {
       from: "2026-11-02",
       to: "2026-11-08",
     })
+    expect(resolveRange({ ...defaultViewState(TODAY), view: "heat", day: "2026-11-04" }, TODAY)).toEqual({
+      from: "2026-11-01",
+      to: "2026-11-30",
+    })
   })
 })
 
@@ -1898,6 +1907,11 @@ describe("viewDays", () => {
     expect(heat[heat.length - 1]).toBe("2026-10-31")
     expect(viewDays(defaultViewState(TODAY), TODAY)).toEqual(["2026-10-26"])
     expect(viewDays({ ...defaultViewState(TODAY), view: "list" }, TODAY)).toHaveLength(1)
+  })
+
+  it("refuses to render a range wider than the view can hold", () => {
+    const long = listed({ preset: "custom" as const, from: "2020-01-01", to: "2026-10-26" })
+    expect(viewDays(long, TODAY)).toHaveLength(90)
   })
 })
 ```
@@ -1916,10 +1930,8 @@ Create `lib/worklog/view-state.ts`:
 // hand-edited values fall back to the default rather than erroring: a shared link should
 // open something sensible, and a stale param must not break a fetch.
 
-import { WORK_DISCIPLINES, isWorkDiscipline, type WorkDiscipline } from "@/lib/roles"
+import { isWorkDiscipline, type WorkDiscipline } from "@/lib/roles"
 import {
-  DELIVERABLE_STATUSES,
-  WORK_LOG_KINDS,
   isDeliverableStatus,
   isWorkLogKind,
   type DeliverableStatus,
@@ -2058,27 +2070,27 @@ export function serializeViewState(state: ViewState, todayIso: string): string {
 }
 
 /**
- * Day/week/heat windows follow `day` (what the person navigated to); list and board
- * follow the preset, which is the range they said they wanted to see.
+ * Day/week/heat windows follow `day` (what the person navigated to); list and board follow
+ * the preset, which is the range they said they wanted to see. The day the person is
+ * standing on is not a range they asked for, so a preset must not override it.
  */
 export function resolveRange(state: ViewState, todayIso: string): { from: string; to: string } {
-  const anchor = state.day
+  if (state.view === "day") return { from: state.day, to: state.day }
 
-  if (state.view === "day") return { from: anchor, to: anchor }
-  if (state.view === "week" || state.view === "heat") {
-    if (state.view === "heat") {
-      const bounds = monthBoundsIso(anchor)
-      return { from: bounds.from, to: bounds.to }
-    }
-    const monday = weekStartIso(anchor)
+  if (state.view === "week") {
+    const monday = weekStartIso(state.day)
     return { from: monday, to: shiftDays(monday, 6) }
   }
+
+  if (state.view === "heat") return monthBoundsIso(state.day)
 
   switch (state.preset) {
     case "today":
       return { from: todayIso, to: todayIso }
-    case "yesterday":
-      return { from: shiftDays(todayIso, -1), to: shiftDays(todayIso, -1) }
+    case "yesterday": {
+      const yesterday = shiftDays(todayIso, -1)
+      return { from: yesterday, to: yesterday }
+    }
     case "this-week": {
       const monday = weekStartIso(todayIso)
       return { from: monday, to: shiftDays(monday, 6) }
@@ -2089,7 +2101,9 @@ export function resolveRange(state: ViewState, todayIso: string): { from: string
       return monthBoundsIso(todayIso)
     case "custom": {
       if (state.from && state.to) {
-        return state.from <= state.to ? { from: state.from, to: state.to } : { from: state.to, to: state.from }
+        return state.from <= state.to
+          ? { from: state.from, to: state.to }
+          : { from: state.to, to: state.from }
       }
       if (state.from) return { from: state.from, to: state.from }
       if (state.to) return { from: state.to, to: state.to }
@@ -2098,16 +2112,19 @@ export function resolveRange(state: ViewState, todayIso: string): { from: string
   }
 }
 
+const RANGE_DAY_CAP = 90
+const HEAT_DAY_CAP = 370
+
 export function viewDays(state: ViewState, todayIso: string): string[] {
   const { from, to } = resolveRange(state, todayIso)
-  return rangeDays(from, to, state.view === "heat" ? 370 : 90)
+  return rangeDays(from, to, state.view === "heat" ? HEAT_DAY_CAP : RANGE_DAY_CAP)
 }
 ```
 
 - [ ] **Step 4: Run them to verify they pass**
 
 Run: `npm test -- worklog-view-state`
-Expected: PASS, 9 tests.
+Expected: PASS, 10 tests.
 
 - [ ] **Step 5: Gates + commit**
 
@@ -2117,6 +2134,20 @@ git add lib/worklog/view-state.ts tests/unit/worklog-view-state.test.ts
 git commit -m "feat(worklog): shareable URL view state for the work log page"
 git push
 ```
+
+**As shipped (2026-10-26, `284e2f9`) — three corrections to the code above.**
+
+1. `WORK_DISCIPLINES`, `WORK_LOG_KINDS` and `DELIVERABLE_STATUSES` are **not** imported here.
+   The parsing rules only need the `is*` guards, and an unused import is a lint **error** in
+   this repo, so the block above would not have passed its own gate.
+2. The preset cases in `resolveRange` needed `view: "list"`. As written, `{ ...defaultViewState(TODAY), preset: "yesterday" }`
+   still has `view: "day"`, and the day view follows `day` — the same function the "anchors a
+   week on the selected day" case depends on. A preset that overrode the day view would make
+   the two assertions in this file mutually unsatisfiable, so the test now says which view is
+   asking for a range. `listed()` is that statement.
+3. `VIEW_LABEL` is imported by the test and must be asserted, not merely imported (same
+   unused-import rule); it now checks the two labels a reader would notice if they drifted.
+   The heat-window and range-cap cases were added because neither branch had coverage.
 
 ### Task 6: Entries list + create — `app/api/worklog/entries/route.ts`
 
