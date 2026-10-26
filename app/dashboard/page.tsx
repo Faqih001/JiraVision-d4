@@ -106,6 +106,11 @@ type TaskDraft = {
 
 type OverviewTask = DashboardOverview["myTasks"][number]
 
+// A task with no sprint. Radix forbids `<Select.Item value="" />` — the empty
+// string belongs to the Root, where it means "show the placeholder" — so the
+// backlog gets its own sentinel and is mapped to null at the API boundary.
+const BACKLOG = "backlog"
+
 /* --------------------------------------------------------------- the page */
 
 export default function DashboardHome() {
@@ -346,7 +351,7 @@ export default function DashboardHome() {
       if (q && !`${t.title} ${t.description ?? ""}`.toLowerCase().includes(q)) return false
       if (statusFilter !== "all" && t.status !== statusFilter) return false
       if (priorityFilter !== "all" && t.priority !== priorityFilter) return false
-      if (sprintFilter !== "all" && String(t.sprintId ?? "") !== sprintFilter) return false
+      if (sprintFilter !== "all" && (t.sprintId == null ? BACKLOG : String(t.sprintId)) !== sprintFilter) return false
       return true
     })
   }, [overview, search, statusFilter, priorityFilter, sprintFilter])
@@ -538,7 +543,7 @@ export default function DashboardHome() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All sprints</SelectItem>
-              <SelectItem value="">Backlog</SelectItem>
+              <SelectItem value={BACKLOG}>Backlog</SelectItem>
               {sprints.map((s) => (
                 <SelectItem key={s.id} value={String(s.id)}>
                   {s.name}
@@ -1282,12 +1287,15 @@ export default function DashboardHome() {
               </div>
               <div className="space-y-1">
                 <Label>Sprint</Label>
-                <Select value={String(draft.sprintId)} onValueChange={(v) => setDraft({ ...draft, sprintId: v === "" ? "" : Number(v) })}>
+                <Select
+                  value={draft.sprintId === "" ? BACKLOG : String(draft.sprintId)}
+                  onValueChange={(v) => setDraft({ ...draft, sprintId: v === BACKLOG ? "" : Number(v) })}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Backlog" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Backlog</SelectItem>
+                    <SelectItem value={BACKLOG}>Backlog</SelectItem>
                     {sprints.map((s) => (
                       <SelectItem key={s.id} value={String(s.id)}>
                         {s.name}

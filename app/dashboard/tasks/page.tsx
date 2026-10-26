@@ -1602,12 +1602,15 @@ export default function TasksWorkspacePage() {
               </div>
               <div className="space-y-1">
                 <Label htmlFor="tf-sprint">Sprint</Label>
-                <Select value={String(draft.sprintId)} onValueChange={(v) => setDraft({ ...draft, sprintId: v === "" ? "" : Number(v) })}>
+                <Select
+                  value={draft.sprintId === "" ? BACKLOG : String(draft.sprintId)}
+                  onValueChange={(v) => setDraft({ ...draft, sprintId: v === BACKLOG ? "" : Number(v) })}
+                >
                   <SelectTrigger id="tf-sprint">
                     <SelectValue placeholder="Backlog" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Backlog</SelectItem>
+                    <SelectItem value={BACKLOG}>Backlog</SelectItem>
                     {sprints.map((s) => (
                       <SelectItem key={s.id} value={String(s.id)}>
                         {s.name}
