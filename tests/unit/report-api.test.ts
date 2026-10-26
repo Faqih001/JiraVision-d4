@@ -129,3 +129,36 @@ describe("the preview route", () => {
     expect(codeOnly(preview())).not.toMatch(/export async function (POST|PATCH|PUT|DELETE)|status:\s*"/u)
   })
 })
+
+describe("the single-report route", () => {
+  const row = () => src("app/api/reports/work/[id]/route.ts")
+
+  it("answers not-found for a report it may not show", () => {
+    // 404, never 403: a 403 confirms the id exists, which is a leak.
+    expect(row()).toMatch(/readOwnReport\(session\.id, id\)/u)
+    expect(row()).toMatch(/if \(!existing\) return notFound\("Report not found"\)/u)
+    expect(codeOnly(row())).not.toMatch(/forbidden|403|status:/u)
+  })
+
+  it("writes only through the whitelist and the mutable columns", () => {
+    expect(row()).toMatch(/pickReportUpdates\(body, existing\.status\)/u)
+    expect(codeOnly(row())).not.toMatch(/\.\.\.body/u)
+    expect(row()).toMatch(/eq\(workReports\.userId, session\.id\)/u)
+    // The lifecycle column is only ever *read* (existing.status), never written.
+    expect(codeOnly(row())).not.toMatch(/status:\s*"/u)
+  })
+
+  it("recomputes metrics when the period moves, so a draft never contradicts its own dates", () => {
+    expect(row()).toMatch(/const periodChanged/u)
+    expect(row()).toMatch(/set\.metrics = await assembleReport/u)
+  })
+
+  it("fills every prose key so a stored blob always has the whole section set", () => {
+    expect(row()).toMatch(/emptyContent\(template\)/u)
+  })
+
+  it("refuses to delete a filed report and says why", () => {
+    expect(row()).toMatch(/isDraft\(existing\.status\)/u)
+    expect(row()).toMatch(/cannot be deleted/u)
+  })
+})
