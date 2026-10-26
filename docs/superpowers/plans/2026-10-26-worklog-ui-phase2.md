@@ -7483,6 +7483,10 @@ kind colour maps so the palette stays in one place.
     `DeliverableDraft`
   - `saveDeliverable(value: DeliverableDraft): Promise<void>`, `deleteDeliverable(id: number)`,
     `moveDeliverable(id: number, status: DeliverableStatus)` in the client
+  *(Shipped as `DeliverableDialog({ draft, tasks, saving, onOpenChange, onSubmit })` with a remount
+  `key` instead of `onDraftChange`, `ConfirmDeliverableDelete({ id, name, busy, … })`, and
+  `moveDeliverable(d: DeliverableDto, status)` — plus `Stat` exported from `sections.tsx`. All five
+  are in the As-shipped note.)*
 
 - [ ] **Step 1: Write the failing guards**
 
@@ -8378,6 +8382,95 @@ Expected: 9 new guards green, 11 sections rendered, typecheck 0 errors, lint 0 e
 warnings. On the deployed page: Add one creates a deliverable that appears in the list; its
 `In review` button moves it and the `Draft` button disappears for good once it reaches
 `delivered`; the gap chips jump the day view; the discipline bars match the totals card.
+
+#### As shipped (2026-10-26, `a38913d`)
+
+Gates: 52/52 guards (11 new, not 9 — two more were needed to hold the two fixes below), typecheck
+0 errors, lint 0 errors / 70 warnings, full suite 681 passed. Eleven sections render in the plan's
+order, and `DeliverablesSection` is the first one the member can write to.
+
+**Nine corrections to the code above**, in the order a reader would hit them.
+
+1. **`Stat` was not in `sections.tsx` (line 7961).** "the small component Task 12 already defined
+   in this file — reuse it, do not re-declare" describes a file that did not contain it: Task 12 put
+   `Stat` in `worklog-client.tsx` under `TotalsSection`. Re-using it in the Coverage body therefore
+   meant moving it, not importing nothing — `Stat` is now exported from `sections.tsx:664` and the
+   client imports it, with its local copy deleted. A second `function Stat` in the client would have
+   been a duplicate declaration, not a harmless shadow.
+
+2. **`state.rangeFrom` and `state.rangeTo` do not exist (line 8283).** `ViewState` carries
+   `from`/`to` (the *custom* bounds, both `string | null`), and the actual span is what
+   `resolveRange(state, todayIso)` returns. The client renders `range={range}` — the same object
+   already handed to `TotalsSection` and used in the CSV filename, so the header, the coverage card
+   and the export cannot name three different periods.
+
+3. **The State select could not have been saved (line 8083).** The plan mapped all four
+   `DELIVERABLE_STATUSES` into the dropdown. `pickDeliverableUpdates` refuses a jump the lifecycle
+   forbids and refuses `delivered` outright, so editing a `delivered` deliverable's *name* would
+   have returned "delivered is terminal — record a new deliverable" while the form touched only the
+   name. Shipped as the same predicate the server applies, plus the row's own state:
+
+   ```tsx
+   const statusOptions = DELIVERABLE_STATUSES.filter(
+     (option) => form.id === null || option === draft.status || canMoveDeliverable(draft.status, option),
+   )
+   ```
+
+   `option === draft.status` is what lets a name fix ride with the state unchanged, and
+   `form.id === null` keeps all four openable for a new record — `readDeliverableCreate` accepts any
+   valid status, because most work is logged after it was already accepted. Guard: "offers only the
+   states the lifecycle allows from the row's own", asserting `not DELIVERABLE_STATUSES.map`.
+
+4. **The link rule would have rejected a link the server accepts (line 8033).**
+   `!/^https?:\/\//i.test(...)` refuses `/dashboard/tasks`, but `readLink` takes `^https?://` *or*
+   a leading `/`, and the record's whole purpose is pointing at a thing inside this app. Shipped as
+   `!/^https?:\/\//iu.test(link) && !link.startsWith("/")` with the server's own message, plus a
+   placeholder that says so. Guard: "accepts the links the server accepts".
+
+5. **`disabled={!canMoveDeliverable(d.status, next)}` was always false (line 7663).** `next` comes
+   from `DELIVERABLE_NEXT[d.status]`, and every entry of that map is a legal move, so the expression
+   cannot evaluate to `true` — a disabled control that never disables is worse than no control,
+   because it reads as a considered decision. The buttons are now only the map's entries, so a
+   `delivered` row renders none and the board stops pretending there is a way back.
+
+6. **`taskId`'s sentinel was `"all"`, and `"all"` means something else here (lines 7982, 7993,
+   8201).** The repo's Select grammar (forced by `tests/unit/select-items.test.ts`, which bans
+   `value=""`) settled in Task 14 as `"none"` = *no value* for a form answer and `"all"` = *every
+   value* for a filter answer. A deliverable's task is a form answer; `"all"` reads as "link it to
+   every task". `EMPTY_DELIVERABLE.taskId` and `toDeliverableDraft` use `NONE`, and the client's
+   payload maps `"none"` to `null`.
+
+7. **The dialog kept its draft in the client.** `draft: DeliverableDraft | null` + `onDraftChange`
+   + `if (draft === null) return null` after a `useState` re-lifts every keystroke into the page
+   component — the shape Task 14 rejected for `EntryDialog` for two reasons: the grid behind a 12px
+   input re-renders on every character, and `useState` seeded from a prop would need an effect to
+   stay in sync. Shipped exactly as its sibling: `draft: DeliverableDraft` (non-null), dialog-local
+   `useState`, and the remount `key={deliverableDraft.id ?? "new"}` — which is also why the guard
+   asserts `not.toMatch(/onDraftChange/)`. `onSubmit` is typed `Promise<void>`, so the client passes
+   `saveDeliverable` itself; the plan's `(value) => void saveDeliverable(value)` fails TS2322.
+
+8. **`ConfirmDeliverableDelete` names the thing it deletes.** `{id, busy, …}` with a fixed title
+   would ask "Delete this deliverable?" about a record whose name is the only human fact about it.
+   It takes `name: string | null` and the client looks it up from the already-loaded `deliverables`
+   list — no extra fetch, and `null` (the row vanished under us) falls back to the generic title.
+
+9. **The `recharts` tooltip formatter needed inference, not annotations (line 7823).**
+   `(value: unknown, name: unknown) => [unknown, unknown]` is not assignable to
+   `Formatter<ValueType, NameType>` — TS2769, because the tuple's head must be a `ReactNode`. The
+   params are left to contextual inference and both branches return `[string, string]`.
+
+**One guard rewritten against a defect the plan did not know about.** "never draws a bar from a
+number it worked out itself" was written to match the exact `reduce((sum, e) => sum +
+(e.minutes ?? 0), 0)` string, and it failed on `BoardBody` — shipped in Task 13, line 393, doing
+that arithmetic for its own column header. So the invariant is now stated as what it means
+(`not.toMatch(/\.reduce\(/)` on `sections.tsx`), and the offender calls the shared `minutesTotal()`,
+which is the one addition the whole page uses. `canMoveDeliverable` likewise moved from the
+sections guard to the dialogs one, where the predicate actually lives.
+
+**`moveDeliverable` takes the row, not the id.** The plan's `moveDeliverable(id: number, status)`
+could not name the deliverable in its own confirmation toast without a lookup; `DeliverablesSection`
+already holds the `DeliverableDto` it was clicked from, so `onMove(d, status)` ships.
+
 
 ---
 
