@@ -3979,7 +3979,26 @@ git add lib/worklog/summary.ts app/api/worklog/summary tests/unit/worklog-summar
 git commit -m "feat(worklog): summary payload with streaks, gaps and timezone-bounded task history"
 git push
 ```
-Expected: 9 summary tests, 27 guard tests, typecheck 0 errors, lint 0 errors / 70 warnings.
+Expected: 9 summary tests, 35 guard tests in `worklog-api`, typecheck 0 errors, lint 0 errors /
+70 warnings.
+
+**As shipped (2026-10-26, `2a6fd88`) — counts and one reading of the spec.**
+
+1. The plan predicted 27 guard tests; `worklog-api` had already grown to 29 in Task 9, and the
+   session-gating and `schema-safety` `it.each` blocks each re-enumerate the new route, so the
+   suite is 9 summary + 35 guards and the whole run is **35 files / 613 tests**. The count in
+   this plan has been wrong in every task since Task 4; the guard *cases* are the thing to
+   check, not the number.
+2. `totals.activeDays` is the count of days with rows, **not** the `pastActive` list the streak
+   uses. They are equal in practice — Task 6's create and Task 8's bulk re-date both refuse a
+   future `workedOn`, so no row can be dated ahead of today — but the two numbers answer
+   different questions and a future draft, if one ever arrives, belongs in the range total and
+   not in a habit. I wrote `pastActive.length` first, checked it against §4, and put the plan's
+   version back.
+3. `TransitionDto.at` is an ISO string because the route converts the `timestamptz` column with
+   `.toISOString()`; `sort` in `buildSummary` is a string compare on that field, which is why
+   the newest-first test uses timestamps on different days rather than different times on one
+   day. Nothing to fix — recorded so a later task does not "improve" it into a Date sort.
 
 ---
 
