@@ -516,13 +516,52 @@ confidence }` and **names the rows it came from**; the AI variant (§16, phase 1
 same shape and the same "never invents a number" rule. Every one is a proposal with a button that opens the manual
 form pre-filled — accepting is a human write.
 
-**7. Onboarding** — a three-step `/onboarding` after signup: role and disciplines → which pack, and which register
-kinds you actually hold (or "none yet") → reporting line (default recipients, cadence, timezone, language). Stored
-under `preferences.settings` through the existing `/api/settings` `jsonb_set` merge (`app/api/settings/route.ts:54-65`),
-**not** new `users` columns, so the auth schema and the signup path stay untouched. Skippable in one click,
-re-editable at `/dashboard/settings/profile`. It only *reorders and pre-selects*: a member who skipped everything
-sees all disciplines, all register kinds and the `general` pack, exactly the §13 default-all rule. It never
-pre-fills invented facts — no member's dashboard claims they own a server they did not say they own.
+**7. Onboarding** — `/onboarding`, the owner's eight steps taken adaptively rather than as a gauntlet:
+
+| Step | Collects | Where it lands |
+|---|---|---|
+| 1. Welcome | nothing; names how long setup takes and offers *Finish later* | `onboarding.status = "in_progress"` |
+| 2. Profile | name, display name, avatar, job title, phone, country, timezone (detected, editable), language | the existing `app/api/user/profile` PATCH (`users.job_title`, `department`, `location`, `language`, `timezone`, `avatar`) |
+| 3. Workspace | personal · name a team · accept an invitation | §13's `workspace_invitations` row (phase 17); team fields through `/api/team/settings` |
+| 4. Industry | one primary, optional secondaries, or "Not sure yet" | `preferences.settings.onboarding.data.industry` |
+| 5. Role and disciplines | searchable job title with free text, optional department, multi-select work disciplines | `users.job_title`/`department` plus `preferences.workDisciplines` from the canonical `WORK_DISCIPLINES` (`lib/roles.ts:49`) |
+| 6. Project management | preferred view, default grouping, notification types, work style | only keys the app already reads: `preferences.settings.sprintView`, the `notify*` flags |
+| 7. First project | create · import a scope document · a clearly-labelled sample · skip | existing project APIs plus phase 7's extraction |
+| 8. Review and finish | a summary with a per-step *Edit* link | `status = "completed"`, written only after every save returned ok |
+
+Seven rules the wizard is built on, each because the alternative has hurt someone:
+
+- **State lives in `preferences.settings.onboarding`** through the existing `jsonb_set` merge
+  (`app/api/settings/route.ts:54-65`): `{ status, step, completedAt, version, data }`, where `status` is
+  `"not_started"`, `"in_progress"` or `"completed"` and only `status` is read by routing. No new `users` columns, so
+  **no migration and no schema change**; a step persists when it
+  validates, which is what makes a refresh, a closed tab and a logout-then-signin all lossless. Retrying a step
+  cannot duplicate an organization or a project because the write is keyed by the step's own draft id.
+- **Existing members are grandfathered**: anyone whose account predates the feature, or who already has a task or
+  log row, is treated as completed on first read and is never routed through the wizard. Nothing on the path clears
+  a saved preference, and the fallback for an unanswered question is always the §13 default-all value.
+- **No redirect loop**: the gate reads the server session plus `status`, never a client flag, and a completed
+  member can still open `/onboarding` deliberately. The only automatic change is signup's
+  `router.push("/dashboard")` (`app/(auth)/signup/page.tsx:42`) becoming a push to `/onboarding`; the dashboard
+  shows a resumable banner for the incomplete, not a wall.
+- **Adaptive, not long**: a personal workspace is not asked for an organization, a department or a job title; every
+  step but Welcome and Review has *Skip*, and skipping is a valid answer that leaves the default in place.
+- **One vocabulary**: step 5 renders the Phase-2 `DisciplinePicker` over `WORK_DISCIPLINES` and validates each
+  submitted id with `isWorkDiscipline` (`lib/roles.ts:97`), so the wizard cannot mint a competing set of names.
+  Defaults to all disciplines, and a selection is a display filter, never a permission.
+- **Industry suggests and never restricts**: it re-orders packs, templates and disciplines; it cannot hide a
+  register kind or a project type.
+- **Secrets stay out**: `onboardingData` refuses a password, token or credential value the way §12's register rule
+  does (`lib/registers/fields.ts`, §12 item 4), and step 7's upload reuses the existing file size and type limits.
+
+Step 3 is the one genuinely new mechanism, and the spec states it plainly rather than assuming it: today there is a
+single team row (`drizzle/schema.ts:340-352`) and `/api/team/members` POST adds a member by an email an admin
+already knows (`app/api/team/members/route.ts:203-281`) — there is no invitation token, so "join by typing your
+organization's name" is refused as unsound. Phase 17 adds `workspace_invitations` (random token stored hashed, the
+inviter's id, the role it grants, an expiry, a single-use accepted-at) and the join branch resolves only from that
+token, server-side. Until it exists the join branch offers *request access*, which notifies the admins through
+`createNotification` and changes no membership. Re-editable at `/dashboard/settings`, and it never pre-fills an
+invented fact — no member's dashboard claims they own a server they did not say they own.
 
 ## 13. Data model
 
@@ -585,9 +624,12 @@ playbooks              id, pack_key, discipline, title, summary, scope_kind null
                        precautions jsonb, recommendations jsonb, tags jsonb, status(draft|published|archived),
                        version int, author_id ->users.id, source(manual|gemini), ai_marked bool,
                        last_verified_at date null, verify_interval_days int null, created_at, updated_at
+workspace_invitations  id, token_hash text not null unique, email varchar(255) not null, role varchar(32) not null,
+                       invited_by ->users.id, created_at, expires_at timestamptz not null,
+                       accepted_at timestamptz null, accepted_by ->users.id null
 ```
 
-Eighteen new tables: ten for the log, reports, planner and assistant; five for §11; three for §12. `career_placement` is current state; history is
+Nineteen new tables: ten for the log, reports, planner and assistant; five for §11; four for §12. `career_placement` is current state; history is
 read from approved `career_requests`, so there is no parallel ledger to keep in sync. `growth_reviews` is append-only
 by design — a dated snapshot the member can reread, not a mutable field.
 
@@ -609,6 +651,22 @@ export const CAREER_RUNGS = [
   { level: 3, name: "Senior" }, { level: 4, name: "Lead" },
 ] as const
 ```
+
+`WORK_DISCIPLINES` is the whole app's only work-type vocabulary, and phase 2 of the UI widens it from the five
+ids above to seventy-five standard disciplines in ten category groups — `DISCIPLINE_CATEGORIES` in `lib/roles.ts`
+(delivery · technology · information · finance · operations · engineering · market · people · science · services,
+labelled "Management & project delivery", "Software, IT & digital", "Analysis, research & information", "Finance,
+audit & commercial", "Operations & supply chain", "Engineering & built works", "Sales, marketing & customer",
+"People, administration & governance", "Health, science & specialist services", "Creative, service & industry
+work"). The widening is **additive, with no migration**: the five ids already stored in `tasks.discipline`,
+`work_log_entries.discipline`, `deliverables.discipline` and `preferences.workDisciplines` stay valid because they
+are kept verbatim, every new id is ≤ 40 characters so the `varchar(40)` columns are untouched, and the existing
+`isWorkDiscipline` guard (`lib/roles.ts:97`) is what rejects an unknown value at every write. Grouping is a display
+concern of the picker, never a filter value — the URL and the API carry one discipline at a time. A job title, a
+department and a project type stay three separate dimensions and are not flattened into this one, a selected
+discipline set is a display preference and not an authorization, and industry suggests a starting set without ever
+restricting it. `CAREER_RUNGS` is keyed by discipline and keeps its four levels — a seventy-five-entry ladder would
+be a job catalogue, not a progression.
 
 The signal-key registry (`lib/career/signals.ts`) and `lib/career/readiness.ts` stay DB-free for the same reason, so
 the ladder's arithmetic is unit-testable without a connection string.
@@ -759,9 +817,16 @@ Each phase is a reviewable, green, committed, pushed unit. Pushing auto-deploys 
     types their own inventory.
 16. **Playbooks** — `playbooks` table, the six-step method module, manual step editor with reorder/clone, palette
     search, run-mode writing one log row per phase, the printable fourth PDF layout with signature boxes.
-17. **Onboarding** — `/onboarding` three steps writing `preferences.settings` through the existing `/api/settings`
-    merge, pack-driven ordering on `/dashboard`, re-editable from profile settings, and the skipped-everything
-    default that changes nothing for anybody.
+17. **Onboarding** — `/onboarding` as §12.7's eight adaptive steps, writing `preferences.settings.onboarding`
+    through the existing `/api/settings` merge and profile fields through `/api/user/profile` — **no new `users`
+    columns and no migration** — per-step persistence with resume, a grandfathered and never-reset existing member,
+    a loop-safe server-side gate, the canonical `lib/roles.ts` discipline vocabulary and no others, pack-driven
+    ordering on `/dashboard`, re-editable from `/dashboard/settings`, and the skipped-everything default that
+    changes nothing for anybody. Its one new server mechanism is `workspace_invitations`: a hashed single-use token
+    with an expiry and the role it grants, because joining today means an admin typing your email at
+    `/api/team/members` and there is no token to accept. The 17 checks the owner listed are this phase's test file
+    list, including the three that protect other people's work: an existing member is never blocked, a saved
+    preference is never overwritten by the wizard, and a failed save never marks onboarding complete.
 18. **Agent entry for packs, registers and playbooks** — PDF/paste handover ingestion into register rows and
     playbook drafts (credential values refused twice over), grounded precaution suggestions marked as machine
     drafted, and the rule-based recommendation list gaining its AI twin. Needs the provider from phase 6.
@@ -849,6 +914,9 @@ they can print, and they depend only on phase 1.
 - SOPs are hand-authored first and agent-drafted second, through one validator, and stay marked as machine-drafted
   on the printed page.
 - Onboarding tailors, it does not gate: everything it collects lives in `preferences.settings`, it is skippable in
-  one click, and a member who skips it sees the full default view.
+  one click, and a member who skips it sees the full default view. Eight steps is the *catalogue*, not the route —
+  the wizard adapts to the workspace type, existing members are grandfathered and never reset, joining a workspace
+  needs a server-issued invitation rather than a typed name, and the disciplines it offers are the canonical
+  `lib/roles.ts` ones.
 - The assistant reads the signed-in user's own data, and everything for an admin/superadmin.
 - The scripted landing FAQ survives as tier 1.
