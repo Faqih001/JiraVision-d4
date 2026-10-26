@@ -418,3 +418,88 @@ body {
   line-height: 1.4;
   padding: 0.25rem 0.5rem;
 }
+
+/* Header variant: the select sits inside an already bordered pill, so it drops its
+   own chrome and inherits the pill's typography and caret spacing instead. Google's
+   sprite credit is hidden here — the pill carries an sr-only "Translation by Google
+   Translate" and the footer control keeps the visible credit. */
+.jv-translate-pill .goog-te-gadget {
+  font-size: 0.75rem;
+  color: inherit;
+  display: inline-flex;
+  align-items: center;
+}
+
+.jv-translate-pill .goog-te-gadget a.goog-logo-link {
+  display: none;
+}
+
+.jv-translate-pill select.goog-te-combo {
+  background-color: transparent;
+  color: hsl(var(--foreground));
+  border: 0;
+  border-radius: 0;
+  font: inherit;
+  outline: none;
+  cursor: pointer;
+  padding: 0;
+  max-width: 9rem;
+}
+
+.jv-translate-pill select.goog-te-combo:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+  border-radius: 0.25rem;
+}
+
+/* -------------------------------------------------------------------------
+   Theme switch. next-themes runs with disableTransitionOnChange, which zeroes
+   every CSS transition for the frames around a theme flip — exactly when this
+   knob moves. Keyframe animations are untouched by that rule, so the slide and
+   the icon pop are animations, and the transform below is only the resting
+   state for browsers that skip them.
+-------------------------------------------------------------------------- */
+@keyframes jv-theme-to-dark {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes jv-theme-to-light {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes jv-theme-pop {
+  0% {
+    opacity: 0.25;
+    transform: scale(0.55) rotate(-60deg);
+  }
+  65% {
+    opacity: 1;
+    transform: scale(1.18) rotate(8deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+.jv-theme-knob[data-jv-anim="to-dark"] {
+  animation: jv-theme-to-dark 260ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.jv-theme-knob[data-jv-anim="to-light"] {
+  animation: jv-theme-to-light 260ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.jv-theme-icon[data-jv-anim="pop"] {
+  animation: jv-theme-pop 340ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}

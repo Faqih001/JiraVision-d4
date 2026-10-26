@@ -19,7 +19,9 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import NotificationsBell from "@/components/notifications-bell"
-import { GoogleTranslate } from "@/components/layout/google-translate"
+import { GoogleTranslateSelect } from "@/components/layout/google-translate"
+import { ThemeSwitch } from "@/components/theme-switch"
+import { AccessibilityLauncher } from "@/components/accessibility/accessibility-launcher"
 import { Badge } from "@/components/ui/badge"
 import {
   Activity,
@@ -33,6 +35,7 @@ import {
   FileSpreadsheet,
   Gamepad2,
   Heart,
+  Home,
   Inbox,
   LayoutDashboard,
   Layers,
@@ -71,17 +74,67 @@ type NavCategory = { title: string; items: NavItem[] }
 
 const badgeCount = (count: number) => (count > 99 ? "99+" : String(count))
 
+/**
+ * The five account actions, shared by the top bar and the sidebar footer so the two
+ * triggers can never drift apart. "Home" leaves the workspace for the public site;
+ * everything else stays inside it.
+ */
+function AccountMenuContent() {
+  const { user, logout } = useAuth()
+  const { theme, setTheme } = useTheme()
+  const isDark = theme === "dark"
+
+  return (
+    <>
+      <DropdownMenuLabel className="text-xs sm:text-sm">
+        <span className="block truncate font-medium">{user?.name}</span>
+        <span className="block truncate text-xs font-normal text-muted-foreground">{user?.email}</span>
+      </DropdownMenuLabel>
+      <DropdownMenuSeparator />
+      <DropdownMenuItem asChild>
+        <Link href="/" className="flex items-center">
+          <Home className="mr-2 h-4 w-4" />
+          <span className="text-sm">Home</span>
+        </Link>
+      </DropdownMenuItem>
+      <DropdownMenuItem asChild>
+        <Link href="/dashboard/settings" className="flex items-center">
+          <Settings className="mr-2 h-4 w-4" />
+          <span className="text-sm">Settings</span>
+        </Link>
+      </DropdownMenuItem>
+      <DropdownMenuItem asChild>
+        <Link href="/dashboard/billing" className="flex items-center">
+          <CreditCard className="mr-2 h-4 w-4" />
+          <span className="text-sm">Billing</span>
+        </Link>
+      </DropdownMenuItem>
+      <DropdownMenuItem onClick={() => setTheme(isDark ? "light" : "dark")} className="flex items-center">
+        <span className="mr-2 flex items-center gap-0.5">
+          <Sun className={cn("h-4 w-4", isDark ? "text-muted-foreground/60" : "text-primary")} aria-hidden="true" />
+          <Moon className={cn("h-4 w-4", isDark ? "text-primary" : "text-muted-foreground/60")} aria-hidden="true" />
+        </span>
+        <span className="text-sm">{isDark ? "Dark mode" : "Light mode"}</span>
+      </DropdownMenuItem>
+      <DropdownMenuSeparator />
+      <DropdownMenuItem onClick={logout} className="flex items-center">
+        <LogOut className="mr-2 h-4 w-4" />
+        <span className="text-sm">Log out</span>
+      </DropdownMenuItem>
+    </>
+  )
+}
+
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const { user, isLoading, logout } = useAuth()
+  const { user, isLoading } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
-  const { theme, setTheme } = useTheme()
   const isMobile = useMobile()
   const [searchFocused, setSearchFocused] = useState(false)
   // null while the first read is in flight (or failed) so a badge never claims zero.
@@ -413,13 +466,23 @@ export default function DashboardLayout({
 
         {/* Sidebar Footer */}
         <div className="border-t p-4">
+          {/* Below 768px the top bar has no room for the language dropdown, so the
+              drawer carries it instead — and only one of the two is ever mounted. */}
+          {isMobile && (
+            <div className="mb-3 flex justify-center">
+              <GoogleTranslateSelect />
+            </div>
+          )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
-                className={cn("w-full justify-start gap-2", sidebarCollapsed && "justify-center p-0")}
+                className={cn(
+                  "w-full justify-start gap-2 rounded-full border border-border bg-card",
+                  sidebarCollapsed && "justify-center p-1",
+                )}
               >
-                <Avatar className="h-8 w-8 border-2 border-primary/20">
+                <Avatar className="h-8 w-8 border border-border">
                   <AvatarImage src={user.avatar || "/placeholder.svg"} alt={user.name} />
                   <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
                 </Avatar>
@@ -431,36 +494,8 @@ export default function DashboardLayout({
                 )}
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align={sidebarCollapsed ? "center" : "start"} className="w-56">
-              <DropdownMenuLabel>My Account</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <Link href="/dashboard/settings" className="flex items-center">
-                  <Settings className="mr-2 h-4 w-4" />
-                  <span>Settings</span>
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                className="flex items-center"
-              >
-                {theme === "dark" ? (
-                  <>
-                    <Sun className="mr-2 h-4 w-4" />
-                    <span>Light Mode</span>
-                  </>
-                ) : (
-                  <>
-                    <Moon className="mr-2 h-4 w-4" />
-                    <span>Dark Mode</span>
-                  </>
-                )}
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={logout} className="flex items-center">
-                <LogOut className="mr-2 h-4 w-4" />
-                <span>Log out</span>
-              </DropdownMenuItem>
+            <DropdownMenuContent align={sidebarCollapsed ? "center" : "start"} side="right" className="w-60">
+              <AccountMenuContent />
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -495,60 +530,28 @@ export default function DashboardLayout({
               />
             </div>
           </div>
-          <div className="flex items-center gap-1 sm:gap-2 md:gap-3">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-muted-foreground hover:text-foreground rounded-full h-8 w-8 sm:h-9 sm:w-9"
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            >
-              {theme === "dark" ? <Sun className="h-4 w-4 sm:h-5 sm:w-5" /> : <Moon className="h-4 w-4 sm:h-5 sm:w-5" />}
-            </Button>
+          <div className="flex items-center gap-2 sm:gap-2 md:gap-3">
+            {!isMobile && <ThemeSwitch />}
 
-            <GoogleTranslate className="hidden max-w-[45vw] flex-wrap sm:flex" />
+            {!isMobile && <GoogleTranslateSelect />}
 
             <NotificationsBell />
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="gap-2 h-8 sm:h-9 px-1 sm:px-2">
-                  <Avatar className="h-7 w-7 sm:h-8 sm:w-8 border-2 border-primary/20">
+                <Button
+                  variant="ghost"
+                  className="h-9 gap-2 rounded-full border border-border bg-card px-1 hover:bg-muted sm:px-2"
+                >
+                  <Avatar className="h-7 w-7 border border-border sm:h-8 sm:w-8">
                     <AvatarImage src={user.avatar || "/placeholder.svg"} alt={user.name} />
                     <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
                   </Avatar>
-                  <span className="hidden md:inline text-sm">{user.name?.split(' ')[0]}</span>
+                  <span className="hidden text-sm md:inline">{user.name?.split(" ")[0]}</span>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48 sm:w-56">
-                <DropdownMenuLabel className="text-sm sm:text-base">My Account</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link href="/dashboard/settings" className="flex items-center">
-                    <Settings className="mr-2 h-4 w-4" />
-                    <span className="text-sm">Settings</span>
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                  className="flex items-center"
-                >
-                  {theme === "dark" ? (
-                    <>
-                      <Sun className="mr-2 h-4 w-4" />
-                      <span>Light Mode</span>
-                    </>
-                  ) : (
-                    <>
-                      <Moon className="mr-2 h-4 w-4" />
-                      <span>Dark Mode</span>
-                    </>
-                  )}
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={logout} className="flex items-center">
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Log out</span>
-                </DropdownMenuItem>
+              <DropdownMenuContent align="end" className="w-56 sm:w-60">
+                <AccountMenuContent />
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -563,6 +566,10 @@ export default function DashboardLayout({
           </div>
         </main>
       </div>
+
+      {/* Bottom-right, stacked above the assistant pill; the panel it opens is mounted
+          once in the root layout. It steps aside while the mobile drawer is over it. */}
+      <AccessibilityLauncher className={mobileSidebarOpen ? "hidden" : undefined} />
     </div>
   )
 }

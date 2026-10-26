@@ -216,12 +216,13 @@ export default function LandingChatbot() {
   return (
     <>
       <Button
-        className="fixed bottom-4 right-4 z-50 h-12 w-12 rounded-full p-0 shadow-md"
+        className="fixed bottom-4 right-4 z-50 h-12 gap-2 rounded-full px-4 shadow-md"
         aria-label="Open JiraVision assistant"
         aria-expanded={isOpen}
         onClick={() => setIsOpen(true)}
       >
-        <MessageSquare className="h-5 w-5" />
+        <MessageSquare className="h-5 w-5 shrink-0" aria-hidden="true" />
+        <span className="text-sm font-semibold">Assistant</span>
       </Button>
 
       {isOpen && (

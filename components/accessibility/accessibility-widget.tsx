@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react"
 import Link from "next/link"
+import { usePathname } from "next/navigation"
 import { Accessibility, Check, RotateCcw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -165,6 +166,10 @@ export function AccessibilityWidget() {
   )
   const consent = useSyncExternalStore(subscribeConsent, getConsentSnapshot, () => null)
   const [open, setOpen] = useState(false)
+  // The workspace ships its own launcher, bottom-right next to the assistant pill,
+  // so the public one stands down there rather than doubling up.
+  const pathname = usePathname()
+  const showLauncher = !pathname.startsWith("/dashboard")
 
   // While the cookie banner is on screen the launcher lifts above it rather than
   // hiding underneath it on small viewports.
@@ -238,7 +243,7 @@ export function AccessibilityWidget() {
 
   return (
     <>
-      {mounted && (
+      {mounted && showLauncher && (
         <button
           type="button"
           onClick={() => setOpen(true)}
