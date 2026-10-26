@@ -6148,9 +6148,11 @@ place that write is transactional.
   `@/lib/worklog/entries`; `DISCIPLINE_LABEL`, `WORK_DISCIPLINES`, `type WorkDiscipline` from
   `@/lib/roles`; `DisciplinePicker`, `LogSection` from `./sections`; `TaskOption` from the client;
   `Dialog`, `AlertDialog` pieces from `@/components/ui/*`.
-- Produces: `EntryDraft`, `EntryDialog`, `ConfirmDelete` in `dialogs.tsx`; `LogSection` gains the
-  optional `selection`/`onToggle`/`onEdit`/`onDelete`/`onConvert` props and forwards them to every
+- Produces: `EntryDraft`, `toDraft`, `EntryDialog`, `ConfirmDelete` in `dialogs.tsx`; `LogSection`
+  gains the optional `selection`/`onToggle`/`onEdit`/`onDelete`/`onConvert` props and forwards them to every
   `EntryLine`. Task 15 reads the client's `selection` and `toggleSelect`.
+  *(Shipped as one `actions: RowActions` object instead of five props, and `EntryDraft` lives here
+  rather than in `sections.tsx` — see the As-shipped note at the end of this task.)*
 
 - [ ] **Step 1: Write the failing guard cases**
 
@@ -6783,6 +6785,65 @@ page: Edit changes a row and reload shows the change; Delete removes it; To deli
 and the row shows `· deliverable #N`.
 
 ---
+
+#### As shipped (2026-10-26, `becef04`)
+
+The task shipped with **9** dialog guards, not 6, and the page suite at **32** guards total
+(23 + 9). Full suite: 36 files / **653** tests — the plan's 644 predates these nine. Typecheck 0
+errors, lint 0 errors / 70 warnings.
+
+Four corrections to the code above, each found by writing the guard first:
+
+1. **`EntryDraft` and `toDraft` live in `dialogs.tsx`, not `sections.tsx`.** The plan's Step 3 has
+   `sections.tsx` own the draft type and `dialogs.tsx` re-export it. A presentation file that only
+   *shows* rows has no reason to own the shape of a form it never renders, and a re-export for one
+   consumer is a second place to change the type. `sections.tsx` imports nothing from `dialogs.tsx`;
+   the dependency runs one way.
+
+2. **The unlinked sentinel is `"none"`, not `"all"`.** The plan seeds `taskId: "all"` for
+   "no task". `DisciplinePicker` already uses `"all"` to mean *"every discipline"* — an
+   aggregate, not a null — so reusing the string for *"no value"* would make one word mean two
+   opposite things in the same file. `NONE` is a module constant, and `SelectItem value=""` is
+   guarded against because radix treats an empty value as "no selection" and renders the placeholder
+   instead of the label.
+
+3. **The draft is dialog-local state, seeded by a remount key.** The plan lifts it to the client
+   (`onDraftChange={setDraft}`, `draft` in `useState`). A controlled draft re-renders the whole
+   view grid — every row, on every keystroke — and needs a `useEffect` to re-seed when the client
+   swaps one entry for another. Instead: `const [form, setForm] = useState<EntryDraft>(draft)` plus
+   `key={draft.id ?? "new"}` on the dialog. Opening a row mounts a fresh form; no effect, and the
+   guard asserts that (`not.toMatch(/useEffect/)`). The client's `onSubmit` receives the final
+   draft, so `submitEntry` reads `value.id`, not `draft.id`.
+
+4. **`deliverables` is passed as `DeliverableDto[]`.** The plan's `.map((d) => ({ id: d.id, name: d.name }))`
+   allocates a new array of the same two fields on every render, and `DeliverableDto` *is* those two
+   fields plus ones the dialog ignores. The client already holds the fetched list; it hands it over.
+
+Two things the plan's Step 6 code would have got wrong at runtime:
+
+- **`minutes` double-trimmed.** `const minutes = value.minutes.trim()` then `Number(minutes.trim())`
+  inside an object literal that also calls `value.minutes.trim()` three more times. The shipped
+  version trims once into a local and reads that.
+- **`POST` via a template literal.** `mutate("/api/worklog/entries", …)` alongside
+  `mutate(`${mutateBase}/${value.id}`, …)` gives the route two spellings in one file; the guard that
+  finds the mutation base can then miss a call site. Both branches use `mutateBase`.
+
+What the task added beyond the plan, because the server already required it: the dialog mirrors
+`pickEntryUpdates`' two kind invariants (`time` needs minutes, `deliverable` needs a deliverable)
+and rejects a day after today. `MAX_MINUTES = 1440` is a literal in `dialogs.tsx`, deliberately not
+imported from `lib/worklog/entry-fields.ts` — that module's caps are module-private, it is imported
+only by API routes and its own unit test, and pulling it into a client bundle would drag `drizzle`
+type references into the browser graph. If the server cap changes, the dialog's message is stale
+until the client literal is updated with it; that is the intended trade for keeping the boundary
+clean.
+
+The `window` guard needed splitting. The plan asserted
+`expect(client()).not.toMatch(/window\.(confirm|alert|prompt)\(/u)` over the client file, which is
+already false: `ViewToolbarSection`'s copy-link falls back to `window.prompt` when the clipboard API
+throws (worklog-client.tsx:620), so the link is never lost in a browser that blocks the clipboard.
+The invariant is *no native dialog decides an action on the log*, so the client is guarded on
+`confirm|alert` and `dialogs.tsx` — where a native prompt would be a real regression — keeps the
+strict `confirm|alert|prompt`.
 
 ### Task 15: The bulk bar and a CSV of exactly what is on screen
 
