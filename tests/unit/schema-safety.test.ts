@@ -136,8 +136,10 @@ describe("no anonymous route leaks the schema or relays mail", () => {
   // `worklogSession` counts because it is the same check behind a different name — it
   // resolves the cookie session and returns null without one. tests/unit/worklog-api.test.ts
   // is what proves each work log route acts on that null instead of ignoring it.
+  // `reportSession` is phase 3's same-shaped helper for /api/reports/work/*, guarded by
+  // tests/unit/report-api.test.ts for the same reason.
   const authGated = (file: string) =>
-    /getCurrentUser|getSession|worklogSession|isSuperAdmin|requireSuperAdmin|requireRole|requireUser|requireAdmin|verifySession/.test(
+    /getCurrentUser|getSession|worklogSession|reportSession|isSuperAdmin|requireSuperAdmin|requireRole|requireUser|requireAdmin|verifySession/.test(
       codeOnly(src(file)),
     )
 
