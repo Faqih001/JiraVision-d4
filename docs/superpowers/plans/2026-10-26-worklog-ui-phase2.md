@@ -8494,6 +8494,9 @@ page, because a strip that also writes rows is two places to learn.
   `KIND_LABEL`, `formatMinutes` from `@/lib/worklog/entries`; `DISCIPLINE_LABEL`, `DISCIPLINE_COLOUR`
   from `@/lib/roles`; `localDay` from `@/lib/worklog/local-day`; `SectionCard`, `EmptyNote`;
   `Link` from `next/link`.
+  *(The query key is `v`, not `view` — see the As-shipped note. `SectionCard` and `EmptyNote` are
+  already imported by this page from `@/components/dashboard-kit`, and `DISCIPLINE_LABEL` is not
+  needed: the strip names the entry's kind, not its discipline.)*
 - Produces: `TodayStrip({ summary, loading, todayIso })` — a local component in the dashboard page,
   plus the `today` slot inside that page's existing `load()`.
 
@@ -8705,6 +8708,64 @@ git push
 Expected: 6 strip guards green, `/dashboard` at 16 sections (`≥15` owner rule holds), typecheck 0
 errors, lint 0 errors / 70 warnings. On the deployed page: log an entry on `/dashboard/worklog`,
 back to `/dashboard`, and it is in the strip with its kind and time.
+
+#### As shipped (2026-10-26, `4d9f24c`)
+
+Gates: 58/58 guards (6 new), typecheck 0 errors, lint 0 errors / 70 warnings, full suite 687 passed.
+
+**Seven corrections, the first of which would have made the guard pass on a lie.**
+
+1. **`?view=day` is not the route's grammar — `?v=day` is.** `parseViewState` reads `search.get("v")`,
+   so a `view` param is ignored entirely. And because `defaultViewState()` already sets
+   `view: "day"`, the ignored param would still return today: the guard would have gone green on a
+   fetch that asked for nothing. A request whose only distinguishing param the server does not read
+   is a claim the code cannot keep, so the fetch and its guard both say `?v=day`.
+
+2. **The plan's own snippet contradicted its reason for existing (Step 3).** It says the fetch runs
+   "in parallel with the two fetches it already runs, so a slow log endpoint cannot delay the sprint
+   data", then writes it as a third `await` *after* `if (!ovJson.success) throw`. That is serial, and
+   it also means a failed overview silently skips the strip read. Shipped inside the one
+   `Promise.all`: `const [ovRes, spRes, todayRes] = await Promise.all([…])`, which is what the new
+   guard asserts.
+
+3. **`await todayRes.json()` unguarded would let the log fail the dashboard.** A 500 with a non-JSON
+   body throws inside the same `try` whose `catch` toasts "Dashboard" — a work-log outage would be
+   announced as a dashboard failure, and `setToday` would never run. Shipped as
+   `await todayRes.json().catch(() => null)` and a `setToday(null)` in the `catch`, so a null summary
+   arrives as the strip's own "Could not read your log right now" branch with its link, and never
+   borrows the dashboard's error path.
+
+4. **`setTodayLoading(true)` belongs in `load()`, which Step 3 never said.** With only
+   `setTodayLoading(false)` in the `finally`, the flag is false forever after the first mount: a
+   manual Refresh (which calls `load()`) would show the *previous* day's numbers while it re-read,
+   which is the one state a preview must not present as current.
+
+5. **Guard 6 fails on the page as it already was.** `expect(dash()).not.toMatch(/placeholder|lorem/iu)`
+   reads the whole file, and `app/dashboard/page.tsx` has nine legitimate `placeholder` attributes —
+   the task search input, three `SelectValue`s, the task form's title and tags. The invariant is
+   "the strip invents nothing", so the guards read the strip's own body through a `strip()` slice
+   from `function TodayStrip(` to the default export. That ordering is now load-bearing for the
+   guard, and `TodayStrip` sits above `DashboardHome` accordingly.
+
+6. **The transitions line needed a cap the plan did not have.**
+   `summary.transitions.map((t) => t.toStatus).join(", ")` runs over up to 200 rows (`route.ts:51`),
+   so a heavy day would wrap a wall of status words across the strip. Shipped as four, with
+   `(+n more)`, which is the coverage chips' rule from Task 16: a cap stated in the copy. The same
+   reason dropped `day!.entries.length` for two locals, `dayRows` and `shown`, so both the "5 of 9"
+   line and the list read one number.
+
+7. **Two counts in "Expected" were wrong.** The page was not at 16 sections: it already numbered 19
+   (`{/* 1 — Greeting */}` through `{/* 18+19 — Ethical health + gamification */}`) across 14
+   `SectionCard`s plus the task table, so the `≥15` owner rule already held and the strip makes it
+   20. And `SectionCard`/`EmptyNote` are not Task 12 exports — the dashboard page already imported
+   both from `@/components/dashboard-kit`, which is where the work log's `sections.tsx` gets them too.
+
+**On "what a member sees first":** the plan puts the strip "at the top of the sections grid, before
+Sprint burndown", and that is where it went — but the page's own order above it is greeting, KPI
+cards, active-sprint strip, filter bar and the task table. Its rationale was comparative (today's log
+outranks the sprint trend), and it holds: the strip heads the analytics stack as its own full-width
+row. It is not the first card on `/dashboard`, and if it should be, the move is one line.
+
 
 ---
 
