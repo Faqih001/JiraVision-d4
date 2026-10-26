@@ -3,6 +3,7 @@ import { getSession } from "@/lib/auth-actions"
 import { getTaskById, updateTask, deleteTask } from "@/lib/data-access"
 import { pickTaskUpdates } from "@/lib/task-updates"
 import { createNotification } from "@/lib/notifications"
+import { captureStatusChanges } from "@/lib/worklog/capture"
 
 type Context = { params: Promise<{ id: string }> }
 
@@ -105,6 +106,13 @@ export async function PUT(
 
     // Update the task
     const updatedTask = await updateTask(id, updateData)
+
+    // The status history is the report's evidence, so it is written for every transition,
+    // including the ones that are not worth notifying anyone about.
+    await captureStatusChanges([existingTask], [updatedTask], {
+      actorId,
+      source: "route",
+    })
 
     // User-visible events push to the assignee's live bell feed.
     const notifyId = updatedTask.assigneeId ?? existingTask.assigneeId
