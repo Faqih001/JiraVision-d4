@@ -9105,4 +9105,104 @@ Visual QA is theirs (`i will do the test just implement`). The five things a tes
 
 ---
 
+#### As shipped (2026-10-26, `41d65f3`)
+
+Gates: the two sweep files now run 117 guards (52 in `worklog-api`, 65 in `worklog-page`), typecheck 0
+errors, lint 0 errors / 70 warnings, full suite **36 files / 711 tests** — the phase added nine test
+files and 225 cases to the 27 files / 486 tests phase 1 left. Step 8 is with the owner.
+
+**Ten corrections, and one file this task was not told to touch.**
+
+1. **`routesIn()`, not the plan's literal list (Step 1).** The sketch named seven files by hand and
+   asked `writers.length >= 5`. A list is a claim about the future: a seventh route added in phase 4
+   would not appear in it, so the sweep would keep passing while guarding less than it says. Shipped
+   on `routesIn("app/api/worklog")` (the helper the earlier per-route describes already used), which
+   asserts the six route files *by name and count* and then sweeps whatever is on disk; `_shared.ts` is
+   added to the stub/secret list separately because it exports no handler. `writers` is pinned to
+   exactly 5, and each writer is also held to `not.toMatch(/values\(\{?\s*\.\.\.body/)` — the spread-body
+   bug `lib/task-updates.ts` exists for is now refused at the route layer too.
+
+2. **The pure-module list was one short.** The sketch checked seven modules for a `lib/db` import;
+   `lib/worklog/task-events.ts` is the eighth that must stay DB-free (it is the rule, and the rule is
+   unit-tested without a connection string), and the sweep now also asserts positively that
+   `capture.ts` *does* import `@/lib/db`, so a move that made the writer DB-free would be caught as
+   the inversion it is.
+
+3. **The bulk-bar regex could not match the shipped JSX (Step 2).** `selection\.length > 0\s*&&\s*<BulkSection`
+   assumes one line and a variable called `selection`. The client reads `{selectedEntries.length > 0 && (`
+   then `<BulkSection` on the next line (`worklog-client.tsx:472`); `selection` is the *state* array of ids,
+   and `selectedEntries` is the memo of rows. Shipped as `/selectedEntries\.length > 0\s*&&\s*\(\s*<BulkSection/u`
+   — the `(` is part of the contract, because a `{cond && <X/>}` without the parens would break the multi-line props.
+
+4. **Four of the ten declared titles are not in `sections.tsx` (Step 2/Step 4).** The sketch read all ten
+   from one file. `TotalsSection`, `QuickAddSection`, `FilterSection` and `ViewToolbarSection` are defined in
+   `worklog-client.tsx` (`:585`, `:666`, `:756`, `:867`) because their bodies are the form state; only
+   sections 6–11 are cards in `sections.tsx`. So the guard parses `SECTION_TITLES` *out of the source*
+   (`/export const SECTION_TITLES = \[([\s\S]*?)\] as const/u`), requires the exact ten in order, then checks
+   each one against `title="…"` across both files. A literal list repeated in the test would have passed
+   against a page that renamed a card, which is the opposite of why the array exists.
+
+5. **`SECTION_TITLES` has no runtime reader, and now says so.** The comment in `sections.tsx:81` states that
+   the array is the declared inventory the guard compares with the cards. This is the one export in the phase
+   that React never calls, so it is written down rather than left to be discovered.
+
+6. **The nav label is `Work Log`, not `Work log`.** `components/dashboard-layout.tsx:244-247` carries
+   `title: "Work Log"` beside `href: "/dashboard/worklog"`, and the guard asserts both as the strings the
+   sidebar actually renders. A `/Work log/u` assertion would have failed on first run and been "fixed" by
+   someone renaming the nav item to satisfy a test.
+
+7. **The discipline/permission guard tested a field that does not exist.** `state.disciplines` is not a
+   thing — the URL carries one `discipline` (`view-state.ts:55`, `"all"` for the whole set), so
+   `not.toMatch(/if \(!state\.disciplines\.includes\(/u)` was permanently true. The shipped version asserts the
+   invariant from the server side (`entryFilters` opens with `eq(workLogEntries.userId, userId)` and the
+   discipline is *pushed after* it, never instead of it) and from the client side that no early return on
+   `state.discipline` hides or disables anything.
+
+8. **Every grid span in Step 4's inventory table was wrong for sections 1–4, and one for 7.** The table said
+   `TotalsSection` is `md:col-span-2 xl:col-span-3`. None of the first four cards carries a span at all — they
+   take one cell each of `md:grid-cols-2 xl:grid-cols-3`, which is why four of them fit above the log. The wide
+   cards are 5, 6, 11 and the bulk bar (`md:col-span-2 xl:col-span-3`, `sections.tsx:506/556/708/1010`),
+   `TransitionsSection` is `md:col-span-2` only (`:806`), and 8/9/10 are `md:col-span-2 xl:col-span-2`
+   (`:843/:902/:959`). The shipped table is read off the files. It also lists the two card titles that are
+   computed (`<view>` view, `Selected — n entries`), which the plan's table gave as fixed strings.
+
+9. **The known-debt count is 15, not seven.** Step 4 said "seven older `text-[hsl(var(--chart-*))]` call sites
+   across five pages". Measured on disk: **15 in eight files**, 11 of them on text (`team/page.tsx:196-197`,
+   `billing/page.tsx:561,858,859`, `ai-scrum-master/page.tsx:1144,1163`, `sprints/page.tsx:748,759`,
+   `gamification/add-skill/page.tsx:176`, `gamification/leaderboard/page.tsx:323`) and 4 on icons, where the
+   3:1 rule is the right one (`backlog/page.tsx:551,1085`, `gamification/page.tsx:515`, `sprints/page.tsx:1116`).
+   `DESIGN_SYSTEM.md` §2 records the real number and names the examples; unchanged in this phase, as planned.
+
+10. **Step 3's own sentence about CSV was a plan claim the code contradicts.** "CSV export of what is on
+    screen" reads as a range export. `exportCsv` is `entriesToCsv(selectedEntries)` and the only Export
+    button lives on `BulkSection`, which renders solely while rows are ticked — and there is no
+    select-all-in-range control anywhere. So FEATURES.md and spec §4 both now say *from the rows you
+    ticked*, and name a whole-range file as phase 5's. This is the one place the page exports less than it
+    shows, and it is written down rather than smoothed over.
+
+**Spec sync beyond Step 5's list.** §4's quick-add line still described the pre-build sketch — "optional
+`#minutes`, optional task search, optional discipline" — while `lib/worklog/quick-add.ts` accepts two
+tokens only (`#45`, and one of five kind sigils), refuses `#deliverable` with a pointer to the Convert
+button, and deliberately does not guess a task from a title. §4 also named `lib/reports/period.ts` for the
+timezone math; that module was never created — the day math shipped as `lib/worklog/local-day.ts` in
+Task 1, and `drizzle/schema.ts:465` carried the same stale pointer, so a comment in a file this task did
+not list as touched got corrected too. §13's "the five ids stay valid" sentence counted
+`preferences.workDisciplines` among them: nothing in `lib`, `app` or `components` reads or writes that key
+(it is what onboarding step 5 will create), so the claim is now only about the three real `varchar(40)`
+columns plus `tasks.discipline` — and the five ids were verified present in `WORK_DISCIPLINES` rather than
+assumed. Line references the phase moved got fixed in place: `isWorkDiscipline` `:97` → `:316`,
+`WORK_DISCIPLINES` `:49` → `:110`, `mergeSettings` `:54-65` → `:57-68`. §16 now marks **phase 1** shipped
+as well as phase 2 — the list had no marker for either, and a roadmap whose first row is indistinguishable
+from its last is not a status.
+
+**The `EmptySection` deletion, which is what the final sweep was for.** Task 13's As-shipped note said the
+card was "kept exported for Task 16's conditional sections"; Task 16 shipped without rendering it, so by
+Task 18 it was an exported component with no caller and an expired excuse. It is gone, `sections.tsx` has
+seven `EmptyNote` sites inside live cards instead, and the old `not.toMatch(/<EmptySection
+title="Coverage"\/>/)` — a guard against a thing that never happened — became a positive one for the copy
+that does (`Every day from {range.from} to {range.to} has something in it`). To stop the next one arriving,
+the sweep adds **"exports no component that nothing renders"**: every `export function` in `sections.tsx`
+and `dialogs.tsx` must be named more than once across the four page files. `export const` is out of scope
+by design, because a colour map or a declared inventory is data with a reader, not UI waiting for a caller.
+
 
