@@ -2728,8 +2728,8 @@ export async function PUT(request: NextRequest, context: Context) {
     if (updated.length === 0) return notFound("Entry not found")
 
     // Re-read for the joined task title: .returning() can only see this table.
-    const [row] = await loadOwned(numericId, session.id)
-    return NextResponse.json({ success: true, data: { entry: mapEntry(row ?? existing) } })
+    const refreshed = await loadOwned(numericId, session.id)
+    return NextResponse.json({ success: true, data: { entry: mapEntry(refreshed ?? existing) } })
   } catch (error) {
     if (isForeignKeyViolation(error)) return badRequest("That task or deliverable no longer exists.")
     return serverError(error, "update work log entry")
@@ -2771,7 +2771,15 @@ git add app/api/worklog/entries/\[id\]/route.ts tests/unit/worklog-api.test.ts
 git commit -m "feat(worklog): entry edit and delete routes with ownership in the where clause"
 git push
 ```
-Expected: 11 guard tests, typecheck 0 errors, lint 0 errors / 70 warnings.
+Expected: 15 guard tests (the 10 from Task 6, these 4, and the session-gating case this file
+now runs for a **second** route), typecheck 0 errors, lint 0 errors / 70 warnings.
+
+**As shipped (2026-10-26, `7c66fcd`) — one defect in the code above.** `loadOwned` returns
+`row ?? null`, a single row, but the re-read after the update destructured it
+(`const [row] = await loadOwned(...)`). `tsc` rejects it — TS2488, no `[Symbol.iterator]` —
+so the plan's own Step 4 gate was the thing that would have caught it. Named `refreshed` for
+the same reason the row route reads its value back rather than trusting `.returning()`.
+
 
 ---
 
