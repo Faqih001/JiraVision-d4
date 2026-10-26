@@ -162,3 +162,29 @@ describe("the single-report route", () => {
     expect(row()).toMatch(/cannot be deleted/u)
   })
 })
+
+describe("the recompute route", () => {
+  const recompute = () => src("app/api/reports/work/[id]/recompute/route.ts")
+
+  it("is POST-only — recomputing is an action, not a page load", () => {
+    expect(recompute()).toMatch(/export async function POST/u)
+    expect(codeOnly(recompute())).not.toMatch(/export async function (GET|PATCH|PUT|DELETE)/u)
+  })
+
+  it("recomputes only a draft", () => {
+    expect(recompute()).toMatch(/isDraft\(existing\.status\)/u)
+    expect(recompute()).toMatch(/locked/u)
+  })
+
+  it("falls back to the stored pair rather than inventing a period", () => {
+    // A hand-written row whose type does not match its dates still has real dates, and the
+    // honest answer is to report that span as a custom period instead of refusing.
+    expect(recompute()).toMatch(/resolvePeriod\("custom", existing\.periodStart/u)
+  })
+
+  it("writes the metrics column and nothing else", () => {
+    expect(recompute()).toMatch(/\.set\(\{ metrics: aggregate/u)
+    expect(codeOnly(recompute())).not.toMatch(/title:|content:/u)
+    expect(recompute()).toMatch(/\.returning\(reportColumns\)/u)
+  })
+})
