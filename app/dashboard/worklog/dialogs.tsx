@@ -29,14 +29,23 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import { isIsoDate } from "@/lib/worklog/local-day"
 import { DISCIPLINE_LABEL, WORK_DISCIPLINES, type WorkDiscipline } from "@/lib/roles"
 import {
+  DELIVERABLE_LABEL,
+  DELIVERABLE_LABEL_STATUS,
+  DELIVERABLE_STATUSES,
+  DELIVERABLE_TYPES,
   KIND_LABEL,
   WORK_LOG_KINDS,
+  canMoveDeliverable,
   type DeliverableDto,
+  type DeliverableStatus,
+  type DeliverableType,
   type EntryDto,
   type WorkLogKind,
 } from "@/lib/worklog/entries"
+import type { ViewState } from "@/lib/worklog/view-state"
 import { DisciplinePicker } from "./sections"
 import type { TaskOption } from "./worklog-client"
 
@@ -376,6 +385,282 @@ export function ConfirmBulkDelete({
             }}
           >
             {busy ? "Deleting…" : `Delete ${count}`}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  )
+}
+
+// A deliverable is the report's unit of proof, so the form asks for the link and the evidence in the
+// same breath as the name.
+export type DeliverableDraft = {
+  id: number | null
+  name: string
+  type: DeliverableType
+  status: DeliverableStatus
+  producedOn: string
+  link: string
+  evidence: string
+  taskId: string
+  discipline: ViewState["discipline"]
+}
+
+type DeliverableErrors = { name?: string; producedOn?: string; link?: string }
+
+export const EMPTY_DELIVERABLE: DeliverableDraft = {
+  id: null,
+  name: "",
+  type: "document",
+  status: "draft",
+  producedOn: "",
+  link: "",
+  evidence: "",
+  taskId: NONE,
+  discipline: "all",
+}
+
+export function toDeliverableDraft(d: DeliverableDto, todayIso: string): DeliverableDraft {
+  return {
+    id: d.id,
+    name: d.name,
+    type: d.type,
+    status: d.status,
+    producedOn: d.producedOn ?? todayIso,
+    link: d.link ?? "",
+    evidence: d.evidence ?? "",
+    taskId: d.taskId === null ? NONE : String(d.taskId),
+    discipline: d.discipline ?? "all",
+  }
+}
+
+export function DeliverableDialog({
+  draft,
+  tasks,
+  saving,
+  onOpenChange,
+  onSubmit,
+}: {
+  draft: DeliverableDraft
+  tasks: TaskOption[]
+  saving: boolean
+  onOpenChange: (open: boolean) => void
+  onSubmit: (draft: DeliverableDraft) => Promise<void>
+}) {
+  const [form, setForm] = useState<DeliverableDraft>(draft)
+  const [errors, setErrors] = useState<DeliverableErrors>({})
+
+  const set = (patch: Partial<DeliverableDraft>) => setForm((prev) => ({ ...prev, ...patch }))
+
+  // pickDeliverableUpdates refuses a jump the lifecycle forbids, so an edit dialog offering all
+  // four states is a control that fails on save. A new record may start anywhere: readDeliverable
+  // Create takes any valid status, because plenty of work is logged after it was already accepted.
+  const statusOptions = DELIVERABLE_STATUSES.filter(
+    (option) => form.id === null || option === draft.status || canMoveDeliverable(draft.status, option),
+  )
+
+  const validate = () => {
+    const next: DeliverableErrors = {}
+    if (form.name.trim().length < 2) next.name = "Name the thing that was handed over."
+    if (form.producedOn && !isIsoDate(form.producedOn)) next.producedOn = "Use the date picker."
+    const link = form.link.trim()
+    if (link && !/^https?:\/\//iu.test(link) && !link.startsWith("/")) {
+      next.link = "link must be an http(s) address or a path"
+    }
+    setErrors(next)
+    return Object.keys(next).length === 0
+  }
+
+  return (
+    <Dialog open onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="pr-8 text-base">
+            {form.id === null ? "New deliverable" : "Edit deliverable"}
+          </DialogTitle>
+          <DialogDescription className="text-xs">
+            A deliverable is the item itself — the rule set, the report, the working switch. The log
+            rows that describe getting it here stay in the log either way.
+          </DialogDescription>
+        </DialogHeader>
+
+        <form
+          className="space-y-3"
+          onSubmit={(event) => {
+            event.preventDefault()
+            if (validate()) void onSubmit(form)
+          }}
+        >
+          <div className="space-y-1.5">
+            <Label htmlFor="deliverable-name">Name</Label>
+            <Input
+              id="deliverable-name"
+              value={form.name}
+              aria-invalid={errors.name ? true : undefined}
+              aria-describedby={errors.name ? "deliverable-name-error" : undefined}
+              onChange={(event) => set({ name: event.target.value })}
+              placeholder="Firewall rule set v3"
+            />
+            {errors.name ? (
+              <p id="deliverable-name-error" className="text-[11px] text-destructive">
+                {errors.name}
+              </p>
+            ) : null}
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="deliverable-type">Type</Label>
+              <Select value={form.type} onValueChange={(value) => set({ type: value as DeliverableType })}>
+                <SelectTrigger id="deliverable-type" className="h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {DELIVERABLE_TYPES.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {DELIVERABLE_LABEL[option]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="deliverable-status">State</Label>
+              <Select
+                value={form.status}
+                onValueChange={(value) => set({ status: value as DeliverableStatus })}
+              >
+                <SelectTrigger id="deliverable-status" className="h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {statusOptions.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {DELIVERABLE_LABEL_STATUS[option]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="deliverable-produced">Produced on</Label>
+              <Input
+                id="deliverable-produced"
+                type="date"
+                value={form.producedOn}
+                aria-invalid={errors.producedOn ? true : undefined}
+                aria-describedby={errors.producedOn ? "deliverable-produced-error" : undefined}
+                onChange={(event) => set({ producedOn: event.target.value })}
+              />
+              {errors.producedOn ? (
+                <p id="deliverable-produced-error" className="text-[11px] text-destructive">
+                  {errors.producedOn}
+                </p>
+              ) : null}
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="deliverable-task">Task</Label>
+              <Select value={form.taskId} onValueChange={(value) => set({ taskId: value })}>
+                <SelectTrigger id="deliverable-task" className="h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NONE}>No task</SelectItem>
+                  {tasks.map((task) => (
+                    <SelectItem key={task.id} value={String(task.id)}>
+                      {task.title.slice(0, 44)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="deliverable-link">Link</Label>
+            <Input
+              id="deliverable-link"
+              value={form.link}
+              aria-invalid={errors.link ? true : undefined}
+              aria-describedby={errors.link ? "deliverable-link-error" : undefined}
+              onChange={(event) => set({ link: event.target.value })}
+              placeholder="https://… or /dashboard/tasks"
+            />
+            {errors.link ? (
+              <p id="deliverable-link-error" className="text-[11px] text-destructive">
+                {errors.link}
+              </p>
+            ) : null}
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="deliverable-evidence">Evidence note</Label>
+            <Textarea
+              id="deliverable-evidence"
+              rows={2}
+              value={form.evidence}
+              onChange={(event) => set({ evidence: event.target.value })}
+              placeholder="Where a reviewer would find it, and what proves it is the current version."
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <DisciplinePicker compact value={form.discipline} onChange={(discipline) => set({ discipline })} />
+          </div>
+
+          <DialogFooter className="gap-2 sm:justify-between">
+            <Button type="button" variant="ghost" size="sm" onClick={() => onOpenChange(false)} disabled={saving}>
+              Cancel
+            </Button>
+            <Button type="submit" size="sm" disabled={saving}>
+              {saving ? "Saving…" : form.id === null ? "Create deliverable" : "Save changes"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+export function ConfirmDeliverableDelete({
+  id,
+  name,
+  busy,
+  onOpenChange,
+  onConfirm,
+}: {
+  id: number | null
+  name: string | null
+  busy: boolean
+  onOpenChange: (open: boolean) => void
+  onConfirm: (id: number) => void
+}) {
+  return (
+    <AlertDialog open={id !== null} onOpenChange={onOpenChange}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle className="text-base">
+            {name ? `Delete "${name}"?` : "Delete this deliverable?"}
+          </AlertDialogTitle>
+          <AlertDialogDescription className="text-xs">
+            The record of a handed-over item is removed. The log entries that describe the work stay
+            in your log — they are yours either way.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter className="gap-2">
+          <AlertDialogCancel disabled={busy}>Keep it</AlertDialogCancel>
+          <AlertDialogAction
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            disabled={busy || id === null}
+            onClick={(event) => {
+              event.preventDefault()
+              if (id !== null) onConfirm(id)
+            }}
+          >
+            {busy ? "Deleting…" : "Delete deliverable"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

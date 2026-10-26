@@ -6,7 +6,33 @@
 // among 75 options and is deliberately never sent anywhere.
 
 import { useState } from "react"
-import { CalendarDays, Download, FileStack, Link2, Plus, Trash2, X } from "lucide-react"
+import {
+  ArrowRight,
+  CalendarCheck2,
+  CalendarDays,
+  ChartPie,
+  Download,
+  ExternalLink,
+  FileStack,
+  FolderKanban,
+  GitBranch,
+  Link2,
+  Pencil,
+  Plus,
+  Shapes,
+  Timer,
+  Trash2,
+  X,
+} from "lucide-react"
+import {
+  Bar,
+  BarChart,
+  Cell,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -14,22 +40,33 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { EmptyNote, SectionCard } from "@/components/dashboard-kit"
+import { rangeDays } from "@/lib/worklog/local-day"
 import {
+  DELIVERABLE_LABEL,
+  DELIVERABLE_LABEL_STATUS,
+  DELIVERABLE_NEXT,
   KIND_COLOUR,
   KIND_LABEL,
   WORK_LOG_KINDS,
   formatMinutes,
   minutesTotal,
   type DayBucket,
+  type DeliverableDto,
+  type DeliverableStatus,
+  type DisciplineBucket,
   type EntryDto,
+  type KindBucket,
+  type TaskBucket,
   type WorkLogKind,
 } from "@/lib/worklog/entries"
 import { BULK_SETTABLE_KINDS, type BulkAction } from "@/lib/worklog/bulk"
+import type { TransitionDto } from "@/lib/worklog/summary"
 import { VIEW_LABEL, type ViewState, type WorklogView } from "@/lib/worklog/view-state"
 import {
   DISCIPLINE_CATEGORIES,
   DISCIPLINE_CATEGORY,
   DISCIPLINE_CATEGORY_LABEL,
+  DISCIPLINE_COLOUR,
   DISCIPLINE_LABEL,
   disciplinesInCategory,
   type DisciplineCategory,
@@ -353,7 +390,7 @@ function BoardBody({ days, actions }: { days: DayBucket[]; actions: RowActions }
           <div className="flex items-center justify-between gap-2">
             <KindBadge kind={kind} />
             <span className="text-[11px] tabular-nums text-muted-foreground">
-              {rows.length} · {formatMinutes(rows.reduce((sum, e) => sum + (e.minutes ?? 0), 0))}
+              {rows.length} · {formatMinutes(minutesTotal(rows))}
             </span>
           </div>
           {rows.length === 0 ? (
@@ -620,6 +657,379 @@ export function BulkSection({
           {formatMinutes(minutesTotal(selected))} in the selection
         </span>
       </div>
+    </SectionCard>
+  )
+}
+
+export function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-border/60 bg-background/40 px-3 py-2">
+      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className="text-lg font-semibold tabular-nums">{value}</p>
+    </div>
+  )
+}
+
+export function DeliverablesSection({
+  deliverables,
+  loading,
+  onNew,
+  onEdit,
+  onMove,
+  onDelete,
+}: {
+  deliverables: DeliverableDto[]
+  loading: boolean
+  onNew: () => void
+  onEdit: (deliverable: DeliverableDto) => void
+  onMove: (deliverable: DeliverableDto, status: DeliverableStatus) => void
+  onDelete: (id: number) => void
+}) {
+  return (
+    <SectionCard
+      title="Deliverables"
+      icon={<FolderKanban className="h-4 w-4" />}
+      className="md:col-span-2 xl:col-span-3"
+      action={
+        <Button variant="outline" size="sm" className="h-7 text-xs" onClick={onNew}>
+          <Plus className="h-3.5 w-3.5" aria-hidden />
+          Add one
+        </Button>
+      }
+    >
+      {loading ? (
+        <div className="space-y-2">
+          <Skeleton className="h-16 w-full" />
+          <Skeleton className="h-16 w-full" />
+        </div>
+      ) : deliverables.length === 0 ? (
+        <EmptyNote>
+          Nothing on file for this range. Convert a log row with the bulk bar, or add one here — a
+          deliverable is what you handed over; the rows under it are the evidence.
+        </EmptyNote>
+      ) : (
+        <ul className="divide-y divide-border">
+          {deliverables.map((d) => (
+            <li key={d.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 py-2 first:pt-0 last:pb-0">
+              <span
+                className="h-2 w-2 shrink-0 rounded-full"
+                style={{
+                  background: d.discipline ? DISCIPLINE_COLOUR[d.discipline] : "hsl(var(--muted-foreground))",
+                }}
+                aria-hidden
+              />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium">{d.name}</p>
+                <p className="text-[11px] text-muted-foreground">
+                  {DELIVERABLE_LABEL_STATUS[d.status]} · {DELIVERABLE_LABEL[d.type]}
+                  {d.producedOn ? ` · ${d.producedOn}` : ""}
+                  {d.taskTitle ? ` · ${d.taskTitle}` : ""} · {d.entryCount}{" "}
+                  {d.entryCount === 1 ? "entry" : "entries"}
+                  {d.discipline ? ` · ${DISCIPLINE_LABEL[d.discipline]}` : ""}
+                </p>
+              </div>
+              {d.link ? (
+                <a
+                  href={d.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-[11px] text-muted-foreground underline-offset-2 hover:underline"
+                >
+                  <ExternalLink className="h-3 w-3" aria-hidden />
+                  Open
+                </a>
+              ) : null}
+              {/* The only buttons rendered are the ones the lifecycle allows from this row's own
+                  status, so a `delivered` deliverable shows none — there is no way back, and the
+                  board does not pretend there is. */}
+              {DELIVERABLE_NEXT[d.status].map((next) => (
+                <Button
+                  key={next}
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs"
+                  onClick={() => onMove(d, next)}
+                >
+                  <ArrowRight className="h-3 w-3" aria-hidden />
+                  {DELIVERABLE_LABEL_STATUS[next]}
+                </Button>
+              ))}
+              <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => onEdit(d)}>
+                <Pencil className="h-3.5 w-3.5" aria-hidden />
+                <span className="sr-only">Edit {d.name}</span>
+              </Button>
+              <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => onDelete(d.id)}>
+                <Trash2 className="h-3.5 w-3.5" aria-hidden />
+                <span className="sr-only">Delete {d.name}</span>
+              </Button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </SectionCard>
+  )
+}
+
+// Source is shown because an automatic capture and a hand-written log row carry different weight in
+// a report, and the member is entitled to know which one they are looking at.
+const SOURCE_LABEL: Record<string, string> = {
+  route: "edited on the task",
+  bulk: "bulk change",
+  agent: "from an assistant",
+  auto: "captured automatically",
+}
+
+export function TransitionsSection({
+  transitions,
+  loading,
+}: {
+  transitions: TransitionDto[]
+  loading: boolean
+}) {
+  return (
+    <SectionCard title="Status changes" icon={<GitBranch className="h-4 w-4" />} className="md:col-span-2">
+      {loading ? (
+        <Skeleton className="h-24 w-full" />
+      ) : transitions.length === 0 ? (
+        <EmptyNote>
+          No task moved status in this range. Moving one on the task page writes its row here —
+          nothing has to be logged by hand for this section to fill.
+        </EmptyNote>
+      ) : (
+        <ol className="space-y-2">
+          {transitions.map((t) => (
+            <li key={t.id} className="flex flex-wrap items-baseline gap-x-2 text-xs">
+              <span className="tabular-nums text-muted-foreground">{t.at.slice(11, 16)}</span>
+              <span className="font-medium">{t.taskTitle ?? "a task"}</span>
+              <span className="text-muted-foreground">
+                {t.fromStatus ?? "—"} <ArrowRight className="inline h-3 w-3" aria-hidden /> {t.toStatus}
+              </span>
+              <span className="text-[11px] text-muted-foreground/80">{SOURCE_LABEL[t.source] ?? t.source}</span>
+            </li>
+          ))}
+        </ol>
+      )}
+    </SectionCard>
+  )
+}
+
+export function TimeByTaskSection({
+  tasks,
+  loading,
+  totalMinutes,
+}: {
+  tasks: TaskBucket[]
+  loading: boolean
+  totalMinutes: number
+}) {
+  const rows = tasks.slice(0, 8)
+  return (
+    <SectionCard title="Time by task" icon={<Timer className="h-4 w-4" />} className="md:col-span-2 xl:col-span-2">
+      {loading ? (
+        <Skeleton className="h-24 w-full" />
+      ) : rows.length === 0 ? (
+        <EmptyNote>Nothing logged against a task yet in this range.</EmptyNote>
+      ) : (
+        <ul className="space-y-1.5">
+          {rows.map((task) => {
+            // The share is a reading of the server's own minute totals, never a re-add of the rows.
+            const share = totalMinutes > 0 ? Math.round((task.minutes / totalMinutes) * 100) : 0
+            return (
+              <li key={task.taskId ?? "unlinked"} className="space-y-1">
+                <div className="flex items-baseline justify-between gap-2 text-xs">
+                  <span className="min-w-0 truncate">{task.taskTitle ?? "Unlinked entries"}</span>
+                  <span className="shrink-0 tabular-nums text-muted-foreground">
+                    {formatMinutes(task.minutes)} · {share}%
+                  </span>
+                </div>
+                <div
+                  className="h-1.5 rounded-full bg-muted"
+                  role="img"
+                  aria-label={`${task.taskTitle ?? "Unlinked"}: ${formatMinutes(task.minutes)}, ${share}% of the range`}
+                >
+                  <div
+                    className="h-1.5 rounded-full"
+                    style={{ width: `${Math.max(share, 2)}%`, background: "hsl(var(--chart-pine))" }}
+                  />
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  {task.entries.length} {task.entries.length === 1 ? "entry" : "entries"}
+                </p>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+    </SectionCard>
+  )
+}
+
+export function DisciplineSplitSection({
+  disciplines,
+  loading,
+  totalMinutes,
+}: {
+  disciplines: DisciplineBucket[]
+  loading: boolean
+  totalMinutes: number
+}) {
+  const data = disciplines.map((row) => ({
+    name: DISCIPLINE_LABEL[row.discipline],
+    minutes: row.minutes,
+    count: row.count,
+    fill: DISCIPLINE_COLOUR[row.discipline],
+  }))
+  return (
+    <SectionCard
+      title="Where the time went"
+      icon={<ChartPie className="h-4 w-4" />}
+      className="md:col-span-2 xl:col-span-2"
+    >
+      {loading ? (
+        <Skeleton className="h-40 w-full" />
+      ) : data.length === 0 ? (
+        <EmptyNote>
+          No classified minutes in this range. A discipline is set on the entry form; unclassified
+          work still shows in the log, it just cannot be split.
+        </EmptyNote>
+      ) : (
+        <>
+          <ResponsiveContainer width="100%" height={170}>
+            <BarChart data={data} layout="vertical" margin={{ left: 8, right: 12 }}>
+              <XAxis type="number" hide />
+              <YAxis type="category" dataKey="name" width={110} tick={{ fontSize: 11 }} />
+              <Tooltip
+                formatter={(value, name) =>
+                  name === "minutes"
+                    ? [formatMinutes(Number(value)), "time"]
+                    : [String(value), String(name)]
+                }
+                contentStyle={{
+                  background: "hsl(var(--popover))",
+                  border: "1px solid hsl(var(--border))",
+                  fontSize: 11,
+                }}
+              />
+              <Bar dataKey="minutes" radius={[0, 3, 3, 0]}>
+                {data.map((cell) => (
+                  <Cell key={cell.name} fill={cell.fill} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+          <p className="text-[11px] text-muted-foreground">
+            {formatMinutes(totalMinutes)} classified across {data.length}{" "}
+            {data.length === 1 ? "discipline" : "disciplines"}
+          </p>
+        </>
+      )}
+    </SectionCard>
+  )
+}
+
+export function KindMixSection({
+  kinds,
+  openBlockers,
+  loading,
+}: {
+  kinds: KindBucket[]
+  openBlockers: number
+  loading: boolean
+}) {
+  return (
+    <SectionCard
+      title="Mix of work"
+      icon={<Shapes className="h-4 w-4" />}
+      className="md:col-span-2 xl:col-span-2"
+      action={
+        openBlockers > 0 ? (
+          <span className="text-[11px] font-medium text-destructive">
+            {openBlockers} open {openBlockers === 1 ? "blocker" : "blockers"}
+          </span>
+        ) : null
+      }
+    >
+      {loading ? (
+        <Skeleton className="h-24 w-full" />
+      ) : (
+        <ul className="grid gap-1.5 sm:grid-cols-2">
+          {kinds.map((k) => (
+            <li key={k.kind} className="flex items-center gap-2 text-xs">
+              <span
+                className="h-2 w-2 shrink-0 rounded-full"
+                style={{ background: KIND_COLOUR[k.kind] }}
+                aria-hidden
+              />
+              <span className="min-w-0 flex-1 truncate">{k.label}</span>
+              <span className="tabular-nums text-muted-foreground">
+                {k.count} · {formatMinutes(k.minutes)}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </SectionCard>
+  )
+}
+
+export function CoverageSection({
+  gaps,
+  streak,
+  unlinked,
+  totals,
+  range,
+  loading,
+  onPickDay,
+}: {
+  gaps: string[]
+  streak: { current: number; longest: number }
+  unlinked: number
+  totals: { entries: number; minutes: number; activeDays: number }
+  range: { from: string; to: string }
+  loading: boolean
+  onPickDay: (day: string) => void
+}) {
+  const spanned = rangeDays(range.from, range.to).length
+  return (
+    <SectionCard title="Coverage" icon={<CalendarCheck2 className="h-4 w-4" />} className="md:col-span-2 xl:col-span-3">
+      {loading ? (
+        <Skeleton className="h-20 w-full" />
+      ) : (
+        <div className="space-y-3">
+          <div className="flex flex-wrap gap-2">
+            <Stat label="Days logged" value={`${totals.activeDays} of ${spanned}`} />
+            <Stat label="Current streak" value={`${streak.current} ${streak.current === 1 ? "day" : "days"}`} />
+            <Stat label="Longest streak" value={`${streak.longest} ${streak.longest === 1 ? "day" : "days"}`} />
+            <Stat label="Unlinked entries" value={String(unlinked)} />
+          </div>
+          {gaps.length === 0 ? (
+            <p className="text-xs text-muted-foreground">
+              Every day from {range.from} to {range.to} has something in it.
+            </p>
+          ) : (
+            <div className="space-y-1.5">
+              <p className="text-xs text-muted-foreground">
+                {Math.min(gaps.length, 21)} of {gaps.length}{" "}
+                {gaps.length === 1 ? "day" : "days"} with no entry in this range — select one to
+                fill it:
+              </p>
+              <div className="flex flex-wrap gap-1">
+                {gaps.slice(0, 21).map((day) => (
+                  <Button
+                    key={day}
+                    variant="outline"
+                    size="sm"
+                    className="h-7 px-2 text-[11px] tabular-nums"
+                    onClick={() => onPickDay(day)}
+                  >
+                    {day.slice(5)}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </SectionCard>
   )
 }

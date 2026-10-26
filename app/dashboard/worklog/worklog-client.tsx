@@ -51,8 +51,30 @@ import {
   type ViewState,
   type WorklogView,
 } from "@/lib/worklog/view-state"
-import { BulkSection, DisciplinePicker, LogSection } from "./sections"
-import { ConfirmBulkDelete, ConfirmDelete, EntryDialog, toDraft, type EntryDraft } from "./dialogs"
+import {
+  BulkSection,
+  CoverageSection,
+  DisciplinePicker,
+  DisciplineSplitSection,
+  DeliverablesSection,
+  KindMixSection,
+  LogSection,
+  Stat,
+  TimeByTaskSection,
+  TransitionsSection,
+} from "./sections"
+import {
+  ConfirmBulkDelete,
+  ConfirmDelete,
+  ConfirmDeliverableDelete,
+  DeliverableDialog,
+  EMPTY_DELIVERABLE,
+  EntryDialog,
+  toDeliverableDraft,
+  toDraft,
+  type DeliverableDraft,
+  type EntryDraft,
+} from "./dialogs"
 
 export type TaskOption = { id: number; title: string }
 
@@ -86,6 +108,8 @@ export default function WorklogClient() {
   const [draft, setDraft] = useState<EntryDraft | null>(null)
   const [pendingDelete, setPendingDelete] = useState<EntryDto | null>(null)
   const [pendingBulkDelete, setPendingBulkDelete] = useState(false)
+  const [deliverableDraft, setDeliverableDraft] = useState<DeliverableDraft | null>(null)
+  const [pendingDeliverableDelete, setPendingDeliverableDelete] = useState<number | null>(null)
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
@@ -175,6 +199,7 @@ export default function WorklogClient() {
   // The bulk route is one path for six actions, so the bar, the row's Convert and the batch
   // delete all post to the same place.
   const bulkUrl = "/api/worklog/entries/bulk"
+  const deliverableBase = "/api/worklog/deliverables"
 
   const range = resolveRange(state, todayIso)
   // Every body reads the summary's own buckets: the list and the totals above it are the same
@@ -331,6 +356,82 @@ export default function WorklogClient() {
     toast({ title: "CSV exported", description: `${selectedEntries.length} entries` })
   }, [range.from, range.to, selectedEntries, toast])
 
+  // A deliverable is a noun with its own lifecycle, so it saves through its own route rather than
+  // as a side effect of an entry. `producedOn` empty means "not dated", which the server stores
+  // as null — same as a link or evidence note nobody filled in.
+  const saveDeliverable = useCallback(
+    async (value: DeliverableDraft) => {
+      const payload = {
+        name: value.name.trim(),
+        type: value.type,
+        status: value.status,
+        producedOn: value.producedOn.trim() === "" ? null : value.producedOn,
+        link: value.link.trim() === "" ? null : value.link.trim(),
+        evidence: value.evidence.trim() === "" ? null : value.evidence,
+        taskId: value.taskId === "none" ? null : Number(value.taskId),
+        discipline: value.discipline === "all" ? null : value.discipline,
+      }
+      setBusy(true)
+      const error =
+        value.id === null
+          ? await mutate(deliverableBase, { method: "POST", body: JSON.stringify(payload) })
+          : await mutate(`${deliverableBase}/${value.id}`, { method: "PUT", body: JSON.stringify(payload) })
+      setBusy(false)
+      if (error) {
+        toast({ variant: "destructive", title: "Deliverable", description: error })
+        return
+      }
+      setDeliverableDraft(null)
+      await refresh()
+      toast({
+        title: value.id === null ? "Deliverable created" : "Deliverable updated",
+        description: payload.name,
+      })
+    },
+    [mutate, refresh, toast],
+  )
+
+  const moveDeliverable = useCallback(
+    async (d: DeliverableDto, status: DeliverableStatus) => {
+      setBusy(true)
+      // Only the state travels: the whitelist on the route refuses a jump the lifecycle forbids,
+      // so a tab left open since before the last move gets a readable error instead of a bad row.
+      const error = await mutate(`${deliverableBase}/${d.id}`, {
+        method: "PUT",
+        body: JSON.stringify({ status }),
+      })
+      setBusy(false)
+      if (error) {
+        toast({ variant: "destructive", title: "Deliverable state", description: error })
+        return
+      }
+      await refresh()
+      toast({ title: "Deliverable moved", description: `${d.name} → ${DELIVERABLE_LABEL_STATUS[status]}` })
+    },
+    [mutate, refresh, toast],
+  )
+
+  const deleteDeliverable = useCallback(
+    async (id: number) => {
+      setBusy(true)
+      const error = await mutate(`${deliverableBase}/${id}`, { method: "DELETE" })
+      setBusy(false)
+      if (error) {
+        toast({ variant: "destructive", title: "Delete deliverable", description: error })
+        return
+      }
+      setPendingDeliverableDelete(null)
+      await refresh()
+      toast({ title: "Deliverable deleted", description: "Its log entries stay in the log." })
+    },
+    [mutate, refresh, toast],
+  )
+
+  const pendingDeliverableName =
+    pendingDeliverableDelete === null
+      ? null
+      : (deliverables.find((d) => d.id === pendingDeliverableDelete)?.name ?? null)
+
   return (
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
       <TotalsSection summary={summary} loading={loading} range={range} todayIso={todayIso} />
@@ -379,6 +480,51 @@ export default function WorklogClient() {
           onClear={() => setSelection([])}
         />
       )}
+      <DeliverablesSection
+        deliverables={deliverables}
+        loading={loading}
+        onNew={() => setDeliverableDraft({ ...EMPTY_DELIVERABLE, producedOn: state.day })}
+        onEdit={(d) => setDeliverableDraft(toDeliverableDraft(d, todayIso))}
+        onMove={(d, status) => void moveDeliverable(d, status)}
+        onDelete={setPendingDeliverableDelete}
+      />
+      <TransitionsSection transitions={summary?.transitions ?? []} loading={loading} />
+      <TimeByTaskSection
+        tasks={summary?.tasks ?? []}
+        loading={loading}
+        totalMinutes={summary?.totals.minutes ?? 0}
+      />
+      <DisciplineSplitSection
+        disciplines={summary?.disciplines ?? []}
+        loading={loading}
+        totalMinutes={summary?.totals.minutes ?? 0}
+      />
+      <KindMixSection
+        kinds={summary?.kinds ?? []}
+        openBlockers={summary?.openBlockers ?? 0}
+        loading={loading}
+      />
+      <CoverageSection
+        gaps={summary?.gaps ?? []}
+        streak={summary?.streak ?? { current: 0, longest: 0 }}
+        unlinked={summary?.unlinked ?? 0}
+        totals={summary?.totals ?? { entries: 0, minutes: 0, activeDays: 0 }}
+        range={range}
+        loading={loading}
+        onPickDay={(day) => patchState({ day, view: "day" })}
+      />
+      {deliverableDraft !== null ? (
+        <DeliverableDialog
+          key={deliverableDraft.id ?? "new"}
+          draft={deliverableDraft}
+          tasks={tasks}
+          saving={busy}
+          onOpenChange={(open) => {
+            if (!open) setDeliverableDraft(null)
+          }}
+          onSubmit={saveDeliverable}
+        />
+      ) : null}
       {draft !== null ? (
         <EntryDialog
           key={draft.id ?? "new"}
@@ -400,6 +546,15 @@ export default function WorklogClient() {
           if (!open) setPendingDelete(null)
         }}
         onConfirm={(entry) => void deleteEntry(entry)}
+      />
+      <ConfirmDeliverableDelete
+        id={pendingDeliverableDelete}
+        name={pendingDeliverableName}
+        busy={busy}
+        onOpenChange={(open) => {
+          if (!open) setPendingDeliverableDelete(null)
+        }}
+        onConfirm={(id) => void deleteDeliverable(id)}
       />
       <ConfirmBulkDelete
         count={selectedEntries.length}
@@ -458,15 +613,6 @@ function TotalsSection({
         </div>
       )}
     </SectionCard>
-  )
-}
-
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg border border-border/60 bg-background/40 px-3 py-2">
-      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className="text-lg font-semibold tabular-nums">{value}</p>
-    </div>
   )
 }
 

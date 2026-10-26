@@ -346,3 +346,114 @@ describe("bulk bar", () => {
     expect(code).not.toMatch(/selected\.filter/u)
   })
 })
+
+describe("sections 6 to 11", () => {
+  const client = () => src("app/dashboard/worklog/worklog-client.tsx")
+  const sections = () => src("app/dashboard/worklog/sections.tsx")
+  const dialogs = () => src("app/dashboard/worklog/dialogs.tsx")
+
+  it("renders the eleven numbered sections in one order", () => {
+    const code = client()
+    for (const name of [
+      "TotalsSection",
+      "QuickAddSection",
+      "FilterSection",
+      "ViewToolbarSection",
+      "LogSection",
+      "DeliverablesSection",
+      "TransitionsSection",
+      "TimeByTaskSection",
+      "DisciplineSplitSection",
+      "KindMixSection",
+      "CoverageSection",
+    ]) {
+      expect(code).toMatch(new RegExp(`<${name}\\b`, "u"))
+    }
+  })
+
+  it("drives the deliverable buttons from the lifecycle map, not literals", () => {
+    // The board only offers forward moves, so it reads the map directly. The dialog needs the
+    // row's own state kept selectable (saving a name must not count as a move), which the shared
+    // predicate gives it — so canMoveDeliverable belongs to dialogs.tsx, not here.
+    const code = sections()
+    expect(code).toMatch(/DELIVERABLE_NEXT\[d\.status\]/u)
+    expect(code).not.toMatch(/status === "draft" \? "in_review"/u)
+  })
+
+  it("links a deliverable to its own edit and delete actions", () => {
+    expect(sections()).toMatch(/onClick=\{\(\) => onEdit\(d\)\}/u)
+    expect(sections()).toMatch(/onClick=\{\(\) => onDelete\(d\.id\)\}/u)
+    // The client mutates through `mutate`, whose first argument is the path built from
+    // `deliverableBase`, so the guard reads that string rather than a literal fetch.
+    const code = client()
+    expect(code).toMatch(/const deliverableBase = "\/api\/worklog\/deliverables"/u)
+    expect(code).toMatch(/`\$\{deliverableBase\}\/\$\{value\.id\}`/u)
+    expect(code).toMatch(/`\$\{deliverableBase\}\/\$\{d\.id\}`/u)
+    expect(code).toMatch(/`\$\{deliverableBase\}\/\$\{id\}`/u)
+  })
+
+  it("colours charts from the shared maps", () => {
+    const code = sections()
+    expect(code).toMatch(/DISCIPLINE_COLOUR\[row\.discipline\]/u)
+    expect(code).toMatch(/KIND_COLOUR\[k\.kind\]/u)
+    expect(code).not.toMatch(/fill="#[0-9a-f]{3,6}"/iu)
+  })
+
+  it("never draws a bar from a number it worked out itself", () => {
+    // Bucket minutes arrive computed by the summary route; a local re-add would be a second
+    // arithmetic over the same rows, and the two would drift the day a kind stops counting.
+    // The one shared addition is minutesTotal(), which is a call, not a loop.
+    const code = sections()
+    expect(code).toMatch(/disciplines: DisciplineBucket\[\]/u)
+    expect(code).not.toMatch(/\.reduce\(/u)
+  })
+
+  it("surfaces a gap by name with a way to fill it", () => {
+    const code = sections()
+    expect(code).toMatch(/onPickDay/u)
+    expect(code).toMatch(/gaps\.length === 0/u)
+    expect(code).not.toMatch(/<EmptySection title="Coverage"\/>/u)
+    // The cap is in the copy, not silent: a year-long filter shows it stopped counting.
+    expect(code).toMatch(/gaps\.slice\(0, 21\)/u)
+  })
+
+  it("keeps every transition row honest about where it came from", () => {
+    const code = sections()
+    expect(code).toMatch(/SOURCE_LABEL\[t\.source\]/u)
+    expect(code).toMatch(/captured automatically/u)
+  })
+
+  it("offers only the states the lifecycle allows from the row's own", () => {
+    // pickDeliverableUpdates refuses an illegal jump, so a State select over all four statuses
+    // would be a control that fails on save — the same trap as the bar's Reclassify.
+    const code = dialogs()
+    expect(code).toMatch(/statusOptions/u)
+    expect(code).toMatch(/canMoveDeliverable\(draft\.status, option\)/u)
+    expect(code).not.toMatch(/DELIVERABLE_STATUSES\.map/u)
+  })
+
+  it("accepts the links the server accepts", () => {
+    // readLink takes an http(s) address *or* a root-relative path. A client rule of
+    // "must start with https://" would reject a valid in-app link before the request is sent.
+    const code = dialogs()
+    expect(code).toMatch(/startsWith\("\/"\)/u)
+    expect(code).toMatch(/link must be an http\(s\) address or a path/u)
+  })
+
+  it("has no dead control in the new sections", () => {
+    const code = `${sections()}${client()}`
+    expect(code).not.toMatch(/href="#"/u)
+    expect(code).not.toMatch(/onClick=\{\(\) => \{\}\}/u)
+    expect(code).not.toMatch(/console\.log/u)
+  })
+
+  it("gives every new input a label and seeds the dialog by remount", () => {
+    const code = dialogs()
+    expect(code).toMatch(/<Label htmlFor="deliverable-name"/u)
+    expect(code).toMatch(/<Label htmlFor="deliverable-link"/u)
+    expect(code).toMatch(/<Label htmlFor="deliverable-status"/u)
+    expect(code).toMatch(/useState<DeliverableDraft>\(draft\)/u)
+    expect(code).not.toMatch(/onDraftChange/u)
+    expect(client()).toMatch(/key=\{deliverableDraft\.id \?\? "new"\}/u)
+  })
+})
