@@ -3,6 +3,7 @@ import { getSession } from "@/lib/auth-actions"
 import { db } from "@/lib/db"
 import { tasks } from "@/drizzle/schema"
 import { pickTaskUpdates } from "@/lib/task-updates"
+import { captureStatusChanges } from "@/lib/worklog/capture"
 import { eq, and, inArray } from "drizzle-orm"
 
 // POST handler for /api/tasks/bulk - Performs bulk actions on multiple tasks
@@ -62,19 +63,33 @@ export async function POST(request: Request) {
           ...updates.patch,
           updatedAt: new Date()
         }
-        
+
+        // Read the pre-write statuses first: after the UPDATE they are gone, and drizzle's
+        // .returning() gives only the new values. One query, then one event insert.
+        const beforeRows = await db
+          .select({ id: tasks.id, status: tasks.status })
+          .from(tasks)
+          .where(inArray(tasks.id, numericTaskIds))
+
         // Update all specified tasks
         result = await db
           .update(tasks)
           .set(dataWithTimestamp)
           .where(inArray(tasks.id, numericTaskIds))
           .returning()
-        
+
+        await captureStatusChanges(beforeRows, result, {
+          actorId: session.id,
+          source: "bulk",
+        })
+
         break
       }
       
       case 'delete':
-        // Delete all specified tasks
+        // No task_events row here on purpose: task_events.task_id cascades, so an event
+        // about a deleted task is deleted with it. Creation is tasks.created_at; deletion
+        // is the notifications feed (see the DELETE /api/tasks/[id] handler).
         result = await db
           .delete(tasks)
           .where(inArray(tasks.id, numericTaskIds))
