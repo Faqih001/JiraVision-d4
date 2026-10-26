@@ -34,6 +34,7 @@ import {
   ClipboardList,
   CreditCard,
   FileSpreadsheet,
+  FileText,
   Gamepad2,
   Heart,
   Home,
@@ -245,6 +246,12 @@ export default function DashboardLayout({
           icon: <CalendarCheck className="h-5 w-5" />,
           href: "/dashboard/worklog",
           active: pathname === "/dashboard/worklog",
+        },
+        {
+          title: "Work Reports",
+          icon: <FileText className="h-5 w-5" />,
+          href: "/dashboard/reports-work",
+          active: pathname === "/dashboard/reports-work",
         },
         {
           title: "Backlog",

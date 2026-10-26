@@ -12,6 +12,7 @@ import {
   type ReportTemplate,
 } from "./templates"
 import type { ReportAggregate } from "./aggregate"
+import type { ReportDto } from "./report-fields"
 
 export const REPORT_VIEWS = ["list", "build"] as const
 export type ReportView = (typeof REPORT_VIEWS)[number]
@@ -118,4 +119,20 @@ export function effectiveTemplate(state: ReportState, aggregate: ReportAggregate
   if (state.template !== AUTO_TEMPLATE) return state.template
   const leading = aggregate?.byDiscipline[0]?.key
   return templateForDiscipline(leading && leading !== "unassigned" ? leading : null)
+}
+
+/**
+ * Which numbers the builder renders. A saved draft shows the snapshot it was saved with, so the
+ * figures always match the prose written beside them; anything else shows the live preview and
+ * says so. This is one line of logic, but it is the line that decides what a report claims.
+ */
+export type MetricsSource = "snapshot" | "live"
+
+export function metricsSource(report: ReportDto | null): MetricsSource {
+  return report?.metrics ? "snapshot" : "live"
+}
+
+export const SOURCE_LABEL: Record<MetricsSource, string> = {
+  snapshot: "Figures as saved",
+  live: "Live preview — not saved yet",
 }

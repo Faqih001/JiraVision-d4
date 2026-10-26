@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest"
 import {
   AUTO_TEMPLATE,
+  SOURCE_LABEL,
   defaultReportState,
   effectiveTemplate,
+  metricsSource,
   parseReportView,
   resolveReportPeriod,
   serializeReportView,
@@ -132,5 +134,23 @@ describe("effectiveTemplate", () => {
     expect(effectiveTemplate(defaultReportState(TODAY), null)).toBe("general")
     expect(effectiveTemplate(defaultReportState(TODAY), aggregate(null))).toBe("general")
     expect(effectiveTemplate(defaultReportState(TODAY), aggregate("unassigned"))).toBe("general")
+  })
+})
+
+describe("metricsSource", () => {
+  it("shows the saved snapshot when the draft has one", () => {
+    const report = { metrics: { generatedAt: "x" } } as unknown as Parameters<typeof metricsSource>[0]
+    expect(metricsSource(report)).toBe("snapshot")
+  })
+
+  it("shows the live preview for a new draft and for a stored row with an unreadable blob", () => {
+    expect(metricsSource(null)).toBe("live")
+    expect(metricsSource({ metrics: null } as unknown as Parameters<typeof metricsSource>[0])).toBe("live")
+  })
+
+  it("names the difference in one label the page can render", () => {
+    expect(SOURCE_LABEL.snapshot).toContain("saved")
+    // The shipped copy capitalises the label as a sentence; the claim is the word, not its case.
+    expect(SOURCE_LABEL.live.toLowerCase()).toContain("live")
   })
 })
