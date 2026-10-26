@@ -33,6 +33,7 @@ import {
   formatMinutes,
   type DeliverableDto,
   type DeliverableStatus,
+  type EntryDto,
   type WorkLogKind,
 } from "@/lib/worklog/entries"
 import type { WorklogSummary } from "@/lib/worklog/summary"
@@ -49,6 +50,7 @@ import {
   type WorklogView,
 } from "@/lib/worklog/view-state"
 import { DisciplinePicker, LogSection } from "./sections"
+import { ConfirmDelete, EntryDialog, toDraft, type EntryDraft } from "./dialogs"
 
 export type TaskOption = { id: number; title: string }
 
@@ -76,6 +78,12 @@ export default function WorklogClient() {
   const [tasks, setTasks] = useState<TaskOption[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  // Which rows the member has ticked, which row the form is open for, and which row the delete
+  // confirmation is standing on. `busy` is the two dialogs' shared "a write is in flight".
+  const [selection, setSelection] = useState<number[]>([])
+  const [draft, setDraft] = useState<EntryDraft | null>(null)
+  const [pendingDelete, setPendingDelete] = useState<EntryDto | null>(null)
+  const [busy, setBusy] = useState(false)
 
   useEffect(() => {
     const incoming = search.toString()
@@ -159,6 +167,89 @@ export default function WorklogClient() {
     [],
   )
 
+  // One string for the row-scoped routes, so a PUT and a DELETE cannot drift apart from the POST.
+  const mutateBase = "/api/worklog/entries"
+
+  const toggleSelect = useCallback((id: number) => {
+    setSelection((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
+  }, [])
+
+  const openEntry = useCallback(
+    (entry: EntryDto | null) => {
+      // A new row starts on the day the member is looking at, not on the browser's guess of today.
+      setDraft(toDraft(entry, entry?.workedOn ?? state.day))
+    },
+    [state.day],
+  )
+
+  const submitEntry = useCallback(
+    async (value: EntryDraft) => {
+      setBusy(true)
+      const minutes = value.minutes.trim()
+      const payload = {
+        title: value.title.trim(),
+        body: value.body.trim() === "" ? null : value.body,
+        workedOn: value.workedOn,
+        minutes: minutes === "" ? null : Number(minutes),
+        kind: value.kind,
+        discipline: value.discipline === "all" ? null : value.discipline,
+        taskId: value.taskId === "none" ? null : Number(value.taskId),
+        deliverableId: value.deliverableId === "none" ? null : Number(value.deliverableId),
+      }
+      const error =
+        value.id === null
+          ? await mutate(mutateBase, { method: "POST", body: JSON.stringify(payload) })
+          : await mutate(`${mutateBase}/${value.id}`, { method: "PUT", body: JSON.stringify(payload) })
+      setBusy(false)
+      if (error) {
+        toast({ variant: "destructive", title: "Work log", description: error })
+        return
+      }
+      setDraft(null)
+      await refresh()
+      toast({ title: value.id === null ? "Logged" : "Entry updated", description: payload.title })
+    },
+    [mutate, refresh, toast],
+  )
+
+  const deleteEntry = useCallback(
+    async (entry: EntryDto) => {
+      setBusy(true)
+      const error = await mutate(`${mutateBase}/${entry.id}`, { method: "DELETE" })
+      setBusy(false)
+      if (error) {
+        toast({ variant: "destructive", title: "Work log", description: error })
+        return
+      }
+      setPendingDelete(null)
+      setSelection((prev) => prev.filter((id) => id !== entry.id))
+      await refresh()
+      toast({ title: "Entry deleted", description: entry.title })
+    },
+    [mutate, refresh, toast],
+  )
+
+  // Only the bulk endpoint turns a row into a deliverable and links it in one transaction; the
+  // single-row PUT cannot create the deliverable first.
+  const convertEntry = useCallback(
+    async (entry: EntryDto) => {
+      setBusy(true)
+      const error = await mutate("/api/worklog/entries/bulk", {
+        method: "POST",
+        body: JSON.stringify({ action: "convert-deliverable", ids: [entry.id] }),
+      })
+      setBusy(false)
+      if (error) {
+        toast({ variant: "destructive", title: "Convert to deliverable", description: error })
+        return
+      }
+      setSelection((prev) => prev.filter((id) => id !== entry.id))
+      await refresh()
+      toast({ title: "Deliverable created", description: `From "${entry.title}"` })
+    },
+    [mutate, refresh, toast],
+  )
+
   const range = resolveRange(state, todayIso)
   // Every body reads the summary's own buckets: the list and the totals above it are the same
   // arithmetic over the same rows, so they cannot disagree with each other.
@@ -192,6 +283,36 @@ export default function WorklogClient() {
         // today" highlight on the member's real day.
         todayIso={state.view === "day" ? state.day : todayIso}
         onPickDay={(day) => patchState({ day, view: "day" })}
+        actions={{
+          selection,
+          onToggle: toggleSelect,
+          onEdit: openEntry,
+          onDelete: setPendingDelete,
+          onConvert: (entry) => void convertEntry(entry),
+        }}
+        onAddDay={() => openEntry(null)}
+      />
+      {draft !== null ? (
+        <EntryDialog
+          key={draft.id ?? "new"}
+          draft={draft}
+          todayIso={todayIso}
+          tasks={tasks}
+          deliverables={deliverables}
+          saving={busy}
+          onOpenChange={(open) => {
+            if (!open) setDraft(null)
+          }}
+          onSubmit={submitEntry}
+        />
+      ) : null}
+      <ConfirmDelete
+        entry={pendingDelete}
+        busy={busy}
+        onOpenChange={(open) => {
+          if (!open) setPendingDelete(null)
+        }}
+        onConfirm={(entry) => void deleteEntry(entry)}
       />
     </div>
   )

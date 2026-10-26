@@ -6,7 +6,7 @@
 // among 75 options and is deliberately never sent anywhere.
 
 import { useState } from "react"
-import { CalendarDays } from "lucide-react"
+import { CalendarDays, Plus } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -146,9 +146,13 @@ export function EmptySection({ title }: { title: string }) {
 export function DisciplinePicker({
   value,
   onChange,
+  compact = false,
 }: {
   value: ViewState["discipline"]
   onChange: (discipline: ViewState["discipline"]) => void
+  // The filter sits directly in a grid, so the picker must not add a box around the two selects;
+  // the dialog wants them side by side inside its own column. Only the spacing differs.
+  compact?: boolean
 }) {
   const [group, setGroup] = useState<DisciplineCategory | "all">(
     value === "all" ? "all" : DISCIPLINE_CATEGORY[value],
@@ -163,7 +167,7 @@ export function DisciplinePicker({
   }
 
   return (
-    <>
+    <div className={compact ? "grid gap-2 sm:grid-cols-2" : "contents"}>
       <Select value={group} onValueChange={(v) => pickGroup(v as DisciplineCategory | "all")}>
         <SelectTrigger className="h-8 text-xs" aria-label="Discipline group">
           <SelectValue />
@@ -196,24 +200,55 @@ export function DisciplinePicker({
           ))}
         </SelectContent>
       </Select>
-    </>
+    </div>
   )
 }
 
-function DayList({ entries }: { entries: EntryDto[] }) {
-  if (entries.length === 0) {
-    return <EmptyNote>Nothing logged on this day yet. Quick add above, or the day picker in View.</EmptyNote>
-  }
+// One object, so a new body cannot forget one of the five controls and every body hands the same
+// set down. Every field is optional: a view that passes nothing renders rows with no checkbox and
+// no buttons, which is how the week and heat views stay read-only.
+type RowActions = {
+  selection?: number[]
+  onToggle?: (id: number) => void
+  onEdit?: (entry: EntryDto) => void
+  onDelete?: (entry: EntryDto) => void
+  onConvert?: (entry: EntryDto) => void
+}
+
+function RowList({
+  entries,
+  actions,
+  className = "space-y-2",
+}: {
+  entries: EntryDto[]
+  actions: RowActions
+  className?: string
+}) {
   return (
-    <ul className="space-y-2">
+    <ul className={className}>
       {entries.map((entry) => (
-        <EntryLine key={entry.id} entry={entry} />
+        <EntryLine
+          key={entry.id}
+          entry={entry}
+          selected={actions.selection?.includes(entry.id) ?? false}
+          onToggle={actions.onToggle}
+          onEdit={actions.onEdit}
+          onDelete={actions.onDelete}
+          onConvert={actions.onConvert}
+        />
       ))}
     </ul>
   )
 }
 
-function DayBody({ days, day }: { days: DayBucket[]; day: string }) {
+function DayList({ entries, actions }: { entries: EntryDto[]; actions: RowActions }) {
+  if (entries.length === 0) {
+    return <EmptyNote>Nothing logged on this day yet. Quick add above, or Add an entry at the top of this card.</EmptyNote>
+  }
+  return <RowList entries={entries} actions={actions} />
+}
+
+function DayBody({ days, day, actions }: { days: DayBucket[]; day: string; actions: RowActions }) {
   const bucket = days.find((d) => d.day === day)
   return (
     <div className="space-y-2">
@@ -221,7 +256,7 @@ function DayBody({ days, day }: { days: DayBucket[]; day: string }) {
         {day} · {bucket?.count ?? 0} {(bucket?.count ?? 0) === 1 ? "entry" : "entries"} ·{" "}
         {formatMinutes(bucket?.minutes ?? 0)}
       </p>
-      <DayList entries={bucket?.entries ?? []} />
+      <DayList entries={bucket?.entries ?? []} actions={actions} />
     </div>
   )
 }
@@ -273,7 +308,7 @@ function WeekBody({
   )
 }
 
-function ListBody({ days }: { days: DayBucket[] }) {
+function ListBody({ days, actions }: { days: DayBucket[]; actions: RowActions }) {
   const filled = days.filter((bucket) => bucket.count > 0)
   if (filled.length === 0) {
     return <EmptyNote>Nothing logged in this range. Widen it in View, or clear a filter.</EmptyNote>
@@ -288,18 +323,14 @@ function ListBody({ days }: { days: DayBucket[] }) {
               {bucket.count} entries · {formatMinutes(bucket.minutes)}
             </span>
           </div>
-          <ul className="mt-1.5 space-y-2">
-            {bucket.entries.map((entry) => (
-              <EntryLine key={entry.id} entry={entry} />
-            ))}
-          </ul>
+          <RowList entries={bucket.entries} actions={actions} className="mt-1.5 space-y-2" />
         </div>
       ))}
     </div>
   )
 }
 
-function BoardBody({ days }: { days: DayBucket[] }) {
+function BoardBody({ days, actions }: { days: DayBucket[]; actions: RowActions }) {
   const entries = days.flatMap((bucket) => bucket.entries)
   const kinds = WORK_LOG_KINDS.map((kind) => ({
     kind,
@@ -318,11 +349,7 @@ function BoardBody({ days }: { days: DayBucket[] }) {
           {rows.length === 0 ? (
             <p className="mt-2 text-[11px] text-muted-foreground">No {KIND_LABEL[kind].toLowerCase()} logged.</p>
           ) : (
-            <ul className="mt-2 space-y-2">
-              {rows.map((entry) => (
-                <EntryLine key={entry.id} entry={entry} />
-              ))}
-            </ul>
+            <RowList entries={rows} actions={actions} className="mt-2 space-y-2" />
           )}
         </div>
       ))}
@@ -383,23 +410,27 @@ export function LogSection({
   loading,
   todayIso,
   onPickDay,
+  actions,
+  onAddDay,
 }: {
   view: WorklogView
   days: DayBucket[]
   loading: boolean
   todayIso: string
   onPickDay: (day: string) => void
+  actions: RowActions
+  onAddDay: () => void
 }) {
   const body = (() => {
     switch (view) {
       case "day":
-        return <DayBody days={days} day={todayIso} />
+        return <DayBody days={days} day={todayIso} actions={actions} />
       case "week":
         return <WeekBody days={days} loading={loading} onPickDay={onPickDay} />
       case "list":
-        return <ListBody days={days} />
+        return <ListBody days={days} actions={actions} />
       case "board":
-        return <BoardBody days={days} />
+        return <BoardBody days={days} actions={actions} />
       case "heat":
         return <HeatBody days={days} todayIso={todayIso} onPickDay={onPickDay} />
     }
@@ -410,6 +441,12 @@ export function LogSection({
       title={`${VIEW_LABEL[view]} view`}
       icon={<CalendarDays className="h-4 w-4" />}
       className="md:col-span-2 xl:col-span-3"
+      action={
+        <Button variant="outline" size="sm" className="h-7 text-xs" onClick={onAddDay}>
+          <Plus className="h-3.5 w-3.5" aria-hidden />
+          Add an entry
+        </Button>
+      }
     >
       {loading && days.length === 0 ? (
         <div className="space-y-2">

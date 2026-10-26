@@ -93,6 +93,7 @@ describe("work log client", () => {
   it("uses the repo's sentinel grammar for selects", () => {
     expect(client()).not.toMatch(/SelectItem value=""/u)
     expect(src("app/dashboard/worklog/sections.tsx")).not.toMatch(/SelectItem value=""/u)
+    expect(src("app/dashboard/worklog/dialogs.tsx")).not.toMatch(/SelectItem value=""/u)
   })
 
   it("narrows the 75 disciplines through the category picker", () => {
@@ -112,8 +113,9 @@ describe("work log client", () => {
     // These triggers have no <Label>, so aria-label is the only name a screen reader gets. Two
     // controls answering to "Entry kind" — the filter and the quick-add line — would read as one
     // control twice.
-    const names = [...`${client()}${src("app/dashboard/worklog/sections.tsx")}`.matchAll(/aria-label="([^"]+)"/gu)]
-      .map((found) => found[1])
+    const sources = [client(), src("app/dashboard/worklog/sections.tsx"), src("app/dashboard/worklog/dialogs.tsx")]
+      .join("")
+    const names = [...sources.matchAll(/aria-label="([^"]+)"/gu)].map((found) => found[1])
       .sort()
     expect(new Set(names).size, `duplicate aria-label in ${names.join(", ")}`).toBe(names.length)
     expect(names.length).toBeGreaterThanOrEqual(6)
@@ -179,5 +181,93 @@ describe("work log views", () => {
   it("keeps presentation honest: no fetch, no page data", () => {
     expect(sections()).not.toMatch(/fetch\(/u)
     expect(sections()).not.toMatch(/useRouter/u)
+  })
+})
+
+describe("work log dialogs", () => {
+  const dialogs = () => src("app/dashboard/worklog/dialogs.tsx")
+  const client = () => src("app/dashboard/worklog/worklog-client.tsx")
+  const sections = () => src("app/dashboard/worklog/sections.tsx")
+
+  it("labels every field and never uses a native prompt", () => {
+    const code = dialogs()
+    const labelled = ["entry-title", "entry-body", "entry-day", "entry-minutes", "entry-kind", "entry-task", "entry-deliverable"]
+    for (const id of labelled) {
+      expect(code, `missing <Label htmlFor="${id}">`).toContain(`<Label htmlFor="${id}">`)
+    }
+    // An invalid field is announced, not just coloured: aria-describedby points at the message.
+    expect(code).toMatch(/aria-describedby=\{errors\.title \? "entry-title-error"/u)
+    expect(code).toMatch(/aria-invalid=\{errors\.minutes/u)
+    // No native dialog decides an action. The one surviving `window.prompt` is copy-link's manual
+    // fallback, which asks nothing of the log and only runs when the browser blocks the clipboard.
+    expect(client()).not.toMatch(/window\.(confirm|alert)\(/u)
+    expect(code).not.toMatch(/window\.(confirm|alert|prompt)\(/u)
+  })
+
+  it("sends a new row to POST and an existing one to PUT", () => {
+    expect(client()).toMatch(/method: "POST"/u)
+    expect(client()).toMatch(/`\$\{mutateBase\}\/\$\{value\.id\}`/u)
+    expect(client()).toMatch(/method: "PUT"/u)
+    expect(client()).toMatch(/`\$\{mutateBase\}\/\$\{entry\.id\}`/u)
+    expect(client()).toMatch(/method: "DELETE"/u)
+  })
+
+  it("keeps a blank minutes field null instead of zero", () => {
+    // A zero-minute entry claims the member logged no time; a null claims they did not say.
+    expect(client()).toMatch(/minutes === "" \? null : Number\(minutes\)/u)
+    // The two cross-field rules the server enforces are said here too, so the member reads them
+    // beside the field instead of in a toast after the request.
+    expect(dialogs()).toMatch(/A time entry needs minutes/u)
+    expect(dialogs()).toMatch(/form\.kind === "deliverable" && form\.deliverableId === NONE/u)
+  })
+
+  it("clears an optional column with null, never an empty string", () => {
+    // readEntryCreate rejects "" on a numeric id, and an empty body would be stored as one.
+    expect(client()).toMatch(/value\.body\.trim\(\) === "" \? null : value\.body/u)
+    expect(client()).toMatch(/taskId: value\.taskId === "none" \? null : Number\(value\.taskId\)/u)
+    expect(client()).toMatch(/deliverableId: value\.deliverableId === "none" \? null : Number\(value\.deliverableId\)/u)
+    expect(client()).toMatch(/discipline: value\.discipline === "all" \? null : value\.discipline/u)
+  })
+
+  it("converts a row through the bulk endpoint, in one transaction", () => {
+    expect(client()).toMatch(/"\/api\/worklog\/entries\/bulk"/u)
+    expect(client()).toMatch(/action: "convert-deliverable"/u)
+    expect(client()).toMatch(/ids: \[entry\.id\]/u)
+  })
+
+  it("asks before destroying a row", () => {
+    expect(client()).toMatch(/setPendingDelete/u)
+    expect(dialogs()).toMatch(/AlertDialogAction/u)
+    expect(dialogs()).toMatch(/Delete entry/u)
+    // The action stays in the dialog: closing is the client clearing its own pending row.
+    expect(dialogs()).toMatch(/if \(entry\) onConfirm\(entry\)/u)
+  })
+
+  it("turns the row controls on only where the client passes handlers", () => {
+    expect(client()).toMatch(/onEdit: openEntry/u)
+    expect(client()).toMatch(/onDelete: setPendingDelete/u)
+    expect(client()).toMatch(/onConvert: \(entry\) => void convertEntry/u)
+    expect(client()).toMatch(/onToggle: toggleSelect/u)
+    // One actions object threaded through the bodies, so a new body cannot forget a control.
+    expect(sections()).toMatch(/actions: RowActions/u)
+    expect(sections()).toMatch(/onEdit=\{actions\.onEdit\}/u)
+    expect(sections()).toMatch(/selected=\{actions\.selection\?\.includes\(entry\.id\) \?\? false\}/u)
+  })
+
+  it("gives the log a full-form capture next to quick add", () => {
+    expect(client()).toMatch(/onAddDay=\{\(\) => openEntry\(null\)\}/u)
+    expect(sections()).toMatch(/Add an entry/u)
+    // The day seeded is the one the member is looking at, not the browser's guess of today.
+    expect(client()).toMatch(/toDraft\(entry, entry\?\.workedOn \?\? state\.day\)/u)
+  })
+
+  it("seeds the form by remount and keeps the fetch in the client", () => {
+    // key={} gives a fresh form per row, so the dialog never needs an effect to sync a lifted
+    // draft — and typing re-renders the dialog, not the whole grid underneath it.
+    expect(client()).toMatch(/key=\{draft\.id \?\? "new"\}/u)
+    expect(client()).toMatch(/useState<EntryDraft \| null>\(null\)/u)
+    expect(dialogs()).not.toMatch(/useEffect/u)
+    expect(dialogs()).not.toMatch(/fetch\(/u)
+    expect(dialogs()).not.toMatch(/onDraftChange/u)
   })
 })
