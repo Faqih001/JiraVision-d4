@@ -37,3 +37,6 @@ next-env.d.ts
 test-results/
 playwright-report/
 .neon
+
+# scratch scripts used for one-off provider/API checks
+.tmp-*.mjs
