@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import NotificationsBell from "@/components/notifications-bell"
+import { Badge } from "@/components/ui/badge"
 import {
   Activity,
   BarChart3,
@@ -55,6 +56,21 @@ import { useTheme } from "next-themes"
 import { useMobile } from "@/hooks/use-mobile"
 import { CircleJVLoader } from "@/components/ui/loader"
 
+/** Nav entries that can carry a live "N new" count. */
+type BadgeKey = "activity" | "chat"
+
+type NavItem = {
+  title: string
+  icon: React.ReactNode
+  href: string
+  active: boolean
+  badge?: BadgeKey
+}
+
+type NavCategory = { title: string; items: NavItem[] }
+
+const badgeCount = (count: number) => (count > 99 ? "99+" : String(count))
+
 export default function DashboardLayout({
   children,
 }: {
@@ -68,6 +84,8 @@ export default function DashboardLayout({
   const { theme, setTheme } = useTheme()
   const isMobile = useMobile()
   const [searchFocused, setSearchFocused] = useState(false)
+  // null while the first read is in flight (or failed) so a badge never claims zero.
+  const [newCounts, setNewCounts] = useState<Record<BadgeKey, number | null>>({ activity: null, chat: null })
 
   // Toggle sidebar collapse
   const toggleSidebar = () => {
@@ -78,6 +96,36 @@ export default function DashboardLayout({
   const toggleMobileSidebar = () => {
     setMobileSidebarOpen(!mobileSidebarOpen)
   }
+
+  // Unread notifications and unread chat messages are the two stores with real
+  // read-state, so they are the only items that can honestly say "new".
+  useEffect(() => {
+    if (!user) return
+    let cancelled = false
+    const load = async () => {
+      const [notifications, chats] = await Promise.all([
+        fetch("/api/notifications?limit=1")
+          .then((res) => (res.ok ? (res.json() as Promise<{ unreadCount?: number }>) : null))
+          .catch(() => null),
+        fetch("/api/chat")
+          .then((res) => (res.ok ? (res.json() as Promise<{ unreadCount?: number }[]>) : null))
+          .catch(() => null),
+      ])
+      if (cancelled) return
+      setNewCounts({
+        activity: typeof notifications?.unreadCount === "number" ? notifications.unreadCount : null,
+        chat: Array.isArray(chats)
+          ? chats.reduce((sum, chat) => sum + (typeof chat.unreadCount === "number" ? chat.unreadCount : 0), 0)
+          : null,
+      })
+    }
+    void load()
+    const timer = setInterval(load, 30_000)
+    return () => {
+      cancelled = true
+      clearInterval(timer)
+    }
+  }, [user, pathname])
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -106,7 +154,7 @@ export default function DashboardLayout({
   }
 
   // Navigation categories
-  const navCategories = [
+  const navCategories: NavCategory[] = [
     {
       title: "Main",
       items: [
@@ -115,35 +163,30 @@ export default function DashboardLayout({
           icon: <LayoutDashboard className="h-5 w-5" />,
           href: "/dashboard",
           active: pathname === "/dashboard",
-          dot: "bg-blue-500",
         },
         {
           title: "Kanban Board",
           icon: <Layers className="h-5 w-5" />,
           href: "/dashboard/kanban",
           active: pathname === "/dashboard/kanban",
-          dot: "bg-blue-500",
         },
         {
           title: "Sprints",
           icon: <Sprout className="h-5 w-5" />,
           href: "/dashboard/sprints",
           active: pathname === "/dashboard/sprints",
-          dot: "bg-blue-500",
         },
         {
           title: "Tasks",
           icon: <ClipboardList className="h-5 w-5" />,
           href: "/dashboard/tasks",
           active: pathname === "/dashboard/tasks",
-          dot: "bg-blue-500",
         },
         {
           title: "Backlog",
           icon: <Inbox className="h-5 w-5" />,
           href: "/dashboard/backlog",
           active: pathname === "/dashboard/backlog",
-          dot: "bg-blue-500",
         },
       ],
     },
@@ -155,21 +198,18 @@ export default function DashboardLayout({
           icon: <Target className="h-5 w-5" />,
           href: "/dashboard/goals",
           active: pathname === "/dashboard/goals",
-          dot: "bg-indigo-500",
         },
         {
           title: "Retrospectives",
           icon: <Repeat className="h-5 w-5" />,
           href: "/dashboard/retros",
           active: pathname === "/dashboard/retros",
-          dot: "bg-indigo-500",
         },
         {
           title: "Automation",
           icon: <Bot className="h-5 w-5" />,
           href: "/dashboard/automation",
           active: pathname === "/dashboard/automation",
-          dot: "bg-indigo-500",
         },
       ],
     },
@@ -181,7 +221,6 @@ export default function DashboardLayout({
           icon: <Brain className="h-5 w-5" />,
           href: "/dashboard/ai-scrum-master",
           active: pathname === "/dashboard/ai-scrum-master",
-          dot: "bg-purple-500",
         },
       ],
     },
@@ -193,28 +232,25 @@ export default function DashboardLayout({
           icon: <Heart className="h-5 w-5" />,
           href: "/dashboard/team-wellbeing",
           active: pathname === "/dashboard/team-wellbeing",
-          dot: "bg-rose-500",
         },
         {
           title: "Team Members",
           icon: <Users className="h-5 w-5" />,
           href: "/dashboard/team",
           active: pathname === "/dashboard/team",
-          dot: "bg-rose-500",
         },
         {
           title: "Team Settings",
           icon: <SlidersHorizontal className="h-5 w-5" />,
           href: "/dashboard/team/settings",
           active: pathname === "/dashboard/team/settings",
-          dot: "bg-rose-500",
         },
         {
           title: "Chat",
           icon: <MessageSquare className="h-5 w-5" />,
           href: "/dashboard/chat",
           active: pathname === "/dashboard/chat",
-          dot: "bg-rose-500",
+          badge: "chat",
         },
       ],
     },
@@ -226,35 +262,31 @@ export default function DashboardLayout({
           icon: <Gamepad2 className="h-5 w-5" />,
           href: "/dashboard/gamification",
           active: pathname === "/dashboard/gamification",
-          dot: "bg-amber-500",
         },
         {
           title: "Ethical Metrics",
           icon: <Shield className="h-5 w-5" />,
           href: "/dashboard/ethical-metrics",
           active: pathname === "/dashboard/ethical-metrics",
-          dot: "bg-amber-500",
         },
         {
           title: "Analytics",
           icon: <BarChart3 className="h-5 w-5" />,
           href: "/dashboard/analytics",
           active: pathname === "/dashboard/analytics",
-          dot: "bg-amber-500",
         },
         {
           title: "Reports",
           icon: <FileSpreadsheet className="h-5 w-5" />,
           href: "/dashboard/reports",
           active: pathname === "/dashboard/reports",
-          dot: "bg-amber-500",
         },
         {
           title: "Activity",
           icon: <Activity className="h-5 w-5" />,
           href: "/dashboard/activity",
           active: pathname === "/dashboard/activity",
-          dot: "bg-amber-500",
+          badge: "activity",
         },
       ],
     },
@@ -266,28 +298,24 @@ export default function DashboardLayout({
           icon: <Mail className="h-5 w-5" />,
           href: "/dashboard/email",
           active: pathname === "/dashboard/email",
-          dot: "bg-green-500",
         },
         {
           title: "Calendar",
           icon: <Calendar className="h-5 w-5" />,
           href: "/dashboard/calendar",
           active: pathname === "/dashboard/calendar",
-          dot: "bg-green-500",
         },
         {
           title: "Billing",
           icon: <CreditCard className="h-5 w-5" />,
           href: "/dashboard/billing",
           active: pathname === "/dashboard/billing",
-          dot: "bg-green-500",
         },
         {
           title: "Settings",
           icon: <Settings className="h-5 w-5" />,
           href: "/dashboard/settings",
           active: pathname === "/dashboard/settings",
-          dot: "bg-green-500",
         },
       ],
     },
@@ -341,31 +369,43 @@ export default function DashboardLayout({
                 </h3>
               )}
               <ul className={cn("space-y-1", sidebarCollapsed && "border-t pt-2 first:border-t-0")}>
-                {category.items.map((item, itemIdx) => (
-                  <li key={itemIdx}>
-                    <Link
-                      href={item.href}
-                      className={cn(
-                        "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all hover:bg-gray-100 dark:hover:bg-gray-800",
-                        item.active ? "bg-gray-100 dark:bg-gray-800 text-primary" : "text-gray-700 dark:text-gray-300",
-                        sidebarCollapsed && "justify-center px-0",
-                      )}
-                    >
-                      <div className="relative">
-                        <span className={cn("text-current", item.active && "text-primary")}>{item.icon}</span>
-                        {!sidebarCollapsed && (
-                          <span
-                            className={cn(
-                              "absolute -left-1 top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full",
-                              item.dot,
-                            )}
-                          />
+                {category.items.map((item, itemIdx) => {
+                  const count = item.badge ? newCounts[item.badge] : null
+                  return (
+                    <li key={itemIdx}>
+                      <Link
+                        href={item.href}
+                        className={cn(
+                          "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all hover:bg-gray-100 dark:hover:bg-gray-800",
+                          item.active ? "bg-gray-100 dark:bg-gray-800 text-primary" : "text-gray-700 dark:text-gray-300",
+                          sidebarCollapsed && "justify-center px-0",
                         )}
-                      </div>
-                      {!sidebarCollapsed && <span>{item.title}</span>}
-                    </Link>
-                  </li>
-                ))}
+                      >
+                        <div className="relative">
+                          <span className={cn("text-current", item.active && "text-primary")}>{item.icon}</span>
+                          {sidebarCollapsed && count ? (
+                            <Badge
+                              aria-hidden="true"
+                              className="absolute -right-2.5 -top-2 h-4 min-w-4 justify-center border-0 px-1 text-[10px] leading-none"
+                            >
+                              {badgeCount(count)}
+                            </Badge>
+                          ) : null}
+                        </div>
+                        <span className={cn(sidebarCollapsed && "sr-only")}>{item.title}</span>
+                        {!sidebarCollapsed && count ? (
+                          <Badge
+                            aria-hidden="true"
+                            className="ml-auto h-5 min-w-5 justify-center border-0 px-1.5 text-[11px] leading-none"
+                          >
+                            {badgeCount(count)}
+                          </Badge>
+                        ) : null}
+                        {count ? <span className="sr-only">{`${count} new`}</span> : null}
+                      </Link>
+                    </li>
+                  )
+                })}
               </ul>
             </div>
           ))}
