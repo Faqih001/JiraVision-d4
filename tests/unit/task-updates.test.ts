@@ -94,3 +94,39 @@ describe("pickTaskUpdates", () => {
     })
   })
 })
+
+describe("phase 1 task columns", () => {
+  it("accepts a start date and normalises it to YYYY-MM-DD", () => {
+    const result = pickTaskUpdates({ startDate: "2026-10-26T10:00:00.000Z" })
+    expect(result).toEqual({ patch: { startDate: "2026-10-26" } })
+  })
+
+  it("clears a start date with null or an empty string", () => {
+    expect(pickTaskUpdates({ startDate: null })).toEqual({ patch: { startDate: null } })
+    expect(pickTaskUpdates({ startDate: "" })).toEqual({ patch: { startDate: null } })
+  })
+
+  it("rejects a start date that is not a date string", () => {
+    expect("error" in pickTaskUpdates({ startDate: "next tuesday" })).toBe(true)
+    // A bare number is an epoch, an ordinal or a day-of-month — nobody means the same
+    // thing by it, so startDate takes the ISO strings the date pickers actually emit.
+    expect("error" in pickTaskUpdates({ startDate: 12345 })).toBe(true)
+  })
+
+  it("accepts a discipline and trims it", () => {
+    expect(pickTaskUpdates({ discipline: " Technician " })).toEqual({ patch: { discipline: "technician" } })
+    expect(pickTaskUpdates({ discipline: null })).toEqual({ patch: { discipline: null } })
+  })
+
+  it("rejects a discipline outside WORK_DISCIPLINES rather than storing a new word", () => {
+    const result = pickTaskUpdates({ discipline: "engineer" })
+    expect("error" in result).toBe(true)
+    if ("error" in result) expect(result.error).toContain("technician")
+  })
+
+  it("keeps source_plan_id out of reach: only the promote route may set it", () => {
+    const result = pickTaskUpdates({ title: "Real work", sourcePlanId: 7 })
+    expect(result).toEqual({ patch: { title: "Real work" } })
+    expect("sourcePlanId" in (result as { patch: object }).patch).toBe(false)
+  })
+})

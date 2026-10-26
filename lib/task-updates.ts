@@ -4,11 +4,16 @@
 // a column identifier, so the task routes that used to spread the request body
 // straight through accepted keys like `id` — a caller could repoint a task's
 // primary key or smuggle an identifier through a crafted property name. Every
-// task mutation goes through pickTaskUpdates() instead, and `dueDate` is
-// normalised here because tasks.dueDate is a string-mode date() column: it binds
-// "YYYY-MM-DD" and rejects a Date.
+// task mutation goes through pickTaskUpdates() instead, and `dueDate` and
+// `startDate` are normalised here because both are string-mode date() columns:
+// they bind "YYYY-MM-DD" and reject a Date.
+//
+// `sourcePlanId` is deliberately absent. It is the breadcrumb from a promoted task
+// back to the planner draft that created it, so only the promote transaction writes
+// it; letting a client set it would forge that link.
 
 import { tasks } from "@/drizzle/schema"
+import { WORK_DISCIPLINES, isWorkDiscipline } from "@/lib/roles"
 
 type TaskPatch = Partial<Omit<typeof tasks.$inferInsert, "id" | "createdAt" | "updatedAt">>
 
@@ -23,6 +28,8 @@ const MUTABLE_FIELDS = [
   "assigneeId",
   "sprintId",
   "dueDate",
+  "startDate",
+  "discipline",
   "tags",
 ] as const
 
@@ -92,6 +99,35 @@ export function pickTaskUpdates(input: unknown): TaskPatchResult {
           return { error: "dueDate must be a valid date" }
         }
         patch.dueDate = parsed.toISOString().slice(0, 10)
+        break
+      }
+      case "startDate": {
+        if (value === null || value === "") {
+          patch.startDate = null
+          break
+        }
+        // Strings only: a bare number could be an epoch, an ordinal or a day of the
+        // month, and startDate's job is to place work on a Gantt bar unambiguously.
+        if (typeof value !== "string") {
+          return { error: "startDate must be a date string or null" }
+        }
+        const parsed = new Date(value)
+        if (Number.isNaN(parsed.getTime())) {
+          return { error: "startDate must be a valid date" }
+        }
+        patch.startDate = parsed.toISOString().slice(0, 10)
+        break
+      }
+      case "discipline": {
+        if (value === null || value === "") {
+          patch.discipline = null
+          break
+        }
+        const candidate = typeof value === "string" ? value.trim().toLowerCase() : value
+        if (!isWorkDiscipline(candidate)) {
+          return { error: `discipline must be one of: ${WORK_DISCIPLINES.join(", ")}, or null` }
+        }
+        patch.discipline = candidate
         break
       }
       case "tags":

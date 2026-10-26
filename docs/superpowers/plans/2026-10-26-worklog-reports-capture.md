@@ -954,7 +954,10 @@ const MUTABLE_FIELDS = [
           patch.startDate = null
           break
         }
-        if (typeof value !== "string" && typeof value !== "number") {
+        // Strings only: a bare number could be an epoch, an ordinal or a day of the
+        // month, and startDate's place on a Gantt bar has to be unambiguous. dueDate
+        // still accepts a number because its existing behaviour is not this task.
+        if (typeof value !== "string") {
           return { error: "startDate must be a date string or null" }
         }
         const parsed = new Date(value)
