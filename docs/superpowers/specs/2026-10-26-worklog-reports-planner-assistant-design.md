@@ -1,14 +1,18 @@
-# Design: daily work log, period reports to supervisors, Gemini planning agent, dual-mode assistant
+# Design: daily work log, period reports to supervisors, Gemini planning agent, dual-mode assistant, career ladder
 
 Date: 2026-10-26
-Status: owner-approved direction, revised twice on owner clarifications (the report is the deliverable; tracking
-must be easy at the level of actions and deliverables done on a specific day). This document is the contract for
-implementation.
+Status: owner-approved direction, revised on owner clarifications (the report is the deliverable; tracking must be
+easy at the level of actions and deliverables done on a specific day; the ladder and its growth advice are in scope).
+This document is the contract for implementation.
 
 Owner decisions embedded: public bot = Gemini but capped; extraction = draft plan then promote; roles = task
 discipline plus a viewer filter; exports = exceljs + jsPDF with no new server runtime; reports go to supervisors,
 admins and managers at daily/weekly/monthly/**yearly** cadence; **day-level tracking of actions and deliverables
-is the foundation everything else rolls up from.**
+is the foundation everything else rolls up from**; career ladder = **published bands with no individual pay
+stored**, hybrid proof (auto signals plus an admin-signed checklist), the employee requests and an admin approves,
+and all four AI growth outputs including live web search; **role packs, custody registers, SOPs with precautions and
+recommendations, and a tailoring onboarding — all of them fillable by hand or by the agent, hand entry always
+working**; and the ladder, registers and playbooks must **support every role across companies, configured as data**.
 
 ## 1. Problem
 
@@ -38,6 +42,11 @@ What is being built, in the order that serves the report:
    half of the next report is already written and its items carry the right discipline.
 4. **A planner workspace** — Gantt, grid/list/board, filters, date range, search, bulk edits.
 5. **An assistant** — members ask about their own work; visitors ask about the website.
+6. **A career ladder** — the same log read sideways: how close is this person to the next rung, what is missing,
+   what does that rung pay, and what should they take next to close the gap.
+7. **Role packs, registers and playbooks** — the handover shape of a real job: what you are the keeper of, whether
+   those documents are still current, the procedure with its precautions, and an onboarding that tailors the
+   dashboard to the role — authored as data so a role nobody has thought of yet needs no code.
 
 ## 2. Goals and non-goals
 
@@ -57,15 +66,21 @@ Goals
   match how their work is judged, and one person may hold several.
 - Everything reporting-related works with **no AI key at all**. AI is an accelerant, never a dependency.
 - Extraction proposes; a human commits. Nothing enters `tasks` without one explicit click.
+- A member can see, for their own discipline, exactly what the next rung requires, how much of it their logged work
+  already proves, and who signed off the rest — with no salary figure stored about them anywhere.
 
 Non-goals
 
-- Autonomous agent loops, web browsing, or tool-calling beyond the fixed read set in §7.
+- Autonomous agent loops, or model-chosen tool calling beyond the fixed read set in §7. **One exception, stated
+  plainly:** the career learning path and benchmark actions (§11) enable Google's `google_search` grounding, because
+  a course or a market rate that is six months stale is worse than none. It is still one prompt in, one structured
+  answer out, and every returned URL is checked against the grounding metadata before it renders.
 - Per-role forks of every dashboard page; one person with two jobs must not pick an identity.
 - A Gantt inside `/dashboard/tasks`; the planner is its own surface with its own lifecycle rules.
 - Replacing `/dashboard/chat` (real DMs) or the existing `/dashboard/reports` dataset schedules, which stay.
-- Payroll/timesheet approval, expense claims, multi-level sign-off chains, DOCX ingestion, org-wide assistant
-  memory. Each is a separate proposal once the log and reports exist.
+- Payroll, salary records, timesheet approval, expense claims, multi-level sign-off chains, DOCX ingestion, org-wide
+  assistant memory. §11 publishes **bands per rung**, which is the same information a job posting gives, and stores
+  nothing about what any individual is paid. Each remaining item is a separate proposal once the log exists.
 
 ## 3. Architecture at a glance
 
@@ -84,6 +99,10 @@ Non-goals
   chat:     /api/assistant/site ──┐
             /api/assistant/workspace ├─► the same lib/ai/gemini.ts, the only caller of Google
             report prose drafting  ──┘
+
+  career:   task_events + work_log_entries + deliverables + work_reports ─(read-only)─►
+            lib/career/readiness.ts ─► percent + gaps ─► /dashboard/career, /admin/career
+            growth AI (phase 14) writes snapshots to growth_reviews, never back into the log
 ```
 
 Five rules hold it together:
@@ -94,6 +113,13 @@ Five rules hold it together:
    assistant answers read from them; nothing derives a day's work from `updated_at` again.
 4. The key is server-only, never `NEXT_PUBLIC_`, and a guard test asserts that.
 5. Draft artefacts live in their own tables; `tasks` is written only by the promote transaction.
+6. The career ladder only **reads** the log. It writes no task, no entry and no report, and its readiness number is
+   recomputed from rows on every request — there is no stored "percent ready" column to go stale.
+7. **Every capture surface has two doors into one table.** Work-log rows, deliverables, register items, playbooks,
+   report sections and career actions are each writable by a manual form *and* by the agent path, through the same
+   validator, with `source(manual|gemini|…)` recording which. The manual form is the primary path and works with no
+   API key; the agent only ever pre-fills it. Nothing in this design is AI-only, and nothing an agent wrote is
+   committed without a human having seen it.
 
 ## 4. Daily work log — `/dashboard/worklog`, `/api/worklog/*`
 
@@ -102,8 +128,15 @@ The atom. One row = one thing that happened on one date.
 `lib/worklog/capture.ts` writes automatically wherever the app already mutates state, so the log exists even for
 a member who never opens the page:
 
-- `task_events` — every status change from `/api/tasks/[id]`, bulk, kanban drag and reorder, and the planner
-  promote. One insert alongside the existing notification write.
+- `task_events` — every status change on the `tasks` table, from the routes that actually write it:
+  `/api/tasks` POST, `/api/tasks/[id]` PUT and DELETE, `/api/tasks/bulk` update, `/api/dashboard/tasks` POST, PUT
+  and DELETE, `/api/dashboard/kanban/tasks` POST and the promote transaction. One insert alongside the existing
+  notification write.
+  **Scope correction (verified 2026-10-26):** the drag-and-reorder routes
+  `/api/dashboard/kanban/update-status` and `/api/dashboard/kanban/reorder` mutate the separate `kanban_tasks`
+  table, not `tasks`, so a board card drag does **not** produce a `task_events` row. This section previously claimed
+  it did. Two boards in this app are not one system of record; making the kanban board write through `tasks` is a
+  deliberate later decision, not something capture can paper over.
 - `plan_items` / `tasks` creation via promote, stamped with the acting user and date.
 
 `work_log_entries` is where the member adds intent the database cannot know: what they actually did, how long it
@@ -340,7 +373,156 @@ a bad connection because the fetch already happened.
 - An export always reflects the current filter/selection, or the exact submitted report. What is seen is what is
   filed, which is the whole point of an artefact a supervisor keeps.
 
-## 11. Data model
+## 11. Career ladder — `/dashboard/career`, `/admin/career`, `/api/career/*`
+
+The log is evidence of work; this turns it into an answer to "what do I do next to get to the next level, and what
+does that level pay". Owner decisions: **published bands only, no pay records anywhere**; **hybrid proof** —
+auto-computed signals plus an admin-signed competency checklist; **the employee raises the request and an admin
+approves it**; **all four AI outputs** (learning path with live web search, market/salary benchmark for the next
+rung, a periodic growth review written from the member's own data, and task suggestions that close the gap).
+
+**Ladder shape.** Four rungs per discipline — `1 Junior · 2 Intermediate · 3 Senior · 4 Lead` — so 5 disciplines ×
+4 levels = 20 seeded rows. A member holds one placement per discipline (`developer` L3 and `auditor` L2 at the same
+time is normal and needs no identity choice, per §2). Promotion moves **one rung at a time**; day one is bootstrapped
+by an admin placing existing staff at their real level without a request, so nobody starts at zero.
+
+**Signals — computed, never typed.** Nine metrics, all derived from the tables in §13, each with a per-level target
+in `career_levels.signals`:
+
+| key | source rows |
+| --- | --- |
+| `days_logged_90` | distinct `work_log_entries.worked_on`, rolling 90 days |
+| `actions_logged_90` | `work_log_entries` rows, rolling 90 days |
+| `reviews_logged_90` | `work_log_entries.kind in (review, deliverable)` |
+| `tasks_completed_90` | `task_events.to_status = 'done'` on tasks assigned to the member |
+| `points_completed_90` | `tasks.story_points` of those tasks |
+| `deliverables_delivered` | `deliverables.status = 'delivered'` in window |
+| `reports_submitted` | `work_reports.status in (submitted, acknowledged)` in window |
+| `disciplines_touched` | distinct `tasks.discipline` over the window |
+| `plan_items_promoted` | `tasks.source_plan_id` set by this member |
+
+`lib/career/readiness.ts` is a **pure, DB-free module** (same discipline as `lib/roles.ts`, whose header at
+`lib/roles.ts:1-3` states why): it takes `{ signals, checklist, signoffs, currentLevel, nextLevel }` and returns
+`{ percent, capped: bool, gaps: [{ kind: "signal" | "checklist", key, label, actual, target, hint }] }`. Rules:
+`percent = 0.7 × signal coverage + 0.3 × checklist coverage`, clamped so a member who has not signed off the
+previous rung's mandatory items caps at 59% (`capped: true`, reason stated); a signal with no rows reads `0`, never
+missing; the number is always computed server-side and never accepted from the client.
+
+**Checklist integrity.** `career_levels.checklist` holds `{ key, label, hint }[]` authored in
+`lib/career/ladder-seed.ts` so the wording is reviewable in git and editable later at `/admin/career`. **Only
+admin/superadmin may tick** (`career_signoffs.ticked_by` is required and enforced in the route, not the button) —
+a member cannot certify themselves, which is what makes the admin decision in the request flow meaningful rather
+than decorative.
+
+**Bands are published config, not personal data.** `career_levels.band_min/band_max/band_currency` describe the rung.
+Seeded values are **null** and the UI says "band not published" until the owner enters real numbers — inventing a
+range from the web would be exactly the fabricated claim this project already refuses three times over
+(`app/api/ethical-metrics/route.ts:247`, `app/dashboard/ethical-metrics/page.tsx:1500`). The AI benchmark action
+*suggests* a range with sources and an as-of date; it never writes `career_levels`. An admin applies it deliberately.
+
+**Request flow.** `draft → submitted → approved | returned`. Submitting freezes an `evidence` jsonb snapshot
+(the readiness output plus the counted row ids), so the reviewer reads a stable artefact and the member can see
+exactly what was counted. Approving upserts `career_placement` and stamps `effective_date`; returning requires a
+note. Both outcomes notify through `createNotification` with a link, same transport as reports (§6).
+
+**Integration with what already exists.** `seniorityTierOf(jobTitle, role)` at
+`app/api/ethical-metrics/route.ts:316-321` currently *guesses* a band from job-title text and drives the
+load-equity metric. Once a real placement exists it becomes the first choice — `L1→tier 1, L2→tier 2, L3/L4→tier 3`
+— with the heuristic as fallback, and the page's honesty notes at
+`app/dashboard/ethical-metrics/page.tsx:1130` and `:1500` are updated to say which source was used. This is why the
+ladder is not a decorative page: it improves a metric that already ships. Two vocabularies must not be confused —
+`gamification.level` (`drizzle/schema.ts:164`) is XP and stays "XP level" in the UI; the ladder says "Career level".
+
+**Four surfaces.**
+- `/dashboard/career` — placement card, next-rung readiness meter with per-signal bars and a drill-down to the rows
+  counted, checklist with who ticked it and when, band (or "not published"), request button with its status, a
+  history timeline from approved requests, and the Growth AI panel (four actions, disabled with the key named).
+- `/dashboard/career/[discipline]` — the same meter for a second discipline.
+- `/admin/career` — ladder editor (levels, bands, signal targets, checklist), placements, and the review queue with
+  the frozen evidence side by side.
+- `/api/career/{levels,me,signoffs,requests,placements,growth}` — session-scoped reads; writes gated by role.
+
+**Visibility.** The member and admin only. Report recipients do **not** get ladder access by virtue of receiving a
+report — the report says what you did, the ladder says what you are paid to become.
+
+## 12. Role packs, registers, playbooks and onboarding
+
+**Why this exists.** A technician's actual job is not a list of tasks. It is custody: of infrastructure, of the
+accounts and consoles that run it, of the equipment, and of the things currently wrong. The owner's own handover
+document is exactly that shape — Infrastructure (servers, network documentation, IP addressing, firewall/router,
+Wi-Fi, printers, cloud services) · Accounts and systems (IT admin accounts, backup administration, endpoint-security
+console, helpdesk/ticketing, software licensing portals, vendor portals, remote-support system) · Equipment (computer,
+server, printer and network inventories, spares, equipment awaiting repair, awaiting disposal) · Outstanding work
+(open tickets, pending repairs, failed backups, scheduled maintenance, pending purchases, vendor issues, software
+renewals, hardware replacements) — plus a method: **Identify → Reproduce → Diagnose → Fix → Test → Document**. The
+same shape recurs in every role this app must serve (a nurse holds a drug cabinet and a protocol set, an auditor
+holds a workpaper index and a sampling method, a field engineer holds plant, spares and a lock-off procedure), so
+what gets built is the **shape**, configurable as data; the IT technician pack is the first filled instance.
+
+**1. Role pack** — `role_packs`: `pack_key`, `title`, `disciplines` (a subset of `WORK_DISCIPLINES` — discipline is
+*how work is judged* (§6, §11); a pack is *what you are the keeper of*; the two axes stay separate), `register_kinds
+jsonb`, `sections jsonb` (which dashboard sections, in which order), `report_template`, `ladder_discipline`,
+`onboarding jsonb` (the questions it asks), `method jsonb` (the phase list its playbooks default to), `is_active`.
+Two seeded in `lib/packs/seed.ts`: `it-technician` (the four groups above, verbatim) and `general` (a minimal
+fallback so nobody is broken by an unmapped role). Admins author new packs at `/admin/packs` with **no code change** —
+that is the whole mechanism by which "all other types of roles across companies" is true rather than aspirational, and
+§15 makes it a test.
+
+**2. Registers** — `register_items`: `pack_key`, `kind`, `title`, `fields jsonb` (kind-specific: address, serial,
+model, console URL, ticket id, renewal date), `status`, `owner_id ->users.id null`, `custody(member|team|org)`,
+`last_verified_at date null`, `verify_interval_days int null`, `parent_id` self-ref (a printer under a server room),
+`source(manual|gemini|promote)`, timestamps. CRUD UI at `/dashboard/registers` with the same filter grammar as §4
+(list/grid/board by status, date filters, search, URL params, bulk verify/re-assign/export) and the disposal and
+awaiting-repair lifecycles requiring a reason. `custody=org|team` rows are readable by every authenticated member
+and writable by their owner plus admin; `member` rows follow the §14 privacy circle.
+
+**3. Currency, not a filing cabinet.** `verify_interval_days` + `last_verified_at` make staleness a **computed**
+state (`lib/registers/staleness.ts`, pure: `now − last_verified_at > interval ⇒ stale`, `null verified ⇒ unknown`,
+never "fresh"): stale rows surface on the day strip, enter the report as "documents not current", and — through the
+§8 cadence machinery already built in phase 1 — become dated recurring work items so "check the IP addressing doc"
+appears where work appears rather than in a queue nobody opens. Verifying writes a `work_log_entries(kind=review)`
+row and bumps the date, so the act is logged by doing it.
+
+**4. Secrets never enter the register.** These rows describe *systems that hold credentials*, and the app is not a
+vault. `fields` keys matching `/(pass(word|wd)?|secret|token|otp|mfa|private_?key|api_?key|credential)/i` are
+**rejected at the API boundary** with a message that names the field and points at "record where it is kept, not
+what it is"; the form's placeholder for an account row is *"kept in: password-manager entry / vault path / safe,
+and who can authorise it"*. The owner's handover PDF almost certainly contains live credentials, so: it is not
+pasted into chat, and when it is ingested (phase 18) the extraction prompt refuses credential values and the
+validator refuses them again on the way in. A second guard asserts the placeholder and the reject list are present.
+
+**5. Playbooks (SOPs) with precautions and recommendations** — `playbooks`: `pack_key`, `discipline`, `title`,
+`summary`, `scope(register_item kind|null)`, `method jsonb` (the phase list, defaulting to the six-step method and to
+the pack's own for non-technical roles), `steps jsonb` — each `{ order, phase, action, checks[], expected,
+precautions[], warnings[], ppe[], tools_parts[], time_estimate, stop_condition, escalation, evidence_to_record }` —
+plus `precautions[]`/`recommendations[]` at the playbook level, `tags`, `status(draft|published|archived)`,
+`version`, `author_id`, `source(manual|gemini)`, `last_verified_at`, `verify_interval_days`. **Manual authoring is
+the primary path** — a structured step form, add/reorder/clone, publish. Gemini fills a draft from a title, a
+register row, and pasted vendor text (§9 provider, §8 draft-then-commit rule) and the draft keeps `source='gemini'`
+and `ai_marked` until a human edits and publishes it; a model-authored precaution is advice, so it renders marked as
+such and never silently as a company rule. Executing a playbook (`/dashboard/playbooks/[id]/run`) walks the phases
+and writes one `work_log_entries` row per phase with `playbook_id` + `playbook_version`, so "I followed SOP-12 v3 and
+documented it" is provable and the report can show method adherence. Search is the existing dashboard command
+palette; print reuses the phase-5 `lib/export/pdf.ts` with a fourth layout — one page per phase, step rows with a
+signature box, so the printed sheet works as a physical handover or a job sign-off.
+
+**6. Recommendations surface** — `lib/recommend/next.ts`, **rule-based first, so it works with no key**: derived from
+real rows — stale registers (§3), a failed backup or open ticket with no log entry today, an overdue renewal, a
+deliverable stuck `in_review` past n days, a career gap whose target metric a currently-open task could close (§11),
+a report not yet drafted for a period that just ended. Each recommendation is `{ id, kind, why, action, href,
+confidence }` and **names the rows it came from**; the AI variant (§16, phase 18) adds grounded suggestions with the
+same shape and the same "never invents a number" rule. Every one is a proposal with a button that opens the manual
+form pre-filled — accepting is a human write.
+
+**7. Onboarding** — a three-step `/onboarding` after signup: role and disciplines → which pack, and which register
+kinds you actually hold (or "none yet") → reporting line (default recipients, cadence, timezone, language). Stored
+under `preferences.settings` through the existing `/api/settings` `jsonb_set` merge (`app/api/settings/route.ts:54-65`),
+**not** new `users` columns, so the auth schema and the signup path stay untouched. Skippable in one click,
+re-editable at `/dashboard/settings/profile`. It only *reorders and pre-selects*: a member who skipped everything
+sees all disciplines, all register kinds and the `general` pack, exactly the §13 default-all rule. It never
+pre-fills invented facts — no member's dashboard claims they own a server they did not say they own.
+
+## 13. Data model
 
 New drizzle tables (`drizzle/schema.ts`, snake_case columns matching the live DB):
 
@@ -348,7 +530,8 @@ New drizzle tables (`drizzle/schema.ts`, snake_case columns matching the live DB
 work_log_entries       id, user_id ->users.id, worked_on date, task_id ->tasks.id null,
                        plan_item_id ->plan_items.id null, kind(action|time|blocker|note|review|deliverable),
                        title, body, discipline, minutes int null, deliverable_id null,
-                       links jsonb, source(auto|manual), created_at, updated_at, redated_at
+                       links jsonb, source(auto|manual|gemini), playbook_id ->playbooks.id null,
+                       playbook_version int null, created_at, updated_at, redated_at
 task_events            id, task_id ->tasks.id (cascade), actor_id ->users.id,
                        from_status, to_status, at timestamptz, source(route|bulk|kanban|promote|drag)
 deliverables           id, name, type(document|code|design|inspection|finding|training|report|other),
@@ -369,9 +552,40 @@ plan_items             id, plan_id (cascade), title, description, discipline, es
                        deliverable jsonb null, source_task_id
 assistant_threads      id, user_id, scope(site|workspace), title, created_at, updated_at
 assistant_messages     id, thread_id (cascade), role, content, references jsonb, tokens, created_at
-ai_usage_daily         date, scope(site|workspace|planner|report), calls, input_tokens, output_tokens,
+ai_usage_daily         date, scope(site|workspace|planner|report|career), calls, input_tokens, output_tokens,
                        primary key (date, scope)
+career_levels          id, discipline, level smallint, title, summary, expectations text,
+                       band_min int null, band_max int null, band_currency char(3) null,
+                       signals jsonb, checklist jsonb, is_active bool, created_at, updated_at,
+                       unique (discipline, level)
+career_placement       user_id, discipline, level, placed_by ->users.id, placed_at, note,
+                       primary key (user_id, discipline)
+career_signoffs        id, user_id, level_id ->career_levels.id, item_key, status(ticked|declined),
+                       ticked_by ->users.id not null, ticked_at, note,
+                       unique (user_id, level_id, item_key)
+career_requests        id, user_id, discipline, from_level, to_level, status(draft|submitted|approved|returned),
+                       evidence jsonb, note, requested_at, reviewed_by null, reviewed_at, return_note,
+                       effective_date date, created_at, updated_at
+growth_reviews         id, user_id, kind(readiness|learning|benchmark|review|task_suggestions),
+                       period_start date null, period_end date null, payload jsonb, narrative text,
+                       source_refs jsonb, as_of timestamptz, model, ai_marked bool not null default true,
+                       created_at
+role_packs             id, pack_key unique, title, disciplines jsonb, register_kinds jsonb, sections jsonb,
+                       report_template, ladder_discipline, onboarding jsonb, method jsonb,
+                       is_active bool, created_at, updated_at
+register_items         id, pack_key, kind, title, fields jsonb, status, owner_id ->users.id null,
+                       custody(member|team|org), parent_id ->register_items.id null,
+                       last_verified_at date null, verify_interval_days int null,
+                       reason text null, source(manual|gemini|promote), created_at, updated_at
+playbooks              id, pack_key, discipline, title, summary, scope_kind null, method jsonb, steps jsonb,
+                       precautions jsonb, recommendations jsonb, tags jsonb, status(draft|published|archived),
+                       version int, author_id ->users.id, source(manual|gemini), ai_marked bool,
+                       last_verified_at date null, verify_interval_days int null, created_at, updated_at
 ```
+
+Eighteen new tables: ten for the log, reports, planner and assistant; five for §11; three for §12. `career_placement` is current state; history is
+read from approved `career_requests`, so there is no parallel ledger to keep in sync. `growth_reviews` is append-only
+by design — a dated snapshot the member can reread, not a mutable field.
 
 Additive nullable `tasks` columns: `start_date date`, `discipline varchar(40)`, `source_plan_id integer`. The
 Gantt needs a start and `tasks` has only a due date; `source_plan_id` keeps promote auditable in both
@@ -386,7 +600,14 @@ directions. No existing route selects these columns, so no current behaviour cha
 export const WORK_DISCIPLINES = ["developer","technician","designer","auditor","coordinator"] as const
 export type WorkDiscipline = (typeof WORK_DISCIPLINES)[number]
 // + label, icon, colour-token and report-template maps
+export const CAREER_RUNGS = [
+  { level: 1, name: "Junior" }, { level: 2, name: "Intermediate" },
+  { level: 3, name: "Senior" }, { level: 4, name: "Lead" },
+] as const
 ```
+
+The signal-key registry (`lib/career/signals.ts`) and `lib/career/readiness.ts` stay DB-free for the same reason, so
+the ladder's arithmetic is unit-testable without a connection string.
 
 Viewer preferences go through `/api/settings` so they inherit its `jsonb_set` merge under
 `preferences.settings` (`app/api/settings/route.ts:54-65`) and cannot clobber other namespaces:
@@ -400,7 +621,7 @@ a DB-facing module. Backfill: existing tasks get no fake history — `task_event
 and a report for a period with no events says "not recorded" rather than inventing a date. Silent backfill from
 `updated_at` is explicitly refused; it would produce numbers that look like evidence.
 
-## 12. Error handling, security, privacy
+## 14. Error handling, security, privacy
 
 | Case | Behaviour |
 | --- | --- |
@@ -420,21 +641,30 @@ zod-parsed payloads; recipients validated against real member ids; **a log entry
 readable only by its author, that report's listed recipients, and admin/superadmin** — enforced in the query,
 not the UI; uploads to the private Neon bucket under `planner/{userId}/{uuid}.pdf` served through the existing
 presigned-redirect route (`app/api/storage/[...key]/route.ts`), whose avatars-only key check is widened to that
-prefix deliberately and with a test.
+prefix deliberately and with a test. **Career data** follows the same rule with a tighter circle: placement,
+readiness, sign-offs and requests are readable by that member and by admin/superadmin only — never by a report
+recipient, never by a teammate, and the routes scope by `session.id` rather than a user id in the body. No column
+anywhere stores what an individual is paid; `band_min`/`band_max` exist only on `career_levels`, which is config
+about a rung. **Registers and playbooks** (§12): `member` custody rows keep the §14 circle, `team|org` rows are
+readable by any authenticated member and writable by owner plus admin; a credential-shaped field key is refused at
+the API boundary before it reaches `jsonb`, with the field name in the error and never its value; playbook
+precautions authored by the model stay marked `ai_marked` and say so on the printed sheet, because a safety step is
+the last place a plausible-sounding invention belongs.
 
 Privacy: the paste path stores no file; deleting a plan removes its object and source text together; a member's
 log is not visible to teammates, only to their report recipients and to admins, and that is stated in the policy
 rather than implied; the disclosure says plainly that a document is sent to Google for processing.
 
-## 13. Testing
+## 15. Testing
 
 Repo grammar: pure-logic tests under `tests/unit/`, one guard file per subsystem, `npm run typecheck` at 0
 errors, `npm run lint` at 0 errors (70-warning baseline), `npm test` green before every commit and push.
 
 - `lib/reports/period.test.ts` — ISO week/month/year boundaries, custom ranges, `Africa/Nairobi` plus a DST
   zone, year-end and leap edges, the yearly 12-bucket series.
-- `lib/worklog/capture.test.ts` — every task mutation path writes exactly one `task_events` row (including
-  bulk, kanban reorder and promote); `worked_on` resolves in the user's timezone; no backfill fabrication.
+- `lib/worklog/capture.test.ts` — every `tasks` mutation path listed in §4 writes exactly one `task_events` row
+  (including bulk and promote), a kanban `update-status` drag writes none because it touches `kanban_tasks`,
+  `worked_on` resolves in the user's timezone, and no backfill fabrication.
 - `lib/reports/aggregate.test.ts` — status bucketing, per-day entry counts, deliverables by status, overdue
   carried forward, **the no-metric-without-rows invariant** (every section's number matches its drill-down id
   list), and a period with no activity yielding zeros not nulls.
@@ -449,16 +679,43 @@ errors, `npm run lint` at 0 errors (70-warning baseline), `npm test` green befor
   pricing facts identical to `content/pricing-page.ts`.
 - `lib/ai/gemini.test.ts` — stubbed `global.fetch`: payload shape, `responseSchema` wiring, model-discovery
   fallback, each `GeminiError.kind`, abort on timeout, `badjson` retry-then-fail. No live calls in CI.
+- `lib/career/readiness.test.ts` — the weighting math, the previous-rung cap (`capped: true` at 59%), a signal with
+  zero rows reading 0 not null, gaps listing both kinds in the right order, and that a client-supplied `percent`
+  field is impossible to pass through.
+- `lib/career/ladder-seed.test.ts` — every discipline has rungs 1-4 with unique keys, every signal key exists in the
+  registry, every target is non-decreasing as the level rises (L3 cannot require fewer delivered items than L2), no
+  band value is seeded with a number (they must be null until the owner publishes them), and checklist hints are
+  non-empty strings.
+- `lib/career/growth.test.ts` — every URL in a grounded answer appears in the grounding metadata or is dropped; the
+  benchmark action cannot write `career_levels`.
+- `lib/packs/pack.test.ts` — **the "all roles" proof**: a pack written purely as data (a `night-audit` fixture that
+  exists nowhere in the UI code) resolves its register kinds, dashboard section list, report template, ladder
+  discipline and playbook method through the same selectors the `it-technician` pack uses, with zero code changes;
+  every `WORK_DISCIPLINES` member is reachable by exactly one default pack; the `general` pack resolves for an
+  unknown role string.
+- `lib/registers/staleness.test.ts` — pure date math: `stale`/`fresh`/`unknown`, an interval of 0 days, a
+  `last_verified_at` in the future, a leap-day and a month-boundary edge, and that staleness is never stored.
+- `lib/registers/fields.test.ts` — the credential reject list blocks `password`, `Password`, `api_key`, `apiKey`,
+  `private_key`, `otp`, `mfa_secret`, `token` and nested variants, accepts `kept_in` and `authoriser`, and the
+  message names the offending field without echoing its value.
+- `lib/playbooks/method.test.ts` — the six-step default is complete and ordered, every step carries at least the
+  `action` plus `precautions[]`/`warnings[]` arrays (possibly empty, never undefined), a step's `phase` is in the
+  method, run-logging writes one entry per phase with the version, and a `source='gemini'` draft cannot reach
+  `published` without a human edit recorded.
+- `lib/recommend/next.test.ts` — each rule fires on its real condition and cites the row ids behind it, a rule with
+  no rows yields nothing, and no rule's output contains a number absent from its cited rows.
 - `lib/export/*` — the three PDF layouts, section ordering, yearly sheet selection, CSV quoting parity with the
   existing `toCsv`.
 - `tests/unit/worklog-reports.test.ts` (guard, in the style of `tests/unit/dashboard-chrome.test.ts`) — the key
   variable never appears with a `NEXT_PUBLIC_` prefix; `/api/ai/generate`'s canned branches are gone; no AI
   surface renders a hard-coded "analysis" string; extraction writes `tasks` only through the promote route;
   `WORK_DISCIPLINES` is the only discipline vocabulary; no report/log route can return a row to someone who is
-  neither author nor listed recipient nor admin; nothing computes a day's work from `tasks.updated_at`.
+  neither author nor listed recipient nor admin; nothing computes a day's work from `tasks.updated_at`; no career
+  table stores an individual's pay (`band_*` lives on `career_levels` only); `career_signoffs` writes are
+  admin-gated in the route; the readiness percentage is never read from a request body.
 - Manual visual QA stays the owner's (their standing rule); the dev server is not restarted without asking.
 
-## 14. Phases
+## 16. Phases
 
 Each phase is a reviewable, green, committed, pushed unit. Pushing auto-deploys to production.
 
@@ -484,12 +741,37 @@ Each phase is a reviewable, green, committed, pushed unit. Pushing auto-deploys 
     counting, legal disclosure.
 11. **Docs and guards** — `FEATURES.md`, `DESIGN_SYSTEM.md` (worklog and planner components, discipline tokens,
     report layouts), `PLACEHOLDERS.md` (the Granite item closes here), README AI section, guard test files.
+12. **Career ladder schema and math** — the five §11 tables, `lib/career/{signals,readiness,ladder-seed}.ts` all
+    DB-free, 20 seeded rungs with null bands, the readiness and seed tests, `/api/career/{levels,me}` reads. No UI.
+13. **Career UI and review** — `/dashboard/career` with the readiness meter and drill-downs, checklist display,
+    request flow with its frozen evidence, history timeline, `/admin/career` ladder editor + placements + sign-off +
+    review queue, notifications on submit/approve/return, and `seniorityTierOf` preferring a real placement.
+14. **Growth AI** — grounded learning paths with the URL-verification rule, benchmark snapshots into
+    `growth_reviews` (never into `career_levels`), the periodic review written from the member's own counts, and
+    gap-closing task suggestions that land as a draft `agent_plan` for the existing promote path.
+15. **Role packs and registers** — `role_packs`/`register_items`, `lib/packs/seed.ts` with the IT-technician and
+    `general` packs, the staleness and credential-field modules, `/dashboard/registers` CRUD with §4's filter
+    grammar, `/admin/packs`, the stale-document queue wired into cadence-generated work items. No AI: the owner
+    types their own inventory.
+16. **Playbooks** — `playbooks` table, the six-step method module, manual step editor with reorder/clone, palette
+    search, run-mode writing one log row per phase, the printable fourth PDF layout with signature boxes.
+17. **Onboarding** — `/onboarding` three steps writing `preferences.settings` through the existing `/api/settings`
+    merge, pack-driven ordering on `/dashboard`, re-editable from profile settings, and the skipped-everything
+    default that changes nothing for anybody.
+18. **Agent entry for packs, registers and playbooks** — PDF/paste handover ingestion into register rows and
+    playbook drafts (credential values refused twice over), grounded precaution suggestions marked as machine
+    drafted, and the rule-based recommendation list gaining its AI twin. Needs the provider from phase 6.
 
 Phases 1–5 are the reporting product and need no API key at all — that is the part the owner asked for first,
 and it is deliberately sequenced so it can be shipped and used before any AI dependency exists. 6–10 add the
 intelligence around it. Phase 8 is independent of 2–5 and can move earlier if the Gantt is wanted sooner.
+12 and 13 also need no key and can slot straight after 5: the ladder's arithmetic runs entirely on logged rows, so
+it starts meaning something the day the log starts filling. Only 14 waits on the provider. Likewise 15, 16 and 17 —
+the register, the playbook and the onboarding are typed by people first, which is the point; 18 is where the agent
+gets to fill the same forms. If the technician's handover is the priority, 15+16 are the shortest path to something
+they can print, and they depend only on phase 1.
 
-## 15. Risks
+## 17. Risks
 
 - **A report that misrepresents the work.** The hard rule in §2 holds: every number traces to rows the author
   can drill into, and machine prose is marked until accepted. If a metric cannot be computed it is absent, never
@@ -498,7 +780,7 @@ intelligence around it. Phase 8 is independent of 2–5 and can move earlier if 
   captured automatically (§4), quick-add is one line, time is optional, and a report is still valid with zero
   manual entries. If the automatic half covers 60% of a normal week, the habit survives.
 - **No history before deploy.** Existing tasks have no `task_events`; reports for those periods say "not
-  recorded". Restoring the past from `updated_at` is refused (§11) because it manufactures evidence.
+  recorded". Restoring the past from `updated_at` is refused (§13) because it manufactures evidence.
 - **Cost surprise on the public bot.** Five caps plus `ai_usage_daily`; the owner sets `AI_PUBLIC_DAILY_CAP` to
   a number they mean after reading the first week of counts.
 - **Scan-only PDFs.** A photographed job description with no text layer yields confident nonsense; phase 7
@@ -509,8 +791,28 @@ intelligence around it. Phase 8 is independent of 2–5 and can move earlier if 
 - **In-memory rate limits in serverless.** Stated plainly in §7; the DB counter is the ceiling.
 - **Manager adoption of a new format.** Mitigated by a PDF that reads like the documents supervisors already
   file, and by leaving the existing `/dashboard/reports` schedules exactly where they are.
+- **A readiness number read as a promise.** 78% ready is not a half-promotion. The page states that readiness counts
+  recorded evidence and that the rung is an admin's decision, bands are published ranges for the role rather than an
+  offer to a person, and no pay figure exists in the database to be promised.
+- **Logging to the metric instead of the work.** Volume signals alone would reward noise, so a third of the score is
+  the checklist and only an admin can move it (§11); the meter also keeps its drill-down, so a reviewer can see
+  *which* rows produced the number.
+- **Grounding is a moving target.** `google_search` availability, model support and billing are checked in phase 14
+  against live discovery, not assumed from documentation; if it is unavailable the advice still renders, labelled
+  "no live sources", with links omitted rather than invented.
+- **Bootstrapping placements wrongly.** Every write to `career_placement` requires `placed_by` and a note, so a
+  day-one bulk placement is attributable and correctable, and a wrong level is visible as a decision rather than
+  data.
+- **A model-invented precaution.** Safety steps are the costliest place to hallucinate. Precautions default to
+  human authoring, machine-drafted ones stay `ai_marked` through to the printed sheet, and the field validator is
+  the same for both doors (§12 rule 7) so the agent cannot smuggle a shape the form would reject.
+- **The app turning into a password store.** Registers describe custody and location, never values; the field-key
+  reject list is a boundary check, not a UI hint, and it is tested with nested and camelCase variants (§15).
+- **Pack-as-data quietly becoming pack-as-code.** Every new page that reads a pack must go through the pack
+  selectors, and the `night-audit` fixture test fails if a role's behaviour needs an `if (pack_key === …)` branch —
+  that test is the mechanism keeping "supports all roles" honest as roles accumulate.
 
-## 16. Decisions already taken
+## 18. Decisions already taken
 
 - Day-level actions and deliverables are the system of record; reports roll up from them.
 - Task status history is captured going forward, never backfilled from `updated_at`.
@@ -525,5 +827,24 @@ intelligence around it. Phase 8 is independent of 2–5 and can move earlier if 
 - Extraction lands in draft plans; promote is the only path into `tasks`.
 - Roles are a per-item discipline plus a per-viewer filter; no per-role workspace fork.
 - Exports are client-side `exceljs` + `jspdf`; CSV/JSON stay on the existing server route.
+- The career ladder publishes **bands per rung and stores no individual pay** — owner's choice, over both
+  admin-held salaries and self-entered ones.
+- Promotion proof is hybrid: computed signals carry 70%, an admin-signed competency checklist 30%, and a member
+  cannot tick their own checklist.
+- The employee raises the promotion request and an admin decides it; submitting freezes the evidence the decision
+  is made on.
+- All four growth AI outputs are wanted, including live web search for learning paths and market benchmarks — the
+  one deliberate exception to the no-browsing rule, with returned URLs verified against grounding metadata.
+- The ladder reuses the log's tables and the planner's promote path; gap-closing suggestions become a draft plan,
+  not a new entity.
+- Role support is **data, not code**: a pack is rows plus selectors, so a role the app has never seen is configured
+  at `/admin/packs`, and the `night-audit` fixture test is what proves the claim.
+- The IT technician's handover shape (infrastructure · accounts and systems · equipment · outstanding work) plus the
+  six-step Identify → Reproduce → Diagnose → Fix → Test → Document method is the first filled pack, not the schema.
+- Registers record custody and where a secret is kept; the application never stores the secret itself.
+- SOPs are hand-authored first and agent-drafted second, through one validator, and stay marked as machine-drafted
+  on the printed page.
+- Onboarding tailors, it does not gate: everything it collects lives in `preferences.settings`, it is skippable in
+  one click, and a member who skips it sees the full default view.
 - The assistant reads the signed-in user's own data, and everything for an admin/superadmin.
 - The scripted landing FAQ survives as tier 1.
