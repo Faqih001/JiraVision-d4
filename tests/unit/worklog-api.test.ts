@@ -106,3 +106,33 @@ describe("work log entry row route", () => {
     expect(route()).toMatch(/params: Promise<\{ id: string \}>/u)
   })
 })
+
+describe("work log bulk route", () => {
+  const route = () => src("app/api/worklog/entries/bulk/route.ts")
+
+  it("filters the ids by ownership inside the query", () => {
+    expect(route()).toMatch(/and\(inArray\(workLogEntries\.id, ids\), eq\(workLogEntries\.userId, userId\)\)/u)
+    // one helper, five call sites: a bulk write that skipped ownership would edit foreign rows
+    expect(route().match(/ownedIds\(/gu)?.length).toBeGreaterThanOrEqual(6)
+  })
+
+  it("reports requested and affected separately", () => {
+    expect(route()).toMatch(/requested: body\.ids\.length/u)
+    expect(route()).toMatch(/affected: affected\.length/u)
+    expect(route()).toMatch(/skipped: body\.ids\.length - affected\.length/u)
+  })
+
+  it("runs a multi-write action in one transaction", () => {
+    expect(route()).toMatch(/db\.transaction/u)
+    expect(route()).toMatch(/insert\(deliverables\)/u)
+  })
+
+  it("only writes through the bulk grammar", () => {
+    expect(route()).toMatch(/readBulkRequest/u)
+    expect(route()).not.toMatch(/\.set\(\{ \.\.\.body/u)
+  })
+
+  it("answers 404 when the whole selection was someone else's", () => {
+    expect(route()).toMatch(/notFound\("No matching entries"\)/u)
+  })
+})

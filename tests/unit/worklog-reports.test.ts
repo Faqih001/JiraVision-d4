@@ -68,10 +68,27 @@ describe("task_events capture covers every status-writing route", () => {
 })
 
 describe("nothing manufactures history", () => {
+  // The hazard is a day *derived* from a touch stamp — `workedOn: tasks.updatedAt`, or
+  // `date(tasks.updated_at)` written into worked_on. Phase 2 legitimately writes both
+  // fields in one statement (a member re-dates a row and the row is touched), which the old
+  // 80-character proximity window could not tell apart from the real bug. This keeps the
+  // rule to one line per field, and the self-check below is what stops the narrowing from
+  // quietly becoming a guard that catches nothing.
+  const derivesDayFromTouchStamp = (body: string) =>
+    /workedOn[^\n,]*updatedAt|updatedAt[^\n,]*workedOn/iu.test(body) ||
+    /worked_on[^\n,]*updated_at|updated_at[^\n,]*worked_on/iu.test(body)
+
+  it("the guard still catches a day taken from updated_at", () => {
+    expect(derivesDayFromTouchStamp("const row = { workedOn: tasks.updatedAt }")).toBe(true)
+    expect(derivesDayFromTouchStamp("sql`select date(tasks.updated_at) as worked_on from tasks`")).toBe(true)
+    // and still waves through the two independent writes phase 2 makes
+    expect(derivesDayFromTouchStamp(".set({ workedOn: body.workedOn, redatedAt: d, updatedAt: d })")).toBe(false)
+  })
+
   it("no worklog or report module infers a day from tasks.updated_at", () => {
     const offenders = routeFilesUnder("app/api").filter((file) => {
       const body = codeOnly(src(file))
-      return /workLogEntries|taskEvents|workReports/.test(body) && /workedOn[\s\S]{0,80}updatedAt/.test(body)
+      return /workLogEntries|taskEvents|workReports/.test(body) && derivesDayFromTouchStamp(body)
     })
     expect(offenders).toEqual([])
   })
