@@ -1,11 +1,13 @@
 // Shared server-only helpers for the reports workspace: dataset registry,
-// deterministic SQL aggregations, cadence math and response helpers.
+// deterministic SQL aggregations and response helpers. Cadence vocabulary and
+// recurrence math live in lib/cadence.ts and are re-exported below.
 // report_schedules / report_runs are raw-SQL tables (scripts/create-reports-tables.mjs),
 // intentionally NOT in drizzle/schema.ts.
 
 import { NextResponse } from "next/server"
 import { sql } from "drizzle-orm"
 import { db } from "@/lib/db"
+import { type Cadence, isCadence } from "@/lib/cadence"
 
 export const DATASETS = {
   tasks: {
@@ -44,15 +46,20 @@ export const DATASETS = {
 export type DatasetKey = keyof typeof DATASETS
 export const DATASET_KEYS = Object.keys(DATASETS) as DatasetKey[]
 
-export const CADENCES = ["daily", "weekly", "monthly"] as const
-export type Cadence = (typeof CADENCES)[number]
+// The cadence vocabulary lives in lib/cadence.ts so the work log, the report builder and
+// the register queue all read the same five values. Re-exported here because every
+// existing `/api/reports` import comes from this file.
+export {
+  CADENCES,
+  CADENCE_DAYS,
+  CADENCE_LABEL,
+  computeNextRun,
+  isCadence,
+  type Cadence,
+} from "@/lib/cadence"
 
 export function isDatasetKey(v: unknown): v is DatasetKey {
   return typeof v === "string" && DATASET_KEYS.includes(v as DatasetKey)
-}
-
-export function isCadence(v: unknown): v is Cadence {
-  return typeof v === "string" && (CADENCES as readonly string[]).includes(v)
 }
 
 export function unauthorized() {
@@ -83,14 +90,6 @@ export function idInList(ids: number[]) {
     ids.map((n) => sql`${n}`),
     sql`, `,
   )
-}
-
-export function computeNextRun(cadence: Cadence, from: Date = new Date()): string {
-  const next = new Date(from)
-  if (cadence === "daily") next.setUTCDate(next.getUTCDate() + 1)
-  else if (cadence === "weekly") next.setUTCDate(next.getUTCDate() + 7)
-  else next.setUTCMonth(next.getUTCMonth() + 1)
-  return next.toISOString()
 }
 
 export interface DatasetRow {

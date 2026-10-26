@@ -10,6 +10,7 @@ import { db } from "@/lib/db"
 import { getSession } from "@/lib/auth-actions"
 import { createNotification } from "@/lib/notifications"
 import {
+  CADENCES,
   DATASETS,
   badRequest,
   computeNextRun,
@@ -100,7 +101,9 @@ export async function PATCH(request: NextRequest, context: Context) {
 
     let cadence: Cadence = existing.cadence
     if (body.cadence !== undefined) {
-      if (!isCadence(body.cadence)) return badRequest("cadence must be daily, weekly or monthly")
+      if (!isCadence(body.cadence)) {
+        return badRequest(`cadence must be one of: ${CADENCES.join(", ")}`)
+      }
       cadence = body.cadence
       sets.push(sql`cadence = ${cadence}`)
     }

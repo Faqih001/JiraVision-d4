@@ -93,7 +93,9 @@ export async function POST(request: NextRequest) {
       userId: session.id,
       type: "system",
       title: `Report schedule created: ${name}`,
-      body: `${DATASETS[dataset].label} report, ${cadence} cadence — next run ${new Date(nextRunAt).toUTCString().slice(0, 25)}.`,
+      body: `${DATASETS[dataset].label} report, ${cadence} cadence — ${
+        nextRunAt ? `next run ${new Date(nextRunAt).toUTCString().slice(0, 25)}.` : "runs once, never again."
+      }`,
       link: "/dashboard/reports",
       metadata: { scheduleId: row.id, action: "created" },
     })

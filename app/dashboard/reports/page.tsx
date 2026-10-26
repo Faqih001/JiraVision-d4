@@ -60,6 +60,7 @@ import {
 } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
+import { CADENCE_LABEL, CADENCES, type Cadence } from "@/lib/cadence"
 import {
   AXIS,
   AvatarCircle,
@@ -72,7 +73,6 @@ import {
 /* ------------------------------------------------------------------ types */
 
 type DatasetKey = "tasks" | "sprints" | "team" | "wellbeing"
-type Cadence = "daily" | "weekly" | "monthly"
 
 type DatasetRegistry = Record<
   DatasetKey,
@@ -118,12 +118,6 @@ type DatasetResult = {
 }
 
 type Member = { id: number; name: string; avatar?: string | null }
-
-const CADENCE_LABEL: Record<Cadence, string> = {
-  daily: "Daily",
-  weekly: "Weekly",
-  monthly: "Monthly",
-}
 
 const RANGE_OPTIONS = [7, 14, 30, 90, 180]
 
@@ -719,7 +713,7 @@ export default function ReportsPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All cadences</SelectItem>
-                {(["daily", "weekly", "monthly"] as Cadence[]).map((c) => (
+                {CADENCES.map((c) => (
                   <SelectItem key={c} value={c}>
                     {CADENCE_LABEL[c]}
                   </SelectItem>
@@ -975,7 +969,7 @@ export default function ReportsPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {(["daily", "weekly", "monthly"] as Cadence[]).map((c) => (
+                      {CADENCES.map((c) => (
                         <SelectItem key={c} value={c}>
                           {CADENCE_LABEL[c]}
                         </SelectItem>
