@@ -70,6 +70,10 @@ export function badRequest(message: string) {
   return NextResponse.json({ success: false, message }, { status: 400 })
 }
 
+export function notFound(message = "Not found") {
+  return NextResponse.json({ success: false, message }, { status: 404 })
+}
+
 export function serverError(error: unknown, action: string) {
   console.error(`Error during ${action}:`, error)
   return NextResponse.json(
