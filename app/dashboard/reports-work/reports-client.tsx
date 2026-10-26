@@ -21,6 +21,7 @@ import {
   type ReportContent,
   type ReportSectionKey,
 } from "@/lib/reports/templates"
+import type { RowSectionKey } from "@/lib/reports/row-sections"
 import {
   defaultReportState,
   effectiveTemplate,
@@ -38,6 +39,7 @@ import {
   PeriodSection,
   ProseSection,
   ReportsSkeleton,
+  RowSection,
 } from "./sections"
 
 /** The three work-report endpoints share the `{ success, data | message }` envelope. */
@@ -311,6 +313,21 @@ export default function ReportsClient() {
     toast({ title: "Draft deleted" })
   }, [mutate, patchState, pendingDelete, refresh, toast])
 
+  // A plain function, not a callback: its closure over the current aggregate, URL state and prose
+  // is the point, and the map below is rebuilt every render by design.
+  const row = (section: RowSectionKey) => (
+    <RowSection
+      key={section}
+      section={section}
+      aggregate={aggregate}
+      period={shownPeriod}
+      expanded={state.open === section}
+      comment={prose[section] ?? ""}
+      onToggle={() => patchState({ open: state.open === section ? null : section })}
+      onComment={(value) => setProse((prev) => ({ ...prev, [section]: value }))}
+    />
+  )
+
   // The template decides the order; the map decides that a section the template does not lead
   // with is still present. A report missing its blockers section is the failure mode §6 warns
   // about, and it is prevented by structure rather than by a reviewer noticing.
@@ -334,7 +351,13 @@ export default function ReportsClient() {
         onChange={(value) => setProse((prev) => ({ ...prev, summary: value }))}
       />
     ),
-    // Tasks 13-15 add the six row sections, metrics and notes here.
+    completed: row("completed"),
+    deliverables: row("deliverables"),
+    inProgress: row("inProgress"),
+    blocked: row("blocked"),
+    overdue: row("overdue"),
+    nextPeriod: row("nextPeriod"),
+    // Task 16 adds the metrics and notes cards.
   }
 
   if (loading && !aggregate && reports.length === 0) return <ReportsSkeleton />

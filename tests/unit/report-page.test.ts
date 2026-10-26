@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { readFileSync } from "node:fs"
 import path from "node:path"
+import { ROW_SECTIONS } from "@/lib/reports/row-sections"
 
 const repo = path.resolve(__dirname, "..", "..")
 const src = (relative: string) => readFileSync(path.join(repo, relative), "utf8")
@@ -101,5 +102,46 @@ describe("the builder's write path", () => {
 
   it("recomputes with a POST, not a page reload", () => {
     expect(client()).toMatch(/\/recompute`, \{ method: "POST" \}\)/u)
+  })
+})
+
+describe("the six computed row cards", () => {
+  it("gives every computed section a card in the build view", () => {
+    for (const section of ROW_SECTIONS) expect(client()).toContain(`row("${section}")`)
+  })
+
+  it("makes the number on the card the length of the rows under it", () => {
+    expect(sectionsFile()).toMatch(/const rows = aggregate \? rowsFor\(section, aggregate\) : \[\]/u)
+    expect(sectionsFile()).toMatch(/total=\{rows\.length\}/u)
+    expect(sectionsFile()).toMatch(/rows=\{shown\}/u)
+  })
+
+  it("keeps the drill-down in the URL, where a recipient can be sent to it", () => {
+    expect(client()).toMatch(/expanded=\{state\.open === section\}/u)
+    expect(client()).toMatch(/patchState\(\{ open: state\.open === section \? null : section \}\)/u)
+    // sections.tsx is presentational: it holds no state of its own at all.
+    expect(codeOnly(sectionsFile())).not.toMatch(/useState/u)
+  })
+
+  it("prints the ids behind the count only once the section is open", () => {
+    expect(sectionsFile()).toMatch(/\{row\.ref\}/u)
+    expect(sectionsFile()).toMatch(/expanded \? <p className="font-mono/u)
+    expect(sectionsFile()).toMatch(/aria-expanded=\{expanded\}/u)
+  })
+
+  it("keeps the commentary inside the same card, so ten sections stay ten cards", () => {
+    expect(sectionsFile()).toMatch(/<CommentField/u)
+    expect(codeOnly(sectionsFile())).not.toMatch(
+      /<ProseSection section="(completed|deliverables|inProgress|blocked|overdue|nextPeriod)"/u,
+    )
+  })
+
+  it("links out only where the link is real", () => {
+    expect(sectionsFile()).toMatch(/worklogHref\(period, section\)/u)
+    expect(sectionsFile()).toMatch(/refHref\(row\.ref, period\)/u)
+    // No invented routes: the planner page arrives with its own phase.
+    expect(codeOnly(sectionsFile())).not.toMatch(
+      /dashboard\/planner|dashboard\/tasks\/\$\{|dashboard\/deliverables/u,
+    )
   })
 })

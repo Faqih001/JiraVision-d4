@@ -3,7 +3,23 @@
 // The builder's cards. No arithmetic and no date maths live here: a card renders rows the API
 // already counted, and the period it labels comes from the Period object the caller resolved.
 
-import { CalendarRange, ChevronLeft, ChevronRight, FileText, Inbox, NotebookPen } from "lucide-react"
+import {
+  CalendarClock,
+  CalendarRange,
+  CheckCircle2,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
+  Clock,
+  FileStack,
+  FileText,
+  Inbox,
+  Loader2,
+  NotebookPen,
+  ShieldAlert,
+} from "lucide-react"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -16,7 +32,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
-import { SectionCard } from "@/components/dashboard-kit"
+import { EmptyNote, SectionCard } from "@/components/dashboard-kit"
+import type { ReportAggregate, ReportRow } from "@/lib/reports/aggregate"
 import {
   PERIOD_LABEL,
   PERIOD_TYPES,
@@ -24,6 +41,16 @@ import {
   type Period,
   type PeriodType,
 } from "@/lib/reports/period"
+import {
+  ROW_SECTION_HINT,
+  hiddenRowCount,
+  refHref,
+  rowsCaption,
+  rowsFor,
+  visibleRows,
+  worklogHref,
+  type RowSectionKey,
+} from "@/lib/reports/row-sections"
 import { MAX_REPORT_TITLE, type ReportDto } from "@/lib/reports/report-fields"
 import {
   MAX_SECTION_TEXT,
@@ -362,6 +389,197 @@ export function ProseSection({
             ? `${value.length - MAX_SECTION_TEXT} characters over the ${MAX_SECTION_TEXT} limit — the save will refuse this.`
             : `${value.length} characters`}
         </p>
+      </div>
+    </SectionCard>
+  )
+}
+
+const SECTION_ICON: Record<RowSectionKey, React.ReactNode> = {
+  completed: <CheckCircle2 className="h-4 w-4" />,
+  deliverables: <FileStack className="h-4 w-4" />,
+  inProgress: <Loader2 className="h-4 w-4" />,
+  blocked: <ShieldAlert className="h-4 w-4" />,
+  overdue: <Clock className="h-4 w-4" />,
+  nextPeriod: <CalendarClock className="h-4 w-4" />,
+}
+
+/**
+ * The count is the button: it is the same number the list under it has rows for, and clicking it
+ * writes `?open=<section>` so the expanded report is a linkable state rather than a click sequence.
+ */
+export function CountButton({
+  total,
+  hidden,
+  expanded,
+  section,
+  onClick,
+}: {
+  total: number
+  hidden: number
+  expanded: boolean
+  section: RowSectionKey
+  onClick: () => void
+}) {
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="sm"
+      className="h-7 gap-1 px-2 text-[11px]"
+      aria-expanded={expanded}
+      aria-label={`${expanded ? "Hide" : "Show"} the ${total} rows behind ${SECTION_TITLE[section]}`}
+      onClick={onClick}
+    >
+      <span className="font-semibold tabular-nums">{total}</span>
+      {hidden > 0 ? <span className="text-muted-foreground tabular-nums">+{hidden}</span> : null}
+      {expanded ? <ChevronUp className="h-3.5 w-3.5" aria-hidden /> : <ChevronDown className="h-3.5 w-3.5" aria-hidden />}
+    </Button>
+  )
+}
+
+function rowTitle(row: ReportRow, period: Period) {
+  const href = refHref(row.ref, period)
+  if (!href) return row.title
+  return (
+    <Link href={href} className="underline decoration-border underline-offset-2 hover:decoration-foreground">
+      {row.title}
+    </Link>
+  )
+}
+
+/**
+ * `key={row.ref}` — the ref is the id list §6 promises, and it is unique per row, so a row can
+ * never be painted into the wrong place when a section expands.
+ */
+function RowList({ rows, expanded, period }: { rows: ReportRow[]; expanded: boolean; period: Period }) {
+  if (rows.length === 0) return <EmptyNote>Nothing landed in this section for the period.</EmptyNote>
+  return (
+    <ul className="divide-y divide-border/60">
+      {rows.map((row) => (
+        <li key={row.ref} className="py-1.5">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <p className="break-words text-[13px] leading-snug">{rowTitle(row, period)}</p>
+              <p className="break-words text-[11px] text-muted-foreground">{row.detail}</p>
+            </div>
+            <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
+              {row.date ?? "no date"}
+            </span>
+          </div>
+          {expanded ? <p className="font-mono text-[10px] text-muted-foreground">{row.ref}</p> : null}
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+export function CommentField({
+  section,
+  value,
+  onChange,
+}: {
+  section: RowSectionKey
+  value: string
+  onChange: (value: string) => void
+}) {
+  const over = value.length > MAX_SECTION_TEXT
+  return (
+    <div className="space-y-1 border-t border-border/60 pt-3">
+      <Label
+        htmlFor={`comment-${section}`}
+        className="text-[10px] uppercase tracking-wide text-muted-foreground"
+      >
+        Your read of this section
+      </Label>
+      <Textarea
+        id={`comment-${section}`}
+        aria-label={`${SECTION_TITLE[section]} commentary`}
+        rows={2}
+        value={value}
+        placeholder={ROW_SECTION_HINT[section]}
+        className={over ? "border-destructive" : undefined}
+        onChange={(event) => onChange(event.target.value)}
+      />
+      {over ? (
+        <p className="text-[10px] text-destructive tabular-nums">
+          {value.length - MAX_SECTION_TEXT} characters over the {MAX_SECTION_TEXT} limit — the save will refuse this.
+        </p>
+      ) : null}
+    </div>
+  )
+}
+
+/**
+ * One card, computed rows and the author's commentary. The rows are read through
+ * `lib/reports/row-sections.ts` and never re-derived here: a card that totals its own rows is a
+ * second opinion on the work log, and §6's whole point is that there is only one.
+ */
+export function RowSection({
+  section,
+  aggregate,
+  period,
+  expanded,
+  comment,
+  onToggle,
+  onComment,
+}: {
+  section: RowSectionKey
+  aggregate: ReportAggregate | null
+  period: Period
+  expanded: boolean
+  comment: string
+  onToggle: () => void
+  onComment: (value: string) => void
+}) {
+  const rows = aggregate ? rowsFor(section, aggregate) : []
+  const shown = aggregate ? visibleRows(section, aggregate, expanded) : []
+  const hidden = aggregate ? hiddenRowCount(section, aggregate) : 0
+  const link = worklogHref(period, section)
+
+  return (
+    <SectionCard
+      title={SECTION_TITLE[section]}
+      icon={SECTION_ICON[section]}
+      action={
+        <CountButton
+          total={rows.length}
+          hidden={hidden}
+          expanded={expanded}
+          section={section}
+          onClick={onToggle}
+        />
+      }
+    >
+      <div className="space-y-2">
+        <p className="text-[11px] text-muted-foreground tabular-nums">
+          {aggregate ? rowsCaption(section, aggregate) : "Numbers arrive with the period."}
+        </p>
+        {aggregate === null ? (
+          <EmptyNote>The rows come from the work log, so they appear once the period has resolved.</EmptyNote>
+        ) : (
+          <RowList rows={shown} expanded={expanded} period={period} />
+        )}
+        {hidden > 0 && !expanded ? (
+          <Button type="button" variant="ghost" size="sm" className="h-7 text-[11px] text-muted-foreground" onClick={onToggle}>
+            Show the other {hidden}
+          </Button>
+        ) : null}
+        {link ? (
+          <Link
+            href={link}
+            className="text-[11px] underline decoration-border underline-offset-4 hover:decoration-foreground"
+          >
+            {rows.length > 0
+              ? `Open these ${rows.length} rows in the work log`
+              : "Open this period in the work log"}
+          </Link>
+        ) : (
+          <p className="text-[11px] text-muted-foreground">
+            These rows come from a plan, and plans get their own page in a later phase — there is
+            nowhere to open them yet.
+          </p>
+        )}
+        <CommentField section={section} value={comment} onChange={onComment} />
       </div>
     </SectionCard>
   )
