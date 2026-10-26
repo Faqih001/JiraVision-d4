@@ -24,10 +24,13 @@
 - Every read and write is scoped by the session user id **in the SQL**, not in the UI (`§5`: a member's log is private to them; the team view is phase 4).
 - `worked_on` is resolved through `users.timezone` (default `Africa/Nairobi`) via `lib/worklog/local-day.ts`. Never `new Date().toISOString().slice(0,10)` for a member-facing day.
 - Vocabulary lives in exactly one module each: kinds/sources/types/statuses in `lib/worklog/entries.ts`, disciplines in `lib/roles.ts:WORK_DISCIPLINES`, cadence in `lib/cadence.ts`. No route or component re-declares a list.
-- The discipline vocabulary is the **75 standard work disciplines in 10 category groups** (Task 11). The five ids shipped in phase 1 — `developer`, `technician`, `designer`, `auditor`, `coordinator` — keep their exact spelling, because they are stored in `tasks.discipline`, `work_log_entries.discipline` and `deliverables.discipline`. Nothing is renamed and nothing is removed, so rows and saved preferences written before this phase stay valid; that is the whole migration. Every id is ≤ 40 characters, so the `varchar(40)` columns need no change and this plan still adds **no migration**.
+- **The five discipline ids shipped in phase 1 — `developer`, `technician`, `designer`, `auditor`, `coordinator` — keep their exact spelling, everywhere, forever.** They are row data in `tasks.discipline`, `work_log_entries.discipline` and `deliverables.discipline`, so renaming one is a data migration, not an edit; `tests/unit/roles.test.ts` pins them. Nothing in this plan renames or removes a discipline, which is why the registry widening is additive and no migration script is written.
+- **No colour token may be added to `app/globals.css` without also re-lighting it in every scheme block of `app/accessibility.css`** — that stylesheet overrides the series per scheme, so an un-listed token renders straight from the base palette and the user's chosen scheme silently does nothing for it. `tests/unit/accessibility.test.ts` guards it. The same applies to any later palette addition.
+- The discipline vocabulary is the **75 standard work disciplines in 10 category groups** (Task 11), under the verbatim-spelling rule above: rows and saved `preferences.workDisciplines` written before this phase stay valid, and a member who never opened settings sees all 75 (an absent key means "all"). Every id is ≤ 40 characters, so the `varchar(40)` columns need no change and this plan still adds **no migration**.
 - **A discipline preference is a display filter, never an authorization boundary.** Reads are scoped by `user_id` in SQL (Task 6–10) whatever the member has switched on; the Gantt and My-Work views of later phases must keep that separation.
 - Discipline **job titles, departments and project roles are separate dimensions** and are deliberately *not* added here: `lib/roles.ts` holds only work classifications. The other three registries belong to the spec's phase 15 role packs, recorded in `FEATURES.md` by Task 18.
 - Style: muted editorial, tokens only (`hsl(var(--chart-pine|chart-stone|chart-clay|chart-moss|chart-slate|chart-teal|chart-bark|chart-plum|chart-sage|chart-ochre|accent|destructive))`), WCAG 2.2 AA — labels on every input, `aria-pressed` on view switches, keyboard-reachable dialogs, no color-only meaning.
+- A `--chart-*` token is a **graphic** — a dot, bar, lane, or swatch border — and its floor is 3:1 against every surface it can sit on (WCAG 1.4.11), which `tests/unit/roles.test.ts` computes from `app/globals.css`. **In the UI phase 2 writes**, badge and label text is `--foreground`, never the series colour: the ten categories share a luminance band (light pine vs moss is 1.29:1), so colour can never be the only signal and a swatch always sits next to its label or icon. Pre-existing `text-[hsl(var(--chart-clay))]` uses elsewhere in the dashboard are older debt, out of this phase's scope and recorded in Task 18.
 - Comments: one short line, only where the *why* is non-obvious (a schema quirk, a deliberate omission, a security boundary). No task-referencing comments.
 - Commit after every task with a conventional message; push at the end of each task (standing grant: "always git commit and push after changes in files"). Never rewrite pushed history.
 - The dev server is **not** running and must not be restarted by the executor; visual QA is the owner's (`i will do the test just implement`).
@@ -4009,15 +4012,12 @@ reads one vocabulary. Phase 1 shipped five members because five roles were in sc
 is industry-agnostic, so the registry widens to the 75 standard work disciplines grouped into 10
 categories before the page lands.
 
-Two things make this safe rather than destructive:
-
-- The five existing ids are kept **verbatim**. They are stored in `tasks.discipline`,
-  `work_log_entries.discipline` and `deliverables.discipline`, so renaming one would be a data
-  migration. Nothing here renames or removes anything.
-- Because the change is purely additive, rows and saved `preferences.workDisciplines` written
-  before this task stay valid, and a member who never opened settings sees all 75 (an absent key
-  means "all"). There is no migration script to write, and `varchar(40)` already fits the longest
-  new id (`electrical_engineering`, 22 characters).
+Two things make this safe rather than destructive: the five existing ids are kept verbatim (the
+Global Constraints rule, pinned by `tests/unit/roles.test.ts`), and because the change is purely
+additive, rows and saved `preferences.workDisciplines` written before this task stay valid, and a
+member who never opened settings sees all 75 (an absent key means "all"). There is no migration
+script to write, and `varchar(40)` already fits the longest new id (`electrical_engineering`,
+22 characters).
 
 `DISCIPLINE_META` is typed `Record<WorkDiscipline, …>`, so an id without its label, icon and
 category is a compile error rather than a runtime blank — that is the validation the registry
@@ -4043,7 +4043,47 @@ needs, and the display maps below are derived from it so they cannot drift.
 
 In `tests/unit/roles.test.ts`, swap the whole `describe("work disciplines", …)` block (lines
 76–109) for this, and extend the import list with `DISCIPLINE_CATEGORIES`,
-`DISCIPLINE_CATEGORY`, `DISCIPLINE_CATEGORY_LABEL`, `disciplinesInCategory`:
+`DISCIPLINE_CATEGORY`, `DISCIPLINE_CATEGORY_LABEL`, `DISCIPLINE_CATEGORY_COLOUR`,
+`disciplinesInCategory`. Above the describes, add the CSS fixture the two palette guards share:
+
+```ts
+const rolesSource = readFileSync(path.resolve(__dirname, "../../lib/roles.ts"), "utf8")
+const globalsCss = readFileSync(path.resolve(__dirname, "../../app/globals.css"), "utf8")
+
+/** `hsl(var(--chart-pine))` -> `chart-pine`. */
+function cssToken(value: string): string {
+  return value.replace(/^hsl\(var\(--/u, "").replace(/\)\)$/u, "")
+}
+
+type Triplet = [h: number, s: number, l: number]
+
+function hslTriplet(block: string, token: string): Triplet {
+  const found = block.match(new RegExp(`--${token}:\\s*([\\d.]+)\\s+([\\d.]+)%\\s+([\\d.]+)%`))
+  if (!found) throw new Error(`--${token} is not declared as an HSL triplet in this block`)
+  return [Number(found[1]), Number(found[2]), Number(found[3])]
+}
+
+function relativeLuminance([h, s, l]: Triplet): number {
+  const chroma = (s / 100) * Math.min(l / 100, 1 - l / 100)
+  const channel = (offset: number) => {
+    const t = (offset + h / 30) % 12
+    const raw = l / 100 - chroma * Math.max(-1, Math.min(t - 3, 9 - t, 1))
+    return raw <= 0.03928 ? raw / 12.92 : ((raw + 0.055) / 1.055) ** 2.4
+  }
+  return 0.2126 * channel(0) + 0.7152 * channel(8) + 0.0722 * channel(4)
+}
+
+function contrastRatio(a: Triplet, b: Triplet): number {
+  const [x, y] = [relativeLuminance(a), relativeLuminance(b)].sort((m, n) => n - m)
+  return (x + 0.05) / (y + 0.05)
+}
+
+const THEME_BLOCKS = [
+  { name: "light", block: globalsCss.slice(0, globalsCss.indexOf(".dark {")) },
+  { name: "dark", block: globalsCss.slice(globalsCss.indexOf(".dark {")) },
+]
+const SURFACES = ["background", "surface", "card"]
+```
 
 ```ts
 describe("work disciplines", () => {
@@ -4069,7 +4109,8 @@ describe("work disciplines", () => {
     for (const discipline of WORK_DISCIPLINES) {
       expect(DISCIPLINE_LABEL[discipline]).toBeTruthy()
       expect(DISCIPLINE_COLOUR[discipline]).toMatch(/^hsl\(var\(--chart-[a-z]+\)\)$/u)
-      expect(DISCIPLINE_ICON[discipline]).toMatch(/^[A-Z][A-Za-z]+$/u)
+      // Digit suffixes are real lucide names (Code2, BarChart3), so the pattern allows them.
+      expect(DISCIPLINE_ICON[discipline]).toMatch(/^[A-Z][A-Za-z0-9]+$/u)
       expect(DISCIPLINE_TEMPLATE[discipline]).toBeTruthy()
       expect(DISCIPLINE_CATEGORIES).toContain(DISCIPLINE_CATEGORY[discipline])
     }
@@ -4090,10 +4131,31 @@ describe("work disciplines", () => {
   })
 
   it("defines each category colour in both themes", () => {
-    const css = readFileSync(path.resolve(__dirname, "../../app/globals.css"), "utf8")
-    for (const category of DISCIPLINE_CATEGORIES) {
-      const token = DISCIPLINE_CATEGORY_COLOUR[category].replace(/^hsl\(var\(--/, "").replace(/\)\)$/, "")
-      expect(css.split(token).length - 1).toBeGreaterThanOrEqual(3)
+    // Counting the token in the whole file passes by accident: --chart-stone appears twice
+    // (light and dark) and three times for a token a rule already uses. Declared in *both*
+    // blocks is the thing that keeps a badge from rendering transparent in one theme.
+    for (const theme of THEME_BLOCKS) {
+      for (const category of DISCIPLINE_CATEGORIES) {
+        const token = cssToken(DISCIPLINE_CATEGORY_COLOUR[category])
+        expect(theme.block.split(token).length - 1, `${theme.name} --${token}`).toBeGreaterThanOrEqual(1)
+      }
+    }
+  })
+
+  it("keeps every category colour visible on every surface it can sit on", () => {
+    // Computed from the CSS rather than asserted as literals: nothing else in this suite notices
+    // a token being brightened past its surface, and the plan's own light --chart-ochre shipped at
+    // 3.44:1. The floor is 3:1 because these tokens are graphics (dots, bars, lanes, swatch
+    // borders) under WCAG 1.4.11, not text — badge and label text is always --foreground.
+    for (const theme of THEME_BLOCKS) {
+      for (const category of DISCIPLINE_CATEGORIES) {
+        const token = cssToken(DISCIPLINE_CATEGORY_COLOUR[category])
+        const colour = hslTriplet(theme.block, token)
+        for (const surface of SURFACES) {
+          const ratio = contrastRatio(colour, hslTriplet(theme.block, surface))
+          expect(ratio, `${theme.name} --${token} on --${surface}`).toBeGreaterThanOrEqual(3)
+        }
+      }
     }
   })
 
@@ -4117,6 +4179,16 @@ describe("work disciplines", () => {
     expect(normaliseDiscipline(null)).toBeNull()
     expect(normaliseDiscipline(undefined)).toBeNull()
   })
+
+  it("names icons as strings, so this module never imports React", () => {
+    // lib/roles.ts is imported by unit tests in a node environment; a component import
+    // here would drag the whole icon package into every one of them. The rule is about
+    // loading the package, so the guard reads load syntax — the file's comment is allowed
+    // to *name* lucide-react, because that is where it records that all 75 icon strings were
+    // checked against the installed exports instead of guessed.
+    const loads = /(?:from|require\(|import\()\s*["'](?:lucide-react|react)(?:\/[^"']*)?["']/u
+    expect(rolesSource).not.toMatch(loads)
+  })
 })
 ```
 
@@ -4128,21 +4200,25 @@ Expected: FAIL — `WORK_DISCIPLINES` has 5 members, `DISCIPLINE_CATEGORIES` is 
 - [ ] **Step 3: Add the six chart tokens**
 
 In `app/globals.css`, extend the light `:root` chart series block (after `--chart-moss`) and the
-`.dark` block (after its `--chart-moss`). Every value is an HSL channel triplet, and the dark
-values are lighter than the light ones because the badges set the token as text on a card:
+`.dark` block (after its `--chart-moss`) — **and the 14 scheme blocks in `app/accessibility.css`**,
+which re-light the series per Global Constraints; see the As-shipped note for the alias values.
+Every value is an HSL channel triplet, and the dark
+values are lighter than the light ones so each theme keeps the 3:1 floor measured against its own
+surfaces — the light `--surface` is a warm near-white and the dark `--card` a warm charcoal:
 
 ```css
-    /* light */
+    /* discipline categories, ten families: >=3:1 on every surface here (WCAG 1.4.11 — these
+       paint dots, bars, lanes and swatch borders; badge and label text is always --foreground) */
     --chart-slate: 215 18% 34%;
     --chart-teal: 186 24% 30%;
     --chart-bark: 24 22% 30%;
     --chart-plum: 320 16% 34%;
     --chart-sage: 76 18% 32%;
-    --chart-ochre: 44 46% 40%;
+    --chart-ochre: 44 46% 33%;
 ```
 
 ```css
-    /* dark */
+    /* lighter than the light set: the same 3:1 floor, measured against these dark surfaces */
     --chart-slate: 212 22% 58%;
     --chart-teal: 186 26% 55%;
     --chart-bark: 26 28% 58%;
@@ -4478,19 +4554,75 @@ Then relax the one assertion that counted the old list, in `tests/unit/task-upda
 - [ ] **Step 6: Run the registry tests**
 
 Run: `npm test -- roles task-updates`
-Expected: PASS — 9 registry cases, and the task-updates case still rejects a job title.
+Expected: PASS — 11 registry cases (the block above), and the task-updates case still rejects a
+job title. `npm test -- roles` alone shows 22 for the file: 11 admin-role cases plus 11.
 
 - [ ] **Step 7: Run the gates and commit**
 
 ```bash
 npm run typecheck && npm run lint && npm test
-git add lib/roles.ts lib/task-updates.ts lib/worklog/entry-fields.ts app/globals.css tests/unit/roles.test.ts tests/unit/task-updates.test.ts
+git add lib/roles.ts lib/task-updates.ts lib/worklog/entry-fields.ts app/globals.css app/accessibility.css tests/unit/roles.test.ts tests/unit/accessibility.test.ts tests/unit/task-updates.test.ts
 git commit -m "feat(roles): 75 work disciplines in 10 category groups"
 git push
 ```
 Expected: typecheck 0 errors, lint 0 errors / 70 warnings unchanged, the full suite green.
 `lib/worklog/entry-fields.ts` is only present if Task 4 already landed; if it has not, do this
 task after Task 4 and skip that path here.
+
+#### As shipped (2026-10-26, `ef3498a`)
+
+Registry, consumers and six new tokens landed as written; the full suite is 35 files / 619 tests.
+Four things in this task's own text were wrong, three of them guards that could not pass.
+
+1. **The "defines each category colour in both themes" assertion was impossible.** It counted
+   occurrences of the bare token name across the whole file and demanded `>= 3`. `--chart-stone`
+   and `--chart-moss` are each declared exactly twice today (light and dark) and the six new tokens
+   exactly twice, so no category could ever reach three without an unrelated rule happening to
+   mention it — and the whole-file count also passes for a token missing from one theme, which is
+   the failure the guard exists to catch. Replaced with a per-block check: split the file at
+   `.indexOf(".dark {")` (there is exactly one `:root` and one `.dark`, so the split is sound) and
+   require the declaration in each half.
+2. **No test asserted the palette was visible at all**, which is what the task's premise claims.
+   Measured after writing Step 3: the plan's light `--chart-ochre` at `44 46% 40%` is **3.44:1** on
+   light `--surface` — under even the graphics floor — and light `--chart-clay` is 3.95:1. Ochre is
+   this task's own token, so it is darkened to `44 46% 33%` (4.72:1). Clay is pre-existing,
+   documented in `DESIGN_SYSTEM.md:35`, already used by `.bar-chart-column-purple` (`globals.css:251`)
+   and by seven `text-[hsl(var(--chart-clay))]` call sites across the older dashboard pages;
+   retinting a whole series because a new registry borrows it is a design-system task, not a side
+   effect of this one, so it is left and recorded here. **Follow-up for Task 18:** the six new tokens
+   are missing from that `DESIGN_SYSTEM.md:35` row, and the clay-as-text sites need `--foreground`.
+   The guard now computes relative luminance from the CSS for all ten categories against
+   `--background`, `--surface` and `--card` in both themes rather than asserting literals, because
+   nothing else in the suite notices a token being brightened past its surface.
+   The floor is 3:1 (WCAG 1.4.11 non-text), not 4.5:1: these tokens paint dots, bars, lanes and
+   swatch borders. Badge and label **text** in the phase 2 UI is `--foreground`, never the series
+   colour — the rule is now in Global Constraints. Related finding for Tasks 12–17: the ten series
+   are not luminance-distinguishable from each other (light pine vs moss is 1.29:1), so a chart must
+   never use colour as its only signal; every swatch carries its label or icon.
+3. **The icon pattern rejected the registry's own data.** `/^[A-Z][A-Za-z]+$/u` fails `Code2` and
+   `BarChart3` — real lucide exports this task uses. Widened to `/^[A-Z][A-Za-z0-9]+$/u`.
+4. **The "never imports React" guard tripped on prose.** `expect(rolesSource).not.toMatch(/lucide-react/)`
+   failed on the Step 4 comment that records that all 75 icon names were verified against the
+   installed exports — the honest documentation of the check. Narrowed to load syntax (`from`,
+   `require(`, `import(` followed by the package specifier), which is the actual rule; the comment
+   stays. Verified separately: every one of the 75 icon names exists in
+   `node_modules/lucide-react/dist/esm/icons/`, so the registry's claim is true rather than assumed.
+5. **The six tokens were missing from `app/accessibility.css`.** That stylesheet re-lights the chart
+   series in 14 scheme blocks (contrast, hue-rotate, saturate/desaturate, monochrome, invert, each
+   with its dark variant) so the user's chosen correction reaches every chart. A token absent from a
+   block renders straight from the base palette, so six of the ten categories would have ignored the
+   accessibility widget entirely — a WCAG defect this task's own change created. Each block now
+   aliases the six to the family it belongs to (`slate→stone`, `teal→pine`, `bark→clay`, `sage→moss`,
+   `plum→accent`, `ochre→warning`) with `var()`, so the block's own correction applies to them and no
+   value is hand-invented per scheme. Collisions inside a scheme (three categories share clay) are the
+   same trade the base palette already makes, and are safe because of the label-always-rides-with-the-
+   colour rule in Global Constraints. Two guards in `tests/unit/accessibility.test.ts`: every block
+   that touches the series declares all ten tokens, and the six aliases are never literals. This is
+   why Task 11 ships seven files instead of the six listed in Step 7.
+
+Not a deviation, recorded because it looks like one: `coordinator` keeps its id but its colour moves
+from `--accent` to the delivery category colour (`--chart-pine`), because colour is now derived from
+the category and a category owns exactly one token.
 
 ---
 
@@ -8381,6 +8513,12 @@ every read is scoped by `user_id` in SQL regardless of what a member has switche
 Add the two tables the phase produced. The colour table matters because it is the only place a
 reader can confirm that a discipline's colour comes from its **category**, not from a per-discipline
 choice, which is what keeps 75 values legible:
+
+Also widen the existing `Chart series` row (`DESIGN_SYSTEM.md:35`) to name all ten tokens — it still
+lists only pine/stone/clay/moss, so the six added by Task 11 are undocumented — and record there that
+a series token is a graphic at 3:1 (WCAG 1.4.11) while text is `--foreground`. The seven older
+`text-[hsl(var(--chart-clay))]` call sites across five pages (e.g. `app/dashboard/team/page.tsx:197`,
+`app/dashboard/billing/page.tsx:561`) do **not** get changed in this phase; list them as known debt.
 
 ```markdown
 ### Work log section inventory
