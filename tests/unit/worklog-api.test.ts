@@ -82,3 +82,27 @@ describe("work log entries route", () => {
     expect(route()).not.toMatch(/NEXT_PUBLIC_/u)
   })
 })
+
+describe("work log entry row route", () => {
+  const route = () => src("app/api/worklog/entries/[id]/route.ts")
+
+  it("puts ownership in the where clause, not in a check-then-act", () => {
+    expect(route()).toMatch(/and\(eq\(workLogEntries\.id, numericId\), eq\(workLogEntries\.userId, session\.id\)\)/u)
+  })
+
+  it("answers 404 without distinguishing missing from foreign", () => {
+    expect(route()).toMatch(/notFound\("Entry not found"\)/u)
+    expect(route()).not.toMatch(/not owned/u)
+  })
+
+  it("re-dates through the whitelist, never from the body", () => {
+    expect(route()).toMatch(/pickEntryUpdates/u)
+    expect(route()).toMatch(/if \(result\.redated\) set\.redatedAt = new Date\(\)/u)
+    expect(route()).toMatch(/\.set\(set\)/u)
+    expect(route()).not.toMatch(/\.set\(\{ \.\.\.body/u)
+  })
+
+  it("parses the params promise the way Next 16 requires", () => {
+    expect(route()).toMatch(/params: Promise<\{ id: string \}>/u)
+  })
+})
