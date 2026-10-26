@@ -9,10 +9,19 @@ import { useState } from "react"
 import { CalendarDays } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { EmptyNote, SectionCard } from "@/components/dashboard-kit"
-import { KIND_COLOUR, KIND_LABEL, formatMinutes, type EntryDto, type WorkLogKind } from "@/lib/worklog/entries"
-import type { ViewState } from "@/lib/worklog/view-state"
+import {
+  KIND_COLOUR,
+  KIND_LABEL,
+  WORK_LOG_KINDS,
+  formatMinutes,
+  type DayBucket,
+  type EntryDto,
+  type WorkLogKind,
+} from "@/lib/worklog/entries"
+import { VIEW_LABEL, type ViewState, type WorklogView } from "@/lib/worklog/view-state"
 import {
   DISCIPLINE_CATEGORIES,
   DISCIPLINE_CATEGORY,
@@ -188,5 +197,229 @@ export function DisciplinePicker({
         </SelectContent>
       </Select>
     </>
+  )
+}
+
+function DayList({ entries }: { entries: EntryDto[] }) {
+  if (entries.length === 0) {
+    return <EmptyNote>Nothing logged on this day yet. Quick add above, or the day picker in View.</EmptyNote>
+  }
+  return (
+    <ul className="space-y-2">
+      {entries.map((entry) => (
+        <EntryLine key={entry.id} entry={entry} />
+      ))}
+    </ul>
+  )
+}
+
+function DayBody({ days, day }: { days: DayBucket[]; day: string }) {
+  const bucket = days.find((d) => d.day === day)
+  return (
+    <div className="space-y-2">
+      <p className="text-xs text-muted-foreground">
+        {day} · {bucket?.count ?? 0} {(bucket?.count ?? 0) === 1 ? "entry" : "entries"} ·{" "}
+        {formatMinutes(bucket?.minutes ?? 0)}
+      </p>
+      <DayList entries={bucket?.entries ?? []} />
+    </div>
+  )
+}
+
+function WeekBody({
+  days,
+  loading,
+  onPickDay,
+}: {
+  days: DayBucket[]
+  loading: boolean
+  onPickDay: (day: string) => void
+}) {
+  const week = days.slice(0, 7)
+  if (!loading && week.every((bucket) => bucket.count === 0)) {
+    return <EmptyNote>Nothing logged in this week. Nothing to move — try another week.</EmptyNote>
+  }
+  return (
+    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-7">
+      {week.map((bucket) => (
+        <div key={bucket.day} className="rounded-lg border border-border/60 bg-background/40 p-2">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-6 w-full justify-between px-1 text-[11px] font-semibold"
+            onClick={() => onPickDay(bucket.day)}
+          >
+            <span>{bucket.day.slice(5)}</span>
+            <span className="tabular-nums text-muted-foreground">
+              {bucket.count} · {formatMinutes(bucket.minutes)}
+            </span>
+          </Button>
+          <ul className="mt-1 space-y-1">
+            {bucket.entries.slice(0, 3).map((entry) => (
+              <li key={entry.id} className="truncate text-[11px]" title={entry.title}>
+                {entry.title}
+              </li>
+            ))}
+            {bucket.entries.length > 3 ? (
+              // Plain text, not a link: the day it would open is already one click away in the
+              // header above, and a second control for the same thing is noise.
+              <li className="text-[11px] text-muted-foreground">+{bucket.entries.length - 3} more</li>
+            ) : null}
+          </ul>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function ListBody({ days }: { days: DayBucket[] }) {
+  const filled = days.filter((bucket) => bucket.count > 0)
+  if (filled.length === 0) {
+    return <EmptyNote>Nothing logged in this range. Widen it in View, or clear a filter.</EmptyNote>
+  }
+  return (
+    <div className="space-y-3">
+      {filled.map((bucket) => (
+        <div key={bucket.day}>
+          <div className="flex items-baseline justify-between gap-2">
+            <h4 className="text-xs font-semibold tabular-nums">{bucket.day}</h4>
+            <span className="text-[11px] text-muted-foreground">
+              {bucket.count} entries · {formatMinutes(bucket.minutes)}
+            </span>
+          </div>
+          <ul className="mt-1.5 space-y-2">
+            {bucket.entries.map((entry) => (
+              <EntryLine key={entry.id} entry={entry} />
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function BoardBody({ days }: { days: DayBucket[] }) {
+  const entries = days.flatMap((bucket) => bucket.entries)
+  const kinds = WORK_LOG_KINDS.map((kind) => ({
+    kind,
+    rows: entries.filter((entry) => entry.kind === kind),
+  }))
+  return (
+    <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+      {kinds.map(({ kind, rows }) => (
+        <div key={kind} className="rounded-lg border border-border/60 bg-background/40 p-2">
+          <div className="flex items-center justify-between gap-2">
+            <KindBadge kind={kind} />
+            <span className="text-[11px] tabular-nums text-muted-foreground">
+              {rows.length} · {formatMinutes(rows.reduce((sum, e) => sum + (e.minutes ?? 0), 0))}
+            </span>
+          </div>
+          {rows.length === 0 ? (
+            <p className="mt-2 text-[11px] text-muted-foreground">No {KIND_LABEL[kind].toLowerCase()} logged.</p>
+          ) : (
+            <ul className="mt-2 space-y-2">
+              {rows.map((entry) => (
+                <EntryLine key={entry.id} entry={entry} />
+              ))}
+            </ul>
+          )}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function HeatBody({
+  days,
+  todayIso,
+  onPickDay,
+}: {
+  days: DayBucket[]
+  todayIso: string
+  onPickDay: (day: string) => void
+}) {
+  const busiest = Math.max(1, ...days.map((bucket) => bucket.minutes))
+  return (
+    <div>
+      <div className="grid grid-cols-7 gap-1">
+        {days.map((bucket) => {
+          const ratio = bucket.minutes / busiest
+          return (
+            <button
+              key={bucket.day}
+              type="button"
+              onClick={() => onPickDay(bucket.day)}
+              title={`${bucket.day} · ${bucket.count} entries · ${formatMinutes(bucket.minutes)}`}
+              className={
+                "flex h-9 flex-col items-center justify-center rounded border border-border/60 text-[10px] tabular-nums transition-colors hover:border-foreground " +
+                (bucket.day === todayIso ? "outline outline-1 outline-offset-1" : "")
+              }
+              style={{
+                // The number is the reading; the tint is only a hint, so a colour-blind member
+                // still sees the difference between an empty day and a six-hour one.
+                backgroundColor:
+                  bucket.count === 0
+                    ? "transparent"
+                    : `color-mix(in srgb, hsl(var(--chart-pine)) ${Math.round(12 + ratio * 55)}%, transparent)`,
+              }}
+            >
+              <span>{Number(bucket.day.slice(8))}</span>
+              <span className={bucket.count === 0 ? "text-muted-foreground" : "font-semibold"}>{bucket.count}</span>
+            </button>
+          )
+        })}
+      </div>
+      <p className="mt-2 text-[11px] text-muted-foreground">
+        {days.length} days shown · click a day to open it. The number is entries logged.
+      </p>
+    </div>
+  )
+}
+
+export function LogSection({
+  view,
+  days,
+  loading,
+  todayIso,
+  onPickDay,
+}: {
+  view: WorklogView
+  days: DayBucket[]
+  loading: boolean
+  todayIso: string
+  onPickDay: (day: string) => void
+}) {
+  const body = (() => {
+    switch (view) {
+      case "day":
+        return <DayBody days={days} day={todayIso} />
+      case "week":
+        return <WeekBody days={days} loading={loading} onPickDay={onPickDay} />
+      case "list":
+        return <ListBody days={days} />
+      case "board":
+        return <BoardBody days={days} />
+      case "heat":
+        return <HeatBody days={days} todayIso={todayIso} onPickDay={onPickDay} />
+    }
+  })()
+
+  return (
+    <SectionCard
+      title={`${VIEW_LABEL[view]} view`}
+      icon={<CalendarDays className="h-4 w-4" />}
+      className="md:col-span-2 xl:col-span-3"
+    >
+      {loading && days.length === 0 ? (
+        <div className="space-y-2">
+          {Array.from({ length: 3 }, (_, i) => (
+            <Skeleton key={i} className="h-16 rounded-lg" />
+          ))}
+        </div>
+      ) : (
+        body
+      )}
+    </SectionCard>
   )
 }

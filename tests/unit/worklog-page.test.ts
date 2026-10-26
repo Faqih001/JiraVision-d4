@@ -128,3 +128,56 @@ describe("work log client", () => {
     expect(sections).toMatch("backgroundColor: KIND_COLOUR[kind]")
   })
 })
+
+describe("work log views", () => {
+  const sections = () => src("app/dashboard/worklog/sections.tsx")
+  const client = () => src("app/dashboard/worklog/worklog-client.tsx")
+
+  it("renders the active view in one section slot", () => {
+    expect(client()).toMatch(/<LogSection/u)
+    expect(client()).toMatch(/view=\{state\.view\}/u)
+    // One slot, one heading, and the heading comes from the same VIEW_LABEL the toolbar buttons
+    // read, so a renamed view is renamed in both places at once.
+    expect(sections()).toMatch(/VIEW_LABEL\[view\]/u)
+  })
+
+  it("builds all five bodies", () => {
+    for (const name of ["DayBody", "WeekBody", "ListBody", "BoardBody", "HeatBody"]) {
+      expect(sections()).toContain(`function ${name}(`)
+    }
+    // The switch is exhaustive over WorklogView: a sixth view with no body is a compile error,
+    // not a blank card.
+    expect(sections()).toMatch(/case "heat":/u)
+  })
+
+  it("lets a week or heat cell jump to that day", () => {
+    expect(sections()).toMatch(/onPickDay\(bucket\.day\)/u)
+    expect(client()).toMatch(/patchState\(\{ day, view: "day" \}\)/u)
+  })
+
+  it("keeps the day view on the picked day and the others on the member's today", () => {
+    // The picker in section 4 is what the member navigated to; the highlight in week and heat
+    // answers a different question — is this cell the day they are standing on.
+    expect(client()).toMatch(/todayIso=\{state\.view === "day" \? state\.day : todayIso\}/u)
+    expect(sections()).toMatch(/case "day":\n\s+return <DayBody days=\{days\} day=\{todayIso\}/u)
+  })
+
+  it("never encodes a value in colour alone", () => {
+    const code = sections()
+    // Every tinted cell also carries its number as text.
+    expect(code).toMatch(/\{bucket\.count\}/u)
+    expect(code).toMatch(/formatMinutes\(bucket\.minutes\)/u)
+    expect(code).toMatch(/border-border\/60/u)
+  })
+
+  it("says what an empty range means instead of showing a blank card", () => {
+    const code = sections()
+    expect(code).toMatch(/Nothing logged on/u)
+    expect(code).toMatch(/EmptyNote/u)
+  })
+
+  it("keeps presentation honest: no fetch, no page data", () => {
+    expect(sections()).not.toMatch(/fetch\(/u)
+    expect(sections()).not.toMatch(/useRouter/u)
+  })
+})

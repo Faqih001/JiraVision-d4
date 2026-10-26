@@ -4,7 +4,7 @@
 // URL is the state's serialised form, and every mutation goes through mutate() so a failure
 // reads the same wherever it happens.
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import {
   CalendarDays,
@@ -48,7 +48,7 @@ import {
   type ViewState,
   type WorklogView,
 } from "@/lib/worklog/view-state"
-import { DisciplinePicker } from "./sections"
+import { DisciplinePicker, LogSection } from "./sections"
 
 export type TaskOption = { id: number; title: string }
 
@@ -160,6 +160,9 @@ export default function WorklogClient() {
   )
 
   const range = resolveRange(state, todayIso)
+  // Every body reads the summary's own buckets: the list and the totals above it are the same
+  // arithmetic over the same rows, so they cannot disagree with each other.
+  const viewDaysList = useMemo(() => summary?.days ?? [], [summary])
 
   return (
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -180,6 +183,15 @@ export default function WorklogClient() {
         todayIso={todayIso}
         refresh={refresh}
         toast={toast}
+      />
+      <LogSection
+        view={state.view}
+        days={viewDaysList}
+        loading={loading}
+        // The Day view shows the day the member navigated to; week and heat keep their "is this
+        // today" highlight on the member's real day.
+        todayIso={state.view === "day" ? state.day : todayIso}
+        onPickDay={(day) => patchState({ day, view: "day" })}
       />
     </div>
   )
