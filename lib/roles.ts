@@ -107,6 +107,15 @@ const CATEGORY_TEMPLATE: Record<DisciplineCategory, string> = {
   services: "creative",
 }
 
+// §6 names five report shapes, but a category is a coarse bucket: a technician files under
+// "Software, IT & digital" beside a developer, and would open their report with story points.
+// These disciplines keep their own shape; every other discipline uses its category default.
+// Values must be keys of CATEGORY_TEMPLATE — report-templates.test.ts checks the set matches.
+const DISCIPLINE_TEMPLATE_OVERRIDES: Partial<Record<WorkDiscipline, string>> = {
+  technician: "technical",
+  designer: "creative",
+}
+
 export const WORK_DISCIPLINES = [
   // Management, leadership & project delivery
   "executive",
@@ -299,7 +308,10 @@ export const DISCIPLINE_COLOUR: Record<WorkDiscipline, string> = Object.fromEntr
 ) as Record<WorkDiscipline, string>
 
 export const DISCIPLINE_TEMPLATE: Record<WorkDiscipline, string> = Object.fromEntries(
-  WORK_DISCIPLINES.map((id) => [id, CATEGORY_TEMPLATE[DISCIPLINE_META[id].category]]),
+  WORK_DISCIPLINES.map((id) => [
+    id,
+    DISCIPLINE_TEMPLATE_OVERRIDES[id] ?? CATEGORY_TEMPLATE[DISCIPLINE_META[id].category],
+  ]),
 ) as Record<WorkDiscipline, string>
 
 export function disciplinesInCategory(category: DisciplineCategory): WorkDiscipline[] {
