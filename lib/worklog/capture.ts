@@ -33,3 +33,16 @@ export async function captureStatusChanges(
     return 0
   }
 }
+
+// Routes that mutate `tasks` but are NOT captured, and why:
+//   POST /api/tasks, POST /api/dashboard/tasks, POST /api/dashboard/kanban/tasks —
+//     they create rows; creation is `tasks.created_at`, already a real column.
+//   DELETE /api/tasks/[id], DELETE /api/dashboard/tasks — task_id cascades, so a
+//     deletion event deletes itself.
+//   PATCH-ish status writers on kanban: /api/dashboard/kanban/update-status and /reorder
+//     write the separate `kanban_tasks` table, not `tasks`. A board drag is therefore not
+//     in this log. See design §4's scope correction; unifying the two boards is a decision
+//     for later, not something capture can quietly paper over.
+//   /api/sprints/[id] (clears sprint_id) and /api/ethical-metrics/apply-recommendation
+//     (reassigns) — neither moves `status`.
+//   lib/seed-data.ts — demo rows; a seeded task's creation is its created_at like any other.

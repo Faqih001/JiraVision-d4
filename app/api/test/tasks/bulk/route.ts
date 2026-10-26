@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { tasks } from "@/drizzle/schema"
 import { pickTaskUpdates } from "@/lib/task-updates"
+import { captureStatusChanges } from "@/lib/worklog/capture"
 import { eq, and, inArray } from "drizzle-orm"
 import { getSession } from "@/lib/auth-actions"
 
@@ -59,19 +60,31 @@ export async function POST(request: Request) {
           ...updates.patch,
           updatedAt: new Date()
         }
-        
+
+        // Read the pre-write statuses first, exactly as the production bulk route does:
+        // after the UPDATE they are gone and .returning() shows only the new values.
+        const beforeRows = await db
+          .select({ id: tasks.id, status: tasks.status })
+          .from(tasks)
+          .where(inArray(tasks.id, numericTaskIds))
+
         // Update all specified tasks
         result = await db
           .update(tasks)
           .set(dataWithTimestamp)
           .where(inArray(tasks.id, numericTaskIds))
           .returning()
-        
+
+        await captureStatusChanges(beforeRows, result, {
+          actorId: session.id,
+          source: "bulk",
+        })
+
         break
       }
       
       case 'delete':
-        // Delete all specified tasks
+        // No task_events row here on purpose — same cascade reason as the production route.
         result = await db
           .delete(tasks)
           .where(inArray(tasks.id, numericTaskIds))

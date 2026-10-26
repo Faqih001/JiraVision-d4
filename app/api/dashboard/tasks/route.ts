@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { getSession } from "@/lib/auth-actions"
 import { db } from "@/lib/db"
 import { tasks } from "@/drizzle/schema"
+import { captureStatusChanges } from "@/lib/worklog/capture"
 import { eq, and } from "drizzle-orm"
 
 // tasks.dueDate is a drizzle date() column, which is string-mode: it binds
@@ -122,6 +123,13 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: "Task ID is required" }, { status: 400 })
     }
     
+    // Read the current status before the write; `data.status` may be undefined, in which
+    // case drizzle leaves the column alone and there is nothing to record.
+    const [beforeRow] = await db
+      .select({ id: tasks.id, status: tasks.status })
+      .from(tasks)
+      .where(eq(tasks.id, Number(data.id)))
+
     // Update task
     const [updatedTask] = await db
       .update(tasks)
@@ -139,6 +147,11 @@ export async function PUT(request: Request) {
       })
       .where(eq(tasks.id, data.id))
       .returning()
+
+    await captureStatusChanges(beforeRow ? [beforeRow] : [], updatedTask ? [updatedTask] : [], {
+      actorId: session.id,
+      source: "route",
+    })
 
     return NextResponse.json({
       success: true,

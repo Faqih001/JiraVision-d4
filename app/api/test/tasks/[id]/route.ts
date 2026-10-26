@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { getTaskById, updateTask, deleteTask } from "@/lib/data-access"
 import { pickTaskUpdates } from "@/lib/task-updates"
+import { captureStatusChanges } from "@/lib/worklog/capture"
 import { getSession } from "@/lib/auth-actions"
 
 // Development helpers for exercising the task endpoints from a script. They
@@ -96,6 +97,12 @@ export async function PUT(
 
     // Update the task
     const updatedTask = await updateTask(id, updates.patch)
+
+    // Same capture as the production route — the log must not depend on which door was used.
+    await captureStatusChanges([existingTask], [updatedTask], {
+      actorId: session.id,
+      source: "route",
+    })
     
     return NextResponse.json({
       success: true,
