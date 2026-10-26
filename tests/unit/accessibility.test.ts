@@ -175,3 +175,36 @@ describe("bootstrapScript", () => {
     expect(restored({ textSize: 0, monochrome: false, profile: null })).toEqual([])
   })
 })
+
+describe("colour scheme tokens", () => {
+  // A scheme re-lights the chart series so its correction reaches every chart. The discipline
+  // categories are ten tokens, so an override that stops at four paints six of them straight from
+  // the base palette — the scheme silently does nothing for those categories. The six aliases are
+  // var() references to the families they belong to, so each scheme applies its own correction to
+  // them without a hand-invented value per block.
+  const SERIES = ["pine", "stone", "clay", "moss", "slate", "teal", "bark", "plum", "sage", "ochre"]
+  const ORIGINAL = SERIES.slice(0, 4)
+
+  it("re-lights all ten chart tokens in every scheme that touches the series", () => {
+    const blocks: string[] = []
+    let cursor = -1
+    while ((cursor = css.indexOf("--chart-pine:", cursor + 1)) !== -1) {
+      blocks.push(css.slice(cursor, css.indexOf("\n}", cursor)))
+    }
+    expect(blocks.length).toBe(14)
+    for (const block of blocks) {
+      for (const token of SERIES.filter((t) => !ORIGINAL.includes(t))) {
+        expect(block.includes(`--chart-${token}:`), `--chart-${token} is un-overridden`).toBe(true)
+      }
+    }
+  })
+
+  it("never hardcodes a discipline colour in a scheme", () => {
+    // A literal there would freeze a base-palette hue against a scheme that exists to change it.
+    for (const token of SERIES.filter((t) => !ORIGINAL.includes(t))) {
+      for (const declaration of css.match(new RegExp(`--chart-${token}: .*?;`, "g")) ?? []) {
+        expect(declaration, `--chart-${token}`).toContain("var(--")
+      }
+    }
+  })
+})

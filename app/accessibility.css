@@ -198,6 +198,12 @@ html[data-jv-dark-contrast] {
   --chart-stone: 0 0% 80%;
   --chart-clay: 30 100% 70%;
   --chart-moss: 90 90% 65%;
+  --chart-slate: var(--chart-stone);
+  --chart-teal: var(--chart-pine);
+  --chart-bark: var(--chart-clay);
+  --chart-plum: var(--accent);
+  --chart-sage: var(--chart-moss);
+  --chart-ochre: var(--warning);
 }
 
 html[data-jv-light-contrast] {
@@ -233,6 +239,12 @@ html[data-jv-light-contrast] {
   --chart-stone: 0 0% 25%;
   --chart-clay: 0 100% 27%;
   --chart-moss: 120 100% 18%;
+  --chart-slate: var(--chart-stone);
+  --chart-teal: var(--chart-pine);
+  --chart-bark: var(--chart-clay);
+  --chart-plum: var(--accent);
+  --chart-sage: var(--chart-moss);
+  --chart-ochre: var(--warning);
 }
 
 /* High contrast is the widest setting of all: pure black on white (or the inverse
@@ -270,6 +282,12 @@ html[data-jv-high-contrast] {
   --chart-stone: 0 0% 35%;
   --chart-clay: 0 0% 55%;
   --chart-moss: 0 0% 18%;
+  --chart-slate: var(--chart-stone);
+  --chart-teal: var(--chart-pine);
+  --chart-bark: var(--chart-clay);
+  --chart-plum: var(--accent);
+  --chart-sage: var(--chart-moss);
+  --chart-ochre: var(--warning);
 }
 
 html[data-jv-high-contrast].dark {
@@ -305,6 +323,12 @@ html[data-jv-high-contrast].dark {
   --chart-stone: 0 0% 70%;
   --chart-clay: 0 0% 50%;
   --chart-moss: 0 0% 85%;
+  --chart-slate: var(--chart-stone);
+  --chart-teal: var(--chart-pine);
+  --chart-bark: var(--chart-clay);
+  --chart-plum: var(--accent);
+  --chart-sage: var(--chart-moss);
+  --chart-ochre: var(--warning);
 }
 
 /* Generated from the base tokens in globals.css — see the header note above. */
@@ -341,6 +365,12 @@ html[data-jv-rotate-hues] {
   --chart-stone: 185 9% 36%;
   --chart-clay: 165 34% 46%;
   --chart-moss: 233 29% 28%;
+  --chart-slate: var(--chart-stone);
+  --chart-teal: var(--chart-pine);
+  --chart-bark: var(--chart-clay);
+  --chart-plum: var(--accent);
+  --chart-sage: var(--chart-moss);
+  --chart-ochre: var(--warning);
 }
 
 html[data-jv-rotate-hues].dark {
@@ -376,6 +406,12 @@ html[data-jv-rotate-hues].dark {
   --chart-stone: 187 17% 57%;
   --chart-clay: 163 42% 62%;
   --chart-moss: 231 27% 58%;
+  --chart-slate: var(--chart-stone);
+  --chart-teal: var(--chart-pine);
+  --chart-bark: var(--chart-clay);
+  --chart-plum: var(--accent);
+  --chart-sage: var(--chart-moss);
+  --chart-ochre: var(--warning);
 }
 
 html[data-jv-high-saturation] {
@@ -411,6 +447,12 @@ html[data-jv-high-saturation] {
   --chart-stone: 40 17% 36%;
   --chart-clay: 20 65% 46%;
   --chart-moss: 88 55% 28%;
+  --chart-slate: var(--chart-stone);
+  --chart-teal: var(--chart-pine);
+  --chart-bark: var(--chart-clay);
+  --chart-plum: var(--accent);
+  --chart-sage: var(--chart-moss);
+  --chart-ochre: var(--warning);
 }
 
 html[data-jv-high-saturation].dark {
@@ -446,6 +488,12 @@ html[data-jv-high-saturation].dark {
   --chart-stone: 42 32% 57%;
   --chart-clay: 18 80% 62%;
   --chart-moss: 86 51% 58%;
+  --chart-slate: var(--chart-stone);
+  --chart-teal: var(--chart-pine);
+  --chart-bark: var(--chart-clay);
+  --chart-plum: var(--accent);
+  --chart-sage: var(--chart-moss);
+  --chart-ochre: var(--warning);
 }
 
 html[data-jv-low-saturation] {
@@ -481,6 +529,12 @@ html[data-jv-low-saturation] {
   --chart-stone: 40 3% 36%;
   --chart-clay: 20 10% 46%;
   --chart-moss: 88 9% 28%;
+  --chart-slate: var(--chart-stone);
+  --chart-teal: var(--chart-pine);
+  --chart-bark: var(--chart-clay);
+  --chart-plum: var(--accent);
+  --chart-sage: var(--chart-moss);
+  --chart-ochre: var(--warning);
 }
 
 html[data-jv-low-saturation].dark {
@@ -516,6 +570,12 @@ html[data-jv-low-saturation].dark {
   --chart-stone: 42 5% 57%;
   --chart-clay: 18 13% 62%;
   --chart-moss: 86 8% 58%;
+  --chart-slate: var(--chart-stone);
+  --chart-teal: var(--chart-pine);
+  --chart-bark: var(--chart-clay);
+  --chart-plum: var(--accent);
+  --chart-sage: var(--chart-moss);
+  --chart-ochre: var(--warning);
 }
 
 html[data-jv-monochrome] {
@@ -551,6 +611,12 @@ html[data-jv-monochrome] {
   --chart-stone: 40 0% 36%;
   --chart-clay: 20 0% 46%;
   --chart-moss: 88 0% 28%;
+  --chart-slate: var(--chart-stone);
+  --chart-teal: var(--chart-pine);
+  --chart-bark: var(--chart-clay);
+  --chart-plum: var(--accent);
+  --chart-sage: var(--chart-moss);
+  --chart-ochre: var(--warning);
 }
 
 html[data-jv-monochrome].dark {
@@ -586,6 +652,12 @@ html[data-jv-monochrome].dark {
   --chart-stone: 42 0% 57%;
   --chart-clay: 18 0% 62%;
   --chart-moss: 86 0% 58%;
+  --chart-slate: var(--chart-stone);
+  --chart-teal: var(--chart-pine);
+  --chart-bark: var(--chart-clay);
+  --chart-plum: var(--accent);
+  --chart-sage: var(--chart-moss);
+  --chart-ochre: var(--warning);
 }
 
 html[data-jv-invert] {
@@ -621,6 +693,12 @@ html[data-jv-invert] {
   --chart-stone: 220 9% 64%;
   --chart-clay: 200 34% 54%;
   --chart-moss: 268 29% 72%;
+  --chart-slate: var(--chart-stone);
+  --chart-teal: var(--chart-pine);
+  --chart-bark: var(--chart-clay);
+  --chart-plum: var(--accent);
+  --chart-sage: var(--chart-moss);
+  --chart-ochre: var(--warning);
 }
 
 html[data-jv-invert].dark {
@@ -656,6 +734,12 @@ html[data-jv-invert].dark {
   --chart-stone: 222 17% 43%;
   --chart-clay: 198 42% 38%;
   --chart-moss: 266 27% 42%;
+  --chart-slate: var(--chart-stone);
+  --chart-teal: var(--chart-pine);
+  --chart-bark: var(--chart-clay);
+  --chart-plum: var(--accent);
+  --chart-sage: var(--chart-moss);
+  --chart-ochre: var(--warning);
 }
 
 html[data-jv-high-contrast] :focus-visible,
