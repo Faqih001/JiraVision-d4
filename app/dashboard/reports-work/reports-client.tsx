@@ -7,27 +7,59 @@
 
 import { useCallback, useEffect, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Copy, RefreshCw } from "lucide-react"
+import { Calculator, Copy, Plus, RefreshCw, Save, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useToast } from "@/hooks/use-toast"
 import { localDay } from "@/lib/worklog/local-day"
 import type { ReportAggregate } from "@/lib/reports/aggregate"
-import type { Period } from "@/lib/reports/period"
+import { resolvePeriod, type Period } from "@/lib/reports/period"
 import type { ReportDto } from "@/lib/reports/report-fields"
 import {
+  PROSE_SECTIONS,
+  sectionsFor,
+  type ReportContent,
+  type ReportSectionKey,
+} from "@/lib/reports/templates"
+import {
   defaultReportState,
+  effectiveTemplate,
   metricsSource,
   parseReportView,
   resolveReportPeriod,
   serializeReportView,
+  SOURCE_LABEL,
   type ReportState,
 } from "@/lib/reports/view-state"
-import { MyReportsSection, PeriodSection, ReportsSkeleton } from "./sections"
+import { ConfirmReportDelete, NewReportDialog, type NewReportDraft } from "./dialogs"
+import {
+  HeaderSection,
+  MyReportsSection,
+  PeriodSection,
+  ProseSection,
+  ReportsSkeleton,
+} from "./sections"
 
 /** The three work-report endpoints share the `{ success, data | message }` envelope. */
 async function readJson(res: Response): Promise<any> {
   return res.json().catch(() => null)
+}
+
+/** The prose the member owns, keyed by section. An untouched section is an empty string. */
+type ProseDraft = Partial<Record<ReportSectionKey, string>>
+
+function proseFromContent(content: ReportContent): ProseDraft {
+  const out: ProseDraft = {}
+  for (const key of PROSE_SECTIONS) out[key] = content[key]?.text ?? ""
+  return out
+}
+
+/** A NUL cannot occur in report text, so joining on it cannot alias two different drafts. */
+const PROSE_JOINER = String.fromCharCode(0)
+
+/** One stable string for "is the form dirty", so eight textareas cannot disagree about it. */
+function serializeProse(prose: ProseDraft): string {
+  return PROSE_SECTIONS.map((key) => prose[key] ?? "").join(PROSE_JOINER)
 }
 
 export default function ReportsClient() {
@@ -46,6 +78,16 @@ export default function ReportsClient() {
   const [loading, setLoading] = useState(true)
   const [missingId, setMissingId] = useState<number | null>(null)
   const [period, setPeriod] = useState<Period | null>(null)
+
+  // The form is separate from the loaded row: `saved*` holds what the server has, and the pair of
+  // them is the only honest way to say "unsaved changes" across eight textareas.
+  const [title, setTitle] = useState("")
+  const [prose, setProse] = useState<ProseDraft>({})
+  const [savedProse, setSavedProse] = useState<ProseDraft>({})
+  const [savedTitle, setSavedTitle] = useState("")
+  const [busy, setBusy] = useState(false)
+  const [newOpen, setNewOpen] = useState(false)
+  const [pendingDelete, setPendingDelete] = useState<ReportDto | null>(null)
 
   useEffect(() => {
     setTodayIso(localDay(new Date(), timezone))
@@ -69,7 +111,19 @@ export default function ReportsClient() {
     if (next !== current) router.replace(target, { scroll: false })
   }, [state, todayIso, router])
 
-  // refresh() is read-only here; the write helper arrives with the buttons in Task 12.
+  // One write path for the four actions, so a 400 from the route's whitelist is reported the
+  // same way as a dropped connection: the message the server sent, in a toast.
+  const mutate = useCallback(async (path: string, init?: RequestInit): Promise<string | null> => {
+    try {
+      const res = await fetch(path, init)
+      const json = await readJson(res)
+      if (!res.ok || !json?.success) return json?.message ?? `Request failed (${res.status})`
+      return null
+    } catch (error) {
+      return (error as Error).message
+    }
+  }, [])
+
   const refresh = useCallback(async () => {
     setLoading(true)
     const qs = serializeReportView(state, todayIso)
@@ -93,11 +147,21 @@ export default function ReportsClient() {
         if (state.reportId === null) {
           setReport(null)
           setMissingId(null)
+          setTitle("")
+          setProse({})
+          setSavedProse({})
+          setSavedTitle("")
         } else {
           const rowJson = await readJson(await fetch(`/api/reports/work/${state.reportId}`))
-          if (rowJson?.success) setReport(rowJson.data.report as ReportDto)
-          // The route answers 404 for a stranger's id; the page says the same thing the route does.
-          else {
+          if (rowJson?.success) {
+            const loaded = rowJson.data.report as ReportDto
+            setReport(loaded)
+            setMissingId(null)
+            setTitle(loaded.title)
+            setProse(proseFromContent(loaded.content))
+            setSavedProse(proseFromContent(loaded.content))
+            setSavedTitle(loaded.title)
+          } else {
             setReport(null)
             setMissingId(state.reportId)
           }
@@ -125,6 +189,10 @@ export default function ReportsClient() {
   const shownPeriod = period ?? resolved
   const source = metricsSource(report)
   const aggregate = report?.metrics ?? preview
+  const dirty = serializeProse(prose) !== serializeProse(savedProse) || title !== savedTitle
+  // `?tpl=auto` is a UI choice; a draft always stores a real template. Resolving it here, above
+  // the actions, is what lets both the save body and the new-report dialog use the same answer.
+  const templateChoice = effectiveTemplate(state, aggregate)
 
   const copyLink = useCallback(async () => {
     try {
@@ -134,6 +202,140 @@ export default function ReportsClient() {
       toast({ variant: "destructive", title: "Copy failed", description: (error as Error).message })
     }
   }, [toast])
+
+  const saveDraft = useCallback(async () => {
+    if (!report) {
+      toast({
+        title: "Nothing to save",
+        description: "Create a draft first — a report needs a stored period before it can hold text.",
+      })
+      return
+    }
+    setBusy(true)
+    const error = await mutate(`/api/reports/work/${report.id}`, {
+      method: "PATCH",
+      body: JSON.stringify({
+        title,
+        template: templateChoice,
+        content: Object.fromEntries(PROSE_SECTIONS.map((key) => [key, { text: prose[key] ?? "" }])),
+      }),
+    })
+    setBusy(false)
+    if (error) {
+      toast({ variant: "destructive", title: "Save failed", description: error })
+      return
+    }
+    setSavedProse(prose)
+    setSavedTitle(title)
+    await refresh()
+    toast({ title: "Draft saved", description: title })
+  }, [mutate, prose, refresh, report, templateChoice, title, toast])
+
+  const createDraft = useCallback(
+    async (draft: NewReportDraft) => {
+      // The dialog may name a different period type than the builder is showing; the create route
+      // requires the span to be the one that type implies, so the span is re-resolved here rather
+      // than sent stale and refused.
+      const span =
+        draft.periodType === state.periodType
+          ? shownPeriod
+          : resolvePeriod(draft.periodType, state.anchor, { from: state.customFrom, to: state.customTo })
+      setBusy(true)
+      const json = await readJson(
+        await fetch("/api/reports/work", {
+          method: "POST",
+          body: JSON.stringify({
+            title: draft.title,
+            template: draft.template,
+            periodType: draft.periodType,
+            periodStart: span.start,
+            periodEnd: span.end,
+          }),
+        }),
+      )
+      setBusy(false)
+      if (!json?.success) {
+        toast({
+          variant: "destructive",
+          title: "Could not create the report",
+          description: json?.message ?? "Request failed",
+        })
+        return
+      }
+      setNewOpen(false)
+      patchState({
+        view: "build",
+        periodType: draft.periodType,
+        reportId: (json.data.report as ReportDto).id,
+      })
+      await refresh()
+      toast({ title: "Draft created", description: draft.title })
+    },
+    [
+      patchState,
+      refresh,
+      shownPeriod,
+      state.anchor,
+      state.customFrom,
+      state.customTo,
+      state.periodType,
+      toast,
+    ],
+  )
+
+  const recompute = useCallback(async () => {
+    if (!report) return
+    setBusy(true)
+    const error = await mutate(`/api/reports/work/${report.id}/recompute`, { method: "POST" })
+    setBusy(false)
+    if (error) {
+      toast({ variant: "destructive", title: "Recompute failed", description: error })
+      return
+    }
+    await refresh()
+    toast({ title: "Figures refreshed", description: `${shownPeriod.label} counted again from the work log.` })
+  }, [mutate, refresh, report, shownPeriod.label, toast])
+
+  const deleteDraft = useCallback(async () => {
+    if (!pendingDelete) return
+    setBusy(true)
+    const error = await mutate(`/api/reports/work/${pendingDelete.id}`, { method: "DELETE" })
+    setBusy(false)
+    if (error) {
+      toast({ variant: "destructive", title: "Delete failed", description: error })
+      return
+    }
+    setPendingDelete(null)
+    patchState({ reportId: null, view: "list" })
+    await refresh()
+    toast({ title: "Draft deleted" })
+  }, [mutate, patchState, pendingDelete, refresh, toast])
+
+  // The template decides the order; the map decides that a section the template does not lead
+  // with is still present. A report missing its blockers section is the failure mode §6 warns
+  // about, and it is prevented by structure rather than by a reviewer noticing.
+  const sectionNodes: Partial<Record<ReportSectionKey, React.ReactNode>> = {
+    header: (
+      <HeaderSection
+        report={report}
+        title={title}
+        period={shownPeriod}
+        template={templateChoice}
+        sourceLabel={SOURCE_LABEL[source]}
+        onTitle={setTitle}
+      />
+    ),
+    summary: (
+      <ProseSection
+        key="summary"
+        section="summary"
+        value={prose.summary ?? ""}
+        hint="Two or three sentences: what the period was, and what it cost."
+        onChange={(value) => setProse((prev) => ({ ...prev, summary: value }))}
+      />
+    ),
+    // Tasks 13-15 add the six row sections, metrics and notes here.
+  }
 
   if (loading && !aggregate && reports.length === 0) return <ReportsSkeleton />
 
@@ -150,6 +352,22 @@ export default function ReportsClient() {
           </p>
         </div>
         <div className="flex shrink-0 gap-2">
+          <Button type="button" variant="outline" size="sm" onClick={() => setNewOpen(true)}>
+            <Plus className="mr-1 h-4 w-4" />
+            New report
+          </Button>
+          <Button type="button" size="sm" onClick={() => void saveDraft()} disabled={busy} title={dirty ? "Unsaved changes" : "No changes to save"}>
+            <Save className="mr-1 h-4 w-4" />
+            Save draft
+          </Button>
+          <Button type="button" variant="outline" size="sm" onClick={() => void recompute()} disabled={busy || report === null}>
+            <Calculator className="mr-1 h-4 w-4" />
+            Recompute
+          </Button>
+          <Button type="button" variant="outline" size="sm" onClick={() => setPendingDelete(report)} disabled={busy || report === null}>
+            <Trash2 className="mr-1 h-4 w-4" />
+            Delete
+          </Button>
           <Button type="button" variant="outline" size="sm" onClick={() => void refresh()}>
             <RefreshCw className="mr-1 h-4 w-4" />
             Reload
@@ -173,13 +391,42 @@ export default function ReportsClient() {
           onQuery={(value) => patchState({ q: value })}
           onOpen={(id) => patchState({ view: "build", reportId: id })}
         />
-        {/* Task 12 replaces this comment with the template-ordered report sections. */}
+        {/* The template's order is the document's order, so every member's report reads the same
+            way top to bottom; the `contents` wrapper keeps the grid while giving each row a key. */}
+        {state.view === "build"
+          ? sectionsFor(templateChoice).map((key) => (
+              <div key={key} className="contents">
+                {sectionNodes[key]}
+              </div>
+            ))
+          : null}
         {state.view === "build" && !aggregate ? (
           <div className="md:col-span-2 xl:col-span-3">
             <Skeleton className="h-40 w-full rounded-xl" />
           </div>
         ) : null}
       </div>
+
+      {/* Mounted only while open, so the draft's defaults are always the period and template the
+          builder is showing. Kept mounted, its first-render defaults would go stale and the
+          create route would refuse the mismatch between periodType and the period sent. */}
+      {newOpen ? (
+        <NewReportDialog
+          open
+          busy={busy}
+          defaultTitle={shownPeriod.label}
+          defaultTemplate={templateChoice}
+          defaultPeriodType={state.periodType}
+          onClose={() => setNewOpen(false)}
+          onCreate={(draft) => void createDraft(draft)}
+        />
+      ) : null}
+      <ConfirmReportDelete
+        report={pendingDelete}
+        busy={busy}
+        onCancel={() => setPendingDelete(null)}
+        onConfirm={() => void deleteDraft()}
+      />
     </div>
   )
 }

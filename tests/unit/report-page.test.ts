@@ -54,3 +54,52 @@ describe("the reports-work page", () => {
     expect(sectionsFile()).toMatch(/function ReportEmptyNote/u)
   })
 })
+
+describe("the builder's write path", () => {
+  const dialogs = () => src("app/dashboard/reports-work/dialogs.tsx")
+
+  it("sends the whole prose set on save, so a stored draft always has every section key", () => {
+    expect(client()).toMatch(/PROSE_SECTIONS\.map\(\(key\) => \[key, \{ text: prose\[key\] \?\? "" \}\]/u)
+    expect(client()).toMatch(/method: "PATCH"/u)
+  })
+
+  it("keeps one dirty comparison, in one place", () => {
+    expect(client()).toMatch(/function serializeProse/u)
+    expect((codeOnly(client()).match(/serializeProse\(/gu) ?? []).length).toBeGreaterThanOrEqual(2)
+    expect(codeOnly(client())).not.toMatch(/JSON\.stringify\(prose\)/u)
+  })
+
+  it("resolves an auto template before creating a draft", () => {
+    // The route only ever stores a real template id; `auto` is a UI choice, not a column value.
+    expect(client()).toMatch(/effectiveTemplate\(state, aggregate\)/u)
+    expect(dialogs()).toMatch(/TEMPLATE_LABEL/u)
+  })
+
+  it("refuses to save a report it has not loaded", () => {
+    // Two plan guards could not match the shipped code and are corrected here: saveDraft
+    // refuses with a braced block plus a toast (the toast is the point — the member is told
+    // why), and the recompute call uses a template literal, not a quoted path. The one-line
+    // `if (!report) return` form does exist, in recompute, where there is nothing to explain.
+    expect(client()).toMatch(/if \(!report\) \{/u)
+    expect(client()).toMatch(/if \(!report\) return/u)
+    expect(client()).toMatch(/Nothing to save/u)
+  })
+
+  it("asks before deleting, and never deletes on a single click", () => {
+    // The DELETE only exists inside the confirmed action; the button only sets pendingDelete.
+    expect(client()).toMatch(/setPendingDelete\(report\)/u)
+    expect(client()).toMatch(/if \(!pendingDelete\) return/u)
+    expect(client()).toMatch(/method: "DELETE"/u)
+    expect(dialogs()).toMatch(/ConfirmReportDelete/u)
+  })
+
+  it("disables the write buttons while a write is in flight", () => {
+    expect(client()).toMatch(/onClick=\{\(\) => void saveDraft\(\)\} disabled=\{busy\}/u)
+    expect(client()).toMatch(/disabled=\{busy \|\| report === null\}/u)
+    expect(dialogs()).toMatch(/disabled=\{busy \|\| draft\.title\.trim\(\) === ""\}/u)
+  })
+
+  it("recomputes with a POST, not a page reload", () => {
+    expect(client()).toMatch(/\/recompute`, \{ method: "POST" \}\)/u)
+  })
+})

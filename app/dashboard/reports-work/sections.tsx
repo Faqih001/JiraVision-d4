@@ -3,10 +3,11 @@
 // The builder's cards. No arithmetic and no date maths live here: a card renders rows the API
 // already counted, and the period it labels comes from the Period object the caller resolved.
 
-import { CalendarRange, ChevronLeft, ChevronRight, FileText, Inbox } from "lucide-react"
+import { CalendarRange, ChevronLeft, ChevronRight, FileText, Inbox, NotebookPen } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import {
   Select,
   SelectContent,
@@ -23,8 +24,15 @@ import {
   type Period,
   type PeriodType,
 } from "@/lib/reports/period"
-import type { ReportDto } from "@/lib/reports/report-fields"
-import { REPORT_TEMPLATES, TEMPLATE_LABEL } from "@/lib/reports/templates"
+import { MAX_REPORT_TITLE, type ReportDto } from "@/lib/reports/report-fields"
+import {
+  MAX_SECTION_TEXT,
+  REPORT_TEMPLATES,
+  SECTION_TITLE,
+  TEMPLATE_LABEL,
+  type ReportSectionKey,
+  type ReportTemplate,
+} from "@/lib/reports/templates"
 import { AUTO_TEMPLATE, type ReportState, type TemplateChoice } from "@/lib/reports/view-state"
 
 export function ReportsSkeleton() {
@@ -253,6 +261,107 @@ export function MyReportsSection({
             ))}
           </ul>
         )}
+      </div>
+    </SectionCard>
+  )
+}
+
+export function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
+  return (
+    <div className="rounded-lg border border-border/60 bg-background/40 px-3 py-2">
+      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className="text-lg font-semibold tabular-nums">{value}</p>
+      {hint ? <p className="text-[10px] text-muted-foreground">{hint}</p> : null}
+    </div>
+  )
+}
+
+export function HeaderSection({
+  report,
+  title,
+  period,
+  template,
+  sourceLabel,
+  onTitle,
+}: {
+  report: ReportDto | null
+  title: string
+  period: Period
+  template: ReportTemplate
+  sourceLabel: string
+  onTitle: (value: string) => void
+}) {
+  return (
+    <SectionCard
+      title={SECTION_TITLE.header}
+      icon={<FileText className="h-4 w-4" />}
+      className="md:col-span-2 xl:col-span-2"
+    >
+      <div className="space-y-2">
+        <Label htmlFor="report-title">Title</Label>
+        <Input
+          id="report-title"
+          value={title}
+          maxLength={MAX_REPORT_TITLE}
+          placeholder={period.label}
+          onChange={(event) => onTitle(event.target.value)}
+        />
+        <p className="text-[11px] text-muted-foreground tabular-nums">
+          {period.start} to {period.end} · {TEMPLATE_LABEL[template]} · {sourceLabel}
+          {report ? ` · draft #${report.id}` : " · not saved"}
+        </p>
+        <p className="text-[11px] text-muted-foreground">
+          The header is computed: the period, template and author come from the report itself, and
+          nothing typed here can change them.
+        </p>
+      </div>
+    </SectionCard>
+  )
+}
+
+/**
+ * One editable card for the prose the member owns. Generic over the section key because the
+ * summary and the notes are the same component with a different title; the six row sections use
+ * a commentary field inside their own card instead (Task 14).
+ */
+export function ProseSection({
+  section,
+  value,
+  rows = 6,
+  hint,
+  onChange,
+}: {
+  section: ReportSectionKey
+  value: string
+  rows?: number
+  hint?: string
+  onChange: (value: string) => void
+}) {
+  const over = value.length > MAX_SECTION_TEXT
+  return (
+    <SectionCard
+      title={SECTION_TITLE[section]}
+      icon={<NotebookPen className="h-4 w-4" />}
+      className="md:col-span-2 xl:col-span-2"
+    >
+      <div className="space-y-2">
+        <Textarea
+          aria-label={SECTION_TITLE[section]}
+          value={value}
+          rows={rows}
+          placeholder={hint ?? "Write this in your own words. The rows below it are counted for you."}
+          onChange={(event) => onChange(event.target.value)}
+          className={over ? "border-destructive" : undefined}
+        />
+        <p
+          className={`text-[11px] tabular-nums ${
+            over ? "text-destructive" : "text-muted-foreground"
+          }`}
+        >
+          {over
+            ? `${value.length - MAX_SECTION_TEXT} characters over the ${MAX_SECTION_TEXT} limit — the save will refuse this.`
+            : `${value.length} characters`}
+        </p>
       </div>
     </SectionCard>
   )
