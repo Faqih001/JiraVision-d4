@@ -102,7 +102,7 @@ spec §16 phase 16 — that phase adds the constraint with `ALTER TABLE ... ADD 
 - Produces: `CADENCES`, `type Cadence`, `isCadence`, `CADENCE_LABEL`, `CADENCE_DAYS`, `computeNextRun(cadence, from?) => string | null`,
   re-exported unchanged from `app/api/reports/_shared.ts` so no existing import breaks.
 
-- [ ] **Step 1: Write the failing tests.** Create `tests/unit/cadence.test.ts`:
+- [x] **Step 1: Write the failing tests.** Create `tests/unit/cadence.test.ts`:
 
 ```ts
 import { describe, expect, it } from "vitest"
@@ -183,9 +183,9 @@ describe("computeNextRun", () => {
 })
 ```
 
-- [ ] **Step 2: Run them and watch them fail.** `npm test -- cadence` → cannot resolve `@/lib/cadence`.
+- [x] **Step 2: Run them and watch them fail.** `npm test -- cadence` → cannot resolve `@/lib/cadence`.
 
-- [ ] **Step 3: Write `lib/cadence.ts`.**
+- [x] **Step 3: Write `lib/cadence.ts`.**
 
 ```ts
 // Report and recurrence vocabulary. Deliberately free of the database and of cookies,
@@ -244,9 +244,9 @@ export function computeNextRun(cadence: Cadence, from: Date = new Date()): strin
 }
 ```
 
-- [ ] **Step 4: Run the tests.** `npm test -- cadence` → 11 passing.
+- [x] **Step 4: Run the tests.** `npm test -- cadence` → 11 passing.
 
-- [ ] **Step 5: Point `app/api/reports/_shared.ts` at the module.** Replace lines 47-56
+- [x] **Step 5: Point `app/api/reports/_shared.ts` at the module.** Replace lines 47-56
 (`CADENCES`, `Cadence`, `isCadence`) and the `computeNextRun` body at `:88-94` with:
 
 ```ts
@@ -265,7 +265,7 @@ export {
 Keep `parseRangeDays`, `idInList`, `unauthorized`, `badRequest`, `serverError`, `DATASETS` and the DTOs where they
 are. If `sql` or `NextResponse` becomes an unused import after the deletion, remove it — lint must not gain a warning.
 
-- [ ] **Step 6: Handle the new `null`.** Three call sites interpolate the result into SQL; `NULL::timestamptz` is
+- [x] **Step 6: Handle the new `null`.** Three call sites interpolate the result into SQL; `NULL::timestamptz` is
 valid Postgres and is the honest value for a schedule that will not run again.
 
 - `app/api/reports/[id]/run/route.ts:57` — no change needed if the template already accepts `string | null`;
@@ -278,17 +278,17 @@ Then widen the two validation messages so they cannot lie about the accepted set
 `return badRequest(\`cadence must be one of: ${CADENCES.join(", ")}\`)` and `app/api/reports/route.ts:57`'s
 fallback comment if it names three. Add `CADENCES` to that import list.
 
-- [ ] **Step 7: Make the existing report builder offer all five.** In `app/dashboard/reports/page.tsx`:
+- [x] **Step 7: Make the existing report builder offer all five.** In `app/dashboard/reports/page.tsx`:
 delete the local `type Cadence` at `:75` and the local `CADENCE_LABEL` at `:122-126`; import
 `import { CADENCE_LABEL, CADENCES, type Cadence } from "@/lib/cadence"` with the other `@/lib` imports. Replace both
 hard-coded lists — the filter select at `:722` and the draft select at `:978` — with `{CADENCES.map((c) => ( … ))}`,
 keeping each option's existing markup and `value={c}`. `Schedule.cadence` at `:93` and `draft.cadence` at `:143` keep
 the imported type. The table cell that reads `CADENCE_LABEL[...]` at `:309` now resolves for `one-off` and `yearly`.
 
-- [ ] **Step 8: Gates.** `npm run typecheck` → 0. `npm run lint` → 0 errors, 70 warnings. `npm test` → 435 passing
+- [x] **Step 8: Gates.** `npm run typecheck` → 0. `npm run lint` → 0 errors, 70 warnings. `npm test` → 435 passing
 (424 + 11).
 
-- [ ] **Step 9: Commit and push.**
+- [x] **Step 9: Commit and push.**
 
 ```bash
 git add lib/cadence.ts tests/unit/cadence.test.ts app/api/reports app/dashboard/reports/page.tsx
@@ -310,7 +310,7 @@ git push
   `DISCIPLINE_TEMPLATE`, `DEFAULT_DISCIPLINE`, `isWorkDiscipline`, `normaliseDiscipline`. Task 3 stamps the same
   strings into `tasks.discipline`; Task 4 validates against `isWorkDiscipline`.
 
-- [ ] **Step 1: Write the failing tests.** Append to `tests/unit/roles.test.ts`:
+- [x] **Step 1: Write the failing tests.** Append to `tests/unit/roles.test.ts`:
 
 ```ts
 describe("work disciplines", () => {
@@ -376,9 +376,9 @@ import path from "node:path"
 const rolesSource = readFileSync(path.resolve(__dirname, "../../lib/roles.ts"), "utf8")
 ```
 
-- [ ] **Step 2: `npm test -- roles` → fails on the unresolved names.**
+- [x] **Step 2: `npm test -- roles` → fails on the unresolved names.**
 
-- [ ] **Step 3: Append to `lib/roles.ts`.**
+- [x] **Step 3: Append to `lib/roles.ts`.**
 
 ```ts
 // ---- Work disciplines -------------------------------------------------------------
@@ -444,7 +444,7 @@ export function normaliseDiscipline(value: unknown): WorkDiscipline | null {
 }
 ```
 
-- [ ] **Step 4: Confirm the colour tokens exist.** Every palette token in `app/globals.css` is an HSL channel
+- [x] **Step 4: Confirm the colour tokens exist.** Every palette token in `app/globals.css` is an HSL channel
 triplet consumed as `hsl(var(--token))`, which is why the map above is wrapped, not bare.
 
 ```bash
@@ -455,7 +455,7 @@ Ten hits expected (each defined once for light and once for dark). If a token is
 existing `--chart-*` / `--clay` token for that discipline and keep the `hsl(var(--…))` shape so the test's regex
 still holds.
 
-- [ ] **Step 5: Gates, then commit and push.** `npm test -- roles` → the block's 5 tests pass (11 → 16 in that
+- [x] **Step 5: Gates, then commit and push.** `npm test -- roles` → the block's 5 tests pass (11 → 16 in that
 file); `npm run typecheck`
 → 0; `npm run lint` → unchanged.
 
@@ -479,7 +479,7 @@ git push
   `agentPlans`, `planItems`, `assistantThreads`, `assistantMessages`, `aiUsageDaily`, and `tasks.startDate` /
   `tasks.discipline` / `tasks.sourcePlanId`. Task 5's writer inserts into `taskEvents`.
 
-- [ ] **Step 1: Write the failing test.** Create `tests/unit/worklog-schema.test.ts`:
+- [x] **Step 1: Write the failing test.** Create `tests/unit/worklog-schema.test.ts`:
 
 ```ts
 import { describe, expect, it } from "vitest"
@@ -576,18 +576,18 @@ describe("worklog schema", () => {
 })
 ```
 
-- [ ] **Step 2: `npm test -- worklog-schema` → fails; `tasks` column list and every new table are missing.** If it
+- [x] **Step 2: `npm test -- worklog-schema` → fails; `tasks` column list and every new table are missing.** If it
 fails with `schema.ts does not export a table named "task_events"` *even after* the tables exist, the test loaded
 `drizzle/schema.js`: pin `@/drizzle/schema` to `drizzle/schema.ts` in `vitest.config.ts`'s `resolve.alias`, keeping
 that entry above `"@"`.
 
-- [ ] **Step 3: Extend the import line.** `drizzle/schema.ts:1` gains `index` from `drizzle-orm/pg-core`:
+- [x] **Step 3: Extend the import line.** `drizzle/schema.ts:1` gains `index` from `drizzle-orm/pg-core`:
 
 ```ts
 import { pgTable, serial, text, varchar, timestamp, boolean, date, integer, decimal, jsonb, primaryKey, unique, uuid, index } from "drizzle-orm/pg-core"
 ```
 
-- [ ] **Step 4: Add the three `tasks` columns.** In `drizzle/schema.ts:128-141`, **after `updatedAt`, at the end of
+- [x] **Step 4: Add the three `tasks` columns.** In `drizzle/schema.ts:128-141`, **after `updatedAt`, at the end of
 the column block** — Postgres `ADD COLUMN` appends, so the declaration order has to match the live column order or
 the "leaves every pre-existing tasks column alone" assertion is wrong about a table that is fine:
 
@@ -604,7 +604,7 @@ the "leaves every pre-existing tasks column alone" assertion is wrong about a ta
 `sourcePlanId` gets **no** foreign key: `agent_plans` is created in the same migration but a planner row must be
 deletable without rewriting task history, and `source_plan_id` is a breadcrumb, not a constraint.
 
-- [ ] **Step 5: Append the ten tables** to the end of `drizzle/schema.ts`.
+- [x] **Step 5: Append the ten tables** to the end of `drizzle/schema.ts`.
 
 ```ts
 /* ------------------------------------------------------------------ worklog, reports,
@@ -836,10 +836,10 @@ export const aiUsageDaily = pgTable("ai_usage_daily", {
 If `revisionOf` needs the self-reference typed, `(): any =>` is what drizzle 0.45 requires inside a table it has not
 finished declaring; the schema has no `any`-lint rule to trip. Confirm with `npm run typecheck`.
 
-- [ ] **Step 6: Run the schema test.** `npm test -- worklog-schema` → all passing. The "leaves every pre-existing
+- [x] **Step 6: Run the schema test.** `npm test -- worklog-schema` → all passing. The "leaves every pre-existing
 tasks column alone" case pins declaration order; if it fails, the new columns were inserted in the wrong place.
 
-- [ ] **Step 7: Nothing — the guard case lives in Task 9.** `tests/unit/schema-safety.test.ts` gains a case that
+- [x] **Step 7: Nothing — the guard case lives in Task 9.** `tests/unit/schema-safety.test.ts` gains a case that
 `scripts/create-worklog-tables.mjs` is additive only:
 
 ```ts
@@ -859,11 +859,11 @@ tasks column alone" case pins declaration order; if it fails, the new columns we
 It is written in Task 9 Step 1, not here, because it reads a file that does not exist until Task 9 creates it —
 adding it now would leave Task 3 red, and every task in this plan ends green and committable.
 
-- [ ] **Step 8: Gates.** `npm run typecheck` → 0 (this is the real check that the new table code is valid drizzle);
+- [x] **Step 8: Gates.** `npm run typecheck` → 0 (this is the real check that the new table code is valid drizzle);
 `npm run lint` → 0 errors; `npm test` → green, 14 new cases in `tests/unit/worklog-schema.test.ts` (1 table-enumeration,
 10 from the `it.each`, 3 `tasks`-column cases) for a total of 449.
 
-- [ ] **Step 9: Commit and push.**
+- [x] **Step 9: Commit and push.**
 
 ```bash
 git add drizzle/schema.ts tests/unit/worklog-schema.test.ts
@@ -884,7 +884,7 @@ git push
 - Produces: `TaskPatch` accepting `startDate?: string | null` and `discipline?: WorkDiscipline | null`, and still
   rejecting `sourcePlanId`, `id`, and every audit column.
 
-- [ ] **Step 1: Write the failing tests.** Append to `tests/unit/task-updates.test.ts`:
+- [x] **Step 1: Write the failing tests.** Append to `tests/unit/task-updates.test.ts`:
 
 ```ts
 describe("phase 1 task columns", () => {
@@ -922,9 +922,9 @@ describe("phase 1 task columns", () => {
 })
 ```
 
-- [ ] **Step 2: `npm test -- task-updates` → the new cases fail.**
+- [x] **Step 2: `npm test -- task-updates` → the new cases fail.**
 
-- [ ] **Step 3: Extend the whitelist.** In `lib/task-updates.ts`, add `startDate` and `discipline` to
+- [x] **Step 3: Extend the whitelist.** In `lib/task-updates.ts`, add `startDate` and `discipline` to
 `MUTABLE_FIELDS` (after `dueDate`), import the discipline guard, and add two switch arms.
 
 ```ts
@@ -985,11 +985,11 @@ Then update the header comment (the file's own documentation of the whitelist) t
 excluded **on purpose** because the promote transaction writes it, and that `startDate` joins `dueDate` as a
 string-mode `date()` column.
 
-- [ ] **Step 4: Gates.** `npm test -- task-updates` → green, including the pre-existing cases. Typecheck 0, lint
+- [x] **Step 4: Gates.** `npm test -- task-updates` → green, including the pre-existing cases. Typecheck 0, lint
 unchanged. Note that `patch.discipline = candidate` needs `TaskPatch`'s `discipline` typed as the union — drizzle
 derives it from `varchar`, so it is `string | null`, which `candidate` satisfies after the guard.
 
-- [ ] **Step 5: Commit and push.**
+- [x] **Step 5: Commit and push.**
 
 ```bash
 git add lib/task-updates.ts tests/unit/task-updates.test.ts
@@ -1010,7 +1010,7 @@ git push
 - Produces: `TASK_EVENT_SOURCES`, `TaskEventSource`, `StatusSnapshot`, `TaskEventRow`, `isTaskEventSource`,
   `statusChanges(before, after, options) => TaskEventRow[]`. Task 6's writer inserts exactly these rows.
 
-- [ ] **Step 1: Write the failing tests.** Create `tests/unit/worklog-capture.test.ts`:
+- [x] **Step 1: Write the failing tests.** Create `tests/unit/worklog-capture.test.ts`:
 
 ```ts
 import { describe, expect, it } from "vitest"
@@ -1099,9 +1099,9 @@ describe("statusChanges", () => {
 `task_events.source` CHECK constraint in Task 9's DDL enumerates all four, so adding a source later needs a
 migration, and a migration is the wrong place to discover the list was short.
 
-- [ ] **Step 2: `npm test -- worklog-capture` → fails, module missing.**
+- [x] **Step 2: `npm test -- worklog-capture` → fails, module missing.**
 
-- [ ] **Step 3: Write `lib/worklog/task-events.ts`.**
+- [x] **Step 3: Write `lib/worklog/task-events.ts`.**
 
 ```ts
 // The rule half of task capture: given the before and after rows of a task write, which
@@ -1163,9 +1163,9 @@ export function statusChanges(
 }
 ```
 
-- [ ] **Step 4: `npm test -- worklog-capture` → 9 passing.** Then `npm run typecheck` and `npm run lint`.
+- [x] **Step 4: `npm test -- worklog-capture` → 9 passing.** Then `npm run typecheck` and `npm run lint`.
 
-- [ ] **Step 5: Commit and push.**
+- [x] **Step 5: Commit and push.**
 
 ```bash
 git add lib/worklog/task-events.ts tests/unit/worklog-capture.test.ts
@@ -1187,7 +1187,7 @@ git push
   `./task-events`.
 - Produces: `captureStatusChanges(before, after, options): Promise<number>` — returns rows written, never throws.
 
-- [ ] **Step 1: Write `lib/worklog/capture.ts`.**
+- [x] **Step 1: Write `lib/worklog/capture.ts`.**
 
 ```ts
 import { db } from "@/lib/db"
@@ -1224,7 +1224,7 @@ export async function captureStatusChanges(
 }
 ```
 
-- [ ] **Step 2: Wire `/api/tasks/[id]` PUT.** Add the import:
+- [x] **Step 2: Wire `/api/tasks/[id]` PUT.** Add the import:
 
 ```ts
 import { captureStatusChanges } from "@/lib/worklog/capture"
@@ -1247,10 +1247,10 @@ the notifications:
     // User-visible events push to the assignee's live bell feed.
 ```
 
-- [ ] **Step 3: Gates.** `npm run typecheck` → 0; `npm run lint` → 0 errors; `npm test` → green (the writer has no
+- [x] **Step 3: Gates.** `npm run typecheck` → 0; `npm run lint` → 0 errors; `npm test` → green (the writer has no
 unit test by design; it is covered structurally in Task 10 and functionally the moment the migration exists).
 
-- [ ] **Step 4: Commit and push.**
+- [x] **Step 4: Commit and push.**
 
 ```bash
 git add lib/worklog/capture.ts "app/api/tasks/[id]/route.ts"
@@ -1269,7 +1269,7 @@ git push
 - Consumes: `captureStatusChanges`, `db`, `tasks`, `inArray`, `and` (already imported at `:6-7`).
 - Produces: one `task_events` row per task whose status moved in the bulk write.
 
-- [ ] **Step 1: Add the before-read.** In the `'update'` case, replace lines 60-74 so the old statuses are read
+- [x] **Step 1: Add the before-read.** In the `'update'` case, replace lines 60-74 so the old statuses are read
 **before** the update overwrites them — there is no way to recover them afterwards, which is exactly the hole phase
 1 exists to close:
 
@@ -1304,7 +1304,7 @@ git push
 Add `import { captureStatusChanges } from "@/lib/worklog/capture"` to the file's imports. `session.id` is available:
 the handler already did `const session = await getSession()` at `:16` and returned 401 when null.
 
-- [ ] **Step 2: Do not capture the delete arm.** `case 'delete'` cascades the task's own events away with it, so a
+- [x] **Step 2: Do not capture the delete arm.** `case 'delete'` cascades the task's own events away with it, so a
 `deleted` row would be erased by the statement that wrote it. Leave a one-line comment saying so at the delete case,
 so the next reader does not "fix" the omission:
 
@@ -1315,9 +1315,9 @@ so the next reader does not "fix" the omission:
         // is the notifications feed (see the DELETE /api/tasks/[id] handler).
 ```
 
-- [ ] **Step 3: Gates.** Typecheck 0, lint unchanged, `npm test` green.
+- [x] **Step 3: Gates.** Typecheck 0, lint unchanged, `npm test` green.
 
-- [ ] **Step 4: Commit and push.**
+- [x] **Step 4: Commit and push.**
 
 ```bash
 git add app/api/tasks/bulk/route.ts
@@ -1342,7 +1342,7 @@ audited. Three more routes write `tasks.status`; two of them are the test-mode t
 - Produces: `task_events` coverage of every route that can change `tasks.status`, which the Task 10 guard test
 asserts by enumeration.
 
-- [ ] **Step 1: `/api/dashboard/tasks` PUT.** This route writes status unconditionally from the body, and drizzle
+- [x] **Step 1: `/api/dashboard/tasks` PUT.** This route writes status unconditionally from the body, and drizzle
 drops `undefined` keys, so the before-read is the only way to know whether it moved. Add the import, then replace
 lines 125-141:
 
@@ -1378,7 +1378,7 @@ lines 125-141:
     })
 ```
 
-- [ ] **Step 2: `/api/test/tasks/[id]` PUT.** Mirror the production route: add the import and insert after
+- [x] **Step 2: `/api/test/tasks/[id]` PUT.** Mirror the production route: add the import and insert after
 `app/api/test/tasks/[id]/route.ts:98`
 
 ```ts
@@ -1389,7 +1389,7 @@ lines 125-141:
     })
 ```
 
-- [ ] **Step 3: `/api/test/tasks/bulk` update arm.** Same shape as Task 7: replace lines 58-68 with the before-read,
+- [x] **Step 3: `/api/test/tasks/bulk` update arm.** Same shape as Task 7: replace lines 58-68 with the before-read,
 the update and
 
 ```ts
@@ -1402,7 +1402,7 @@ the update and
 Add the `captureStatusChanges` import. Confirm `session` is in scope in that handler (it is obtained the same way as
 its production twin at the top of the POST handler).
 
-- [ ] **Step 4: State what is deliberately **not** wired, in one place.** Append to `lib/worklog/capture.ts` a
+- [x] **Step 4: State what is deliberately **not** wired, in one place.** Append to `lib/worklog/capture.ts` a
 comment block so the omissions are decisions, not oversights:
 
 ```ts
@@ -1420,9 +1420,9 @@ comment block so the omissions are decisions, not oversights:
 //   lib/seed-data.ts — demo rows; a seeded task's creation is its created_at like any other.
 ```
 
-- [ ] **Step 5: Gates.** Typecheck 0, lint unchanged, `npm test` green.
+- [x] **Step 5: Gates.** Typecheck 0, lint unchanged, `npm test` green.
 
-- [ ] **Step 6: Commit and push.**
+- [x] **Step 6: Commit and push.**
 
 ```bash
 git add app/api/dashboard/tasks/route.ts "app/api/test/tasks" lib/worklog/capture.ts
@@ -1444,12 +1444,12 @@ git push
 - Consumes: `.env.local` `DATABASE_URL`; the exact column set from Task 3.
 - Produces: the ten tables and three `tasks` columns in production Neon, verified through `information_schema`.
 
-- [ ] **Step 1: Write the failing guard test.** Append to `tests/unit/schema-safety.test.ts` the block from Task 3
+- [x] **Step 1: Write the failing guard test.** Append to `tests/unit/schema-safety.test.ts` the block from Task 3
 Step 7 verbatim (the one that reads `scripts/create-worklog-tables.mjs` and asserts `CREATE TABLE IF NOT EXISTS`,
 `ADD COLUMN IF NOT EXISTS`, `information_schema`, and no `DROP` / `DELETE FROM` / `TRUNCATE` / `ALTER COLUMN`). Run
 `npm test -- schema-safety` → fails, file not found.
 
-- [ ] **Step 2: Write `scripts/create-worklog-tables.mjs`,** following `scripts/create-reports-tables.mjs` exactly
+- [x] **Step 2: Write `scripts/create-worklog-tables.mjs`,** following `scripts/create-reports-tables.mjs` exactly
 (same env read, same `max: 1` pool, same verify-then-exit(1) shape). Note the deliberate `DROP`-free wording: the
 guard test forbids the word.
 
@@ -1678,9 +1678,9 @@ try {
 `references` is a non-reserved word in Postgres and usable unquoted; if the run complains, quote it as `"references"`
 in the DDL and in `drizzle/schema.ts` the column name stays `references`.
 
-- [ ] **Step 3: `npm test -- schema-safety` → green.** Typecheck and lint too.
+- [x] **Step 3: `npm test -- schema-safety` → green.** Typecheck and lint too.
 
-- [ ] **Step 4: Write `scripts/rollback-worklog-tables.mjs` — present, gated, and not run by this plan.**
+- [x] **Step 4: Write `scripts/rollback-worklog-tables.mjs` — present, gated, and not run by this plan.**
 
 ```js
 // Reverses create-worklog-tables.mjs by removing ONLY the ten tables phase 1 added. The
@@ -1755,14 +1755,14 @@ try {
 The `DROP` text in the rollback script is fine for the guard test in Step 2, which reads only
 `scripts/create-worklog-tables.mjs`.
 
-- [ ] **Step 5: Add the two npm scripts** to `package.json`, next to the existing `db:push` entries:
+- [x] **Step 5: Add the two npm scripts** to `package.json`, next to the existing `db:push` entries:
 
 ```json
     "db:worklog": "node scripts/create-worklog-tables.mjs",
     "db:worklog:rollback": "node scripts/rollback-worklog-tables.mjs",
 ```
 
-- [ ] **Step 6: CHECKPOINT — stop and ask the owner before touching production.** Say exactly what is about to
+- [x] **Step 6: CHECKPOINT — stop and ask the owner before touching production.** Say exactly what is about to
 happen: "11 minutes of your time: this adds 10 new tables and 3 nullable columns to the live Neon database, writes
 zero rows, and is additive; I will run `npm run db:worklog` from the repo root after confirming the URL on line 1 of
 .env.local is still the commented stale one and the real one is matched." Wait for an explicit yes. Do not run it on
@@ -1776,7 +1776,7 @@ node -e "const s=require('fs').readFileSync('.env.local','utf8');const m=s.match
 
 The password must be masked in the output and must never be pasted into chat.
 
-- [ ] **Step 7: Run it once, from the repo root.**
+- [x] **Step 7: Run it once, from the repo root.**
 
 ```bash
 npm run db:worklog
@@ -1784,7 +1784,7 @@ npm run db:worklog
 
 Expected final line: `OK — schema is in place. No rows were written.` and 10 table names listed.
 
-- [ ] **Step 8: Prove the capture path works against the real tables, without inventing data.** The owner's own
+- [x] **Step 8: Prove the capture path works against the real tables, without inventing data.** The owner's own
 account is the only acceptable subject, and only if they agree; otherwise this waits until phase 2's UI is used in
 front of them. **The default is: do not write.** Read-only confirmation instead:
 
@@ -1799,7 +1799,7 @@ console.log('task_events rows:', r[0].events); await sql.end()})
 
 Expected `0` — the log is empty until a real status change happens, which is the correct state at the end of phase 1.
 
-- [ ] **Step 9: Commit and push.**
+- [x] **Step 9: Commit and push.**
 
 ```bash
 git add scripts/create-worklog-tables.mjs scripts/rollback-worklog-tables.mjs package.json tests/unit/schema-safety.test.ts
@@ -1822,7 +1822,7 @@ git push
 - Produces: the phase-1 subset of the spec's guard file. Phases 2-18 add blocks to this same file; it is the thing
 that keeps the invariants true after the person who wrote them has moved on.
 
-- [ ] **Step 1: Write the guard.** Create `tests/unit/worklog-reports.test.ts`:
+- [x] **Step 1: Write the guard.** Create `tests/unit/worklog-reports.test.ts`:
 
 ```ts
 import { describe, expect, it } from "vitest"
@@ -1954,7 +1954,7 @@ one, since routes legitimately `SELECT` timestamps), narrow the regex to the der
 e.g. `/worked_on[\s\S]{0,80}updated_at/` — rather than deleting the case. A guard test that was weakened to pass is
 worse than no guard test.
 
-- [ ] **Step 2: Sync the design document.** Three edits to
+- [x] **Step 2: Sync the design document.** Three edits to
 `docs/superpowers/specs/2026-10-26-worklog-reports-planner-assistant-design.md`:
 1. In §13's `plan_items` line, `order` → `sort_order`, with the trailing note "renamed: `order` is a SQL reserved
 word".
@@ -1963,12 +1963,12 @@ word".
 `route|bulk|promote|agent`, and add: "Creation is recorded by `tasks.created_at`, deletion is not an event because
 `task_events.task_id` cascades — a row about a deleted task is deleted with it."
 
-- [ ] **Step 3: `FEATURES.md`.** Add one numbered row in the style of the existing list, stating plainly what is
+- [x] **Step 3: `FEATURES.md`.** Add one numbered row in the style of the existing list, stating plainly what is
 true today: the tables and the capture exist; status changes are being recorded from the five routes; there is no
 worklog UI yet (phase 2), and the log is empty until a task actually moves. Do not describe a page that does not
 exist.
 
-- [ ] **Step 4: Full gates.**
+- [x] **Step 4: Full gates.**
 
 ```bash
 npm run typecheck && npm run lint && npm test
@@ -1978,7 +1978,7 @@ Expected: 0 typecheck errors, 0 lint errors with the 70-warning baseline unchang
 roughly 27 files and 480 tests once this phase's additions are counted (the exact number comes from Steps 1 above;
 do not tune a test to hit a number).
 
-- [ ] **Step 5: Commit and push, then confirm the production deploy picked it up.**
+- [x] **Step 5: Commit and push, then confirm the production deploy picked it up.**
 
 ```bash
 git add tests/unit/worklog-reports.test.ts FEATURES.md docs/superpowers/specs/2026-10-26-worklog-reports-planner-assistant-design.md
@@ -2000,7 +2000,7 @@ fetch(q,{headers:{Authorization:'Bearer '+tok}}).then(r=>r.json()).then(d=>{
 "
 ```
 
-- [ ] **Step 6: Report to the owner, and hand them the check they can do.** Phase 1 ships no UI (their standing rule
+- [x] **Step 6: Report to the owner, and hand them the check they can do.** Phase 1 ships no UI (their standing rule
 is that they do the visual testing). Say: the log is now recording; to see it in the app you must change a task's
 status once, and then phase 2's page is the first thing that reads it back. Offer to move on to phase 2 (worklog UI)
 or phase 15 (registers, which is what their handover document actually needs first).
