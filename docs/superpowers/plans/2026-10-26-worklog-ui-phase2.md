@@ -6875,6 +6875,8 @@ that data bugs are testable.
   - `BulkSection({ entries, selection, busy, todayIso, tasks, onApply, onExport, onClear })`
   - `ConfirmBulkDelete({ count, busy, onOpenChange, onConfirm })`
   - `applyBulk(action: BulkAction, payload?: Record<string, unknown>): Promise<void>` in the client
+  *(The bar shipped as `BulkSection({ selected, busy, todayIso, tasks, onApply, onExport, onClear })`
+  and gained a `BULK_SETTABLE_KINDS` export in `lib/worklog/bulk.ts` — see the As-shipped note.)*
 
 - [ ] **Step 1: Write the failing CSV tests**
 
@@ -7353,6 +7355,93 @@ git push
 Expected: 7 bulk guards + 6 CSV cases green, the whole suite green, typecheck 0 errors, lint 0
 errors / 70 warnings. On the deployed page: tick three rows, Move them onto a task, and the rows
 re-render with the task title; Export CSV downloads a file whose rows are those three.
+
+---
+
+#### As shipped (2026-10-26, `da7016f`)
+
+Counts: **9** bulk bar guards (the 7 above plus the two new ones below), **7** CSV cases (the 6
+above plus a deliverable-column case), **1** new `worklog-bulk` case. The page suite is at **41**
+guards and the whole suite at 36 files / **670** tests. Typecheck 0 errors, lint 0 errors / 70
+warnings.
+
+**The bar's own props were the plan's defect, and the fix is the interesting part.**
+
+`readBulkRequest` refuses `set-kind` to `time` (needs per-row minutes) and to `deliverable` (needs a
+deliverable row to link). The Step 7 code builds its Reclassify select from `WORK_LOG_KINDS`, so the
+bar shipped two buttons that can only ever produce a red toast. `lib/worklog/bulk.ts` now owns the
+answer:
+
+```ts
+export const BULK_SETTABLE_KINDS: readonly WorkLogKind[] = WORK_LOG_KINDS.filter(
+  (kind) => kind !== "time" && kind !== "deliverable",
+)
+```
+
+derived from the same list the reader checks, so a new kind added to `WORK_LOG_KINDS` appears in the
+bar exactly when the reader would accept it. The reader keeps its two hand-written refusals because
+their messages are the useful part (`"A #time entry needs its own minutes — edit those rows
+individually."`), and a `worklog-bulk` case pins the pair together by asking the reader about every
+kind and comparing:
+
+```ts
+const refused = WORK_LOG_KINDS.filter(
+  (kind) => "error" in readBulkRequest({ action: "set-kind", ids: [1], kind }, TODAY),
+)
+expect(refused).toEqual(["time", "deliverable"])
+expect([...BULK_SETTABLE_KINDS]).toEqual(WORK_LOG_KINDS.filter((kind) => !refused.includes(kind)))
+```
+
+Writing the cast as `as readonly [WorkLogKind, ...WorkLogKind[]]` to document non-emptiness fails
+typecheck (TS2352: a `("action" | "blocker" | …)[]` provides no match for the required element at
+position 0). It does not need documenting either — `strict` without `noUncheckedIndexedAccess` types
+`BULK_SETTABLE_KINDS[0]` as `WorkLogKind`, which is what `useState` reads.
+
+**`selected` replaces `{ entries, selection }`, and the write sends the same list.** The plan has the
+bar receive the full loaded `entries` plus `selection` and filter inside (`const chosen =
+entries.filter(...)`), while the client posts the raw `selection` state. Those two can disagree: tick
+rows in the week view, change the discipline filter, and `selection` still holds ids the summary no
+longer returns. The bar would show a minutes total for rows its own button then re-dates. So the
+client filters once, above the handlers:
+
+```tsx
+  const selectedEntries = useMemo(
+    () => viewDaysList.flatMap((bucket) => bucket.entries).filter((entry) => selection.includes(entry.id)),
+    [selection, viewDaysList],
+  )
+  const selectedIds = useMemo(() => selectedEntries.map((entry) => entry.id), [selectedEntries])
+```
+
+and both `applyBulk` and `confirmBulkDelete` post `ids: selectedIds`, the mount condition is
+`selectedEntries.length > 0`, and `ConfirmBulkDelete` takes `count={selectedEntries.length}`. One
+invariant, guarded: *what the bar displays is the set the POST sends.* This is also why `range` and
+`viewDaysList` moved up above the handlers — they are now inputs to them, not just to the JSX.
+
+Other deviations:
+
+- **`NONE = "none"`, not `"all"`.** Same reason as Task 14's dialog: `"all"` in this file already
+  means *every discipline*. `SelectItem value=""` stays forbidden by `tests/unit/select-items.test.ts`.
+- **The unreachable empty states are gone.** The plan renders an `EmptyNote` inside `BulkSection`
+  when `selection.length === 0` and toasts "Nothing selected to export." from `exportCsv` — neither
+  is reachable now that the client only mounts the bar while the list is non-empty. `EmptyNote` is
+  still used by the day and week bodies, and `ConfirmBulkDelete` keeps its own
+  `disabled={busy || count === 0}` because a dialog outlives the click that opened it.
+- **`convertEntry` was switched to `bulkUrl`** rather than left posting its own literal, and the
+  plan's `mutateBase` comment now has a sibling: one string per route, so the row action, the bar and
+  the batch delete cannot drift to three different paths. The task note to "leave `convertEntry` as
+  it is" was about not rewriting it into `applyBulk` — it still posts a one-id array, because
+  `applyBulk` reads the *selection*, not the row it was clicked on.
+- **The count is captured before the write** (`const count = selectedIds.length`). Reading the
+  closure variable after `setSelection([])` and `await refresh()` also works, but only because
+  React's state is immutable per render — and a reader has to hold that to believe the toast.
+
+One guard in Step 5 was wrong and was rewritten before Step 6 ran:
+`expect(code).not.toMatch(/Select\.[^]*WORK_LOG_KINDS\.map/u)`. In a JS `RegExp`, `[^]` is a
+character class that excludes nothing, so it matches *any* character — the assertion read "no
+`Select.` anywhere before `WORK_LOG_KINDS.map`", which fails on the board body's legitimate
+all-six-columns mapping. A negative matcher over a whole file needs to name the thing it forbids;
+the shipped pair asserts `BULK_SETTABLE_KINDS.map` (the bar) and `WORK_LOG_KINDS.map` (the board)
+both exist.
 
 ---
 
