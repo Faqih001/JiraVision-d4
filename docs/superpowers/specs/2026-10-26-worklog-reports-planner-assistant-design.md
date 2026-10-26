@@ -129,9 +129,11 @@ The atom. One row = one thing that happened on one date.
 a member who never opens the page:
 
 - `task_events` — every status change on the `tasks` table, from the routes that actually write it:
-  `/api/tasks` POST, `/api/tasks/[id]` PUT and DELETE, `/api/tasks/bulk` update, `/api/dashboard/tasks` POST, PUT
-  and DELETE, `/api/dashboard/kanban/tasks` POST and the promote transaction. One insert alongside the existing
-  notification write.
+  `/api/tasks/[id]` PUT, `/api/tasks/bulk` update, `/api/dashboard/tasks` PUT, and the test-mode twins
+  `/api/test/tasks/[id]` PUT and `/api/test/tasks/bulk` update. One insert per write, placed **before** the existing
+  notification branches so an event exists even when nobody is notified.
+  Creation is recorded by `tasks.created_at`, and deletion is not an event because `task_events.task_id` cascades —
+  a row about a deleted task is deleted with it.
   **Scope correction (verified 2026-10-26):** the drag-and-reorder routes
   `/api/dashboard/kanban/update-status` and `/api/dashboard/kanban/reorder` mutate the separate `kanban_tasks`
   table, not `tasks`, so a board card drag does **not** produce a `task_events` row. This section previously claimed
@@ -530,10 +532,11 @@ New drizzle tables (`drizzle/schema.ts`, snake_case columns matching the live DB
 work_log_entries       id, user_id ->users.id, worked_on date, task_id ->tasks.id null,
                        plan_item_id ->plan_items.id null, kind(action|time|blocker|note|review|deliverable),
                        title, body, discipline, minutes int null, deliverable_id null,
-                       links jsonb, source(auto|manual|gemini), playbook_id ->playbooks.id null,
+                       links jsonb, source(auto|manual|gemini), playbook_id int null (no foreign key until
+                       phase 16 creates `playbooks`),
                        playbook_version int null, created_at, updated_at, redated_at
 task_events            id, task_id ->tasks.id (cascade), actor_id ->users.id,
-                       from_status, to_status, at timestamptz, source(route|bulk|kanban|promote|drag)
+                       from_status, to_status, at timestamptz, source(route|bulk|promote|agent)
 deliverables           id, name, type(document|code|design|inspection|finding|training|report|other),
                        task_id null, plan_item_id null, owner_id ->users.id, discipline,
                        status(draft|in_review|approved|delivered), produced_on date,
@@ -548,8 +551,9 @@ agent_plans            id, title, summary, source_kind(pdf|text), source_name, s
                        model, horizon_start, horizon_end, cadence, status(draft|promoted|discarded),
                        created_by, created_at, updated_at, promoted_at
 plan_items             id, plan_id (cascade), title, description, discipline, estimate_points,
-                       start_date, due_date, status, depends_on jsonb, milestone bool, cadence, order,
+                       start_date, due_date, status, depends_on jsonb, milestone bool, cadence, sort_order,
                        deliverable jsonb null, source_task_id
+                       (renamed: `order` is a SQL reserved word, so every query would need it quoted)
 assistant_threads      id, user_id, scope(site|workspace), title, created_at, updated_at
 assistant_messages     id, thread_id (cascade), role, content, references jsonb, tokens, created_at
 ai_usage_daily         date, scope(site|workspace|planner|report|career), calls, input_tokens, output_tokens,

@@ -178,3 +178,28 @@ Shared behavior across all four:
 - Pure logic lives in `lib/team-settings-model.ts` (no `lib/db` import) so vitest can exercise it:
   `tests/unit/team-settings-model.test.ts`, 17 tests.
 
+
+## 7. Worklog capture (phase 1, 2026-10-26)
+
+- The evidence layer for daily/weekly/monthly/yearly reports exists as data, not as a page. Ten
+  tables (`task_events`, `work_log_entries`, `deliverables`, `work_reports`, `work_report_recipients`,
+  `agent_plans`, `plan_items`, `assistant_threads`, `assistant_messages`, `ai_usage_daily`) and three
+  nullable `tasks` columns (`start_date`, `discipline`, `source_plan_id`) are declared in
+  `drizzle/schema.ts` and created by `npm run db:worklog` — a raw-SQL additive migration. `drizzle-kit
+  push` is deliberately not used: it can remove columns the schema file does not declare, and this
+  database is production. `tests/unit/schema-safety.test.ts` enforces that the script stays additive.
+- Status changes are recorded from the five routes that write `tasks.status`: `/api/tasks/[id]` PUT,
+  `/api/tasks/bulk` update, `/api/dashboard/tasks` PUT, and the test-mode twins `/api/test/tasks/[id]`
+  PUT and `/api/test/tasks/bulk` update. The insert happens before the notification branches, so the
+  log does not depend on anyone being worth notifying. A capture failure logs
+  `[task_events] capture failed` and never fails the user's save — until the migration has been run
+  against an environment, that is the line to look for.
+- Deliberately not captured, and stated in `lib/worklog/capture.ts` so the omissions are decisions:
+  creation is `tasks.created_at`; deletion cascades a task's events away with it, so a `deleted` row
+  would delete itself; the kanban drag/reorder routes mutate `kanban_tasks`, not `tasks`, so a board
+  drag produces no event.
+- Vocabulary has one owner each: `lib/cadence.ts` (`one-off|daily|weekly|monthly|yearly`, the latter
+  two new) and `lib/roles.ts` (`WORK_DISCIPLINES` with labels, icons, colours and a report template
+  per discipline). `tests/unit/worklog-reports.test.ts` fails if either is re-declared elsewhere.
+- There is **no worklog UI yet** — phase 2 (`/dashboard/worklog`) is the first thing that reads this
+  back. The log is empty until a task's status actually moves.
