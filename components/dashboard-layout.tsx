@@ -29,6 +29,7 @@ import {
   Bot,
   Brain,
   Calendar,
+  CalendarCheck,
   ChevronDown,
   ClipboardList,
   CreditCard,
@@ -238,6 +239,12 @@ export default function DashboardLayout({
           icon: <ClipboardList className="h-5 w-5" />,
           href: "/dashboard/tasks",
           active: pathname === "/dashboard/tasks",
+        },
+        {
+          title: "Work Log",
+          icon: <CalendarCheck className="h-5 w-5" />,
+          href: "/dashboard/worklog",
+          active: pathname === "/dashboard/worklog",
         },
         {
           title: "Backlog",
