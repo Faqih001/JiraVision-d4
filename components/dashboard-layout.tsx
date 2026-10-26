@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import NotificationsBell from "@/components/notifications-bell"
+import { GoogleTranslate } from "@/components/layout/google-translate"
 import { Badge } from "@/components/ui/badge"
 import {
   Activity,
@@ -31,7 +32,6 @@ import {
   CreditCard,
   FileSpreadsheet,
   Gamepad2,
-  Globe,
   Heart,
   Inbox,
   LayoutDashboard,
@@ -505,22 +505,7 @@ export default function DashboardLayout({
               {theme === "dark" ? <Sun className="h-4 w-4 sm:h-5 sm:w-5" /> : <Moon className="h-4 w-4 sm:h-5 sm:w-5" />}
             </Button>
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="relative text-muted-foreground hover:text-foreground rounded-full h-8 w-8 sm:h-9 sm:w-9 hidden sm:flex"
-                >
-                  <Globe className="h-4 w-4 sm:h-5 sm:w-5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem>English</DropdownMenuItem>
-                <DropdownMenuItem>Spanish</DropdownMenuItem>
-                <DropdownMenuItem>French</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <GoogleTranslate className="hidden max-w-[45vw] flex-wrap sm:flex" />
 
             <NotificationsBell />
 
