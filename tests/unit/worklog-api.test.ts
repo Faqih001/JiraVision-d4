@@ -175,3 +175,30 @@ describe("work log deliverables routes", () => {
     expect(row()).not.toMatch(/NEXT_PUBLIC_/u)
   })
 })
+
+describe("work log summary route", () => {
+  const route = () => src("app/api/worklog/summary/route.ts")
+
+  it("reads entries through the shared filter vocabulary", () => {
+    expect(route()).toMatch(/entryFilters\(state, session\.id, from, to\)/u)
+  })
+
+  it("scopes task history to the actor, not just the task", () => {
+    expect(route()).toMatch(/eq\(taskEvents\.actorId, session\.id\)/u)
+  })
+
+  it("bounds the history window in the member's own timezone", () => {
+    expect(route()).toMatch(/rangeBoundsUtc\(from, to, session\.timezone\)/u)
+    expect(route()).toMatch(/gte\(taskEvents\.at, bounds\.start\)/u)
+    expect(route()).toMatch(/lte\(taskEvents\.at, bounds\.end\)/u)
+  })
+
+  it("lets the pure module do the arithmetic", () => {
+    expect(route()).toMatch(/buildSummary/u)
+    expect(route()).toMatch(/viewDays/u)
+  })
+
+  it("has no client secret surface", () => {
+    expect(route()).not.toMatch(/NEXT_PUBLIC_/u)
+  })
+})
