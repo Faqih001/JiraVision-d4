@@ -524,3 +524,55 @@ Control panel above the Gantt:
 
 **URL state**: View mode, zoom, and groupBy persisted to URL query params (view, zoom, groupBy).
 - PDF export of Gantt
+
+## 17. AI Assistant (phase 9, 2026-10-27)
+
+### Workspace assistant page (`/dashboard/assistant`)
+
+Full-page chat interface with two-column layout:
+
+**Sidebar (300px on lg+)**: Thread list with "New" button. Each thread shows title (truncated), message count, and delete button on hover. Active thread highlighted with primary background. ScrollArea for long lists.
+
+**Main area**: Chat interface with header (Bot icon + "AI Assistant" title + description), message area (ScrollArea), and input footer.
+
+**Message bubbles**:
+- User messages: right-aligned, primary background, max-width 70%
+- Assistant messages: left-aligned, muted background, max-width 70%, with Bot avatar
+- References display: small text below assistant message showing sources (e.g., "6 log entries, 2 deliverables")
+
+**Loading states**: Typing indicator (three bouncing dots) while waiting for response. Input disabled during loading.
+
+**Empty state**: Centered Bot icon with helpful text and example questions.
+
+### Site assistant chatbot (`components/landing-chatbot.tsx`)
+
+Floating chatbot for public site:
+
+**Button**: Fixed bottom-right (bottom-4, right-4), rounded-full, primary background, MessageSquare icon + "Assistant" label. z-50.
+
+**Dialog**: Card with fixed position (bottom-20, right-4), max-h 500px or 70vh, width 22rem or calc(100vw-2rem). z-50.
+
+**Header**: Primary background, Avatar with "JV" fallback, "JiraVision Assistant" title, close button (X icon).
+
+**Content**: ScrollArea with message bubbles. Assistant messages left-aligned with primary/10 background. User messages right-aligned with muted background. Max-width 80%.
+
+**FAQ suggestions**: Shown when messages.length <= 2. Three buttons with common questions from page-specific knowledge base.
+
+**Footer**: Input field + Send button. Disabled during loading.
+
+**Loading indicator**: Three bouncing dots in assistant message style.
+
+### API integration
+
+**Workspace assistant**: `POST /api/assistant/workspace` with `{question, threadId?}`. Returns `{answer, references, dataAsOf, threadId}`. Optimistic UI: add user message immediately, remove on error.
+
+**Site assistant**: `POST /api/assistant/site` with `{question, pathname}`. Returns `{answer, source}`. Source is "keyword" (tier 1) or "gemini" (tier 2).
+
+**Error handling**: Toast notifications for failures. Fallback messages for Gemini errors. Rate limit messages for 429 responses.
+
+### Accessibility
+
+- ARIA labels on buttons and inputs
+- Keyboard navigation (Enter to send, Escape to close chatbot)
+- Focus management (input focuses on dialog open)
+- Screen reader friendly message structure

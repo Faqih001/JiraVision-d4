@@ -181,34 +181,81 @@ export default function LandingChatbot() {
     return () => window.removeEventListener("keydown", onKeyDown)
   }, [isOpen])
 
-  const reply = (prompt: string) => {
-    const kb = knowledgeFor(pathname)
-    const lowerCaseMessage = prompt.toLowerCase()
-    const matchedFaq = kb.faqs.find(
-      (faq) =>
-        lowerCaseMessage.includes(faq.question.toLowerCase()) ||
-        faq.question.toLowerCase().includes(lowerCaseMessage),
-    )
+  const [isLoading, setIsLoading] = useState(false)
 
-    const responseContent = matchedFaq
-      ? matchedFaq.answer
-      : "I don't have specific information about that, but I'd be happy to point you to our contact page where the team can help."
-
-    setMessages((current) => [...current, { role: "assistant", content: responseContent }])
-  }
-
-  const handleSendMessage = (e: React.FormEvent) => {
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!message.trim()) return
+    if (!message.trim() || isLoading) return
 
-    setMessages((current) => [...current, { role: "user", content: message }])
+    const question = message.trim()
+    setMessages((current) => [...current, { role: "user", content: question }])
     setMessage("")
-    setTimeout(() => reply(message), 800)
+    setIsLoading(true)
+
+    try {
+      const res = await fetch("/api/assistant/site", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question, pathname }),
+      })
+
+      const json = await res.json()
+      if (!res.ok) {
+        throw new Error(json.error || "Failed to get response")
+      }
+
+      setMessages((current) => [
+        ...current,
+        { role: "assistant", content: json.data.answer },
+      ])
+    } catch (error) {
+      console.error("Failed to send message:", error)
+      setMessages((current) => [
+        ...current,
+        {
+          role: "assistant",
+          content: "I'm having trouble right now. Please try again later or check our FAQ page.",
+        },
+      ])
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const suggestQuestion = (question: string) => {
+    if (isLoading) return
     setMessages((current) => [...current, { role: "user", content: question }])
-    setTimeout(() => reply(question), 800)
+    setIsLoading(true)
+
+    fetch("/api/assistant/site", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question, pathname }),
+    })
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.success) {
+          setMessages((current) => [
+            ...current,
+            { role: "assistant", content: json.data.answer },
+          ])
+        } else {
+          throw new Error(json.error)
+        }
+      })
+      .catch((error) => {
+        console.error("Failed to send message:", error)
+        setMessages((current) => [
+          ...current,
+          {
+            role: "assistant",
+            content: "I'm having trouble right now. Please try again later or check our FAQ page.",
+          },
+        ])
+      })
+      .finally(() => {
+        setIsLoading(false)
+      })
   }
 
   const kb = knowledgeFor(pathname)
@@ -262,6 +309,15 @@ export default function LandingChatbot() {
                   <p className="text-sm">{msg.content}</p>
                 </div>
               ))}
+              {isLoading && (
+                <div className="max-w-[80%] self-start rounded-lg bg-primary/10 p-3">
+                  <div className="flex gap-1">
+                    <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce [animation-delay:0ms]" />
+                    <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce [animation-delay:150ms]" />
+                    <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce [animation-delay:300ms]" />
+                  </div>
+                </div>
+              )}
             </div>
 
             {messages.length <= 2 && (
@@ -291,8 +347,9 @@ export default function LandingChatbot() {
                 onChange={(e) => setMessage(e.target.value)}
                 className="flex-1"
                 aria-label="Message"
+                disabled={isLoading}
               />
-              <Button type="submit" size="icon" aria-label="Send message">
+              <Button type="submit" size="icon" aria-label="Send message" disabled={isLoading}>
                 <Send className="h-4 w-4" />
               </Button>
             </form>

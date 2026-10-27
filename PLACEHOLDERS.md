@@ -183,3 +183,15 @@ Two things a reader could mistake for a stub, because each is an absent *feature
 | No PDF export of Gantt | the PDF export module uses a table layout for plans, not the Gantt image; adding Gantt rasterization to PDF is a separate enhancement |
 | No real-time collaboration | no WebSocket sync for drag operations; the Gantt is single-user, and concurrent edits would require conflict resolution that is out of scope |
 | No critical path calculation | dependency arrows show relationships between items, but no CPM algorithm computes the critical path; that is a separate analytical feature |
+
+## 14. AI Assistant (phase 9, 2026-10-27)
+
+No new placeholder. The AI assistant ships with real context assembly, real Gemini calls, real thread persistence, and real rate limiting. The workspace and site assistants are both wired to real reads and writes.
+
+Three things a reader could mistake for a stub, because each is an absent *feature* stated in the assistant where it would have been:
+
+| Looks missing | Actually |
+|---|---|
+| No popover panel in top bar | the spec mentions it, but the full page (`/dashboard/assistant`) is the primary surface; the popover is a convenience that can be added later |
+| No "ask about this period" integration | requires context passing UI from reports/worklog pages; the assistant API supports it (just pass the question), but the UI integration is deferred |
+| No streaming responses | the current implementation waits for the full Gemini response; streaming would require SSE or WebSocket infrastructure that is out of scope for this phase |
