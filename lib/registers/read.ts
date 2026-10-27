@@ -175,7 +175,13 @@ export async function loadRegistersByIds(ids: readonly number[]): Promise<Regist
 export function defaultDisciplineOf(session: SessionUser): string | null {
   const preferences = session.preferences
   if (!preferences || typeof preferences !== "object" || Array.isArray(preferences)) return null
-  const list = (preferences as Record<string, unknown>).workDisciplines
+  const prefs = preferences as Record<string, unknown>
+  // The onboarding wizard writes through /api/settings, i.e. under preferences.settings;
+  // rows written before phase 17 kept the list at the top level, so both are read.
+  const settings = prefs.settings && typeof prefs.settings === "object" && !Array.isArray(prefs.settings)
+    ? (prefs.settings as Record<string, unknown>)
+    : {}
+  const list = settings.workDisciplines ?? prefs.workDisciplines
   if (!Array.isArray(list)) return null
   const first = list.find((entry): entry is string => typeof entry === "string")
   return first ?? null

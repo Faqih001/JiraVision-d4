@@ -51,6 +51,18 @@ async function dropSetting(userId: number, key: string) {
 
 const VALID_KEY = /^[A-Za-z][A-Za-z0-9_-]{0,63}$/
 
+// The onboarding namespace is a structured object validated against the stored state, so it
+// cannot come through this arbitrary key/value route. PATCH /api/settings owns it.
+const RESERVED_SETTINGS_KEYS = ["onboarding"]
+
+function reservedKey(key: string) {
+  if (!RESERVED_SETTINGS_KEYS.includes(key)) return null
+  return NextResponse.json(
+    { success: false, message: "Use PATCH /api/settings for the onboarding namespace" },
+    { status: 400 },
+  )
+}
+
 // GET /api/settings/:key -> { key, value }
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ key: string }> }) {
   const { key } = await params
@@ -88,6 +100,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     if (!VALID_KEY.test(key)) {
       return NextResponse.json({ success: false, message: "Invalid settings key" }, { status: 400 })
     }
+    const reserved = reservedKey(key)
+    if (reserved) return reserved
 
     const body = await request.json().catch(() => null)
     const value = body && typeof body === "object" && "value" in (body as StoredPrefs) ? (body as StoredPrefs).value : body
@@ -178,6 +192,8 @@ export async function DELETE(_request: NextRequest, { params }: { params: Promis
     if (!VALID_KEY.test(key)) {
       return NextResponse.json({ success: false, message: "Invalid settings key" }, { status: 400 })
     }
+    const reserved = reservedKey(key)
+    if (reserved) return reserved
 
     if (key === "deletionRequestedAt") {
       return handleDeletionRequest(session.id, false)
