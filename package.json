@@ -17,6 +17,8 @@
     "db:push": "npx drizzle-kit push",
     "db:worklog": "node scripts/create-worklog-tables.mjs",
     "db:worklog:rollback": "node scripts/rollback-worklog-tables.mjs",
+    "db:career": "node scripts/create-career-tables.mjs",
+    "db:career:rollback": "node scripts/rollback-career-tables.mjs",
     "db:apply": "node -r dotenv/config ./drizzle/apply-schema.js",
     "db:fix": "node -r dotenv/config ./drizzle/create-missing-tables.js",
     "db:seed": "node -r dotenv/config ./drizzle/add-sample-data.js",

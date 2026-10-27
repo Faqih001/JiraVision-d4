@@ -335,3 +335,16 @@ export function normaliseDiscipline(value: unknown): WorkDiscipline | null {
   const candidate = value.trim().toLowerCase()
   return isWorkDiscipline(candidate) ? candidate : null
 }
+
+// ---- Career rungs -----------------------------------------------------------------
+// Four rungs, keyed by discipline in `career_levels` (design §11). Deliberately not one
+// ladder per discipline id: a seventy-five-entry ladder would be a job catalogue, not a
+// progression. These names are the labels stored in `career_levels.title`.
+export const CAREER_RUNGS = [
+  { level: 1, name: "Junior" },
+  { level: 2, name: "Intermediate" },
+  { level: 3, name: "Senior" },
+  { level: 4, name: "Lead" },
+] as const
+
+export type CareerRung = (typeof CAREER_RUNGS)[number]

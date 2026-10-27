@@ -892,8 +892,20 @@ Each phase is a reviewable, green, committed, pushed unit. Pushing auto-deploys 
     `tests/unit/ai-config-docs.test.ts` fails if any AI module reads a variable the template does not document, or
     if the README cites an `/api/` route that has no route file. Suite at the end of this phase: 72 files /
     1246 tests.
-12. **Career ladder schema and math** — the five §11 tables, `lib/career/{signals,readiness,ladder-seed}.ts` all
+12. **Career ladder schema and math** *(shipped 2026-10-27)* — the five §11 tables, `lib/career/{signals,readiness,ladder-seed}.ts` all
     DB-free, 20 seeded rungs with null bands, the readiness and seed tests, `/api/career/{levels,me}` reads. No UI.
+    What the phase added beyond this line: DB access is isolated in one module, `lib/career/counts.ts`, so the
+    readiness arithmetic stays a pure function that never accepts a `percent` from a caller; the six counts
+    (days logged, actions logged, reviews, completed tasks and points, deliverables, submitted reports, disciplines
+    touched, promoted plan items) all read rows inside a 90-day window derived from the session's timezone, and a
+    completed task is counted once even if it is reopened and finished again. The 20 rungs are 5 disciplines × 4
+    levels, both checklists are keyed `discipline-lN-key` so a sign-off cannot drift between rungs, and every band is
+    seeded null — no pay number is invented. `lib/career/ladder-seed.ts` is the single source for the seed: the
+    additive `.mjs` script imports it directly (Node type stripping) and inserts with `ON CONFLICT DO NOTHING`, so
+    re-running `db:career` is a no-op. The migration ran against production with the owner's per-action approval and
+    verified 20 rows, 0 published bands, and 0 rows in the other four tables; `CAREER_ROLLBACK=yes npm run
+    db:career:rollback` reverses it. Nothing here writes; phases 13–14 own the UI, the requests and Growth AI.
+    Suite at the end of this phase: 77 files / 1311 tests.
 13. **Career UI and review** — `/dashboard/career` with the readiness meter and drill-downs, checklist display,
     request flow with its frozen evidence, history timeline, `/admin/career` ladder editor + placements + sign-off +
     review queue, notifications on submit/approve/return, and `seniorityTierOf` preferring a real placement.

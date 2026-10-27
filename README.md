@@ -51,6 +51,8 @@ else — logging, reporting, exporting — works normally. See [AI](#ai).
 | `npm run db:push` | Push `drizzle/schema.ts` to the database |
 | `npm run db:worklog` | Create the worklog/reports/planner tables (additive) |
 | `npm run db:worklog:rollback` | Drop those tables again |
+| `npm run db:career` | Create the career tables and seed the 20-rung ladder |
+| `npm run db:career:rollback` | Drop the career tables again |
 | `npm run db:seed` | Insert sample data |
 | `npm run db:migrate` | Run the SQL migrations in `drizzle/` |
 
@@ -60,7 +62,7 @@ else — logging, reporting, exporting — works normally. See [AI](#ai).
 - `app/dashboard/` — 25 signed-in pages, including `worklog`, `reports-work`, `planner`, `assistant`
 - `app/api/` — 146 route handlers; every data route re-checks the session itself
 - `components/` — shared UI, including the dashboard shell and the assistant panel
-- `lib/` — auth, data access, roles, and the domain modules: `worklog/`, `reports/`, `planner/`, `assistant/`, `ai/`
+- `lib/` — auth, data access, roles, and the domain modules: `worklog/`, `reports/`, `planner/`, `assistant/`, `career/`, `ai/`
 - `drizzle/` — schema (`schema.ts`), migrations, and seed scripts
 - `content/` — marketing copy and the legal notice
 - `tests/unit/`, `tests/e2e/` — Vitest unit tests and the Playwright smoke test

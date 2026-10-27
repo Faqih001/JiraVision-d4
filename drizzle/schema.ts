@@ -1,4 +1,4 @@
-import { pgTable, serial, text, varchar, timestamp, boolean, date, integer, decimal, jsonb, primaryKey, unique, uuid, index } from "drizzle-orm/pg-core"
+import { pgTable, serial, text, varchar, timestamp, boolean, date, integer, smallint, char, decimal, jsonb, primaryKey, unique, uniqueIndex, uuid, index } from "drizzle-orm/pg-core"
 import { relations } from "drizzle-orm"
 
 // Users table
@@ -588,4 +588,119 @@ export const aiUsageDaily = pgTable(
   (table) => ({
     pk: primaryKey({ columns: [table.date, table.scope] }),
   }),
+)
+
+// ---- Career ladder (design §11) --------------------------------------------------
+// Bands are config about a rung, never about a person: no table below stores what an
+// individual is paid, and a test keeps it that way.
+
+export const careerLevels = pgTable(
+  "career_levels",
+  {
+    id: serial("id").primaryKey(),
+    discipline: varchar("discipline", { length: 40 }).notNull(),
+    level: smallint("level").notNull(),
+    title: text("title").notNull(),
+    summary: text("summary"),
+    expectations: text("expectations"),
+    // Null until the owner publishes a real range; nothing invents one.
+    bandMin: integer("band_min"),
+    bandMax: integer("band_max"),
+    bandCurrency: char("band_currency", { length: 3 }),
+    signals: jsonb("signals").notNull().default("{}"),
+    checklist: jsonb("checklist").notNull().default("[]"),
+    isActive: boolean("is_active").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [uniqueIndex("career_levels_discipline_level_idx").on(table.discipline, table.level)],
+)
+
+// Current state only. History is read from approved career_requests, so there is no
+// parallel ledger to keep in sync.
+export const careerPlacement = pgTable(
+  "career_placement",
+  {
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    discipline: varchar("discipline", { length: 40 }).notNull(),
+    level: smallint("level").notNull(),
+    placedBy: integer("placed_by").references(() => users.id, { onDelete: "set null" }),
+    placedAt: timestamp("placed_at", { withTimezone: true }).defaultNow().notNull(),
+    note: text("note"),
+  },
+  (table) => [primaryKey({ columns: [table.userId, table.discipline] })],
+)
+
+// Admin-only in the route (design §11): a member cannot certify themselves.
+export const careerSignoffs = pgTable(
+  "career_signoffs",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    levelId: integer("level_id")
+      .notNull()
+      .references(() => careerLevels.id, { onDelete: "cascade" }),
+    itemKey: varchar("item_key", { length: 80 }).notNull(),
+    status: varchar("status", { length: 20 }).notNull().default("ticked"),
+    tickedBy: integer("ticked_by")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    tickedAt: timestamp("ticked_at", { withTimezone: true }).defaultNow().notNull(),
+    note: text("note"),
+  },
+  (table) => [
+    uniqueIndex("career_signoffs_user_level_item_idx").on(table.userId, table.levelId, table.itemKey),
+  ],
+)
+
+export const careerRequests = pgTable(
+  "career_requests",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    discipline: varchar("discipline", { length: 40 }).notNull(),
+    fromLevel: smallint("from_level").notNull(),
+    toLevel: smallint("to_level").notNull(),
+    status: varchar("status", { length: 20 }).notNull().default("draft"),
+    // Frozen readiness output plus the counted row ids, so the reviewer reads a stable
+    // artefact and the member can see exactly what was counted.
+    evidence: jsonb("evidence").notNull().default("{}"),
+    note: text("note"),
+    requestedAt: timestamp("requested_at", { withTimezone: true }).defaultNow().notNull(),
+    reviewedBy: integer("reviewed_by").references(() => users.id, { onDelete: "set null" }),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+    returnNote: text("return_note"),
+    effectiveDate: date("effective_date"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [index("career_requests_user_status_idx").on(table.userId, table.status)],
+)
+
+// Append-only by design: a dated snapshot the member can reread, not a mutable field.
+export const growthReviews = pgTable(
+  "growth_reviews",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    kind: varchar("kind", { length: 30 }).notNull(),
+    periodStart: date("period_start"),
+    periodEnd: date("period_end"),
+    payload: jsonb("payload").notNull().default("{}"),
+    narrative: text("narrative"),
+    sourceRefs: jsonb("source_refs").notNull().default("[]"),
+    asOf: timestamp("as_of", { withTimezone: true }).defaultNow().notNull(),
+    model: varchar("model", { length: 80 }),
+    aiMarked: boolean("ai_marked").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [index("growth_reviews_user_kind_idx").on(table.userId, table.kind, table.asOf)],
 )
