@@ -84,7 +84,7 @@ describe("PATCH /api/playbooks/[id]", () => {
 
   it("records a human edit of a model draft and bumps a published version", () => {
     expect(route).toMatch(
-      /aiMarked: contentEdited && row\.source === "gemini" \? false : row\.aiMarked/,
+      /aiMarked:\s*body\.aiMarked === true\s*\?\s*true\s*:\s*contentEdited && row\.source === "gemini"\s*\?\s*false\s*:\s*row\.aiMarked/,
     )
     expect(route).toMatch(
       /version: contentEdited && row\.status === "published" \? row\.version \+ 1 : row\.version/,
