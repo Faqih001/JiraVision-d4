@@ -140,9 +140,10 @@ describe("no anonymous route leaks the schema or relays mail", () => {
   // tests/unit/report-api.test.ts for the same reason. `careerSession`/`careerAdmin` are
   // phase 13's pair for /api/career/*, guarded by tests/unit/career-review-routes.test.ts.
   // `registerSession` is phase 15's helper for /api/registers/*, guarded by
-  // tests/unit/register-routes.test.ts.
+  // tests/unit/register-routes.test.ts. `playbookSession` is phase 16's for /api/playbooks/*,
+  // guarded by tests/unit/playbook-routes.test.ts.
   const authGated = (file: string) =>
-    /getCurrentUser|getSession|worklogSession|reportSession|careerSession|careerAdmin|registerSession|isSuperAdmin|requireSuperAdmin|requireRole|requireUser|requireAdmin|verifySession/.test(
+    /getCurrentUser|getSession|worklogSession|reportSession|careerSession|careerAdmin|registerSession|playbookSession|isSuperAdmin|requireSuperAdmin|requireRole|requireUser|requireAdmin|verifySession/.test(
       codeOnly(src(file)),
     )
 
