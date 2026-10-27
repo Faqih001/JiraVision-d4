@@ -1,26 +1,76 @@
-# Fork of Jiravision dashboard
+# JiraVision
 
-*Automatically synced with your [v0.dev](https://v0.dev) deployments*
+A team delivery workspace: a public marketing site plus a signed-in dashboard with tasks, sprints,
+kanban, a work log, period work reports, a plan-to-Gantt planner, and an AI assistant.
 
-[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/neemas-projects-5c325988/v0-fork-of-jiravision-dashboard)
-[![Built with v0](https://img.shields.io/badge/Built%20with-v0.dev-black?style=for-the-badge)](https://v0.dev/chat/projects/VL98TY2lRF6)
+The original scaffold came from a v0.dev export. This repository is no longer generated or synced by
+v0 — changes land through commits, and Vercel builds from `main`.
 
-## Overview
+Live: **[https://jiravision.vercel.app](https://jiravision.vercel.app)**
 
-This repository will stay in sync with your deployed chats on [v0.dev](https://v0.dev).
-Any changes you make to your deployed app will be automatically pushed to this repository from [v0.dev](https://v0.dev).
+## Stack
 
-## Deployment
+| Layer | Choice |
+|---|---|
+| Framework | Next.js 16 (App Router), React 19, TypeScript (strict) |
+| Styling | Tailwind CSS 3.4, shadcn/ui on Radix primitives |
+| Data | Drizzle ORM over Neon Postgres (`@neondatabase/serverless`) |
+| Auth | Cookie sessions, bcryptjs password hashes |
+| AI | Google Gemini behind one module, `lib/ai/gemini.ts` |
+| Tests | Vitest 5 (unit), Playwright (e2e) |
+| Extras | Resend (email), ExcelJS + jsPDF (exports), Recharts, dnd-kit |
 
-Your project is live at:
+## Getting started
 
-**[https://vercel.com/neemas-projects-5c325988/v0-fork-of-jiravision-dashboard](https://vercel.com/neemas-projects-5c325988/v0-fork-of-jiravision-dashboard)**
+Requirements: Node.js 20.9 or newer (Next 16 minimum) and npm.
 
-## Build your app
+```bash
+npm install
+cp .env.example .env.local   # then fill in DATABASE_URL at minimum
+npm run db:push              # apply drizzle/schema.ts to that database
+npm run dev                  # http://localhost:3000
+```
 
-Continue building your app on:
+Database scripts read `.env.local` first, then `.env` (`drizzle.config.ts`). Next.js itself reads
+`.env.local`. `.env.example` documents every variable, including where to obtain the optional ones.
 
-**[https://v0.dev/chat/projects/VL98TY2lRF6](https://v0.dev/chat/projects/VL98TY2lRF6)**
+Without `GOOGLE_GEMINI_API_KEY` the app still runs: AI controls render disabled and everything
+else — logging, reporting, exporting — works normally. See [AI](#ai).
+
+## Scripts
+
+| Command | What it does |
+|---|---|
+| `npm run dev` | Next dev server on port 3000 |
+| `npm run build` / `npm start` | Production build / serve |
+| `npm run lint` | ESLint over `app components lib hooks types context` |
+| `npm run typecheck` | `tsc --noEmit` |
+| `npm test` | Vitest, single run |
+| `npm run test:watch` | Vitest in watch mode |
+| `npm run test:e2e` | Playwright smoke suite |
+| `npm run db:push` | Push `drizzle/schema.ts` to the database |
+| `npm run db:worklog` | Create the worklog/reports/planner tables (additive) |
+| `npm run db:worklog:rollback` | Drop those tables again |
+| `npm run db:seed` | Insert sample data |
+| `npm run db:migrate` | Run the SQL migrations in `drizzle/` |
+
+## Layout
+
+- `app/(marketing)/` — 22 public routes (pricing, products, solutions, compare, legal, resources…)
+- `app/dashboard/` — 25 signed-in pages, including `worklog`, `reports-work`, `planner`, `assistant`
+- `app/api/` — 146 route handlers; every data route re-checks the session itself
+- `components/` — shared UI, including the dashboard shell and the assistant panel
+- `lib/` — auth, data access, roles, and the domain modules: `worklog/`, `reports/`, `planner/`, `assistant/`, `ai/`
+- `drizzle/` — schema (`schema.ts`), migrations, and seed scripts
+- `content/` — marketing copy and the legal notice
+- `tests/unit/`, `tests/e2e/` — Vitest unit tests and the Playwright smoke test
+
+## Authentication
+
+Sign-in sets two cookies — `session_id` (a UUID) and `user_id` — and passwords are bcrypt hashes
+compared at login. `proxy.ts` is a **redirect-only gate**: it checks that the cookies are present and
+sends anonymous visitors to `/login`. It can never be the security boundary, so each API route and
+server action loads the session itself with `getSession()` and scopes its query by `user_id`.
 
 ## AI
 
@@ -60,9 +110,23 @@ Three rules hold across all of them:
 The legal notice states the same thing to visitors: what the assistant reads, and that a published page
 outranks a machine answer (`content/legal.ts`, section `ai-assistant-answers`).
 
-## How It Works
+## Testing
 
-1. Create and modify your project using [v0.dev](https://v0.dev)
-2. Deploy your chats from the v0 interface
-3. Changes are automatically pushed to this repository
-4. Vercel deploys the latest version from this repository
+`npm test` runs the Vitest suite: pure domain modules plus source-assertion tests that read route and
+component files (with comments stripped) to pin behaviour, so no database is needed. `npm run test:e2e`
+runs the Playwright smoke suite against a running server.
+
+The same three gates run before every release: `npm run lint`, `npm run typecheck`, `npm test`.
+
+## Deployment
+
+Production is the Vercel project `jiravision` at [https://jiravision.vercel.app](https://jiravision.vercel.app),
+building from `main`. Environment variables live in the Vercel project settings, never in the repo —
+`.env.example` is the authoritative list of names.
+
+## Further reading
+
+- `FEATURES.md` — what the product does, feature by feature
+- `DESIGN_SYSTEM.md` — tokens, components and layout rules
+- `PLACEHOLDERS.md` — every stand-in and what replaced it
+- `docs/superpowers/specs/` — the design spec and per-phase plans
