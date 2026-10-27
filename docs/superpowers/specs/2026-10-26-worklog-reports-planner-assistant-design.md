@@ -821,8 +821,8 @@ errors, `npm run lint` at 0 errors (70-warning baseline), `npm test` green befor
   `published` without a human edit recorded.
 - `lib/recommend/next.test.ts` — each rule fires on its real condition and cites the row ids behind it, a rule with
   no rows yields nothing, and no rule's output contains a number absent from its cited rows.
-- `lib/export/*` — the three PDF layouts, section ordering, yearly sheet selection, CSV quoting parity with the
-  existing `toCsv`.
+- `lib/export/*` — the four PDF layouts (report, log, plan, playbook), section ordering, yearly sheet
+  selection, CSV quoting parity with the existing `toCsv`.
 - `tests/unit/worklog-reports.test.ts` (guard, in the style of `tests/unit/dashboard-chrome.test.ts`) — the key
   variable never appears with a `NEXT_PUBLIC_` prefix; `/api/ai/generate`'s canned branches are gone; no AI
   surface renders a hard-coded "analysis" string; extraction writes `tasks` only through the promote route;
@@ -965,8 +965,26 @@ Each phase is a reviewable, green, committed, pushed unit. Pushing auto-deploys 
     `scripts/rollback-registers-tables.mjs` refuses without `REGISTERS_ROLLBACK=yes`; the migration ran
     against production Neon on 2026-10-27 with the owner's approval and verified 2 tables, 2 pack rows and
     0 register rows. Suite at the end of this phase: 92 files / 1559 tests.
-16. **Playbooks** — `playbooks` table, the six-step method module, manual step editor with reorder/clone, palette
-    search, run-mode writing one log row per phase, the printable fourth PDF layout with signature boxes.
+16. **Playbooks** *(shipped 2026-10-27; the additive migration is its own approved checkpoint)* — `playbooks`
+    table plus the `work_log_entries.playbook_id` foreign key this document deferred from §13, the six-step method
+    module, the manual step editor with reorder/clone, palette search, run mode writing one log row per phase, and
+    the printable fourth PDF layout with signature boxes. No AI surface: the owner types their own procedure, and
+    the `source`/`ai_marked` columns exist so a model draft, when phase 18 adds one, inherits the gate instead of
+    bypassing it. What the phase added beyond this line: every rule is pure and DB-free (`lib/playbooks/{method,rules,fields}.ts`)
+    and the database lives in `lib/playbooks/read.ts` and four routes. `SIX_STEP_METHOD` (Identify → Reproduce →
+    Diagnose → Fix → Test → Document) is the fallback and a pack's own `method` wins; step JSON keeps the spec's
+    snake_case keys verbatim and every array field is present even when empty, so a reader never has to guess.
+    `readStep` refuses an empty action and a phase outside the method; the editor names orphans before saving.
+    `publishProblem` is the one publish gate and the publish route is the only way to `published` — `PATCH` accepts
+    only `draft`/`archived` — and it answers 409 for an archived row, no steps, an empty action, or a `source='gemini'`
+    row still `ai_marked`; a content edit on a published row bumps `version`, and a content edit on a gemini row
+    clears `ai_marked`, because the human review *is* the edit. Visibility is `canReadPlaybook` in both the list SQL
+    and the detail read: published is company knowledge, draft and archived stay with author and admin, and a
+    forbidden detail is indistinguishable from a missing one. Running writes exactly one `kind: "action"`
+    `work_log_entries` row per **method phase** carrying `playbook_id` and `playbook_version`, on the session's
+    local day unless a valid past `workedOn` is supplied, and never writes `tasks`. The printed sheet prints one
+    page per phase with a performed-by/signature/date block and says plainly when the prose is still a model draft.
+    Suite at the end of this phase: 97 files / 1647 tests.
 17. **Onboarding** — `/onboarding` as §12.7's eight adaptive steps, writing `preferences.settings.onboarding`
     through the existing `/api/settings` merge and profile fields through `/api/user/profile` — **no new `users`
     columns and no migration** — per-step persistence with resume, a grandfathered and never-reset existing member,

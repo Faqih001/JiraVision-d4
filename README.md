@@ -2,7 +2,7 @@
 
 A team delivery workspace: a public marketing site plus a signed-in dashboard with tasks, sprints,
 kanban, a work log, period work reports, a plan-to-Gantt planner, a career ladder, custody registers,
-and an AI assistant.
+standard operating procedures, and an AI assistant.
 
 The original scaffold came from a v0.dev export. This repository is no longer generated or synced by
 v0 — changes land through commits, and Vercel builds from `main`.
@@ -56,17 +56,19 @@ else — logging, reporting, exporting — works normally. See [AI](#ai).
 | `npm run db:career:rollback` | Drop the career tables again |
 | `npm run db:registers` | Create the role-pack and register tables and seed the two packs |
 | `npm run db:registers:rollback` | Drop those tables again |
+| `npm run db:playbooks` | Create the playbooks table and the work-log foreign key (additive) |
+| `npm run db:playbooks:rollback` | Drop that table and the constraint again |
 | `npm run db:seed` | Insert sample data |
 | `npm run db:migrate` | Run the SQL migrations in `drizzle/` |
 
 ## Layout
 
 - `app/(marketing)/` — 22 public routes (pricing, products, solutions, compare, legal, resources…)
-- `app/dashboard/` — 39 signed-in pages, including `worklog`, `reports-work`, `planner`, `career`, `registers`, `assistant`
+- `app/dashboard/` — 42 signed-in pages, including `worklog`, `reports-work`, `planner`, `career`, `registers`, `playbooks`, `assistant`
 - `app/admin/` — super-admin surfaces: the landing CMS (`/admin/cms`), the career ladder (`/admin/career`) and role-pack authoring (`/admin/packs`)
-- `app/api/` — 163 route handlers; every data route re-checks the session itself
+- `app/api/` — 167 route handlers; every data route re-checks the session itself
 - `components/` — shared UI, including the dashboard shell and the assistant panel
-- `lib/` — auth, data access, roles, and the domain modules: `worklog/`, `reports/`, `planner/`, `assistant/`, `career/`, `packs/`, `registers/`, `ai/`
+- `lib/` — auth, data access, roles, and the domain modules: `worklog/`, `reports/`, `planner/`, `assistant/`, `career/`, `packs/`, `registers/`, `playbooks/`, `ai/`
 - `drizzle/` — schema (`schema.ts`), migrations, and seed scripts
 - `content/` — marketing copy and the legal notice
 - `tests/unit/`, `tests/e2e/` — Vitest unit tests and the Playwright smoke test
@@ -128,6 +130,17 @@ Role packs are rows, not code: `/admin/packs` authors what a role is the keeper 
 values (the field validator refuses them). Staleness is computed from `last_verified_at` and the interval,
 never stored. Scheduling the stale queue writes a draft planner plan, and only promote turns a plan item
 into a task. The tables are additive (`npm run db:registers`) and the script is safe to re-run.
+
+## Playbooks
+
+`/dashboard/playbooks` holds standard operating procedures as rows: a method (the six-step default is
+Identify → Reproduce → Diagnose → Fix → Test → Document, overridden by the role pack's own), steps
+grouped into those phases, precautions and a re-verify interval. Authoring is a form with reorder and
+clone; publishing is a separate route and refuses a model-drafted row, an empty step or an empty action.
+Following one (`/dashboard/playbooks/[id]/run`) writes one action row per method phase into the work log,
+each carrying the playbook id and version — it never creates tasks. The printed layout is the fourth in
+`lib/export/pdf.ts`: one page per phase with a signature block. `npm run db:playbooks` is additive and
+safe to re-run.
 
 ## Testing
 
