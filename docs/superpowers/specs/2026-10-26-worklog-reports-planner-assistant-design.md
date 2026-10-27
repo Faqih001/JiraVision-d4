@@ -938,10 +938,33 @@ Each phase is a reviewable, green, committed, pushed unit. Pushing auto-deploys 
     `task_suggestions` snapshot in one transaction, and never touches `tasks`. Every action appends one
     `growth_reviews` row (`ai_marked: true`); nothing updates or deletes one. Suite at the end of this phase:
     85 files / 1434 tests.
-15. **Role packs and registers** — `role_packs`/`register_items`, `lib/packs/seed.ts` with the IT-technician and
-    `general` packs, the staleness and credential-field modules, `/dashboard/registers` CRUD with §4's filter
-    grammar, `/admin/packs`, the stale-document queue wired into cadence-generated work items. No AI: the owner
-    types their own inventory.
+15. **Role packs and registers** *(shipped 2026-10-27; the migration is written and unrun)* — `role_packs`/`register_items`,
+    `lib/packs/seed.ts` with the IT-technician and `general` packs, the staleness and credential-field modules,
+    `/dashboard/registers` CRUD with §4's filter grammar, `/admin/packs`, the stale-document queue wired into
+    cadence-generated work items. No AI: the owner types their own inventory. What the phase added beyond this
+    line: every rule is pure and DB-free (`lib/packs/pack.ts`, `lib/registers/{fields,staleness,rules,view-state}.ts`)
+    and the database lives in two modules, `lib/registers/read.ts` and `lib/registers/plan.ts`. A pack is data
+    all the way down — `resolvePack` falls back to the seeded `general` pack, so an admin-authored pack behaves
+    exactly like a shipped one and adding a role needs no code change; `readPackInput` refuses a key that cannot
+    be addressed, a discipline outside `lib/roles.ts`, a duplicate kind, and any onboarding question that asks
+    for a credential **value**, quoting the question and naming the alternative. The register field scan is
+    recursive: it names the dotted path of an offending key and never echoes the value or a sibling's. Staleness
+    is computed on read (`elapsed > interval`), so an unverified row is "unknown", never "fresh", a future date
+    is fresh, and there is no stale column to fall out of date. Custody is enforced in the read SQL and
+    re-checked per row before every write; only owner and admin write, and only an admin reassigns. Every
+    lifecycle move that leaves service requires a reason, and because there is no reason column the reason is
+    written as a `work_log_entries` note in the same transaction; verify writes a `review` entry and bumps
+    `last_verified_at` in one transaction; bulk verify caps at 50 ids and reports skipped rows by reason.
+    The stale queue creates or returns the day's draft `agent_plans` row (`source_kind: "registers"`,
+    `source_name: "stale:<day>"`) with one `plan_items` row per stale register, cadence and due date derived from
+    the interval — promote stays the only path to `tasks`. The member page is a Suspense shell whose client
+    receives the packs with the register read (so it cannot invent a kind), keeps its filters in the URL, and
+    offers list/grid/by-kind views, create/edit dialogs, lifecycle buttons, a selection bulk bar and a stale
+    banner whose "Schedule checks" links to the created plan; `/admin/packs` is the editor behind the same
+    super-admin wall as the route. `scripts/create-registers-tables.mjs` is additive and idempotent and
+    `scripts/rollback-registers-tables.mjs` refuses without `REGISTERS_ROLLBACK=yes`; the migration has **not**
+    been run against production Neon, so the pages render their empty state until the owner approves it.
+    Suite at the end of this phase: 92 files / 1559 tests.
 16. **Playbooks** — `playbooks` table, the six-step method module, manual step editor with reorder/clone, palette
     search, run-mode writing one log row per phase, the printable fourth PDF layout with signature boxes.
 17. **Onboarding** — `/onboarding` as §12.7's eight adaptive steps, writing `preferences.settings.onboarding`

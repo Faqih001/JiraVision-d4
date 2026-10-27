@@ -1,6 +1,6 @@
 # Role Packs and Registers (Phase 15) Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Ship the handover shape of a real job as data — role packs that say what a person is the keeper of, custody registers that say whether those things are still current, and an admin screen that authors new packs without a code change.
 
@@ -36,16 +36,16 @@
 - Produces: `rolePacks` (`packKey`, `title`, `disciplines`, `registerKinds`, `sections`, `reportTemplate`, `ladderDiscipline`, `onboarding`, `method`, `isActive`), `registerItems` (`id`, `packKey`, `kind`, `title`, `fields`, `status`, `ownerId`, `custody`, `lastVerifiedAt`, `verifyIntervalDays`, `parentId`, `source`, timestamps).
 - Consumes: nothing.
 
-- [ ] **Step 1: Write the failing schema test**
+- [x] **Step 1: Write the failing schema test**
 
 Assert both tables are `PgTable`, SQL names are `role_packs`/`register_items`, every required column exists, `register_items` has no column matching `/stale/i`, the create script is additive (`CREATE TABLE IF NOT EXISTS` twice, no `DROP`/`DELETE`/`TRUNCATE`), seeds packs from `lib/packs/seed.ts` with `ON CONFLICT (pack_key) DO NOTHING`, and the rollback script is behind `REGISTERS_ROLLBACK !== "yes"` with `TABLES.length !== 2`.
 
-- [ ] **Step 2: Run it to verify it fails**
+- [x] **Step 2: Run it to verify it fails**
 
 Run: `npx vitest run tests/unit/register-schema.test.ts`
 Expected: FAIL — `registerItems` is not exported.
 
-- [ ] **Step 3: Add the tables**
+- [x] **Step 3: Add the tables**
 
 ```ts
 export const rolePacks = pgTable(
@@ -98,20 +98,20 @@ export const registerItems = pgTable(
 
 Import `AnyPgColumn` as a type from `drizzle-orm/pg-core`.
 
-- [ ] **Step 4: Add the migration script**
+- [x] **Step 4: Add the migration script**
 
 `CREATE TABLE IF NOT EXISTS` for both, unique index on `role_packs.pack_key`, self FK on `parent_id`, then seed `SEED_PACKS` from `../lib/packs/seed.ts` with `sql.json(...)` and `ON CONFLICT (pack_key) DO NOTHING`. Read `.env.local` with `/^DATABASE_URL="?([^"\n]+)"?/m`. Verify both tables through `information_schema` and assert `role_packs` has two rows.
 
-- [ ] **Step 5: Add the guarded rollback**
+- [x] **Step 5: Add the guarded rollback**
 
 Drop `register_items` before `role_packs`; refuse unless `REGISTERS_ROLLBACK === "yes"` and every expected table is passed.
 
-- [ ] **Step 6: Run the schema test and typecheck**
+- [x] **Step 6: Run the schema test and typecheck**
 
 Run: `npx vitest run tests/unit/register-schema.test.ts && npx tsc --noEmit`
 Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add drizzle/schema.ts scripts/create-registers-tables.mjs scripts/rollback-registers-tables.mjs package.json tests/unit/register-schema.test.ts
@@ -132,7 +132,7 @@ git commit -m "feat(registers): role pack and register item tables with additive
 - Produces: `RolePack`, `RegisterKind`, `normalisePack(row)`, `packForDiscipline(packs, discipline)`, `resolvePack(packs, discipline)`, `packView(pack)`, `readPackInput(value)`, `SEED_PACKS`, `IT_TECHNICIAN_PACK`, `GENERAL_PACK`.
 - Consumes: `WORK_DISCIPLINES`, `isWorkDiscipline` from `lib/roles`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 The `night-audit` fixture (only data, never imported by UI):
 ```ts
@@ -151,21 +151,21 @@ const nightAudit = {
 ```
 Assert `packView(normalisePack(nightAudit))` returns those values unchanged, every `WORK_DISCIPLINES` member matches exactly one seed pack, `resolvePack(SEED_PACKS, "unknown-role")` is `general`, `resolvePack(SEED_PACKS, "technician")` is `it-technician`, and `readPackInput` rejects a bad key, a discipline outside the vocabulary, a credential-like onboarding question, and a non-array method.
 
-- [ ] **Step 2: Run it to verify it fails**
+- [x] **Step 2: Run it to verify it fails**
 
 Run: `npx vitest run tests/unit/packs.test.ts`
 Expected: FAIL — module not found.
 
-- [ ] **Step 3: Implement types, seed and selectors**
+- [x] **Step 3: Implement types, seed and selectors**
 
 `IT_TECHNICIAN_PACK.disciplines = ["technician","it_operations","devops","networking","security","database"]`; `GENERAL_PACK.disciplines` is every other `WORK_DISCIPLINES` member. IT kinds: infrastructure, accounts, equipment, outstanding. IT method: Identify, Reproduce, Diagnose, Fix, Test, Document. General method: Plan, Do, Check, Act. `resolvePack` normalises unknown input and falls back to the `general` pack when no pack claims it.
 
-- [ ] **Step 4: Run the test**
+- [x] **Step 4: Run the test**
 
 Run: `npx vitest run tests/unit/packs.test.ts`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add lib/packs tests/unit/packs.test.ts
@@ -189,25 +189,25 @@ git commit -m "feat(packs): seeded role packs with data-only resolution selector
 - `REGISTER_STATUSES`, `REGISTER_CUSTODY`, `REGISTER_LIFECYCLE`, `canReadRegister`, `canWriteRegister`, `readRegisterTransition`, `isRegisterStatus`, `isRegisterCustody`
 - `parseRegisterView`, `serializeRegisterView`, `filterRegisters`, `groupRegistersByKind`, `registersToCsv`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Cover: credential keys `password`, `Password`, `api_key`, `apiKey`, `private_key`, `otp`, `mfa_secret`, `token`, nested and camelCase; accepted `kept_in` and `authoriser`; the error names the field and contains neither the key's value nor the value of any sibling. Staleness: fresh/stale/unknown, interval 0, future date, leap day, month boundary, and the schema has no stale column. Rules: member rows readable only by owner/admin; org/team readable by all; writes owner/admin; every lifecycle move that leaves service requires a reason; disposed is terminal. View state: round-trip and filters.
 
-- [ ] **Step 2: Run them to verify they fail**
+- [x] **Step 2: Run them to verify they fail**
 
 Run: `npx vitest run tests/unit/register-fields.test.ts tests/unit/register-staleness.test.ts tests/unit/register-rules.test.ts`
 Expected: FAIL — modules not found.
 
-- [ ] **Step 3: Implement the four modules**
+- [x] **Step 3: Implement the four modules**
 
 Credential regex: `/(pass(word|wd)?|secret|token|otp|mfa|private_?key|api_?key|credential)/i`. Placeholder: `kept in: password-manager entry / vault path / safe, and who can authorise it`. `stalenessOf` uses UTC day arithmetic: `dayDiff(last, today) > interval` ⇒ stale; invalid/future dates never stale. Lifecycle: in_service → awaiting_repair / awaiting_disposal / retired (reason required); awaiting_repair → in_service (no reason) / awaiting_disposal (reason); awaiting_disposal → disposed / in_service (reason); disposed terminal; retired → in_service (reason).
 
-- [ ] **Step 4: Run the tests**
+- [x] **Step 4: Run the tests**
 
 Run: `npx vitest run tests/unit/register-fields.test.ts tests/unit/register-staleness.test.ts tests/unit/register-rules.test.ts`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add lib/registers tests/unit/register-fields.test.ts tests/unit/register-staleness.test.ts tests/unit/register-rules.test.ts
@@ -234,25 +234,25 @@ git commit -m "feat(registers): credential boundary, computed staleness and cust
 - Consumes: Task 1 tables, Task 2 packs, Task 3 rules.
 - Produces: JSON envelopes `{ success: true, data }`; writes gated by `canWriteRegister`; admin-only pack writes and reassignment.
 
-- [ ] **Step 1: Write the failing route guards**
+- [x] **Step 1: Write the failing route guards**
 
 Assert in source: session check in every route; `readRegisterFields` on create/update; `canReadRegister`/`canWriteRegister`; `reason` required through `readRegisterTransition`; verify inserts `workLogEntries` with `kind: "review"` and updates `lastVerifiedAt`; stale POST inserts `agentPlans` `status: "draft"` + `planItems` and never `tasks`; bulk caps ids at 50; export sets `text/csv`; packs route uses `isSuperAdmin` for writes.
 
-- [ ] **Step 2: Run the guards to verify they fail**
+- [x] **Step 2: Run the guards to verify they fail**
 
 Run: `npx vitest run tests/unit/register-routes.test.ts`
 Expected: FAIL — route files not found.
 
-- [ ] **Step 3: Implement the routes**
+- [x] **Step 3: Implement the routes**
 
 Visibility is enforced in `lib/registers/read.ts` and re-checked per row before a write. Create validates `packKey`/`kind` against the pack, defaults owner to the session, refuses a member assigning another owner, and runs the credential scan. Update re-scans fields, applies lifecycle reason rules, and keeps pack/kind immutable. Verify is a transaction: `workLogEntries` (`kind: "review"`, `workedOn` from the session timezone, `discipline` from the pack's ladder discipline, `source: "manual"`) + `registerItems.lastVerifiedAt`. Stale GET returns visible stale rows; POST creates or returns the day's existing draft plan (`sourceKind: "registers"`, `sourceName: stale:<today>`), one item per row with `cadence: cadenceForInterval(...)`, dates today, and no `tasks` write.
 
-- [ ] **Step 4: Run the guards and typecheck**
+- [x] **Step 4: Run the guards and typecheck**
 
 Run: `npx vitest run tests/unit/register-routes.test.ts && npx tsc --noEmit`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add lib/registers/read.ts lib/registers/plan.ts app/api/packs app/api/registers tests/unit/register-routes.test.ts
@@ -270,25 +270,25 @@ git commit -m "feat(registers): pack and register APIs with verify logging and s
 - Modify: `app/dashboard/page.tsx` (stale count in the Today strip)
 - Test: `tests/unit/register-pages.test.ts`
 
-- [ ] **Step 1: Write the failing page guards**
+- [x] **Step 1: Write the failing page guards**
 
-Assert: the page is a Suspense shell with a skeleton and no database import; the client fetches `/api/registers`, `/api/packs`, `/api/registers/stale`; the four §4 controls are present (`q`, kind, status, custody/stale, view list/grid/board); bulk verify/reassign/export exist; the credential placeholder is rendered; the admin page shows 401/403 walls and saves with POST/PATCH; nav has `/dashboard/registers`; the dashboard strip links to the stale queue.
+Assert: the page is a Suspense shell with a skeleton and no database import; the client fetches `/api/registers` (which carries the packs) and `/api/registers/stale`; the four §4 controls are present (`q`, kind, status, custody/stale, view list/grid/board); bulk verify/reassign/export exist; the credential placeholder is rendered; the admin page shows 401/403 walls and saves with POST/PATCH; nav has `/dashboard/registers`; the dashboard strip links to the stale queue.
 
-- [ ] **Step 2: Run them to verify they fail**
+- [x] **Step 2: Run them to verify they fail**
 
 Run: `npx vitest run tests/unit/register-pages.test.ts`
 Expected: FAIL.
 
-- [ ] **Step 3: Implement the pages**
+- [x] **Step 3: Implement the pages**
 
 Member page: header with the resolved pack, stale banner + "Schedule checks" (POST stale, toast, link to `/dashboard/planner/<id>`), filters bound to URL params, list/grid/board, create and edit dialogs, verify, bulk bar, CSV link. Status labels and staleness labels come from the rules modules; `unknown` reads "Never verified". Admin page mirrors `/admin/career`'s gate and edits pack fields plus JSON textareas for kinds/sections/method/onboarding; disciplines come from `WORK_DISCIPLINES`.
 
-- [ ] **Step 4: Run guards, typecheck and lint the new files**
+- [x] **Step 4: Run guards, typecheck and lint the new files**
 
 Run: `npx vitest run tests/unit/register-pages.test.ts && npx tsc --noEmit && npx eslint app/dashboard/registers app/admin/packs lib/packs lib/registers`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add app/dashboard/registers app/admin/packs components/dashboard-layout.tsx app/dashboard/page.tsx tests/unit/register-pages.test.ts
@@ -305,16 +305,16 @@ git commit -m "feat(registers): register workspace, pack authoring and stale day
 - Modify: this plan (checkboxes)
 - Modify: memory `jiravision-worklog-reports-phases.md`
 
-- [ ] **Step 1: Sync docs**
+- [x] **Step 1: Sync docs**
 
 Record the packs, registers, staleness rule, credential rule, pack authoring, stale draft-plan path, and the exact test/table counts. State that packs and the register tables are additive and that the live migration is pending owner approval.
 
-- [ ] **Step 2: Run the full gates**
+- [x] **Step 2: Run the full gates**
 
 Run: `npx tsc --noEmit && npm run lint && npm test`
 Expected: tsc clean; lint only the known `components/planner/gantt.tsx:43` error; all tests pass.
 
-- [ ] **Step 3: Commit and push**
+- [x] **Step 3: Commit and push**
 
 ```bash
 git add FEATURES.md README.md docs/superpowers/specs/2026-10-26-worklog-reports-planner-assistant-design.md docs/superpowers/plans/2026-10-27-registers-phase15.md
@@ -322,6 +322,6 @@ git commit -m "docs(registers): record phase 15 and sync the spec"
 git push
 ```
 
-- [ ] **Step 4: Stop before the live migration**
+- [x] **Step 4: Stop before the live migration**
 
 Present the migration for the owner's per-action approval with row counts, masked host and one recommended option.

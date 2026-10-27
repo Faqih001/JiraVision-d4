@@ -1,7 +1,8 @@
 # JiraVision
 
 A team delivery workspace: a public marketing site plus a signed-in dashboard with tasks, sprints,
-kanban, a work log, period work reports, a plan-to-Gantt planner, a career ladder, and an AI assistant.
+kanban, a work log, period work reports, a plan-to-Gantt planner, a career ladder, custody registers,
+and an AI assistant.
 
 The original scaffold came from a v0.dev export. This repository is no longer generated or synced by
 v0 — changes land through commits, and Vercel builds from `main`.
@@ -53,17 +54,19 @@ else — logging, reporting, exporting — works normally. See [AI](#ai).
 | `npm run db:worklog:rollback` | Drop those tables again |
 | `npm run db:career` | Create the career tables and seed the 20-rung ladder |
 | `npm run db:career:rollback` | Drop the career tables again |
+| `npm run db:registers` | Create the role-pack and register tables and seed the two packs |
+| `npm run db:registers:rollback` | Drop those tables again |
 | `npm run db:seed` | Insert sample data |
 | `npm run db:migrate` | Run the SQL migrations in `drizzle/` |
 
 ## Layout
 
 - `app/(marketing)/` — 22 public routes (pricing, products, solutions, compare, legal, resources…)
-- `app/dashboard/` — 38 signed-in pages, including `worklog`, `reports-work`, `planner`, `career`, `assistant`
-- `app/admin/` — super-admin surfaces: the landing CMS (`/admin/cms`) and the career ladder (`/admin/career`)
-- `app/api/` — 155 route handlers; every data route re-checks the session itself
+- `app/dashboard/` — 39 signed-in pages, including `worklog`, `reports-work`, `planner`, `career`, `registers`, `assistant`
+- `app/admin/` — super-admin surfaces: the landing CMS (`/admin/cms`), the career ladder (`/admin/career`) and role-pack authoring (`/admin/packs`)
+- `app/api/` — 163 route handlers; every data route re-checks the session itself
 - `components/` — shared UI, including the dashboard shell and the assistant panel
-- `lib/` — auth, data access, roles, and the domain modules: `worklog/`, `reports/`, `planner/`, `assistant/`, `career/`, `ai/`
+- `lib/` — auth, data access, roles, and the domain modules: `worklog/`, `reports/`, `planner/`, `assistant/`, `career/`, `packs/`, `registers/`, `ai/`
 - `drizzle/` — schema (`schema.ts`), migrations, and seed scripts
 - `content/` — marketing copy and the legal notice
 - `tests/unit/`, `tests/e2e/` — Vitest unit tests and the Playwright smoke test
@@ -117,6 +120,14 @@ Four rules hold across all of them:
 
 The legal notice states the same thing to visitors: what the assistant reads, and that a published page
 outranks a machine answer (`content/legal.ts`, section `ai-assistant-answers`).
+
+## Role packs and registers
+
+Role packs are rows, not code: `/admin/packs` authors what a role is the keeper of, and
+`/dashboard/registers` holds the rows themselves — custody, status, a verify interval, and no credential
+values (the field validator refuses them). Staleness is computed from `last_verified_at` and the interval,
+never stored. Scheduling the stale queue writes a draft planner plan, and only promote turns a plan item
+into a task. The tables are additive (`npm run db:registers`) and the script is safe to re-run.
 
 ## Testing
 
