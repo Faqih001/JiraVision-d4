@@ -563,7 +563,7 @@ form pre-filled — accepting is a human write.
 | 2. Profile | name, display name, avatar, job title, phone, country, timezone (detected, editable), language | the existing `app/api/user/profile` PATCH (`users.job_title`, `department`, `location`, `language`, `timezone`, `avatar`) |
 | 3. Workspace | personal · name a team · accept an invitation | §13's `workspace_invitations` row (phase 17); team fields through `/api/team/settings` |
 | 4. Industry | one primary, optional secondaries, or "Not sure yet" | `preferences.settings.onboarding.data.industry` |
-| 5. Role and disciplines | searchable job title with free text, optional department, multi-select work disciplines | `users.job_title`/`department` plus `preferences.workDisciplines` from the canonical `WORK_DISCIPLINES` (`lib/roles.ts:110`, grouped by `DISCIPLINE_CATEGORIES` at `:54`) |
+| 5. Role and disciplines | searchable job title with free text, optional department, multi-select work disciplines | `users.job_title`/`department` plus `preferences.settings.workDisciplines` from the canonical `WORK_DISCIPLINES` (`lib/roles.ts:110`, grouped by `DISCIPLINE_CATEGORIES` at `:54`) |
 | 6. Project management | preferred view, default grouping, notification types, work style | only keys the app already reads: `preferences.settings.sprintView`, the `notify*` flags |
 | 7. First project | create · import a scope document · a clearly-labelled sample · skip | existing project APIs plus phase 7's extraction |
 | 8. Review and finish | a summary with a per-step *Edit* link | `status = "completed"`, written only after every save returned ok |
@@ -585,10 +585,14 @@ Seven rules the wizard is built on, each because the alternative has hurt someon
   shows a resumable banner for the incomplete, not a wall.
 - **Adaptive, not long**: a personal workspace is not asked for an organization, a department or a job title; every
   step but Welcome and Review has *Skip*, and skipping is a valid answer that leaves the default in place.
-- **One vocabulary**: step 5 renders the Phase-2 `DisciplinePicker` (`app/dashboard/worklog/sections.tsx:201`) over
-  `WORK_DISCIPLINES`, grouped by `DISCIPLINE_CATEGORIES`, and validates each
-  submitted id with `isWorkDiscipline` (`lib/roles.ts:316`), so the wizard cannot mint a competing set of names.
-  Defaults to all disciplines, and a selection is a display filter, never a permission.
+- **One vocabulary**: step 5 renders a multi-select over `WORK_DISCIPLINES`, grouped by
+  `DISCIPLINE_CATEGORIES`, and validates each submitted id with `isWorkDiscipline` (`lib/roles.ts:316`), so
+  the wizard cannot mint a competing set of names. The Phase-2 `DisciplinePicker`
+  (`app/dashboard/worklog/sections.tsx:201`) is a single-select display filter, so the wizard shares its
+  vocabulary and its labels rather than its control. The selection lands in
+  `preferences.settings.workDisciplines`, which is where `/api/settings` writes and where
+  `defaultDisciplineOf` reads it first. Defaults to all disciplines, and a selection is a display filter,
+  never a permission.
 - **Industry suggests and never restricts**: it re-orders packs, templates and disciplines; it cannot hide a
   register kind or a project type.
 - **Secrets stay out**: `onboardingData` refuses a password, token or credential value the way §12's register rule
@@ -989,7 +993,7 @@ Each phase is a reviewable, green, committed, pushed unit. Pushing auto-deploys 
     `ON DELETE SET NULL`, 0 playbook rows and an unchanged `work_log_entries`. The script's raw-TCP path timed out
     from this machine, so its own DDL was applied over `@neondatabase/serverless` (HTTPS) unchanged; no rows were
     seeded and the rollback was not invoked. Suite at the end of this phase: 97 files / 1647 tests.
-17. **Onboarding** — `/onboarding` as §12.7's eight adaptive steps, writing `preferences.settings.onboarding`
+17. **Onboarding** *(shipped 2026-10-27)* — `/onboarding` as §12.7's eight adaptive steps, writing `preferences.settings.onboarding`
     through the existing `/api/settings` merge and profile fields through `/api/user/profile` — **no new `users`
     columns and no migration** — per-step persistence with resume, a grandfathered and never-reset existing member,
     a loop-safe server-side gate, the canonical `lib/roles.ts` discipline vocabulary and no others, pack-driven
@@ -998,7 +1002,26 @@ Each phase is a reviewable, green, committed, pushed unit. Pushing auto-deploys 
     with an expiry and the role it grants, because joining today means an admin typing your email at
     `/api/team/members` and there is no token to accept. The 17 checks the owner listed are this phase's test file
     list, including the three that protect other people's work: an existing member is never blocked, a saved
-    preference is never overwritten by the wizard, and a failed save never marks onboarding complete.
+    preference is never overwritten by the wizard, and a failed save never marks onboarding complete. What the
+    phase added beyond this line: the rules are pure and DB-free (`lib/onboarding/{state,invitation}.ts`) and the
+    database lives in `lib/onboarding/read.ts` and `lib/onboarding/write.ts`, behind five routes —
+    `GET /api/onboarding`, `POST /api/onboarding/{invitation,project,request-access}` and the super-admin-only
+    `POST /api/team/invitations`. `/api/settings` gained exactly one namespaced exception: a request may carry an
+    `onboarding` object, and `readOnboardingPatch` validates it against the stored state — unknown fields,
+    credential-shaped paths, a reset, a downgrade from `completed`, an unknown status and a discipline outside
+    `WORK_DISCIPLINES` are all refused, and `completedAt` is stamped only on completion. `effectiveStatus` decides
+    the grandfather rule (a pre-`2026-10-27` account or any task/work-log row reads as complete; a stored status
+    always wins), so no existing member is ever routed through the wizard and nothing clears a saved answer.
+    `workspace_invitations` is the one new table (nine columns: token hash, email, role, inviter, expiry,
+    `accepted_at`); acceptance claims the row with `UPDATE … WHERE accepted_at IS NULL`, and the plaintext token
+    exists only in the inviter's response. Step 7's sample writes a draft `agent_plans` row deduped on
+    `(created_by, source_name, title)` and the import path reuses `/api/planner/extract`; promote stays the only
+    path to `tasks`. `/dashboard` reads the onboarding view as a failure-tolerant fifth fetch: it can add a resume
+    banner for `in_progress` and a pack-ordered section strip, never block the page or redirect. Finish saves the
+    account name first when the profile step was skipped, then writes `status: "completed"`, so a failed save
+    leaves the status untouched. `scripts/create-invitations-table.mjs` is additive and idempotent; the live
+    checkpoint is recorded separately, and `scripts/rollback-invitations-table.mjs` refuses without
+    `INVITATIONS_ROLLBACK=yes`. Suite at the end of this phase: 103 files / 1729 tests.
 18. **Agent entry for packs, registers and playbooks** — PDF/paste handover ingestion into register rows and
     playbook drafts (credential values refused twice over), grounded precaution suggestions marked as machine
     drafted, and the rule-based recommendation list gaining its AI twin. Needs the provider from phase 6.

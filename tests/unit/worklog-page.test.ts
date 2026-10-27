@@ -477,8 +477,9 @@ describe("dashboard today strip", () => {
     // `v` is the key parseViewState reads; a `view=` param is silently ignored and would ask
     // the route for its default range instead of today.
     expect(dash()).toMatch(/fetch\("\/api\/worklog\/summary\?v=day"\)/u)
-    // One Promise.all: a slow log endpoint cannot hold the sprint data behind it.
-    expect(dash()).toMatch(/const \[ovRes, spRes, todayRes, staleRes\] = await Promise\.all\(\[/u)
+    // One Promise.all: a slow log endpoint cannot hold the sprint data behind it. Setup state
+// joined as a fifth, failure-tolerant read — it can only add a banner, never block the page.
+    expect(dash()).toMatch(/const \[ovRes, spRes, todayRes, staleRes, onboardingRes\] = await Promise\.all\(\[/u)
   })
 
   it("keeps the day on the server's calendar, not the browser's", () => {

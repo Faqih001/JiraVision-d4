@@ -1602,12 +1602,17 @@ async function advance() {
 
 `skip()` advances by saving `{ step: nextIndex }` with no data (welcome/review have no Skip). `finishLater()` saves the current step (best effort, swallowing the error but telling the member) and pushes `/dashboard`.
 
-`finish()` — the one ordering the owner's checks pin:
+`finish()` — the one ordering the owner's checks pin. Define it **above** `finishLater()`, because checks 7 and 15 locate `router.push("/dashboard")` with a file-wide `indexOf` and would otherwise find `finishLater()`'s push before the completion save:
 
 ```tsx
 async function finish() {
   setSaving(true); setError("")
   try {
+    // The account already knows the name the member skipped past; save it before asking
+    // the completion rule to judge it, so skipping the profile step is not a trap.
+    if (!initial.data.profile.name && identity.name) {
+      await saveOnboarding({ data: { profile: identity } })
+    }
     await saveOnboarding({ status: "completed", step: 7 })
     router.push("/dashboard")
     router.refresh()
@@ -1805,7 +1810,8 @@ describe("the owner's seventeen onboarding checks", () => {
     expect(wizard).toMatch(/grid-cols-1/)
     expect(wizard).toMatch(/lg:grid-cols/)
     expect(wizard).toMatch(/headingRef\.current\?\.focus\(\)/)
-    expect(wizard).toMatch(/aria-current="step"/)
+    // The rail marks the current entry; a literal or the conditional both assert it.
+    expect(wizard).toMatch(/aria-current=(?:"step"|\{isCurrent \? "step")/)
     expect(wizard).toMatch(/aria-live="polite"/)
   })
 })
@@ -1816,8 +1822,11 @@ describe("the owner's seventeen onboarding checks", () => {
 ```ts
 describe("onboarding does not become a second schema", () => {
   it("keeps onboarding out of the users table", () => {
-    const schema = codeOnly(src("drizzle/schema.ts"))
-    const usersBlock = schema.slice(schema.indexOf('export const users = pgTable("users"'), schema.indexOf("// Chat tables"))
+    // Slice the raw source: the end marker is a comment, and codeOnly() would erase it.
+    const raw = src("drizzle/schema.ts")
+    const usersBlock = codeOnly(
+      raw.slice(raw.indexOf('export const users = pgTable("users"'), raw.indexOf("// Chat tables")),
+    )
     expect(usersBlock).not.toMatch(/onboarding/i)
   })
 

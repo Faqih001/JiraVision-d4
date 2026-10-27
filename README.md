@@ -58,6 +58,8 @@ else — logging, reporting, exporting — works normally. See [AI](#ai).
 | `npm run db:registers:rollback` | Drop those tables again |
 | `npm run db:playbooks` | Create the playbooks table and the work-log foreign key (additive) |
 | `npm run db:playbooks:rollback` | Drop that table and the constraint again |
+| `npm run db:invitations` | Create the workspace-invitation table (additive) |
+| `npm run db:invitations:rollback` | Drop that table again |
 | `npm run db:seed` | Insert sample data |
 | `npm run db:migrate` | Run the SQL migrations in `drizzle/` |
 
@@ -65,10 +67,11 @@ else — logging, reporting, exporting — works normally. See [AI](#ai).
 
 - `app/(marketing)/` — 22 public routes (pricing, products, solutions, compare, legal, resources…)
 - `app/dashboard/` — 42 signed-in pages, including `worklog`, `reports-work`, `planner`, `career`, `registers`, `playbooks`, `assistant`
+- `app/onboarding/` — the eight-step setup wizard, one signed-in page outside the dashboard shell
 - `app/admin/` — super-admin surfaces: the landing CMS (`/admin/cms`), the career ladder (`/admin/career`) and role-pack authoring (`/admin/packs`)
-- `app/api/` — 167 route handlers; every data route re-checks the session itself
+- `app/api/` — 172 route handlers; every data route re-checks the session itself
 - `components/` — shared UI, including the dashboard shell and the assistant panel
-- `lib/` — auth, data access, roles, and the domain modules: `worklog/`, `reports/`, `planner/`, `assistant/`, `career/`, `packs/`, `registers/`, `playbooks/`, `ai/`
+- `lib/` — auth, data access, roles, and the domain modules: `worklog/`, `reports/`, `planner/`, `assistant/`, `career/`, `packs/`, `registers/`, `playbooks/`, `onboarding/`, `ai/`
 - `drizzle/` — schema (`schema.ts`), migrations, and seed scripts
 - `content/` — marketing copy and the legal notice
 - `tests/unit/`, `tests/e2e/` — Vitest unit tests and the Playwright smoke test
@@ -141,6 +144,29 @@ Following one (`/dashboard/playbooks/[id]/run`) writes one action row per method
 each carrying the playbook id and version — it never creates tasks. The printed layout is the fourth in
 `lib/export/pdf.ts`: one page per phase with a signature block. `npm run db:playbooks` is additive and
 safe to re-run.
+
+## Onboarding
+
+`/onboarding` is the eight-step setup wizard — Welcome, Profile, Workspace, Industry, Role and
+disciplines, Project management, First project, Review and finish. It is adaptive rather than required:
+every step but Welcome and Review can be skipped, and skipping leaves the default in place.
+
+State lives in `preferences.settings.onboarding` (`{ status, step, completedAt, version, data }`) and is
+written through `/api/settings`' existing jsonb merge, so no `users` column was added and no migration
+accompanies the wizard. Each step saves when it validates, which makes a refresh, a closed tab or a
+logout-then-signin lossless; a member can resume from the dashboard banner or reopen the wizard from
+`/dashboard/settings`.
+
+Existing members are grandfathered: an account created before 2026-10-27, or one that already has a task
+or a work-log row, reads as complete on first visit and is never routed through the wizard. Nothing on
+the path clears a saved preference, and the dashboard never redirects — an incomplete member sees a
+*Resume setup* banner, not a wall.
+
+Joining a workspace works by invitation, not by typing a name. A super-admin sends a link from
+`/dashboard/team`; the token in `/onboarding?invite=…` is stored as a SHA-256 hash, expires after seven
+days, is bound to one email address and works once. Until the token is accepted, the wizard's join branch
+offers *request access* instead, which notifies the workspace admins and changes no membership.
+`npm run db:invitations` creates the one new table (additive and safe to re-run).
 
 ## Testing
 

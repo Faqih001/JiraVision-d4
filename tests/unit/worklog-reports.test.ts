@@ -189,3 +189,30 @@ describe("playbook visibility and the publish gate", () => {
     expect(body).toContain("Model draft")
   })
 })
+
+describe("onboarding does not become a second schema", () => {
+  it("keeps onboarding out of the users table", () => {
+    // Slice the raw source: the end marker is a comment, and codeOnly() would erase it.
+    const raw = src("drizzle/schema.ts")
+    const usersBlock = codeOnly(
+      raw.slice(raw.indexOf('export const users = pgTable("users"'), raw.indexOf("// Chat tables")),
+    )
+    expect(usersBlock).not.toMatch(/onboarding/i)
+  })
+
+  it("never gates the dashboard behind a redirect", () => {
+    expect(codeOnly(src("app/dashboard/page.tsx"))).not.toMatch(/redirect\("\/onboarding"\)/)
+  })
+
+  it("sends the session, never a client flag, to decide the step", () => {
+    const page = codeOnly(src("app/onboarding/page.tsx"))
+    expect(page).toMatch(/getCurrentUser\(\)/)
+    expect(page).toMatch(/redirect\("\/login"\)/)
+  })
+
+  it("does not read the invitation token from a header or log it", () => {
+    const route = codeOnly(src("app/api/team/invitations/route.ts"))
+    expect(route).not.toMatch(/x-invite/i)
+    expect(route).not.toMatch(/console\.(log|error)\([^)]*invite\.token/)
+  })
+})

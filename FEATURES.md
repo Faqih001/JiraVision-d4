@@ -461,3 +461,63 @@ followed. Manual authoring is the whole surface of this phase — no model write
 - **Deliberately absent**: storing a run, progress or completion state on the playbook; a step marked "done" outside the work log; reordering across phases in one gesture (steps move within the flat order); editing `pack_key` after creation; deleting a playbook (archive instead); and any write to `tasks`.
 - Guards: `tests/unit/playbook-schema.test.ts`, `playbook-method.test.ts`, `playbook-fields.test.ts`, `playbook-routes.test.ts` and `playbook-pages.test.ts` — five files, 76 tests — plus the phase-16 block in `worklog-reports.test.ts` and the model-draft case in `export-pdf.test.ts`. Suite: 97 files / 1647 tests.
 
+## 22. Onboarding (phase 17, 2026-10-27)
+
+A new member's first ten minutes: eight adaptive steps that each save when they pass, a resume that
+survives a closed tab, and a gate that never blocks — or re-asks — someone who was already working.
+The phase adds one table, five routes and no `users` column.
+
+- **Eight steps, taken adaptively.** Welcome, Profile, Workspace, Industry, Role and disciplines, Project
+  management, First project, Review and finish (`ONBOARDING_STEPS` in `lib/onboarding/state.ts`). A
+  personal workspace is not asked for an organization, a department or a job title; every step but Welcome
+  and Review has *Skip*, and skipping is a valid answer that leaves the default in place. The rail marks
+  the current step with `aria-current="step"`, the step heading takes focus on each move and progress is
+  announced with `aria-live="polite"`.
+- **State is one namespaced object, no migration.** `preferences.settings.onboarding` holds
+  `{ status, step, completedAt, version, data }` and is written through the existing `/api/settings`
+  `jsonb_set` merge. `/api/settings` now permits exactly one namespaced object — `onboarding` — and hands
+  it to `readOnboardingPatch`, which refuses unknown fields, credential-shaped paths, a reset back to
+  `not_started`, a downgrade from `completed`, an unknown status and a discipline outside
+  `WORK_DISCIPLINES`; it stamps `completedAt` only on completion. Profile fields go through the existing
+  `/api/user/profile` PATCH. A step persists when it validates, which is what makes a refresh, a closed
+  tab and a logout-then-signin all lossless.
+- **Existing members are grandfathered, never reset.** `effectiveStatus` treats an account created before
+  `2026-10-27`, or one that already has a task or work-log row, as completed on first read, and a stored
+  status always wins over that fallback. Nothing on the onboarding path clears a saved preference — the
+  write is a merge, and a `completed` member who reopens the wizard can change answers without losing them.
+- **The gate redirects no one.** `/onboarding` reads the server session (`getCurrentUser()`, anonymous →
+  `/login`); the dashboard never redirects to it. The only automatic change is signup's push becoming
+  `router.push("/onboarding")`; after that, a member whose status is `in_progress` sees a dashed
+  *Resume setup — step N of 8* banner, and one who is complete sees nothing. There is no wall and no loop.
+- **Invitations are tokens, not typed emails.** `workspace_invitations` stores a SHA-256 hash of a
+  32-byte base64url token, the invited email, the granted role (`user` or `admin`), the inviter and an
+  expiry seven days out. `POST /api/team/invitations` is super-admin only and returns the plaintext link
+  once (`/onboarding?invite=…`); acceptance at `POST /api/onboarding/invitation` resolves the token
+  server-side, refuses an expired or already-used row, and claims it with
+  `UPDATE … WHERE accepted_at IS NULL`, so a token works once and only for the address it named. Nothing
+  logs the token, and no header carries it.
+- **No membership by typing a name.** Until the token resolves, the join branch offers *request access*
+  instead: `POST /api/onboarding/request-access` is rate-limited to three notes a day, notifies the
+  workspace admins and changes no membership. Only an admin's team settings can rename the workspace, and
+  the wizard only offers the field when `canRenameTeam` says so.
+- **The first project is a draft plan, never tasks.** Step 7's sample writes a draft `agent_plans` row
+  (`source_name: "sample"`, three sample items) and dedupes on `(created_by, source_name, title)`, so
+  retrying the step returns today's plan instead of a second one. Importing a scope document goes through
+  the phase-7 `/api/planner/extract` route and stores the returned `planId`. Promote remains the only path
+  from a plan item to a task; onboarding never inserts into `tasks`.
+- **The dashboard reads the pack.** `/dashboard` fetches `/api/onboarding` as a failure-tolerant fifth
+  read — a 401 or a slow DB can only drop a banner, never block the page. When a pack is resolved, a strip
+  lists its sections (filtered to the five the dashboard actually has) in the pack's order; when the
+  status is `in_progress`, the resume banner appears above the KPI cards.
+- **Re-editable, and finished in two writes.** `/dashboard/settings` carries a *Setup wizard* card that
+  states the status and links back to `/onboarding`. *Finish* saves the account name first when the
+  profile step was skipped past (so the required-name rule is not a trap), then saves
+  `status: "completed"`; a failed save leaves the status untouched and shows the reason.
+- **Deliberately absent**: a `phone` or onboarding column on `users`; an organization or membership table
+  beyond the invitation; a team name editable by a non-admin; an auto-created project or task; password
+  collection anywhere in the wizard; and any client-side flag deciding completion — the stored row does.
+- Guards: `tests/unit/onboarding-state.test.ts`, `settings-patch.test.ts`,
+  `onboarding-invitation.test.ts`, `onboarding-schema.test.ts`, `onboarding-routes.test.ts` and
+  `onboarding-checks.test.ts` (the owner's seventeen checks, each naming its scenario) — six files, 65
+  tests — plus four onboarding guards in `worklog-reports.test.ts`. Suite: 103 files / 1729 tests.
+
