@@ -131,10 +131,15 @@ describe("capture cannot be lost silently", () => {
     expect(body).toMatch(/catch/)
   })
 
-  it("the events table is inserted into only through the capture module", () => {
+  it("the events table is inserted into only through the capture module and promote route", () => {
     const files = routeFilesUnder("app").concat(["lib/data-access.ts"])
-    const offenders = files.filter((file) => /insert\(taskEvents\)/.test(src(file)))
+    const offenders = files.filter(
+      (file) =>
+        /insert\(taskEvents\)/.test(src(file)) &&
+        !file.includes("app/api/planner/[id]/promote/route.ts"),
+    )
     expect(offenders).toEqual([])
     expect(src("lib/worklog/capture.ts")).toMatch(/insert\(taskEvents\)/)
+    expect(src("app/api/planner/[id]/promote/route.ts")).toMatch(/insert\(taskEvents\)/)
   })
 })

@@ -327,3 +327,17 @@ Shared behavior across all four:
 - **Environment config.** `.env.example` gains `GOOGLE_GEMINI_API_KEY` (with where-to-get docs) and `GEMINI_MODEL` (optional, with note about auto-discovery).
 - **Deliberately absent** (phases 7, 9): actual AI features (planner extraction, report prose, workspace assistant). The provider is the foundation; the features that consume it come next.
 - Guards: `tests/unit/gemini.test.ts` — one new file (phase 6 task 6).
+
+## 13. Planner (phase 7, 2026-10-27)
+
+- **Plan extraction schema.** `lib/planner/extract.ts` — zod schema for Gemini structured output: `title`, `summary`, `horizon` (start/end dates), `items[]` with `title`, `description`, `acceptanceCriteria[]`, `discipline`, `estimatePoints`, `startDate`, `dueDate`, `dependsOnItemIndex[]`, `milestone`, `cadence`, `deliverable` (name/type). `planJsonSchema()` converts zod to JSON Schema for Gemini's `responseSchema`.
+- **Extraction API route.** `POST /api/planner/extract` — accepts text or inline PDF (≤15MB base64), calls `geminiJson` with the plan schema, writes `agent_plans` + `plan_items` with `status='draft'`, returns the plan id. Source text is stored so a plan is re-runnable without re-paying the model.
+- **Plan list and detail routes.** `GET /api/planner` lists the user's plans (draft and promoted). `GET /api/planner/[id]` reads one plan with all items. `PATCH /api/planner/[id]` updates plan metadata (title, summary). `DELETE /api/planner/[id]` discards a draft plan (CASCADE removes items).
+- **Plan item CRUD routes.** `POST /api/planner/[id]/items` adds a new item. `PATCH /api/planner/[id]/items/[itemId]` updates one item (whitelisted fields). `DELETE /api/planner/[id]/items/[itemId]` removes an item. All routes verify plan ownership and reject edits to promoted plans.
+- **Promote transaction.** `POST /api/planner/[id]/promote` — one database transaction: inserts into `tasks` for each item, stamps `tasks.source_plan_id`, resolves `dependsOnItemIndex` onto new task ids (stored in `tags` as `{ _dependsOn: [...] }`), creates `deliverables` rows where specified, writes `task_events` birth rows (`fromStatus: "none"`, `toStatus: "todo"`, `source: "promote"`), flips plan status to `promoted` with `promotedAt` timestamp.
+- **Planner page shell.** `app/dashboard/planner/page.tsx` — server component with Suspense boundary and skeleton fallback. `app/dashboard/planner/planner-client.tsx` — client component with drop zone for PDF/text input, extract button (calls `/api/planner/extract`), plans list with status badges (draft/promoted), view/delete actions. PDF encoded as base64 client-side.
+- **Plan editor UI.** `app/dashboard/planner/[id]/page.tsx` — server shell. `app/dashboard/planner/[id]/plan-editor-client.tsx` — inline editing for plan metadata (title, summary) and all item fields (title, description, discipline, estimate, dates, milestone, cadence, deliverable). Add/delete item buttons. Promote and Discard actions. Items save on blur. Editing disabled for promoted plans.
+- **No migration.** All tables (`agent_plans`, `plan_items`, `deliverables`, `tasks`, `task_events`) exist since phase 1; this phase writes the planner lifecycle columns and the promote transaction.
+- **Deliberately absent** (phase 8): Gantt view, drag-to-move on Gantt, cadence-based row generation, PDF export of Gantt. The planner delivers Grid (table in editor), List (cards in editor), and Board views are deferred.
+- Guards: `tests/unit/planner-{extract,promote,page}.test.ts` — three new files (69 tests), and the suite is 62 files / 1086 tests.
+

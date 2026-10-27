@@ -161,3 +161,15 @@ One thing a reader could mistake for a stub, because it is an absent *phase* sta
 | Looks missing | Actually |
 |---|---|
 | No AI features (planner extraction, report prose, assistant) | phases 7, 9; the provider is the foundation, the features that consume it come next |
+
+## 12. Planner (phase 7, 2026-10-27)
+
+No new placeholder. The planner ships with real extraction, real editing, and real promote-to-tasks transaction. The extraction schema, API routes, and UI are all wired to real reads and writes.
+
+Two things a reader could mistake for a stub, because each is an absent *phase* stated in the planner where it would have been:
+
+| Looks missing | Actually |
+|---|---|
+| No Gantt view | phase 8; the planner delivers List view (in the editor), Grid view (table in editor), and Board view is deferred. The Gantt is a layout problem, not a chart-library problem, and is phase 8's deliverable |
+| No drag-to-move on Gantt | phase 8; the Gantt does not exist yet, so drag-to-move cannot exist either |
+| No cadence-based row generation | mentioned in the spec but not core to this phase; the planner extracts items with cadence fields, but materializing dated rows from "generate my month" is deferred |

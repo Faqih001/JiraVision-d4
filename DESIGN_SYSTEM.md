@@ -403,3 +403,48 @@ Every sheet: frozen header row (ySplit: 1), bold header, autofilter on data shee
 ### Filename convention
 
 `jiravision-<scope>-<stamp>.{pdf,xlsx,csv}` where scope is `report`, `log`, or `plan`, and stamp is the ISO date (YYYY-MM-DD).
+
+## 15. Planner (phase 7, 2026-10-27)
+
+### Planner page (`/dashboard/planner`)
+
+The planner page has two main sections: extraction and plans list.
+
+**Extraction section**: Two input modes (Paste Text, Upload PDF) with button toggle. Text mode shows a textarea with monospace font. PDF mode shows a drop zone with drag-and-drop support and file input. Both modes have an optional "Source name" field. The "Extract Plan with AI" button is full-width with a Loader2 spinner during extraction.
+
+**Plans list section**: Each plan is a card with title, status badge (draft=yellow, promoted=green), summary (2-line clamp), horizon dates, created date, and action buttons (View, Delete for drafts). Empty state shows a centered message.
+
+### Plan editor (`/dashboard/planner/[id]`)
+
+The editor has three sections: header actions, plan details, and items list.
+
+**Header actions**: Back button (ghost variant), Save Metadata (outline), Discard (outline), Promote to Tasks (default). All actions show Loader2 spinners during async operations. Promote is disabled when items.length === 0.
+
+**Plan details section**: Title input, summary textarea (3 rows), horizon dates (read-only date inputs), status/source metadata text. All fields disabled for promoted plans.
+
+**Items section**: SectionCard with "Add Item" button in the action slot. Each item is a bordered card with:
+- Title input (saves on blur)
+- Description textarea (2 rows, saves on blur)
+- Three-column grid: Discipline (Select with "none" sentinel), Estimate (number input, 0-100), Cadence (Select with "none" sentinel)
+- Three-column grid: Start Date (date input), Due Date (date input), Milestone (checkbox)
+- Deliverable display (if present): muted background card with name and type
+- Delete button (outline, top-right)
+
+All fields disabled for promoted plans. Items save on blur via PATCH to `/api/planner/[id]/items/[itemId]`.
+
+### Status badges
+
+- **Draft**: `bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100`
+- **Promoted**: `bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100`
+
+### Select sentinels
+
+Discipline and Cadence selects use `"none"` as the sentinel value for "no selection" (not `""`, which Radix rejects). The client maps `"none"` to `null` before sending to the API.
+
+### Deliberately absent (phase 8)
+
+- Gantt view (SVG/CSS grid with lanes, dependency arrows, drag-to-move)
+- Board view (kanban-style grouped by status or discipline)
+- Grid view as a separate mode (the editor's item list is a table-like layout, but a dedicated Grid view with bulk actions is deferred)
+- Cadence-based row generation (materializing dated rows from "generate my month")
+- PDF export of Gantt
