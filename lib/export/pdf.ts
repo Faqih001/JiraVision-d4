@@ -1,12 +1,13 @@
-// Client-side PDF export for work reports, work logs, and plans.
+// Client-side PDF export for work reports, work logs, plans, and playbooks.
 // Generated in the browser from data already on screen — no server runtime, works on a bad connection.
-// Uses jspdf + jspdf-autotable. Three layouts: report, log, plan.
+// Uses jspdf + jspdf-autotable. Four layouts: report, log, plan, playbook.
 
 import { jsPDF } from "jspdf"
 import autoTable from "jspdf-autotable"
 import type { ReportDto } from "@/lib/reports/report-fields"
 import type { ReportAggregate } from "@/lib/reports/aggregate"
 import type { EntryDto, DeliverableDto } from "@/lib/worklog/entries"
+import type { PlaybookStep } from "@/lib/playbooks/method"
 
 export type ReportExportData = {
   report: ReportDto
@@ -27,6 +28,22 @@ export type PlanExportData = {
   title: string
   horizon: string
   lanes: { name: string; items: { title: string; start: string; end: string; status: string }[] }[]
+}
+
+export type PlaybookExportData = {
+  title: string
+  summary: string | null
+  packKey: string
+  discipline: string | null
+  version: number
+  status: string
+  authorName: string | null
+  method: string[]
+  steps: PlaybookStep[]
+  precautions: string[]
+  recommendations: string[]
+  lastVerifiedAt: string | null
+  verifyIntervalDays: number | null
 }
 
 function filename(scope: string, stamp: string): string {
@@ -212,4 +229,162 @@ export function exportPlanPdf(data: PlanExportData): void {
 
   addFooter(doc)
   doc.save(filename("plan", stamp))
+}
+
+// The shop-floor sheet. One page per phase, each step laid out as field/detail rows so a
+// technician can read it at arm's length, and a signature block at the foot of every phase
+// — the printed record of who followed this version and when.
+export function exportPlaybookPdf(data: PlaybookExportData): void {
+  const doc = new jsPDF()
+  const stamp = new Date().toISOString().slice(0, 10)
+
+  doc.setFontSize(20)
+  doc.setFont("helvetica", "bold")
+  doc.text(data.title || "Playbook", 14, 25)
+
+  doc.setFontSize(11)
+  doc.setFont("helvetica", "normal")
+  doc.text(`Version: v${data.version} (${data.status})`, 14, 35)
+  doc.text(`Role pack: ${data.packKey}`, 14, 42)
+  if (data.discipline) doc.text(`Discipline: ${data.discipline}`, 14, 49)
+  doc.text(`Author: ${data.authorName ?? "Unknown"}`, 14, 56)
+  doc.text(
+    `Last verified: ${data.lastVerifiedAt ?? "Never"}${
+      data.verifyIntervalDays === null ? "" : ` · re-verify every ${data.verifyIntervalDays} days`
+    }`,
+    14,
+    63,
+  )
+
+  let currentY = 74
+  if (data.summary) {
+    const lines = doc.splitTextToSize(data.summary, 180) as string[]
+    doc.text(lines, 14, currentY)
+    currentY += lines.length * 5 + 6
+  }
+
+  doc.setFontSize(13)
+  doc.setFont("helvetica", "bold")
+  doc.text("Method", 14, currentY)
+  currentY += 6
+  doc.setFontSize(10)
+  doc.setFont("helvetica", "normal")
+  doc.text(data.method.map((phase, index) => `${index + 1}. ${phase}`).join("   "), 14, currentY)
+  currentY += 12
+
+  if (data.precautions.length > 0) {
+    doc.setFontSize(13)
+    doc.setFont("helvetica", "bold")
+    doc.text("Precautions", 14, currentY)
+    currentY += 4
+    autoTable(doc, {
+      startY: currentY,
+      head: [["#", "Precaution"]],
+      body: data.precautions.map((entry, index) => [String(index + 1), entry]),
+      theme: "grid",
+      headStyles: { fillColor: [41, 128, 185] },
+      columnStyles: { 0: { cellWidth: 10 } },
+    })
+    currentY = (doc as any).lastAutoTable.finalY + 10
+  }
+
+  if (data.recommendations.length > 0) {
+    doc.setFontSize(13)
+    doc.setFont("helvetica", "bold")
+    doc.text("Recommendations", 14, currentY)
+    currentY += 4
+    autoTable(doc, {
+      startY: currentY,
+      head: [["#", "Recommendation"]],
+      body: data.recommendations.map((entry, index) => [String(index + 1), entry]),
+      theme: "grid",
+      headStyles: { fillColor: [41, 128, 185] },
+      columnStyles: { 0: { cellWidth: 10 } },
+    })
+  }
+
+  // One page per phase — a phase with no steps still gets its page and signature line.
+  data.method.forEach((phase, phaseIndex) => {
+    doc.addPage()
+    doc.setFontSize(16)
+    doc.setFont("helvetica", "bold")
+    doc.text(`${phaseIndex + 1}. ${phase}`, 14, 22)
+    doc.setFontSize(10)
+    doc.setFont("helvetica", "normal")
+    doc.text(`${data.title} · v${data.version}`, 14, 29)
+
+    let cursor = 40
+    const steps = data.steps.filter((step) => step.phase === phase)
+
+    if (steps.length === 0) {
+      doc.setFontSize(11)
+      doc.setTextColor(110)
+      doc.text("No steps written for this phase yet.", 14, cursor)
+      doc.setTextColor(0)
+      cursor += 10
+    }
+
+    for (const step of steps) {
+      if (cursor > 240) {
+        doc.addPage()
+        cursor = 20
+      }
+      doc.setFontSize(12)
+      doc.setFont("helvetica", "bold")
+      const heading = doc.splitTextToSize(`${step.order}. ${step.action}`, 180) as string[]
+      doc.text(heading, 14, cursor)
+      cursor += heading.length * 5 + 2
+
+      const rows: [string, string][] = []
+      if (step.checks.length > 0) rows.push(["Checks", step.checks.map((entry) => `• ${entry}`).join("\n")])
+      if (step.expected) rows.push(["Expected", step.expected])
+      if (step.precautions.length > 0) {
+        rows.push(["Precautions", step.precautions.map((entry) => `• ${entry}`).join("\n")])
+      }
+      if (step.warnings.length > 0) {
+        rows.push(["Warnings", step.warnings.map((entry) => `• ${entry}`).join("\n")])
+      }
+      if (step.ppe.length > 0) rows.push(["PPE", step.ppe.join(", ")])
+      if (step.tools_parts.length > 0) rows.push(["Tools & parts", step.tools_parts.join(", ")])
+      if (step.time_estimate) rows.push(["Time estimate", step.time_estimate])
+      if (step.stop_condition) rows.push(["Stop if", step.stop_condition])
+      if (step.escalation) rows.push(["Escalate to", step.escalation])
+      if (step.evidence_to_record) rows.push(["Record", step.evidence_to_record])
+
+      if (rows.length > 0) {
+        autoTable(doc, {
+          startY: cursor,
+          head: [["Field", "Detail"]],
+          body: rows,
+          theme: "grid",
+          styles: { fontSize: 9, cellPadding: 1.5 },
+          headStyles: { fillColor: [41, 128, 185] },
+          columnStyles: { 0: { cellWidth: 35, fontStyle: "bold" } },
+        })
+        cursor = (doc as any).lastAutoTable.finalY + 8
+      } else {
+        cursor += 6
+      }
+    }
+
+    const pageHeight = doc.internal.pageSize.getHeight()
+    let signatureY = Math.min(cursor + 14, pageHeight - 40)
+    if (signatureY < cursor + 6) {
+      doc.addPage()
+      signatureY = 40
+    }
+    const width = doc.internal.pageSize.getWidth()
+    doc.setFontSize(9)
+    doc.setTextColor(80)
+    doc.text("Performed by", 14, signatureY)
+    doc.line(14, signatureY + 8, 70, signatureY + 8)
+    doc.text("Signature", width / 2 - 20, signatureY)
+    doc.line(width / 2 - 20, signatureY + 8, width / 2 + 30, signatureY + 8)
+    doc.text("Date", width - 40, signatureY)
+    doc.line(width - 40, signatureY + 8, width - 14, signatureY + 8)
+    doc.setTextColor(0)
+  })
+
+  addFooter(doc)
+  doc.save(filename("playbook", stamp))
 }

@@ -45,4 +45,10 @@ describe("the PDF export module", () => {
     expect(source).toContain("lanes")
     expect(source).toContain("lane.name")
   })
+
+  it("exports a fourth playbook layout with one page per phase", () => {
+    expect(source).toContain("export function exportPlaybookPdf")
+    expect(source).toContain("One page per phase")
+    expect(source).toContain("Signature")
+  })
 })

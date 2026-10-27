@@ -27,6 +27,7 @@ import { Badge } from "@/components/ui/badge"
 import {
   Activity,
   BarChart3,
+  BookOpenCheck,
   Bot,
   Brain,
   Calendar,
@@ -146,6 +147,7 @@ export default function DashboardLayout({
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
   const isMobile = useMobile()
   const [searchFocused, setSearchFocused] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
   // null while the first read is in flight (or failed) so a badge never claims zero.
   const [newCounts, setNewCounts] = useState<Record<BadgeKey, number | null>>({ activity: null, chat: null })
 
@@ -267,6 +269,12 @@ export default function DashboardLayout({
           icon: <ShieldCheck className="h-5 w-5" />,
           href: "/dashboard/registers",
           active: pathname === "/dashboard/registers",
+        },
+        {
+          title: "Playbooks",
+          icon: <BookOpenCheck className="h-5 w-5" />,
+          href: "/dashboard/playbooks",
+          active: pathname === "/dashboard/playbooks" || pathname.startsWith("/dashboard/playbooks"),
         },
         {
           title: "Backlog",
@@ -547,7 +555,15 @@ export default function DashboardLayout({
             <Button variant="ghost" size="icon" className="lg:hidden" onClick={toggleMobileSidebar}>
               <Menu className="h-5 w-5" />
             </Button>
-            <div
+            <form
+              role="search"
+              onSubmit={(event) => {
+                event.preventDefault()
+                const target = searchQuery.trim()
+                router.push(
+                  target ? `/dashboard/playbooks?q=${encodeURIComponent(target)}` : "/dashboard/playbooks",
+                )
+              }}
               className={cn(
                 "relative flex items-center transition-all",
                 searchFocused ? "w-[180px] sm:w-[250px] md:w-[300px] lg:w-[400px]" : "w-[150px] sm:w-[200px] md:w-[250px] lg:w-[300px]",
@@ -556,12 +572,15 @@ export default function DashboardLayout({
               <Search className="absolute left-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 type="search"
-                placeholder="Search..."
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder="Search playbooks..."
+                aria-label="Search playbooks"
                 className="pl-9 h-9 bg-gray-50 dark:bg-gray-800 border-0 text-sm"
                 onFocus={() => setSearchFocused(true)}
                 onBlur={() => setSearchFocused(false)}
               />
-            </div>
+            </form>
           </div>
           <div className="flex items-center gap-2 sm:gap-2 md:gap-3">
             {!isMobile && <ThemeSwitch />}
