@@ -277,6 +277,12 @@ export default function DashboardLayout({
           active: pathname === "/dashboard/playbooks" || pathname.startsWith("/dashboard/playbooks"),
         },
         {
+          title: "Agent",
+          icon: <Bot className="h-5 w-5" />,
+          href: "/dashboard/agent",
+          active: pathname === "/dashboard/agent",
+        },
+        {
           title: "Backlog",
           icon: <Inbox className="h-5 w-5" />,
           href: "/dashboard/backlog",

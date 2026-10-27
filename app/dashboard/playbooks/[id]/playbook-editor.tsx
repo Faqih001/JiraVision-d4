@@ -15,6 +15,7 @@ import {
   ArrowUp,
   BookOpenCheck,
   Copy,
+  Loader2,
   Play,
   Plus,
   Printer,
@@ -32,6 +33,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
 import { SectionCard } from "@/components/dashboard-kit"
 import { useToast } from "@/hooks/use-toast"
+import type { PrecautionSuggestion } from "@/lib/agent/precautions"
 import { exportPlaybookPdf } from "@/lib/export/pdf"
 import {
   emptyStep,
@@ -186,6 +188,10 @@ export default function PlaybookEditor({ id }: { id: string }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [precautionIdeas, setPrecautionIdeas] = useState<PrecautionSuggestion[]>([])
+  const [precautionBusy, setPrecautionBusy] = useState(false)
+  const [precautionError, setPrecautionError] = useState<string | null>(null)
+  const [aiTouched, setAiTouched] = useState(false)
 
   const playbook = payload?.playbook ?? null
 
@@ -245,6 +251,51 @@ export default function PlaybookEditor({ id }: { id: string }) {
     setDraft((prev) => (prev ? { ...prev, steps: next } : prev))
   }, [])
 
+  const suggestPrecautions = useCallback(async () => {
+    if (!draft) return
+    const method = lines(draft.method)
+    const steps = draft.steps
+      .filter((step) => step.action.trim())
+      .map((step) => ({ phase: step.phase, action: step.action.trim() }))
+    if (steps.length === 0) {
+      setPrecautionError("Add at least one step with an action first.")
+      return
+    }
+    setPrecautionBusy(true)
+    setPrecautionError(null)
+    const result = await send(
+      "/api/agent/precautions",
+      jsonInit("POST", {
+        playbook: {
+          title: draft.title,
+          summary: draft.summary.trim() || null,
+          method,
+          steps,
+          existing: lines(draft.precautions),
+        },
+      }),
+    )
+    setPrecautionBusy(false)
+    if (result.error) {
+      setPrecautionError(result.error)
+      return
+    }
+    setPrecautionIdeas((result.json?.data?.suggestions ?? []) as PrecautionSuggestion[])
+  }, [draft])
+
+  const acceptPrecaution = useCallback(
+    (idea: PrecautionSuggestion) => {
+      if (!draft) return
+      const current = lines(draft.precautions)
+      const exists = current.some((line) => line.toLowerCase() === idea.text.toLowerCase())
+      const next = exists ? current : [...current, idea.text]
+      setDraft({ ...draft, precautions: next.join("\n") })
+      setAiTouched(true)
+      setPrecautionIdeas((ideas) => ideas.filter((entry) => entry.text !== idea.text))
+    },
+    [draft],
+  )
+
   const save = useCallback(async (): Promise<boolean> => {
     if (!playbook || !draft) return false
     const method = lines(draft.method)
@@ -286,6 +337,7 @@ export default function PlaybookEditor({ id }: { id: string }) {
         precautions: lines(draft.precautions),
         recommendations: lines(draft.recommendations),
         tags: tagsOf(draft.tags),
+        ...(aiTouched ? { aiMarked: true } : {}),
       }),
     )
     setBusy(false)
@@ -299,6 +351,7 @@ export default function PlaybookEditor({ id }: { id: string }) {
     if (updated) {
       setPayload((prev) => (prev ? { ...prev, playbook: updated } : prev))
       setDraft(fromRow(updated))
+      setAiTouched(false)
       toast({
         title: "Saved",
         description:
@@ -306,7 +359,7 @@ export default function PlaybookEditor({ id }: { id: string }) {
       })
     }
     return true
-  }, [draft, playbook, toast])
+  }, [draft, playbook, toast, aiTouched])
 
   const publish = useCallback(async () => {
     if (!playbook) return
@@ -791,6 +844,57 @@ export default function PlaybookEditor({ id }: { id: string }) {
       <div className="grid gap-4 lg:grid-cols-2">
         <SectionCard title="Precautions" icon={<AlertTriangle className="h-4 w-4" />}>
           <div className="space-y-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-xs text-muted-foreground">
+                Model advice stays marked on the printed sheet.
+              </span>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => void suggestPrecautions()}
+                disabled={precautionBusy || !draft.title.trim()}
+              >
+                {precautionBusy ? (
+                  <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                ) : (
+                  <Sparkles className="mr-2 h-3 w-3" />
+                )}
+                Suggest precautions
+              </Button>
+            </div>
+            {precautionError ? (
+              <p className="text-xs text-destructive" role="alert">
+                {precautionError}
+              </p>
+            ) : null}
+            {precautionIdeas.length > 0 ? (
+              <ul className="space-y-2">
+                {precautionIdeas.map((idea) => (
+                  <li key={idea.text} className="rounded-md border p-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="text-sm">{idea.text}</span>
+                      <Badge variant="secondary">AI suggestion</Badge>
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">{idea.why}</p>
+                    <div className="mt-2 flex gap-2">
+                      <Button size="sm" variant="outline" onClick={() => acceptPrecaution(idea)}>
+                        Add
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() =>
+                          setPrecautionIdeas((ideas) => ideas.filter((entry) => entry.text !== idea.text))
+                        }
+                      >
+                        Dismiss
+                      </Button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
             <Label htmlFor="pb-precautions" className="text-xs text-muted-foreground">
               One per line. These apply to the whole playbook.
             </Label>

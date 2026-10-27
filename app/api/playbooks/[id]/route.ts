@@ -90,7 +90,12 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     const update = {
       ...parsed.value,
       status: body.status !== undefined ? body.status : row.status,
-      aiMarked: contentEdited && row.source === "gemini" ? false : row.aiMarked,
+      aiMarked:
+        body.aiMarked === true
+          ? true
+          : contentEdited && row.source === "gemini"
+            ? false
+            : row.aiMarked,
       version: contentEdited && row.status === "published" ? row.version + 1 : row.version,
       updatedAt: new Date(),
     }
