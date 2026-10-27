@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
+import { readGrounding } from "@/lib/ai/gemini"
 
 const source = readFileSync(resolve("lib/ai/gemini.ts"), "utf8")
 
@@ -76,5 +77,43 @@ describe("the Gemini provider module", () => {
 
   it("exports resetModelCache for testing", () => {
     expect(source).toContain("export function resetModelCache")
+  })
+})
+
+describe("grounding support", () => {
+  it("opts into google_search only when asked", () => {
+    expect(source).toContain("googleSearch?: boolean")
+    expect(source).toContain("google_search")
+    expect(source).toMatch(/if \(req\.googleSearch\)/)
+  })
+
+  it("normalises grounding chunks into http(s) sources", () => {
+    expect(
+      readGrounding({
+        candidates: [
+          {
+            groundingMetadata: {
+              webSearchQueries: ["nestjs mentoring"],
+              groundingChunks: [
+                { web: { uri: "https://example.com/course/", title: "Course" } },
+                { web: { uri: "not-a-url", title: "Bad" } },
+                { web: { uri: "https://example.com/two#frag" } },
+              ],
+            },
+          },
+        ],
+      }),
+    ).toEqual({
+      queries: ["nestjs mentoring"],
+      sources: [
+        { url: "https://example.com/course", title: "Course" },
+        { url: "https://example.com/two", title: null },
+      ],
+    })
+  })
+
+  it("returns null when the answer carried no grounding", () => {
+    expect(readGrounding({ candidates: [{ content: { parts: [{ text: "x" }] } }] })).toBeNull()
+    expect(readGrounding(null)).toBeNull()
   })
 })

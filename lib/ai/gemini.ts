@@ -10,6 +10,43 @@ export type ContentPart = { text: string } | { inlineData: { mimeType: string; d
 
 export type JsonSchema = Record<string, unknown>
 
+export type GroundingSource = { url: string; title: string | null }
+export type Grounding = { queries: string[]; sources: GroundingSource[] }
+
+function normaliseSourceUrl(value: unknown): string | null {
+  if (typeof value !== "string") return null
+  try {
+    const url = new URL(value.trim())
+    if (url.protocol !== "https:" && url.protocol !== "http:") return null
+    url.hash = ""
+    return url.toString().replace(/\/$/, "")
+  } catch {
+    return null
+  }
+}
+
+/** The response's own grounding metadata, normalised; null when Google returned none. */
+export function readGrounding(json: unknown): Grounding | null {
+  const meta = (json as any)?.candidates?.[0]?.groundingMetadata
+  if (!meta || typeof meta !== "object") return null
+
+  const queries = Array.isArray(meta.webSearchQueries)
+    ? meta.webSearchQueries.filter((q: unknown): q is string => typeof q === "string")
+    : []
+
+  const sources: GroundingSource[] = []
+  const seen = new Set<string>()
+  for (const chunk of Array.isArray(meta.groundingChunks) ? meta.groundingChunks : []) {
+    const url = normaliseSourceUrl(chunk?.web?.uri)
+    if (!url || seen.has(url)) continue
+    seen.add(url)
+    sources.push({ url, title: typeof chunk?.web?.title === "string" ? chunk.web.title : null })
+  }
+
+  if (queries.length === 0 && sources.length === 0) return null
+  return { queries, sources }
+}
+
 export interface GeminiRequest {
   system?: string
   contents: ContentPart[]
@@ -17,6 +54,8 @@ export interface GeminiRequest {
   maxOutputTokens?: number
   temperature?: number
   timeoutMs?: number
+  /** Enable Google Search grounding. Only the career growth actions use this. */
+  googleSearch?: boolean
 }
 
 export interface TokenUsage {
@@ -86,7 +125,7 @@ function classifyError(status: number, body: string): GeminiErrorKind {
   return "transport"
 }
 
-export async function geminiText(req: GeminiRequest): Promise<{ text: string; usage: TokenUsage }> {
+export async function geminiText(req: GeminiRequest): Promise<{ text: string; usage: TokenUsage; grounding: Grounding | null }> {
   const model = await discoverModel()
   const apiKey = process.env.GOOGLE_GEMINI_API_KEY
   if (!apiKey) throw new GeminiError("auth", "GOOGLE_GEMINI_API_KEY is not set")
@@ -104,6 +143,7 @@ export async function geminiText(req: GeminiRequest): Promise<{ text: string; us
     }
 
     if (req.system) body.systemInstruction = { parts: [{ text: req.system }] }
+    if (req.googleSearch) body.tools = [{ google_search: {} }]
     if (req.maxOutputTokens) body.maxOutputTokens = req.maxOutputTokens
     if (req.temperature !== undefined) body.temperature = req.temperature
 
@@ -138,6 +178,7 @@ export async function geminiText(req: GeminiRequest): Promise<{ text: string; us
         completionTokens: usage.candidatesTokenCount ?? 0,
         totalTokens: usage.totalTokenCount ?? 0,
       },
+      grounding: readGrounding(json),
     }
   } catch (error) {
     clearTimeout(timeoutId)
@@ -150,7 +191,7 @@ export async function geminiText(req: GeminiRequest): Promise<{ text: string; us
 export async function geminiJson<T>(
   req: GeminiRequest,
   parse: (raw: unknown) => T,
-): Promise<{ data: T; usage: TokenUsage }> {
+): Promise<{ data: T; usage: TokenUsage; grounding: Grounding | null }> {
   if (!req.responseSchema) throw new GeminiError("badjson", "responseSchema is required for geminiJson")
 
   const model = await discoverModel()
@@ -176,6 +217,7 @@ export async function geminiJson<T>(
     }
 
     if (req.system) body.systemInstruction = { parts: [{ text: req.system }] }
+    if (req.googleSearch) body.tools = [{ google_search: {} }]
 
     const res = await fetch(`${GEMINI_API_BASE}/models/${model}:generateContent?key=${apiKey}`, {
       method: "POST",
@@ -216,6 +258,7 @@ export async function geminiJson<T>(
         completionTokens: usage.candidatesTokenCount ?? 0,
         totalTokens: usage.totalTokenCount ?? 0,
       },
+      grounding: readGrounding(json),
     }
   } catch (error) {
     clearTimeout(timeoutId)
