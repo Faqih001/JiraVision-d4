@@ -71,6 +71,9 @@ import {
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 import type { DashboardOverview } from "@/lib/dashboard-data"
+import type { OnboardingView } from "@/lib/onboarding/read"
+import { ONBOARDING_STEP_COUNT } from "@/lib/onboarding/state"
+import { DASHBOARD_SECTIONS, sectionLabel } from "@/lib/packs/types"
 import { DISCIPLINE_COLOUR } from "@/lib/roles"
 import { KIND_LABEL, formatMinutes } from "@/lib/worklog/entries"
 import { localDay } from "@/lib/worklog/local-day"
@@ -114,6 +117,15 @@ type OverviewTask = DashboardOverview["myTasks"][number]
 // string belongs to the Root, where it means "show the placeholder" — so the
 // backlog gets its own sentinel and is mapped to null at the API boundary.
 const BACKLOG = "backlog"
+
+const PACK_SECTION_HREF: Record<string, string> = {
+  today: "/dashboard",
+  registers: "/dashboard/registers",
+  tasks: "/dashboard",
+  worklog: "/dashboard/worklog",
+  reports: "/dashboard/reports-work",
+  career: "/dashboard/career",
+}
 
 /* ------------------------------------------------------------- today strip */
 
@@ -243,6 +255,10 @@ export default function DashboardHome() {
   // Overdue register checks are a count, not a list: the strip links to the queue and never
   // pretends "could not read" is zero.
   const [staleCount, setStaleCount] = useState<number | null>(null)
+  // Setup state only ever shows a door. A null here (failed read) renders nothing, and an
+  // in-progress setup renders a banner — never a redirect, so an existing member is never
+  // blocked by a route they cannot see.
+  const [onboarding, setOnboarding] = useState<OnboardingView | null>(null)
 
   // task view state
   const [view, setView] = useState<"grid" | "list">("grid")
@@ -264,11 +280,12 @@ export default function DashboardHome() {
     try {
       // Four in parallel, and the log and the register queue are fetches rather than follow-ups:
       // a slow summary route must not push the sprint data — or the stale count — behind it.
-      const [ovRes, spRes, todayRes, staleRes] = await Promise.all([
+      const [ovRes, spRes, todayRes, staleRes, onboardingRes] = await Promise.all([
         fetch("/api/dashboard/overview"),
         fetch("/api/sprints"),
         fetch("/api/worklog/summary?v=day"),
         fetch("/api/registers/stale"),
+        fetch("/api/onboarding").catch(() => null),
       ])
       const ovJson = await ovRes.json()
       if (!ovJson.success) throw new Error(ovJson.message ?? "Failed to load dashboard")
@@ -290,6 +307,9 @@ export default function DashboardHome() {
       setStaleCount(
         staleRes.ok && staleJson?.success ? (staleJson.data.stale as unknown[]).length : null,
       )
+      // A failed read leaves the banner out. Setup state never blocks the page it sits on.
+      const onboardingJson = onboardingRes ? await onboardingRes.json().catch(() => null) : null
+      setOnboarding(onboardingRes?.ok && onboardingJson?.success ? (onboardingJson.data as OnboardingView) : null)
     } catch (err) {
       toast({ variant: "destructive", title: "Dashboard", description: (err as Error).message })
       setToday(null)
@@ -583,6 +603,27 @@ export default function DashboardHome() {
         </div>
       </div>
 
+      {/* Setup resume door. Only an interrupted setup shows it; a completed or unimplemented
+          one renders nothing, and this is a link, never a redirect. */}
+      {onboarding && onboarding.status === "in_progress" ? (
+        <Card className="border-dashed">
+          <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-medium">Finish setting up your workspace</p>
+              <p className="text-xs text-muted-foreground">
+                You are on step {Math.min(onboarding.step + 1, ONBOARDING_STEP_COUNT)} of {ONBOARDING_STEP_COUNT}. Your
+                saved answers are waiting.
+              </p>
+            </div>
+            <Button size="sm" asChild>
+              <Link href="/onboarding">
+                Resume setup <ArrowRight className="ml-1 h-4 w-4" />
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+      ) : null}
+
       {/* 2 — KPI cards */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
         {[
@@ -837,6 +878,28 @@ export default function DashboardHome() {
           </CardContent>
         </Card>
       )}
+
+      {/* The resolved role pack orders the sections it names. Unknown keys render their raw
+          label rather than disappearing, and this is a strip of links — it does not move the
+          page around underneath anyone. */}
+      {onboarding?.pack ? (
+        <Card>
+          <CardContent className="flex flex-col gap-2 p-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+              <Sparkles className="h-3.5 w-3.5" /> {onboarding.pack.title} order
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {onboarding.pack.sections
+                .filter((key) => DASHBOARD_SECTIONS.some((section) => section.key === key))
+                .map((key) => (
+                  <Button key={key} asChild size="sm" variant="outline" className="h-7 px-2 text-xs">
+                    <Link href={PACK_SECTION_HREF[key] ?? "/dashboard"}>{sectionLabel(key)}</Link>
+                  </Button>
+                ))}
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
 
       {/* 20 — Today in the work log. It heads the analytics stack rather than the page: "what did
           I do today" outranks "how is the sprint trending", and the task table above it is the

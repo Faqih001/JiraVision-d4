@@ -55,6 +55,8 @@ import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 import { languages, allTimezones } from "@/lib/timezones"
 import type { DashboardOverview } from "@/lib/dashboard-data"
+import type { OnboardingView } from "@/lib/onboarding/read"
+import { ONBOARDING_STEP_COUNT } from "@/lib/onboarding/state"
 import { AvatarCircle, EmptyNote, SectionCard, relativeTime } from "@/components/dashboard-kit"
 
 /* ------------------------------------------------------------------ types */
@@ -164,6 +166,7 @@ export default function SettingsWorkspace() {
   const [overview, setOverview] = useState<DashboardOverview | null>(null)
   const [sprints, setSprints] = useState<SprintOption[]>([])
   const [settingsFeed, setSettingsFeed] = useState<NotificationItem[]>([])
+  const [onboarding, setOnboarding] = useState<OnboardingView | null>(null)
 
   const [resetOpen, setResetOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
@@ -178,12 +181,13 @@ export default function SettingsWorkspace() {
   const loadAll = useCallback(
     async ({ silent = false }: { silent?: boolean } = {}) => {
       if (!silent) setRefreshing(true)
-      const [pRes, sRes, oRes, nRes, spRes] = await Promise.all([
+      const [pRes, sRes, oRes, nRes, spRes, onboardingRes] = await Promise.all([
         fetch("/api/user/profile", { cache: "no-store" }),
         fetch("/api/settings", { cache: "no-store" }),
         fetch("/api/dashboard/overview", { cache: "no-store" }),
         fetch("/api/notifications?limit=50", { cache: "no-store" }),
         fetch("/api/sprints", { cache: "no-store" }),
+        fetch("/api/onboarding", { cache: "no-store" }).catch(() => null),
       ])
 
       if (pRes.status === 401) {
@@ -234,6 +238,11 @@ export default function SettingsWorkspace() {
         const data = await readJson(spRes)
         const rows = Array.isArray(data.data) ? (data.data as SprintOption[]) : []
         setSprints(rows.slice(0, 25))
+      }
+
+      if (onboardingRes?.ok) {
+        const data = await readJson(onboardingRes)
+        if (data.success) setOnboarding(data.data as OnboardingView)
       }
 
       setRefreshing(false)
@@ -719,6 +728,24 @@ export default function SettingsWorkspace() {
                   {savingProfile ? "Saving…" : "Save profile"}
                 </Button>
               </div>
+            </div>
+          </SectionCard>
+
+          {/* setup wizard re-entry */}
+          <SectionCard title="Setup wizard" icon={<ListChecks className="h-4 w-4 text-clay" />}>
+            <div className="space-y-3">
+              <p className="text-xs text-muted-foreground">
+                {onboarding?.status === "completed"
+                  ? "Complete. Every answer stays editable here, and the wizard can be re-read any time."
+                  : onboarding?.status === "in_progress"
+                    ? `In progress — step ${Math.min(onboarding.step + 1, ONBOARDING_STEP_COUNT)} of ${ONBOARDING_STEP_COUNT}.`
+                    : "Not started. Eight short steps: profile, workspace, industry, disciplines, preferences and a first project."}
+              </p>
+              <Button asChild size="sm" variant="outline">
+                <Link href="/onboarding">
+                  Open setup wizard <ArrowRight className="ml-1 h-3.5 w-3.5" />
+                </Link>
+              </Button>
             </div>
           </SectionCard>
 

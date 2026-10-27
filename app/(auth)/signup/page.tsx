@@ -39,7 +39,7 @@ export default function SignupPage() {
     try {
       const result = await signup(name, email, password, confirmPassword)
       if (result.success) {
-        router.push("/dashboard")
+        router.push("/onboarding")
       } else {
         setError(result.message || "Failed to create account")
       }

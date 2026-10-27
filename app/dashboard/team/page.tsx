@@ -23,7 +23,10 @@ import {
   ArrowUp,
   BarChart3,
   Bell,
+  Check,
+  Copy,
   Heart,
+  Link2,
   LayoutGrid,
   List,
   Mail,
@@ -233,6 +236,15 @@ export default function TeamWorkspace() {
   const [confirmRow, setConfirmRow] = useState<TeamRow | null>(null)
   const [removing, setRemoving] = useState(false)
 
+  // Invite-by-link: the token is shown once, here, and only its digest is stored.
+  const [inviteOpen, setInviteOpen] = useState(false)
+  const [inviteEmail, setInviteEmail] = useState("")
+  const [inviteRole, setInviteRole] = useState<"user" | "admin">("user")
+  const [inviteBusy, setInviteBusy] = useState(false)
+  const [inviteError, setInviteError] = useState("")
+  const [inviteResult, setInviteResult] = useState<{ email: string; role: string; inviteUrl: string; expiresAt: string } | null>(null)
+  const [inviteCopied, setInviteCopied] = useState(false)
+
   /* ---- load ---- */
 
   const load = useCallback(async (silent = false) => {
@@ -375,6 +387,50 @@ export default function TeamWorkspace() {
   const openAdd = () => {
     setDraft(emptyDraft())
     setFormOpen(true)
+  }
+
+  const openInvite = () => {
+    setInviteEmail("")
+    setInviteRole("user")
+    setInviteError("")
+    setInviteResult(null)
+    setInviteCopied(false)
+    setInviteOpen(true)
+  }
+
+  const sendInvite = async () => {
+    setInviteBusy(true)
+    setInviteError("")
+    try {
+      const res = await fetch("/api/team/invitations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: inviteEmail.trim(), role: inviteRole }),
+      })
+      const json = await res.json().catch(() => null)
+      if (!res.ok || !json?.success) throw new Error(json?.error ?? "Could not create the invitation.")
+      setInviteResult({
+        email: json.data.email,
+        role: json.data.role,
+        inviteUrl: json.data.inviteUrl,
+        expiresAt: json.data.expiresAt,
+      })
+    } catch (err) {
+      setInviteError((err as Error).message)
+    } finally {
+      setInviteBusy(false)
+    }
+  }
+
+  const copyInvite = async () => {
+    if (!inviteResult) return
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}${inviteResult.inviteUrl}`)
+      setInviteCopied(true)
+      window.setTimeout(() => setInviteCopied(false), 2000)
+    } catch {
+      setInviteError("Copy failed — select the link and copy it manually.")
+    }
   }
 
   const openEdit = (m: TeamRow) => {
@@ -557,6 +613,12 @@ export default function TeamWorkspace() {
             <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
             <span>Refresh</span>
           </Button>
+          {["admin", "superadmin"].includes((overview?.user.role ?? "").toLowerCase()) ? (
+            <Button variant="outline" size="sm" className="gap-1" onClick={openInvite}>
+              <Link2 className="h-4 w-4" />
+              <span>Invite by link</span>
+            </Button>
+          ) : null}
           <Button size="sm" className="gap-1" onClick={openAdd}>
             <UserPlus className="h-4 w-4" />
             <span>Add Member</span>
@@ -1226,6 +1288,79 @@ export default function TeamWorkspace() {
             <Button variant="destructive" onClick={removeMember} disabled={removing}>
               {removing ? "Removing…" : "Remove member"}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Invite by link — the token exists in this dialog once and is stored only as a digest. */}
+      <Dialog open={inviteOpen} onOpenChange={(open) => !open && setInviteOpen(false)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Invite by link</DialogTitle>
+            <DialogDescription>
+              Creates a single-use invitation bound to one email address. It expires in seven days, and the link is
+              shown once — copy it now.
+            </DialogDescription>
+          </DialogHeader>
+
+          {inviteResult ? (
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <Label htmlFor="invite-url">Invitation link</Label>
+                <Input id="invite-url" value={`${typeof window === "undefined" ? "" : window.location.origin}${inviteResult.inviteUrl}`} readOnly onFocus={(e) => e.currentTarget.select()} />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                For {inviteResult.email} · role {inviteResult.role} · expires{" "}
+                {new Date(inviteResult.expiresAt).toLocaleDateString()}
+              </p>
+              <Button type="button" variant="outline" size="sm" className="gap-1" onClick={() => void copyInvite()}>
+                {inviteCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                {inviteCopied ? "Copied" : "Copy link"}
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <Label htmlFor="invite-email">Email address</Label>
+                <Input
+                  id="invite-email"
+                  type="email"
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                  placeholder="ada@example.com"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="invite-role">Role</Label>
+                <Select value={inviteRole} onValueChange={(v) => setInviteRole(v === "admin" ? "admin" : "user")}>
+                  <SelectTrigger id="invite-role">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="user">Member</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-[11px] text-muted-foreground">Super-admin access is never granted by invitation.</p>
+              </div>
+            </div>
+          )}
+
+          {inviteError ? (
+            <p role="alert" className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              {inviteError}
+            </p>
+          ) : null}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setInviteOpen(false)}>
+              {inviteResult ? "Done" : "Cancel"}
+            </Button>
+            {inviteResult ? null : (
+              <Button onClick={() => void sendInvite()} disabled={inviteBusy || !inviteEmail.trim()}>
+                {inviteBusy ? "Creating…" : "Create invitation"}
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

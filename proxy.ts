@@ -16,7 +16,7 @@ export function proxy(request: NextRequest) {
   // Define protected routes - exclude team page in development
   const isDevelopment = process.env.NODE_ENV === 'development'
   const isTeamPage = path.startsWith("/dashboard/team")
-  const isProtectedRoute = path.startsWith("/dashboard") && 
+  const isProtectedRoute = (path.startsWith("/dashboard") || path.startsWith("/onboarding")) &&
                          !(isDevelopment && isTeamPage) // Skip auth for team page in dev
 
   // Define authentication routes
@@ -37,5 +37,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/login", "/signup", "/forgot-password", "/reset-password"],
+  matcher: ["/dashboard/:path*", "/onboarding/:path*", "/login", "/signup", "/forgot-password", "/reset-password"],
 }
