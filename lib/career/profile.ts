@@ -277,6 +277,7 @@ export async function loadCareerProfile({
       : null,
     next: nextRow
       ? {
+          id: nextRow.id,
           level: nextRow.level,
           title: nextRow.title,
           summary: nextRow.summary,
