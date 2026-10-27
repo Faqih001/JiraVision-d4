@@ -6149,7 +6149,7 @@ describe("the metrics card", () => {
     // A count metric's value already *is* its row count, so repeating it under the number is noise;
     // a sum (minutes, story points) is the one case where the row count is information.
     expect(sectionsFile()).toMatch(/if \(!isSumMetric\(key\)\) return undefined/u)
-    expect(sectionsFile()).toMatch(/\) \? "row" : "rows"/u)
+    expect(sectionsFile()).toMatch(/\? "row" : "rows"/u)
   })
 
   it("draws each chart the template asks for, in the unit the module declares", () => {

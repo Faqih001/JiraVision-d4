@@ -4,6 +4,7 @@
 // already counted, and the period it labels comes from the Period object the caller resolved.
 
 import {
+  BarChart3,
   CalendarClock,
   CalendarRange,
   CheckCircle2,
@@ -20,6 +21,15 @@ import {
   ShieldAlert,
 } from "lucide-react"
 import Link from "next/link"
+import {
+  Bar,
+  BarChart,
+  Cell,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -33,7 +43,14 @@ import {
 } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { EmptyNote, SectionCard } from "@/components/dashboard-kit"
-import type { ReportAggregate, ReportRow } from "@/lib/reports/aggregate"
+import {
+  isSumMetric,
+  type Count,
+  type MetricKey,
+  type ReportAggregate,
+  type ReportRow,
+} from "@/lib/reports/aggregate"
+import { CHART_UNIT, type ChartDatum, chartRows } from "@/lib/reports/charts"
 import {
   PERIOD_LABEL,
   PERIOD_TYPES,
@@ -53,14 +70,21 @@ import {
 } from "@/lib/reports/row-sections"
 import { MAX_REPORT_TITLE, type ReportDto } from "@/lib/reports/report-fields"
 import {
+  CHART_LABEL,
+  formatMetricValue,
   MAX_SECTION_TEXT,
+  METRIC_LABEL,
   REPORT_TEMPLATES,
   SECTION_TITLE,
+  TEMPLATE_CHARTS,
   TEMPLATE_LABEL,
+  TEMPLATE_METRICS,
+  type ChartKey,
   type ReportSectionKey,
   type ReportTemplate,
 } from "@/lib/reports/templates"
 import { AUTO_TEMPLATE, type ReportState, type TemplateChoice } from "@/lib/reports/view-state"
+import { formatMinutes } from "@/lib/worklog/entries"
 
 export function ReportsSkeleton() {
   return (
@@ -580,6 +604,134 @@ export function RowSection({
           </p>
         )}
         <CommentField section={section} value={comment} onChange={onComment} />
+      </div>
+    </SectionCard>
+  )
+}
+
+/** The word the tooltip and the drill-down use beside each number. Both count charts count tasks. */
+const UNIT_NOUN: Record<"time" | "count", string> = { time: "time", count: "tasks" }
+
+/**
+ * A tile's second line. For a count metric the value already *is* the row count, so a hint of
+ * "6 rows" under "6" is noise; for a sum — minutes, story points — the row count is the only way
+ * to show that a big total came from a small number of rows. A zero says what it means in words.
+ */
+function metricHint(key: MetricKey, count: Count): string | undefined {
+  if (count.value === 0) return "Nothing in this period"
+  if (!isSumMetric(key)) return undefined
+  return `from ${count.refs.length} ${count.refs.length === 1 ? "row" : "rows"}`
+}
+
+/**
+ * One horizontal-bar chart. Horizontal on purpose: the labels are discipline and status names, not
+ * dates, and the work log already draws its splits this way — the same measure, the same token
+ * colours, the same tooltip shape on both pages. The height grows with the rows so a yearly series
+ * of twelve buckets never overlaps itself.
+ */
+export function ChartBlock({ chart, data }: { chart: ChartKey; data: ChartDatum[] }) {
+  const unit = CHART_UNIT[chart]
+  return (
+    <div className="space-y-1.5">
+      <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+        {CHART_LABEL[chart]}
+      </p>
+      {data.length === 0 ? (
+        <EmptyNote>Nothing in this period to split this way.</EmptyNote>
+      ) : (
+        <>
+          <ResponsiveContainer width="100%" height={Math.max(120, data.length * 26)}>
+            <BarChart data={data} layout="vertical" margin={{ left: 8, right: 12 }}>
+              <XAxis type="number" hide />
+              <YAxis type="category" dataKey="label" width={110} tick={{ fontSize: 11 }} />
+              <Tooltip
+                formatter={(value) => [
+                  unit === "time" ? formatMinutes(Number(value)) : String(value),
+                  UNIT_NOUN[unit],
+                ]}
+                contentStyle={{
+                  background: "hsl(var(--popover))",
+                  border: "1px solid hsl(var(--border))",
+                  fontSize: 11,
+                }}
+              />
+              <Bar dataKey="value" name={UNIT_NOUN[unit]} radius={[0, 3, 3, 0]}>
+                {data.map((cell) => (
+                  <Cell key={cell.key} fill={cell.fill} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+          {/* The row cards put their ids behind the count button; a chart has no button, so the
+              same disclosure lives under the bars — §6's "where does 14 come from?" answered
+              without leaving the page. */}
+          <details className="text-[11px]">
+            <summary className="cursor-pointer list-none text-muted-foreground hover:text-foreground">
+              Which rows make these bars?
+            </summary>
+            <ul className="mt-1 space-y-1.5">
+              {data.map((datum) => (
+                <li key={datum.key}>
+                  <p className="tabular-nums">
+                    {datum.label} — {datum.display}
+                  </p>
+                  <p className="font-mono text-[10px] text-muted-foreground">
+                    {datum.refs.join(" · ")}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          </details>
+        </>
+      )}
+    </div>
+  )
+}
+
+/**
+ * The figures the author did not type. `sourceLabel` is on this card rather than only in the
+ * toolbar because this is the card a recipient argues with, and "these are the numbers as saved on
+ * 26 October" is the answer.
+ */
+export function MetricsSection({
+  template,
+  aggregate,
+  sourceLabel,
+}: {
+  template: ReportTemplate
+  aggregate: ReportAggregate | null
+  sourceLabel: string
+}) {
+  const metrics = aggregate?.metrics
+  return (
+    <SectionCard
+      title={SECTION_TITLE.metrics}
+      icon={<BarChart3 className="h-4 w-4" />}
+      className="md:col-span-2 xl:col-span-3"
+    >
+      <div className="space-y-4">
+        <p className="text-[11px] text-muted-foreground">{sourceLabel}</p>
+        <div className="grid gap-2 sm:grid-cols-3 xl:grid-cols-6">
+          {TEMPLATE_METRICS[template].map((key) => (
+            <Stat
+              key={key}
+              label={METRIC_LABEL[key]}
+              value={metrics ? formatMetricValue(key, metrics[key]) : "—"}
+              hint={metrics ? metricHint(key, metrics[key]) : undefined}
+            />
+          ))}
+        </div>
+        {aggregate === null ? (
+          <EmptyNote>
+            The charts read the same figures, so they appear once the period has resolved.
+          </EmptyNote>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2">
+            {TEMPLATE_CHARTS[template].map((chart) => (
+              <ChartBlock key={chart} chart={chart} data={chartRows(aggregate, chart)} />
+            ))}
+          </div>
+        )}
       </div>
     </SectionCard>
   )

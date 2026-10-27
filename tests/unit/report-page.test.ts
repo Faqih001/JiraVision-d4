@@ -1,7 +1,14 @@
 import { describe, expect, it } from "vitest"
 import { readFileSync } from "node:fs"
 import path from "node:path"
+import { CHART_UNIT } from "@/lib/reports/charts"
 import { ROW_SECTIONS } from "@/lib/reports/row-sections"
+import {
+  CHART_KEYS,
+  REPORT_TEMPLATES,
+  TEMPLATE_CHARTS,
+  TEMPLATE_METRICS,
+} from "@/lib/reports/templates"
 
 const repo = path.resolve(__dirname, "..", "..")
 const src = (relative: string) => readFileSync(path.join(repo, relative), "utf8")
@@ -143,5 +150,63 @@ describe("the six computed row cards", () => {
     expect(codeOnly(sectionsFile())).not.toMatch(
       /dashboard\/planner|dashboard\/tasks\/\$\{|dashboard\/deliverables/u,
     )
+  })
+})
+
+describe("the metrics card", () => {
+  it("completes the build view with the last two sections", () => {
+    expect(client()).toMatch(/metrics: \(\n\s+<MetricsSection/u)
+    expect(client()).toMatch(/notes: \(\n\s+<ProseSection\s+key="notes"/u)
+    // Nothing shipped still waits on a later task.
+    expect(client()).not.toMatch(/Tasks 1[0-9] add/u)
+  })
+
+  it("takes the strip from the template and the numbers from the aggregate", () => {
+    expect(sectionsFile()).toMatch(/TEMPLATE_METRICS\[template\]\.map/u)
+    expect(sectionsFile()).toMatch(/formatMetricValue\(key, metrics\[key\]\)/u)
+    // One home for the arithmetic: the card renders the metrics it is handed.
+    expect(codeOnly(sectionsFile())).not.toMatch(/\.reduce\(|aggregateReport\(/u)
+  })
+
+  it("separates a total from a count, and says so when the period was quiet", () => {
+    expect(sectionsFile()).toMatch(/if \(count\.value === 0\) return "Nothing in this period"/u)
+    // A count metric's value already *is* its row count, so repeating it under the number is noise;
+    // a sum (minutes, story points) is the one case where the row count is information.
+    expect(sectionsFile()).toMatch(/if \(!isSumMetric\(key\)\) return undefined/u)
+    expect(sectionsFile()).toMatch(/\? "row" : "rows"/u)
+  })
+
+  it("draws each chart the template asks for, in the unit the module declares", () => {
+    expect(sectionsFile()).toMatch(/TEMPLATE_CHARTS\[template\]\.map/u)
+    expect(sectionsFile()).toMatch(/chartRows\(aggregate, chart\)/u)
+    expect(sectionsFile()).toMatch(/const unit = CHART_UNIT\[chart\]/u)
+    expect(sectionsFile()).toMatch(
+      /unit === "time" \? formatMinutes\(Number\(value\)\) : String\(value\)/u,
+    )
+    expect(sectionsFile()).toMatch(/dataKey="value"/u)
+    expect(sectionsFile()).toMatch(/fill=\{cell\.fill\}/u)
+    // The strip and the charts both follow the template, so no template can lose its own figures.
+    for (const template of REPORT_TEMPLATES) {
+      expect(TEMPLATE_METRICS[template].length).toBeGreaterThan(0)
+      expect(TEMPLATE_CHARTS[template].length).toBeGreaterThan(0)
+    }
+    // Every chart in the vocabulary has a declared measure, so a new ChartKey cannot draw a
+    // tooltip with an undefined unit word.
+    for (const chart of CHART_KEYS) expect(CHART_UNIT[chart]).toBeTruthy()
+  })
+
+  it("prints the ids behind a bar under one disclosure, like the row cards", () => {
+    expect(sectionsFile()).toMatch(/<details/u)
+    expect(sectionsFile()).toMatch(/\{datum\.refs\.join\(" · "\)\}/u)
+    expect(sectionsFile()).toMatch(/\{datum\.label\} — \{datum\.display\}/u)
+    expect(sectionsFile()).toMatch(/Which rows make these bars\?/u)
+  })
+
+  it("keeps the server-owned card free of a text box and names the source of its numbers", () => {
+    // `metrics` is a server section: readContent refuses prose for it, so an editor here would be
+    // a field that can be typed into and never saved.
+    expect(codeOnly(sectionsFile())).not.toMatch(/<ProseSection section="metrics"/u)
+    // Only the two computed cards state where their figures came from, and both of them must.
+    expect(client().match(/sourceLabel=\{SOURCE_LABEL\[source\]\}/gu)).toHaveLength(2)
   })
 })

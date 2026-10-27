@@ -35,13 +35,13 @@ import {
 import { ConfirmReportDelete, NewReportDialog, type NewReportDraft } from "./dialogs"
 import {
   HeaderSection,
+  MetricsSection,
   MyReportsSection,
   PeriodSection,
   ProseSection,
   ReportsSkeleton,
   RowSection,
 } from "./sections"
-
 /** The three work-report endpoints share the `{ success, data | message }` envelope. */
 async function readJson(res: Response): Promise<any> {
   return res.json().catch(() => null)
@@ -357,7 +357,24 @@ export default function ReportsClient() {
     blocked: row("blocked"),
     overdue: row("overdue"),
     nextPeriod: row("nextPeriod"),
-    // Task 16 adds the metrics and notes cards.
+    metrics: (
+      <MetricsSection
+        key="metrics"
+        template={templateChoice}
+        aggregate={aggregate}
+        sourceLabel={SOURCE_LABEL[source]}
+      />
+    ),
+    notes: (
+      <ProseSection
+        key="notes"
+        section="notes"
+        value={prose.notes ?? ""}
+        rows={8}
+        hint="Capacity, tooling, a decision you need from the reader — anything you would say if they asked."
+        onChange={(value) => setProse((prev) => ({ ...prev, notes: value }))}
+      />
+    ),
   }
 
   if (loading && !aggregate && reports.length === 0) return <ReportsSkeleton />
