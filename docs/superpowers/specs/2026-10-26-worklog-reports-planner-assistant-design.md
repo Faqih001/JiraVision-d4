@@ -965,7 +965,7 @@ Each phase is a reviewable, green, committed, pushed unit. Pushing auto-deploys 
     `scripts/rollback-registers-tables.mjs` refuses without `REGISTERS_ROLLBACK=yes`; the migration ran
     against production Neon on 2026-10-27 with the owner's approval and verified 2 tables, 2 pack rows and
     0 register rows. Suite at the end of this phase: 92 files / 1559 tests.
-16. **Playbooks** *(shipped 2026-10-27; the additive migration is its own approved checkpoint)* — `playbooks`
+16. **Playbooks** *(shipped 2026-10-27; migration ran the same day with per-action approval)* — `playbooks`
     table plus the `work_log_entries.playbook_id` foreign key this document deferred from §13, the six-step method
     module, the manual step editor with reorder/clone, palette search, run mode writing one log row per phase, and
     the printable fourth PDF layout with signature boxes. No AI surface: the owner types their own procedure, and
@@ -984,7 +984,11 @@ Each phase is a reviewable, green, committed, pushed unit. Pushing auto-deploys 
     `work_log_entries` row per **method phase** carrying `playbook_id` and `playbook_version`, on the session's
     local day unless a valid past `workedOn` is supplied, and never writes `tasks`. The printed sheet prints one
     page per phase with a performed-by/signature/date block and says plainly when the prose is still a model draft.
-    Suite at the end of this phase: 97 files / 1647 tests.
+    `scripts/create-playbooks-tables.mjs` ran against production Neon on 2026-10-27 with the owner's per-action
+    approval and verified one table (20 columns, 3 indexes), the `work_log_entries_playbook_id_fk` foreign key as
+    `ON DELETE SET NULL`, 0 playbook rows and an unchanged `work_log_entries`. The script's raw-TCP path timed out
+    from this machine, so its own DDL was applied over `@neondatabase/serverless` (HTTPS) unchanged; no rows were
+    seeded and the rollback was not invoked. Suite at the end of this phase: 97 files / 1647 tests.
 17. **Onboarding** — `/onboarding` as §12.7's eight adaptive steps, writing `preferences.settings.onboarding`
     through the existing `/api/settings` merge and profile fields through `/api/user/profile` — **no new `users`
     columns and no migration** — per-step persistence with resume, a grandfathered and never-reset existing member,

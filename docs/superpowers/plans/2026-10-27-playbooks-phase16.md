@@ -839,6 +839,23 @@ git push origin main
 
 ---
 
+## Result
+
+**Commits:** `fa5dc34` (schema + FK), `d95fc41` (method and rules), `ee82424` (routes), `f56765c` (library, editor, run sheet, print), `16cf672` (model-draft disclosure and run guards), `79ad393` (docs).
+
+**Gates:** 97 test files / 1647 tests passing. `tsc --noEmit` 0 errors. Lint: 1 error, the known `components/planner/gantt.tsx:43` baseline, plus the 73-warning baseline. Build succeeds with all seven `/api/playbooks` route files.
+
+**Migration, run 2026-10-27 with the owner's per-action approval.** Verified read-only immediately after:
+
+- `playbooks` exists with **20 columns** (all the planned ones; `author_id`, `discipline`, `summary`, `scope_kind`, `last_verified_at` and `verify_interval_days` nullable, the rest `NOT NULL` or defaulted).
+- Three indexes: `playbooks_pkey`, `playbooks_pack_status_idx`, `playbooks_author_idx`.
+- `work_log_entries_playbook_id_fk` = `FOREIGN KEY (playbook_id) REFERENCES playbooks(id) ON DELETE SET NULL` (`confdeltype: "n"`), and `work_log_entries.playbook_id` is present.
+- Row counts unchanged: `playbooks` 0 (the owner authors their own SOPs), `work_log_entries` 0.
+
+**Deviation, recorded deliberately:** `npm run db:playbooks` failed three times with `read ETIMEDOUT` — the raw-TCP `postgres` client connects (a plain `net.connect` succeeds in ~1.4 s) but the protocol read hangs from this machine, while `@neondatabase/serverless` over HTTPS answers in ~2.5 s. The DDL that was applied is the script's own `CREATE_SQL` verbatim, with the `${FK_NAME}` template placeholder substituted, each statement sent separately over the HTTPS driver. Nothing outside that string ran: no seed rows, no drops, no rewrites, and the rollback script was not invoked. The npm script itself remains the documented path and should be re-run on a network where TCP works, where it is a no-op.
+
+---
+
 ## Self-review notes
 
 - Spec coverage: table (§13) → Task 1; six-step method, step arrays, phase membership, run logging, gemini publish gate (§12.5, §15) → Task 2; visibility (§14) and routes → Task 3; editor/reorder/clone, palette, run mode, fourth PDF layout (§12.5, §16) → Task 4; docs/guards → Task 5; migration approval → Task 6.
