@@ -792,3 +792,21 @@ export const playbooks = pgTable(
     index("playbooks_author_idx").on(table.authorId),
   ],
 )
+
+// Phase 17: joining a workspace is a token, not an admin typing an email at the roster.
+// Only the SHA-256 digest is stored; the raw token is shown to the inviter exactly once.
+export const workspaceInvitations = pgTable(
+  "workspace_invitations",
+  {
+    id: serial("id").primaryKey(),
+    email: varchar("email", { length: 255 }).notNull(),
+    tokenHash: text("token_hash").notNull().unique(),
+    role: varchar("role", { length: 32 }).notNull().default("user"),
+    invitedBy: integer("invited_by").references(() => users.id, { onDelete: "set null" }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+    acceptedBy: integer("accepted_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [index("workspace_invitations_email_idx").on(table.email)],
+)

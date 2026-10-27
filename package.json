@@ -23,6 +23,8 @@
     "db:registers:rollback": "node scripts/rollback-registers-tables.mjs",
     "db:playbooks": "node scripts/create-playbooks-tables.mjs",
     "db:playbooks:rollback": "node scripts/rollback-playbooks-tables.mjs",
+    "db:invitations": "node scripts/create-invitations-table.mjs",
+    "db:invitations:rollback": "node scripts/rollback-invitations-table.mjs",
     "db:apply": "node -r dotenv/config ./drizzle/apply-schema.js",
     "db:fix": "node -r dotenv/config ./drizzle/create-missing-tables.js",
     "db:seed": "node -r dotenv/config ./drizzle/add-sample-data.js",
