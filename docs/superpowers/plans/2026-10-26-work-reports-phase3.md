@@ -6541,7 +6541,7 @@ describe("the finished phase 3", () => {
     const spec = src(
       "docs/superpowers/specs/2026-10-26-worklog-reports-planner-assistant-design.md",
     )
-    expect(spec).toMatch(/3\. \*\*Reports\*\* \*\(shipped 2026-10-26\)\*\*/u)
+    expect(spec).toMatch(/3\. \*\*Reports\*\* \*\(shipped 2026-10-26\)\*/u)
     // The three sentences that pointed at this phase as future work are gone.
     expect(src("FEATURES.md")).not.toMatch(/"Group into report draft" \(phase 3\)/u)
     expect(src("PLACEHOLDERS.md")).not.toMatch(/No "Group into report draft" in the bulk bar/u)
@@ -6689,7 +6689,7 @@ Correct the stale row. `PLACEHOLDERS.md:92` currently reads:
 to:
 
 ```
-| No "Group into report draft" in the bulk bar | by design since phase 3: a report is a *period*, aggregated from every row the author can see, so a ticked-selection draft would be a second definition of the same week |
+| No report action in the bulk bar | by design since phase 3: a report is a *period*, aggregated from every row the author can see, so a ticked-selection draft would be a second definition of the same week |
 ```
 
 Then append:
@@ -6820,3 +6820,90 @@ renamed export, a caption whose wording changed, a guard that had to be re-cut, 
 that is not corrected after execution is a trap for the next reader.
 
 ---
+
+## As shipped (2026-10-26 – 2026-10-27)
+
+Every place the code ended up different from what the steps above said. A plan that is not corrected after
+execution is a trap for the next reader.
+
+**Tasks 1–5 (pure modules)**
+- Task 2: the `quietDays` fixture is pinned to `todayIso: "2026-10-25"`; the plan's fixture assumed a fixed
+  "today" the pure function does not own.
+- Task 5: `customFrom` / `customTo` fall back to today / `from`, not the plan's pair, which contradicted
+  `resolvePeriod("custom", …)`'s own bounds rule.
+- `MAX_SECTION_TEXT` is re-exported from `lib/reports/report-fields.ts` so the client keeps one import surface.
+- `report-fields.test.ts` has 24 tests, not the 25 the plan predicted.
+
+**Task 6 (`_shared.ts`)**
+- `notFound()` did not exist in `app/api/reports/_shared.ts`; it was added there (mirroring
+  `app/api/worklog/_shared.ts`) because this phase's shared module imports it.
+- Every planned `_shared` import path had one `../` too many (T7–T10); corrected to `"./_shared"`,
+  `"../_shared"`, `"../_shared"`, `"../../_shared"`.
+- `reportDeliverableRead` selects a literal `null` as `entryCount` (typed `sql<number | null>`) instead of a
+  correlated subquery: a report lists at most 500 deliverables and the aggregate never reads the count.
+
+**Task 7 (list + create)**
+- `tests/unit/schema-safety.test.ts`'s `authGated` alternation gained `reportSession`, the same treatment it gives
+  `worklogSession`; without it the new route read as an anonymous schema leak.
+- The LIKE-wildcard guard `/replace\(\/\[\\\\%_\]/u` could never match the shipped `.replace(/[\\%_]/…)`;
+  re-cut, and an inline `//` comment moved off the guarded line.
+
+**Task 10 (recompute)**
+- The guard asserted `set.metrics = aggregate` while the planned code used an object literal; used the plan's
+  pre-authorised fallback `/\.set\(\{ metrics: aggregate/u` and inlined `.set({ metrics: aggregate, updatedAt: new Date() })`.
+- `storedPeriod`'s parameter is named `existing` to satisfy `/resolvePeriod\("custom", existing\.periodStart/u`.
+
+**Task 11 (page shell)**
+- `SOURCE_LABEL.live` is "Live preview — not saved yet", so the plan's `toContain("live")` could not match; the
+  test asserts `SOURCE_LABEL.live.toLowerCase()).toContain("live")` and the copy stayed.
+- The Suspense guard needed its brace escaped: `/<Suspense fallback=\{<ReportsSkeleton \/>\}/u` is an invalid
+  `u`-flag pattern otherwise.
+- A `type ReportTemplate` import and an `as ReportTemplate` cast dropped from `sections.tsx`: unused, and lint
+  warning 71 breaks the 70-warning baseline.
+
+**Task 12 (header, summary, write path)**
+- Two guards could not match shipped code and were re-cut: `/nothing to save/u` vs the toast title "Nothing to
+  save", and the double-quoted `/recompute", { method: "POST" }` against the template literal. The
+  `if (!report) {` / `if (!report) return` pair now asserts both the braced refusal-with-toast in `saveDraft` and
+  the silent one in `recompute`.
+- `ReportContent` is exported from `lib/reports/templates.ts`, not `report-fields.ts` as Task 12's import list
+  implied (TS2459).
+- The prose-dirty join is `const PROSE_JOINER = String.fromCharCode(0)`, not a literal `"\u0000"`: the raw NUL
+  escape cannot be carried through the edit tools; same behaviour, named constant.
+- `templateChoice` is declared above the write callbacks. The plan put it below `saveDraft`, whose dependency
+  array would have read it in its temporal dead zone.
+- `NewReportDialog` is mounted only while open. Kept mounted, its first-render `useState` defaults go stale and a
+  stale period type is refused by the create route's "period implied by periodType" check.
+- `createDraft` re-resolves the span when the dialog's period type differs from the builder's, and patches
+  `periodType` into the URL state — so the dialog's select is a real control rather than a way to trigger a 400.
+- The sections block's comment is `{/* … */}`: a `//` child of the grid is `react/jsx-no-comment-textnodes`, a
+  lint error.
+
+**Task 13 (`row-sections.ts`)**
+- 19 tests, not the 16 the step predicted — the step's own list holds 3+5+4+3+4 examples.
+- The test drops an unused `type ReportAggregate` import (lint warning 71 again).
+- `rowsCaption` reads `aggregate.period.start/end` rather than taking a `Period` argument, so a caption cannot be
+  measured against a different edge than the number it explains.
+
+**Task 14 (the six row cards)**
+- Shipped as planned; no guard needed re-cutting. Suite after it: 44 files / 885 tests (commit `c224a16`).
+
+**Task 15 (charts, formatting — `4596e47`)**
+- `lib/reports/charts.ts` does not import `TASK_BUCKET_LABEL`: the step's file imported it and never used it.
+- `type Count` was not added to the `report-templates.test.ts` import; the three shipped tests never name it.
+
+**Task 16 (metrics card — `ae1a395`)**
+- Guard re-cut: `/\) \? "row" : "rows"/u` → `/\? "row" : "rows"/u`. `metricHint` writes
+  `count.refs.length === 1 ? "row" : "rows"`, which ends in `1`, not `)`.
+- The recharts `Tooltip` formatter takes `(value)` and names the series from `UNIT_NOUN[unit]` rather than
+  `String(name)`, whose type is `NameType | undefined` and could print "undefined".
+
+**Task 17 (this commit)**
+- Guard re-cut: the shipped marker is `/3\. \*\*Reports\*\* \*\(shipped 2026-10-26\)\*/u` (one closing asterisk).
+  The step's regex expected `)**`, which contradicts both its own snippet and §16 items 1–2.
+- `PLACEHOLDERS.md`'s stale row is `| No report action in the bulk bar | … |`: the sweep forbids the old phrase
+  `No "Group into report draft" in the bulk bar`, which the step's replacement block kept in the left column.
+- Two doc claims were corrected against the code while writing: the completed caption is
+  "No task reached a done status in this period." (`EMPTY_CAPTION`), and `reportColumns` lives in
+  `app/api/reports/work/_shared.ts`, not `report-fields.ts`.
+- Final gates: typecheck 0 errors; lint 0 errors / 70 warnings; **45 test files / 912 tests**.

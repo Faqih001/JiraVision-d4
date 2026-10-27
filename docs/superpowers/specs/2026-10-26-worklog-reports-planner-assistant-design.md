@@ -188,7 +188,10 @@ Export is CSV, produced client-side from the current selection
 bar, so an export is always a deliberate act over rows the member ticked — there is no "export the range" query the
 page runs behind the view, and no select-all-in-range either; **recorded honestly (2026-10-26)**: this is the one
 place the page exports less than it shows, and a whole-range file is phase 5's job (PDF/XLSX are phase 5 too).
-**"group into a report draft" is phase 3 and the page does not offer it.**
+**Correction (2026-10-26, phase 3):** there is no "group into a report draft" action and none is coming. A report
+is a *period*, not a selection: §6 aggregates every row the author can see between the two dates, so a ticked
+draft would create a second, contradicting definition of what a week contained. The bulk bar offers the five
+actions `POST /api/worklog/entries/bulk` accepts and nothing else.
 
 `/dashboard` gains a "Today" strip from the same reads — the log earns its keep by being visible before someone
 has to go look for it.
@@ -228,15 +231,22 @@ opens 14 rows.
 
 **Sections** (`content jsonb`, author-editable, ordered by template):
 
-1. Header — author, disciplines, job title, period, team, recipients, submitted date, revision number.
-2. Summary — KPI strip plus the author's own read of the period.
+1. Header — the title, the period, the template, which figure source the card is showing and the draft number.
+   Author, disciplines, job title, team, recipients, submitted date and revision number are phase 4's; phase 3
+   renders none of them.
+2. Summary — the author's own read of the period. The KPI strip lives in section 9 rather than here, so one card
+   owns the numbers and the strip cannot disagree with the charts beside it.
 3. Actions completed — by day, with dates, not just a count.
 4. Deliverables — name, type, status, produced-on date, link.
 5. In progress — where each item stands and what it waits on.
-6. Blocked / at risk — reason, owner, and what the report asks of the recipient.
+6. Blocked / at risk — the blocker row and the reason recorded on it; what the report asks of the recipient is
+   the author's own commentary inside the card, and the recipient arrives with phase 4.
 7. Overdue carried forward — with the reason, not just the date.
 8. Next period — from `plan_items` due after `period.end`, the same rows the Gantt draws.
-9. Metrics — by discipline, status, priority; yearly adds the monthly series and totals.
+9. Metrics — the template's leading KPI tiles plus its charts, the source label, and under every chart the row
+   ids that make its bars. A template picks from time-by-discipline, the kind mix, tasks-by-status,
+   tasks-by-priority and the period series; yearly's series is twelve month buckets, so "the monthly series and
+   totals" is drawn by the templates that lead with time, not by a special case.
 10. Notes and asks — capacity, tooling, decisions needed.
 
 **Templates per discipline** (`lib/reports/templates.ts`) — the section list and leading metrics differ, so a
@@ -247,20 +257,21 @@ evidence links, outstanding management response); coordinator/general (default).
 only vocabulary; the template defaults from the author's discipline and is switchable per report, because the
 same person may file an audit report and a development report in one month.
 
-**Lifecycle.** `draft → submitted → acknowledged | returned`. Submission is explicit and locks the report; a
+**Lifecycle** *(phase 4)*. `draft → submitted → acknowledged | returned`. Submission is explicit and locks the report; a
 correction is a new `revision_of` version, so a supervisor can never be reading one copy while the author edits
 another. `returned` carries the recipient's note and pushes the author back to draft. Both actions notify the
 other side through the existing `createNotification`/`notifyMany` path — a report is a notification *type* with
 a link, not a new pipeline.
 
-**Recipients.** Chosen from `/api/team/members`, validated exactly as `/api/reports/route.ts:70-77` already
+**Recipients** *(phase 4 — phase 3 never writes
+`work_report_recipients`)*. Chosen from `/api/team/members`, validated exactly as `/api/reports/route.ts:70-77` already
 validates ids, with a saved default reporting line in settings so "who gets my weekly" is not re-picked every
 Friday. Super-admins and `admin` accounts see every submitted report.
 
-**Inbox.** `/dashboard/reports-work/inbox`: newest submissions, unread count, ack and return with a note, and a
+**Inbox** *(phase 4)*. `/dashboard/reports-work/inbox`: newest submissions, unread count, ack and return with a note, and a
 per-report recipient state list — which is what makes "did my manager read it" answerable rather than vibes.
 
-**Optional AI prose.** Two buttons, neither required: "Draft summary from my data" (writes sections 2 and 6,
+**Optional AI prose** *(phase 9)*. Two buttons, neither required: "Draft summary from my data" (writes sections 2 and 6,
 `responseSchema`-constrained, refuses when the metrics are empty) and "Polish this section" (rewrites the
 author's own text). Machine-drafted blocks stay visibly marked until the author accepts them, because a
 supervisor must be able to tell which words a person chose.
@@ -659,6 +670,12 @@ Nineteen new tables: ten for the log, reports, planner and assistant; five for �
 read from approved `career_requests`, so there is no parallel ledger to keep in sync. `growth_reviews` is append-only
 by design — a dated snapshot the member can reread, not a mutable field.
 
+`work_reports` is written from phase 3 and `work_report_recipients` is not touched by it at all: phase 3 sets
+`period_type`, `period_start`, `period_end`, `template`, `title`, `content` and `metrics` and pins `status` to
+`draft`, while `revision_of`, `submitted_at`, `acknowledged_at` and `returned_note` stay null until phase 4 and sit
+on the write whitelist's forbidden list (`lib/reports/report-fields.ts`) so no request can set them. No migration
+was needed for either table — both have existed in production since phase 1.
+
 Additive nullable `tasks` columns: `start_date date`, `discipline varchar(40)`, `source_plan_id integer`. The
 Gantt needs a start and `tasks` has only a due date; `source_plan_id` keeps promote auditable in both
 directions. No existing route selects these columns, so no current behaviour changes. `report_schedules` and
@@ -826,8 +843,14 @@ Each phase is a reviewable, green, committed, pushed unit. Pushing auto-deploys 
    eleven cards — the status-change timeline, time by task, the discipline split, the kind mix and coverage were not
    in the one-line summary — the discipline vocabulary widened to 75 in 10 groups with **no migration**, and CSV is
    selection-only (§4), so "export the range" is still open for phase 5.
-3. **Reports** — period math, aggregation, per-discipline templates, `/api/reports/work/*`, the
-   `/dashboard/reports-work` builder with its ten sections, save/draft, no AI required.
+3. **Reports** *(shipped 2026-10-26)* — period math, aggregation, per-discipline templates, `/api/reports/work/*`,
+   the `/dashboard/reports-work` builder with its ten sections, save/draft, no AI required. What the phase added
+   beyond this line: the page is twelve cards, not ten (Period and My-reports are the shell); every computed
+   section carries the row ids behind its number with the expansion held in `?open=`, so an audited report is a
+   link; the drill-down opens the real work log filtered to the period; the template picks the KPI tiles *and* the
+   chart set, not only the order; and the page states whether it is showing a saved snapshot or a live preview.
+   Nothing here submits, names a recipient, exports a file or drafts prose with AI — §6's lifecycle, inbox,
+   export and prose buttons stayed in phases 4, 5 and 9, and no control for them exists on the page.
 4. **Submission, inbox, admin view** — recipients and default reporting line, submit/lock/revise, ack and
    return with notes, notification type with a link, `/dashboard/reports-work/inbox`, visibility enforcement,
    the admin team day view.

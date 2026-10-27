@@ -229,8 +229,9 @@ Shared behavior across all four:
 - The work-discipline vocabulary is now 75 disciplines in 10 category groups, and the five ids shipped
   in phase 1 keep their spelling, so existing rows and saved preferences stayed valid — this phase
   added **no migration**.
-- **Deliberately absent.** "Group into report draft" (phase 3), PDF and XLSX export (phase 5), the
-  team/admin day view (phase 4), the Gantt (phase 8). Nothing on the page pretends to do these.
+- **Deliberately absent.** A report is built from a period, not from a ticked selection, so the bulk bar never
+  grew a "group into report draft" action — see §9. PDF and XLSX export (phase 5), the team/admin day view
+  (phase 4), the Gantt (phase 8). Nothing on the page pretends to do these.
 - **Still separate dimensions.** `lib/roles.ts` holds work classifications only. Job titles,
   departments and project roles are not in it and are not collapsed into it; they arrive with the
   phase-15 role packs and the phase-17 onboarding. A discipline preference is a display filter —
@@ -239,3 +240,49 @@ Shared behavior across all four:
   — nine files, and the suite is 36 files / 711 tests. `worklog-api` and `worklog-page` sweep the
   source of every route and every section, so a later phase that drops a control fails a test instead
   of a code review.
+
+## 9. Period work reports (phase 3, 2026-10-26)
+
+- `/dashboard/reports-work` — one member's account of one period, built from their own work log. Twelve cards:
+  the period picker, the draft list, and the ten report sections in the order the *template* chooses, so a
+  technician's report opens with deliverables and a developer's with completed actions. Nothing is behind a tab
+  and no section is missing: `sectionsFor(template)` drives the list and
+  `tests/unit/report-page.test.ts` fails if a template points at a section with no card.
+- Five period types — daily, weekly (ISO Mon–Sun), monthly, yearly, custom — resolved to an exact `[start, end)`
+  in the member's own timezone by `lib/reports/period.ts`. A yearly report is twelve month buckets, not 365 rows.
+- Every number is computed, never typed. `lib/reports/aggregate.ts` reads the author's own entries, deliverables,
+  `task_events` transitions, tasks and forward plan items and produces fifteen metrics, six row lists, four split
+  buckets and a period series. Completion comes from `task_events` (`to_status` plus `at`), not
+  `tasks.updated_at`, so a task edited yesterday does not look finished today.
+- §6's drill-down promise is implemented literally: each computed card's badge *is* the button, expansion is
+  `?open=<section>` in the URL (so an expanded report is a link you can send), and the row ids behind a count
+  print once open — `task:12`, `entry:7`, `event:31`. The chart cards carry the same ids under
+  "Which rows make these bars?". A row links to the real work log filtered to the period
+  (`?v=list&p=custom&from=&to=`), blockers add `&kind=blocker`, deliverables add `&dlv=1`; a `nextPeriod` row says
+  in words that plans get their page in a later phase rather than linking to a 404.
+- Save / draft, recompute, delete. `Save draft` writes the title, the template and the prose the member typed —
+  never a metric; `Recompute` re-runs the aggregation and replaces the stored snapshot; `Delete` is a
+  draft-only, confirmed act. The page always states which figures it is showing — "Figures as saved" for a
+  stored snapshot, "Live preview — not saved yet" for a fresh read — because a report that silently disagrees
+  with itself is the failure §6 was written to prevent.
+- Five templates (`general`, `engineering`, `technical`, `assurance`, `creative`), chosen automatically from the
+  discipline the period's work carries and switchable with `?tpl=`. A template picks the section order, the 5-6
+  leading KPI tiles and the chart set (time by discipline · kind mix · tasks by status · tasks by priority · the
+  period series). No chart exists that its own template does not draw, and `lib/reports/charts.ts` pins which
+  measure each bar is — minutes or a count — so a tooltip unit cannot drift from the bar under it.
+- Server routes: `/api/reports/work` (list + create), `…/preview`, `…/[id]` (read, patch, delete),
+  `…/[id]/recompute`, over one `_shared.ts`. All four are session-gated and put `user_id` in the SQL of every
+  read; each read is capped (3000 entries, 1000 events, 1000 tasks, 500 deliverables, 200 plan items) and the
+  draft list at 100. Writes go through `readReportCreate` / `pickReportUpdates` / `readContent`, and a forbidden
+  key is refused out loud rather than dropped — `status`, `userId`, `metrics`, `revisionOf`, `submittedAt` and
+  `recipients` in a body produce a 400 that says which one.
+- **No migration.** `work_reports` and `work_report_recipients` were created by phase 1 and are unchanged; this
+  phase writes `period_*`, `template`, `title`, `content` and `metrics`, pins `status` to `draft`, and never
+  touches the recipients table or the lifecycle columns.
+- **Deliberately absent** (phases 4, 5, 9): submit / lock / revise, recipients and the default reporting line,
+  `/dashboard/reports-work/inbox`, ack and return, notifications, the "Draft summary from my data" and "Polish
+  this section" AI buttons, PDF and XLSX, the admin team view. The page has no disabled placeholder for any of
+  them, and `tests/unit/report-page.test.ts` fails if a later edit adds a lifecycle write to these files.
+- Guards: `tests/unit/report-{period,aggregate,templates,fields,view-state,api,page,row-sections,charts}.test.ts`
+  — nine new files, and the suite is 45 files / 912 tests. `report-api` and `report-page` sweep the source of
+  every route and every card, so a phase-4 change that drops a control fails a test instead of a review.

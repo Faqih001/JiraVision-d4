@@ -5,9 +5,13 @@ import { CHART_UNIT } from "@/lib/reports/charts"
 import { ROW_SECTIONS } from "@/lib/reports/row-sections"
 import {
   CHART_KEYS,
+  PROSE_SECTIONS,
+  REPORT_SECTIONS,
   REPORT_TEMPLATES,
+  SECTION_TITLE,
   TEMPLATE_CHARTS,
   TEMPLATE_METRICS,
+  sectionsFor,
 } from "@/lib/reports/templates"
 
 const repo = path.resolve(__dirname, "..", "..")
@@ -15,6 +19,7 @@ const src = (relative: string) => readFileSync(path.join(repo, relative), "utf8"
 const page = () => src("app/dashboard/reports-work/page.tsx")
 const client = () => src("app/dashboard/reports-work/reports-client.tsx")
 const sectionsFile = () => src("app/dashboard/reports-work/sections.tsx")
+const dialogsFile = () => src("app/dashboard/reports-work/dialogs.tsx")
 
 /** Comment-stripped: a guard about the code cannot be satisfied by a sentence in a comment. */
 function codeOnly(text: string): string {
@@ -208,5 +213,110 @@ describe("the metrics card", () => {
     expect(codeOnly(sectionsFile())).not.toMatch(/<ProseSection section="metrics"/u)
     // Only the two computed cards state where their figures came from, and both of them must.
     expect(client().match(/sourceLabel=\{SOURCE_LABEL\[source\]\}/gu)).toHaveLength(2)
+  })
+})
+
+describe("the finished phase 3", () => {
+  const pageSource = () =>
+    ["page.tsx", "reports-client.tsx", "sections.tsx", "dialogs.tsx"]
+      .map((name) => src(`app/dashboard/reports-work/${name}`))
+      .join("\n")
+  const routeSource = () =>
+    [
+      "app/api/reports/work/route.ts",
+      "app/api/reports/work/preview/route.ts",
+      "app/api/reports/work/[id]/route.ts",
+      "app/api/reports/work/[id]/recompute/route.ts",
+      "app/api/reports/work/_shared.ts",
+    ]
+      .map((name) => src(name))
+      .join("\n")
+
+  it("gives every section of every template a card", () => {
+    for (const template of REPORT_TEMPLATES) {
+      for (const key of sectionsFor(template)) {
+        expect(client(), `sectionNodes has no ${key} entry`).toMatch(
+          new RegExp(`^\\s+${key}: `, "mu"),
+        )
+      }
+    }
+    // …and nothing outside the declared vocabulary crept in.
+    for (const section of REPORT_SECTIONS) expect(SECTION_TITLE[section.key]).toBeTruthy()
+  })
+
+  it("is twelve cards, which is the owner's 10-14 rule", () => {
+    expect(client().match(/row\("/gu)).toHaveLength(6)
+    for (const key of ["header", "summary", "metrics", "notes"])
+      expect(client()).toMatch(new RegExp(`^\\s+${key}: \\($`, "mu"))
+    expect(client()).toMatch(/<PeriodSection/u)
+    expect(client()).toMatch(/<MyReportsSection/u)
+    // Six card components serve ten sections: `ProseSection` twice, `RowSection` six times.
+    expect(codeOnly(sectionsFile()).match(/<SectionCard/gu)).toHaveLength(6)
+  })
+
+  it("gives every editable section an editor", () => {
+    expect(PROSE_SECTIONS).toHaveLength(8)
+    for (const key of PROSE_SECTIONS) {
+      const typed = new RegExp(`section="${key}"`, "u").test(client())
+      const commented = client().includes(`row("${key}")`)
+      expect(typed || commented, `${key} has no place to type`).toBe(true)
+    }
+  })
+
+  it("exports no component that nothing renders", () => {
+    // Phase 2's lesson: an exported card with no caller survives a review and dies a phase later.
+    const names = [
+      ...sectionsFile().matchAll(/^export function (\w+)/gmu),
+      ...dialogsFile().matchAll(/^export function (\w+)/gmu),
+    ].map((match) => match[1])
+    expect(names.length).toBeGreaterThan(10)
+    const all = pageSource()
+    for (const name of names) {
+      const uses = (all.match(new RegExp(`\\b${name}\\b`, "gu")) ?? []).length
+      expect(uses, `${name} is exported but never rendered`).toBeGreaterThan(1)
+    }
+  })
+
+  it("leaves the later phases absent rather than half-built", () => {
+    const code = codeOnly(pageSource() + routeSource())
+    // Phase 4's lifecycle. `revisionOf` / `submittedAt` may appear as read-only DTO fields — they are
+    // forbidden on every write (`lib/reports/report-fields.ts`) — so the claim is narrower than
+    // "the words do not exist": nothing here writes a lifecycle status or touches the recipients table.
+    expect(code).not.toMatch(/status:\s*"(submitted|acknowledged|returned)"/u)
+    expect(code).not.toMatch(/workReportRecipients/u)
+    expect(code).not.toMatch(/\/submit|\/acknowledge|\/return\b|reports-work\/inbox/u)
+    expect(code).not.toMatch(/createNotification|notifyMany/u)
+    // Phase 9's prose AI, and phase 5's exports.
+    expect(code).not.toMatch(/gemini|Draft summary|Polish this section|responseSchema/iu)
+    expect(code).not.toMatch(/application\/(pdf|xlsx|vnd\.openxmlformats)|jsPDF|toPdf/u)
+    // The refusal is affirmative too: editing a non-draft is rejected, not ignored.
+    expect(code).toMatch(/isDraft/u)
+  })
+
+  it("has no dead control and links only to pages that exist", () => {
+    const code = codeOnly(pageSource())
+    expect(code).not.toMatch(/href="#"/u)
+    expect(code).not.toMatch(/onClick=\{\(\) => \{\s*\}\}/u)
+    expect(code).not.toMatch(/console\.log|TODO|FIXME|window\.(alert|confirm|prompt)\s*\(/u)
+    expect(codeOnly(routeSource())).not.toMatch(/console\.log|TODO|FIXME|Response\("stub/u)
+    expect(code).not.toMatch(/dashboard\/planner|dashboard\/deliverables|dashboard\/tasks\/\$\{|reports-work\/inbox/u)
+    // Every out-link from a report is a work-log filter built by one of the two helpers.
+    expect(code).toMatch(/worklogHref\(period, section\)/u)
+    expect(code).toMatch(/refHref\(row\.ref, period\)/u)
+  })
+
+  it("records this phase in the three docs and the spec", () => {
+    expect(src("FEATURES.md")).toMatch(/## 9\. Period work reports \(phase 3, 2026-10-26\)/u)
+    expect(src("DESIGN_SYSTEM.md")).toMatch(/## 12\. Period work reports.*phase 3 2026-10-26\)/u)
+    expect(src("PLACEHOLDERS.md")).toMatch(/## 8\. Period work reports.*no new placeholder/u)
+    const spec = src(
+      "docs/superpowers/specs/2026-10-26-worklog-reports-planner-assistant-design.md",
+    )
+    expect(spec).toMatch(/3\. \*\*Reports\*\* \*\(shipped 2026-10-26\)\*/u)
+    // The three sentences that pointed at this phase as future work are gone.
+    expect(src("FEATURES.md")).not.toMatch(/"Group into report draft" \(phase 3\)/u)
+    expect(src("PLACEHOLDERS.md")).not.toMatch(/No "Group into report draft" in the bulk bar/u)
+    expect(spec).not.toMatch(/\*\*"group into a report draft" is phase 3/u)
+    expect(spec).toMatch(/\*\*Lifecycle\*\* \*\(phase 4\)\*/u)
   })
 })

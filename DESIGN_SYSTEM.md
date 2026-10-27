@@ -297,3 +297,53 @@ is never an option value. Two words carry the two different meanings, and they a
 interchangeable: `"none"` is *no value* in a **form** answer (the task a deliverable is not attached
 to), `"all"` is *every value* in a **filter** answer (the discipline strip that keeps the URL clean).
 `tests/unit/select-items.test.ts` enforces the empty-string ban repo-wide.
+
+## 12. Period work reports (phase 3 2026-10-26)
+
+The same grid as the work log — `grid gap-4 md:grid-cols-2 xl:grid-cols-3` — and the same rule: every card owns
+its span in `className`, and the client never re-lays-out on data. What differs is where the cards come from. The
+build view renders `sectionsFor(template)`, so the *template* decides the order and the `sectionNodes` map decides
+that a section the template does not lead with is still present. Twelve cards, in this shape:
+
+| Card | Component | Grid span | Where its numbers come from |
+| --- | --- | --- | --- |
+| Period | `PeriodSection` | 1 cell | the URL (`?p`, `?d`, `?from`, `?to`, `?tpl`) |
+| My reports | `MyReportsSection` | 1 cell | `GET /api/reports/work`, capped at 100 |
+| Header | `HeaderSection` | `md:col-span-2 xl:col-span-2` | computed; only the title is typed |
+| Summary | `ProseSection section="summary"` | `md:col-span-2 xl:col-span-2` | the author |
+| Actions completed … Next period (6 cards) | `RowSection` | 1 cell each | `rowsFor(section, aggregate)` |
+| Metrics | `MetricsSection` | `md:col-span-2 xl:col-span-3` | `aggregate.metrics` plus `chartRows()` |
+| Notes and asks | `ProseSection section="notes"` (`rows={8}`) | `md:col-span-2 xl:col-span-2` | the author |
+
+### Report chart rules
+
+| Chart | Label | Measure | Bar colour source |
+| --- | --- | --- | --- |
+| `discipline` | Time by discipline | minutes | `DISCIPLINE_COLOUR` (`lib/roles.ts`) |
+| `kind` | Mix of work | minutes | `KIND_COLOUR` (`lib/worklog/entries.ts`) |
+| `series` | Per day across the period | minutes | `hsl(var(--chart-pine))` |
+| `taskStatus` | Tasks by status | a count of tasks | `TASK_BUCKET_FILL` |
+| `priority` | Tasks by priority | a count of tasks | `PRIORITY_FILL` |
+
+Every bar is horizontal (`layout="vertical"`), the same shape `DisciplineSplitSection` uses on the work log, so
+the labels are read rather than rotated; the container height is `Math.max(120, rows * 26)` so a twelve-bucket
+yearly series cannot overlap itself. `CHART_UNIT` is the single source of "is this time or a count" and the
+tooltip asks it, never the component. Colours come from the existing `--chart-*` tokens plus `--destructive`;
+**this phase adds no token to `app/globals.css`**, so `app/accessibility.css` needs no re-lighting and
+`tests/unit/accessibility.test.ts` stays green unchanged. An unmapped bucket gets `FALLBACK_FILL`
+(`hsl(var(--muted-foreground))`) rather than recharts' black, because an unmapped bucket is a naming gap and the
+bar still has to be drawn.
+
+### Report copy rules
+
+- A quiet period says so in words: `Time logged` reads "None logged" at zero, and a zero tile's hint is
+  "Nothing in this period" — a bare `0` reads like a rounding error.
+- Singular and plural come from the module-private `plural()` in `lib/reports/row-sections.ts`; no card writes
+  `s` by hand.
+- A section with no rows still renders, with the explanation specific to it (`ROW_SECTION_HINT` for the empty
+  commentary placeholder, and `EMPTY_CAPTION` — "No task reached a done status in this period." — as the
+  completed caption).
+- The figure source is always stated on the two computed cards: "Figures as saved" or
+  "Live preview — not saved yet" (`SOURCE_LABEL`), never an icon.
+- `?open=<section>` is the expansion. A row's ids print only when open, in `font-mono text-[10px]`, so the
+  default report reads like prose and the audit reads like a table.

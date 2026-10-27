@@ -89,7 +89,7 @@ UI where it would have been:
 
 | Looks missing | Actually |
 |---|---|
-| No "Group into report draft" in the bulk bar | phase 3; the bar offers only the five actions `POST /api/worklog/entries/bulk` accepts |
+| No report action in the bulk bar | by design since phase 3: a report is a *period*, aggregated from every row the author can see, so a ticked-selection draft would be a second definition of the same week |
 | CSV only, and only over ticked rows | PDF/XLSX and a whole-range file are phase 5; the export that exists is real and client-side |
 | No team/admin day view, no Gantt | phases 4 and 8; the page shows one member's own log, and every read is scoped by `user_id` in SQL |
 
@@ -102,3 +102,28 @@ What phase 2 did **not** touch: the command-palette shortcut, the notification b
 keep exactly the state they had before it (see §1–§6 for those rows). The work log added no stub and
 closed no pre-existing one.
 
+
+## 8. Period work reports (phase 3, 2026-10-26) — no new placeholder
+
+Phase 3 added **no** `NOTE(PLACEHOLDER)` and no dead control. `/dashboard/reports-work`, its four
+`/api/reports/work/*` routes and the seven DB-free modules in `lib/reports/` (`period`, `aggregate`, `templates`,
+`report-fields`, `view-state`, `row-sections`, `charts`) are wired to real reads and writes:
+a draft is a `work_reports` row, the figures come from `aggregateReport()` over the author's own rows, and every
+count on the page has a row list behind it. `tests/unit/report-page.test.ts` and
+`tests/unit/report-api.test.ts` sweep the source for `href="#"`, an empty `onClick`, `console.log`,
+`window.alert/confirm`, `TODO|FIXME` and a `Response("stub"`, and they fail on any of them.
+
+Four things a reader could mistake for a stub, because each is an absent *phase* stated in the UI where it would
+have been:
+
+| Looks missing | Actually |
+|---|---|
+| No Submit, no recipients, no inbox | phase 4; the toolbar offers Save draft / Recompute / Delete and `status` is server-owned — a body that sends `status: "submitted"` gets a 400 naming the key |
+| No "Draft summary from my data", no "Polish this section" | phase 9 (§6's optional AI); both prose editors are the author's own typing, which is what §6 requires for a report a supervisor reads |
+| No PDF or XLSX export of a report | phase 5; the only export in the app is still the work log's client-side CSV over ticked rows |
+| A "Next period" row you cannot click | the planner page is phase 8; the card says plans get their own page in a later phase instead of linking to a route that does not exist |
+
+`work_report_recipients` and the lifecycle columns (`revision_of`, `submitted_at`, `acknowledged_at`,
+`returned_note`) have no reader and no writer yet. That is phase 4's design, not a forgotten table: the rows exist
+since phase 1, `reportColumns` (`app/api/reports/work/_shared.ts`) returns the lifecycle fields read-only so the
+DTO cannot be wrong about them, and `FORBIDDEN_REPORT_KEYS` keeps every one of them off the write path.
