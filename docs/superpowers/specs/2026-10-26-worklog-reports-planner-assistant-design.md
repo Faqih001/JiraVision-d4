@@ -923,9 +923,21 @@ Each phase is a reviewable, green, committed, pushed unit. Pushing auto-deploys 
     and return (member). Ethical metrics now reads `career_placement`, takes the member's highest rung across
     disciplines, reports `senioritySource` per member and prints "· ladder" or "· job title" on the priority matrix, so
     the row says which source set the band. Suite at the end of this phase: 83 files / 1406 tests.
-14. **Growth AI** — grounded learning paths with the URL-verification rule, benchmark snapshots into
+14. **Growth AI** *(shipped 2026-10-27)* — grounded learning paths with the URL-verification rule, benchmark snapshots into
     `growth_reviews` (never into `career_levels`), the periodic review written from the member's own counts, and
-    gap-closing task suggestions that land as a draft `agent_plan` for the existing promote path.
+    gap-closing task suggestions that land as a draft `agent_plan` for the existing promote path. What the phase added
+    beyond this line: `lib/ai/gemini.ts` gains an opt-in `googleSearch` flag and `readGrounding()`, which normalises
+    grounded URIs (http/https, hash and trailing slash stripped, duplicates dropped) so the route compares like with
+    like. The four actions share `POST /api/career/growth`; `GET` returns the member's last 20 snapshots and whether
+    the key is set, and both reads and writes are scoped by the session id with no admin fan-out. `lib/career/growth.ts`
+    holds the zod validators, the prompt builders and `filterGrounded()`, which drops every course or source the
+    grounding metadata did not contain and rewrites each kept URL to the verified form; a learning path with zero
+    survivors, or a benchmark with fewer than two, returns 502 and saves nothing. The benchmark must name the market
+    its sources actually price; it is stored as a suggestion and the panel says so, because only an admin's ladder edit
+    publishes a band. `lib/career/gap-plan.ts` writes the draft `agent_plans` row, its `plan_items` and the
+    `task_suggestions` snapshot in one transaction, and never touches `tasks`. Every action appends one
+    `growth_reviews` row (`ai_marked: true`); nothing updates or deletes one. Suite at the end of this phase:
+    85 files / 1434 tests.
 15. **Role packs and registers** — `role_packs`/`register_items`, `lib/packs/seed.ts` with the IT-technician and
     `general` packs, the staleness and credential-field modules, `/dashboard/registers` CRUD with §4's filter
     grammar, `/admin/packs`, the stale-document queue wired into cadence-generated work items. No AI: the owner

@@ -89,7 +89,7 @@ Configure it in `.env.local` (see `.env.example` for where to get a key):
 | `GEMINI_MODEL` | no | Unset → the first text-capable model is discovered once per cold start |
 | `AI_PUBLIC_DAILY_CAP` | no | Global daily ceiling for the anonymous site assistant (default 200) |
 
-Five surfaces use it:
+Six surfaces use it:
 
 | Surface | Route | Who can call it | Grounded in |
 |---|---|---|---|
@@ -97,9 +97,10 @@ Five surfaces use it:
 | Workspace assistant | `POST /api/assistant/workspace` (+ `/threads`) | Signed-in member | That member's own tasks, work log, deliverables, reports |
 | Planner extraction | `POST /api/planner/extract` | Signed-in member | The pasted or uploaded brief |
 | AI scrum master | `POST /api/dashboard/ai-recommendation` | Signed-in member | The sprint's own rows |
+| Career growth | `GET/POST /api/career/growth` | Signed-in member | Their own counts and gaps, plus Google Search results whose URLs are verified against grounding metadata |
 | Provider proxy | `POST /api/ai/generate` | Signed-in member | Whatever the caller sends |
 
-Three rules hold across all of them:
+Four rules hold across all of them:
 
 1. **No invented numbers.** A prompt that produces a recommendation is given real values and told to use only
    those. If the provider fails, the route says so (503/422) rather than inventing advice; the rule engine on
@@ -109,6 +110,10 @@ Three rules hold across all of them:
 3. **The cheap path answers first.** The site assistant answers from 35 keyword entries before it ever calls
    the model, so most visitor questions cost nothing. Per-visitor caps are 8/hour and 24/day; the global
    ceiling is `AI_PUBLIC_DAILY_CAP`.
+4. **Web answers are verified, not trusted.** The career growth actions (learning path and benchmark) are the
+   only surfaces allowed to search the web. A returned URL renders only if it appears in the response's own
+   grounding metadata; every other item is dropped. If nothing survives, the action returns 502 and saves
+   nothing, rather than showing an unverified course or pay range.
 
 The legal notice states the same thing to visitors: what the assistant reads, and that a published page
 outranks a machine answer (`content/legal.ts`, section `ai-assistant-answers`).
