@@ -19,6 +19,8 @@
     "db:worklog:rollback": "node scripts/rollback-worklog-tables.mjs",
     "db:career": "node scripts/create-career-tables.mjs",
     "db:career:rollback": "node scripts/rollback-career-tables.mjs",
+    "db:registers": "node scripts/create-registers-tables.mjs",
+    "db:registers:rollback": "node scripts/rollback-registers-tables.mjs",
     "db:apply": "node -r dotenv/config ./drizzle/apply-schema.js",
     "db:fix": "node -r dotenv/config ./drizzle/create-missing-tables.js",
     "db:seed": "node -r dotenv/config ./drizzle/add-sample-data.js",

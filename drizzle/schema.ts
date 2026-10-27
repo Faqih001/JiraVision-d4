@@ -1,4 +1,4 @@
-import { pgTable, serial, text, varchar, timestamp, boolean, date, integer, smallint, char, decimal, jsonb, primaryKey, unique, uniqueIndex, uuid, index } from "drizzle-orm/pg-core"
+import { pgTable, serial, text, varchar, timestamp, boolean, date, integer, smallint, char, decimal, jsonb, primaryKey, unique, uniqueIndex, uuid, index, type AnyPgColumn } from "drizzle-orm/pg-core"
 import { relations } from "drizzle-orm"
 
 // Users table
@@ -703,4 +703,57 @@ export const growthReviews = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [index("growth_reviews_user_kind_idx").on(table.userId, table.kind, table.asOf)],
+)
+
+// A role pack is what a person is the keeper of, as data (design §12). Discipline says how
+// their work is judged; the pack says which registers they hold, which sections their day
+// opens with, and which method their playbooks default to. Admins author these rows.
+export const rolePacks = pgTable(
+  "role_packs",
+  {
+    id: serial("id").primaryKey(),
+    packKey: varchar("pack_key", { length: 60 }).notNull().unique(),
+    title: text("title").notNull(),
+    disciplines: jsonb("disciplines").notNull().default("[]"),
+    registerKinds: jsonb("register_kinds").notNull().default("[]"),
+    sections: jsonb("sections").notNull().default("[]"),
+    reportTemplate: varchar("report_template", { length: 30 }),
+    ladderDiscipline: varchar("ladder_discipline", { length: 40 }),
+    onboarding: jsonb("onboarding").notNull().default("[]"),
+    method: jsonb("method").notNull().default("[]"),
+    isActive: boolean("is_active").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [index("role_packs_active_idx").on(table.isActive)],
+)
+
+// What the role is responsible for, one row per thing: a server, an account console, a
+// printer, an open ticket. `last_verified_at` + `verify_interval_days` are the only inputs
+// to staleness; the state itself is computed (lib/registers/staleness.ts), never stored.
+export const registerItems = pgTable(
+  "register_items",
+  {
+    id: serial("id").primaryKey(),
+    packKey: varchar("pack_key", { length: 60 }).notNull(),
+    kind: varchar("kind", { length: 40 }).notNull(),
+    title: text("title").notNull(),
+    fields: jsonb("fields").notNull().default("{}"),
+    status: varchar("status", { length: 20 }).notNull().default("in_service"),
+    ownerId: integer("owner_id").references(() => users.id, { onDelete: "set null" }),
+    custody: varchar("custody", { length: 10 }).notNull().default("member"),
+    lastVerifiedAt: date("last_verified_at"),
+    verifyIntervalDays: integer("verify_interval_days"),
+    parentId: integer("parent_id").references((): AnyPgColumn => registerItems.id, {
+      onDelete: "set null",
+    }),
+    source: varchar("source", { length: 20 }).notNull().default("manual"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("register_items_pack_kind_idx").on(table.packKey, table.kind),
+    index("register_items_owner_idx").on(table.ownerId),
+    index("register_items_status_idx").on(table.status),
+  ],
 )
