@@ -362,6 +362,7 @@ export default function PlaybookEditor({ id }: { id: string }) {
       discipline: draft.discipline === "none" ? null : draft.discipline,
       version: playbook.version,
       status: playbook.status,
+      aiMarked: playbook.aiMarked,
       authorName: playbook.authorName,
       method: lines(draft.method),
       steps: draft.steps,

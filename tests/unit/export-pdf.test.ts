@@ -5,7 +5,7 @@ import { resolve } from "node:path"
 const source = readFileSync(resolve("lib/export/pdf.ts"), "utf8")
 
 describe("the PDF export module", () => {
-  it("exports three layouts: report, log, plan", () => {
+  it("exports the report, log and plan layouts", () => {
     expect(source).toContain("export function exportReportPdf")
     expect(source).toContain("export function exportLogPdf")
     expect(source).toContain("export function exportPlanPdf")
@@ -50,5 +50,11 @@ describe("the PDF export module", () => {
     expect(source).toContain("export function exportPlaybookPdf")
     expect(source).toContain("One page per phase")
     expect(source).toContain("Signature")
+  })
+
+  it("says on the sheet when the prose is still model-drafted", () => {
+    expect(source).toContain("aiMarked: boolean")
+    expect(source).toContain("Model draft")
+    expect(source).toContain('"Precautions (model-drafted)"')
   })
 })

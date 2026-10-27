@@ -37,6 +37,8 @@ export type PlaybookExportData = {
   discipline: string | null
   version: number
   status: string
+  /** True while the prose is model-authored and no person has reviewed it yet. */
+  aiMarked: boolean
   authorName: string | null
   method: string[]
   steps: PlaybookStep[]
@@ -263,19 +265,34 @@ export function exportPlaybookPdf(data: PlaybookExportData): void {
     currentY += lines.length * 5 + 6
   }
 
+  if (data.aiMarked) {
+    doc.setTextColor(180, 83, 9)
+    const lines = doc.splitTextToSize(
+      "Model draft — this sheet has not been reviewed by a person. Treat every precaution as a suggestion until it is.",
+      180,
+    ) as string[]
+    doc.text(lines, 14, currentY)
+    doc.setTextColor(0)
+    currentY += lines.length * 5 + 6
+  }
+
   doc.setFontSize(13)
   doc.setFont("helvetica", "bold")
   doc.text("Method", 14, currentY)
   currentY += 6
   doc.setFontSize(10)
   doc.setFont("helvetica", "normal")
-  doc.text(data.method.map((phase, index) => `${index + 1}. ${phase}`).join("   "), 14, currentY)
-  currentY += 12
+  const methodLines = doc.splitTextToSize(
+    data.method.map((phase, index) => `${index + 1}. ${phase}`).join("   "),
+    180,
+  ) as string[]
+  doc.text(methodLines, 14, currentY)
+  currentY += methodLines.length * 5 + 8
 
   if (data.precautions.length > 0) {
     doc.setFontSize(13)
     doc.setFont("helvetica", "bold")
-    doc.text("Precautions", 14, currentY)
+    doc.text(data.aiMarked ? "Precautions (model-drafted)" : "Precautions", 14, currentY)
     currentY += 4
     autoTable(doc, {
       startY: currentY,

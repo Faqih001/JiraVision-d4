@@ -143,3 +143,49 @@ describe("capture cannot be lost silently", () => {
     expect(src("app/api/planner/[id]/promote/route.ts")).toMatch(/insert\(taskEvents\)/)
   })
 })
+
+describe("a playbook run lands in the log, not in the task board", () => {
+  // Following a published SOP is a record of work, so it writes one action row per method
+  // phase with the playbook and version named. It never creates tasks: a run is a diary
+  // entry, and turning steps into work items is the planner's promote, not this route.
+  const run = () => codeOnly(src("app/api/playbooks/[id]/run/route.ts"))
+
+  it("names the playbook and the version on every row it writes", () => {
+    expect(run()).toMatch(/insert\(workLogEntries\)/)
+    expect(run()).toMatch(/playbookId:\s*draft\.playbookId/)
+    expect(run()).toMatch(/playbookVersion:\s*draft\.playbookVersion/)
+  })
+
+  it("never writes tasks or a task id", () => {
+    expect(run()).not.toMatch(/\btasks\b/)
+    expect(run()).not.toMatch(/taskId/)
+  })
+
+  it("refuses to run anything that is not published", () => {
+    expect(run()).toMatch(/row\.status !== "published"[\s\S]{0,80}409/)
+  })
+})
+
+describe("playbook visibility and the publish gate", () => {
+  it("the read path applies the same rule the editor does", () => {
+    const body = codeOnly(src("lib/playbooks/read.ts"))
+    expect(body).toMatch(/canReadPlaybook\(playbook, viewer\)/)
+    expect(body).toMatch(/eq\(playbooks\.status, "published"\)/)
+    expect(body).toMatch(/eq\(playbooks\.authorId, viewer\.id\)/)
+  })
+
+  it("publish asks publishProblem before it writes the new status", () => {
+    const body = codeOnly(src("app/api/playbooks/[id]/publish/route.ts"))
+    const gate = body.indexOf("publishProblem(row)")
+    const write = body.indexOf('status: "published"')
+    expect(gate).toBeGreaterThan(-1)
+    expect(write).toBeGreaterThan(-1)
+    expect(gate).toBeLessThan(write)
+  })
+
+  it("the printed sheet says when its prose is still model-authored", () => {
+    const body = codeOnly(src("lib/export/pdf.ts"))
+    expect(body).toMatch(/aiMarked/)
+    expect(body).toContain("Model draft")
+  })
+})
