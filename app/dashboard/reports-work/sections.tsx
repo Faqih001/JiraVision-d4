@@ -342,6 +342,22 @@ export function HeaderSection({
   sourceLabel: string
   onTitle: (value: string) => void
 }) {
+  const statusBadge = report ? (
+    <span
+      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+        report.status === "draft"
+          ? "bg-muted text-muted-foreground"
+          : report.status === "submitted"
+            ? "bg-blue-100 text-blue-800"
+            : report.status === "acknowledged"
+              ? "bg-green-100 text-green-800"
+              : "bg-amber-100 text-amber-800"
+      }`}
+    >
+      {report.status.charAt(0).toUpperCase() + report.status.slice(1)}
+    </span>
+  ) : null
+
   return (
     <SectionCard
       title={SECTION_TITLE.header}
@@ -349,22 +365,35 @@ export function HeaderSection({
       className="md:col-span-2 xl:col-span-2"
     >
       <div className="space-y-2">
-        <Label htmlFor="report-title">Title</Label>
+        <div className="flex items-center gap-2">
+          <Label htmlFor="report-title" className="flex-1">
+            Title
+          </Label>
+          {statusBadge}
+        </div>
         <Input
           id="report-title"
           value={title}
           maxLength={MAX_REPORT_TITLE}
           placeholder={period.label}
           onChange={(event) => onTitle(event.target.value)}
+          disabled={report?.status !== "draft"}
         />
         <p className="text-[11px] text-muted-foreground tabular-nums">
           {period.start} to {period.end} · {TEMPLATE_LABEL[template]} · {sourceLabel}
-          {report ? ` · draft #${report.id}` : " · not saved"}
+          {report ? ` · ${report.status === "draft" ? "draft" : "report"} #${report.id}` : " · not saved"}
+          {report?.revisionOf ? ` · revision of #${report.revisionOf}` : ""}
         </p>
         <p className="text-[11px] text-muted-foreground">
           The header is computed: the period, template and author come from the report itself, and
           nothing typed here can change them.
         </p>
+        {report?.status === "returned" && report.returnedNote && (
+          <div className="rounded border border-amber-200 bg-amber-50 p-3 text-sm">
+            <p className="font-medium text-amber-900">Return note:</p>
+            <p className="text-amber-800">{report.returnedNote}</p>
+          </div>
+        )}
       </div>
     </SectionCard>
   )

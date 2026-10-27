@@ -7,7 +7,7 @@
 
 import { useCallback, useEffect, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Calculator, Copy, Plus, RefreshCw, Save, Trash2 } from "lucide-react"
+import { Calculator, Copy, Plus, RefreshCw, Save, Send, Trash2, Undo2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useToast } from "@/hooks/use-toast"
@@ -90,6 +90,7 @@ export default function ReportsClient() {
   const [busy, setBusy] = useState(false)
   const [newOpen, setNewOpen] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<ReportDto | null>(null)
+  const [submitOpen, setSubmitOpen] = useState(false)
 
   useEffect(() => {
     setTodayIso(localDay(new Date(), timezone))
@@ -313,6 +314,56 @@ export default function ReportsClient() {
     toast({ title: "Draft deleted" })
   }, [mutate, patchState, pendingDelete, refresh, toast])
 
+  const submitReport = useCallback(
+    async (recipientIds: number[]) => {
+      if (!report) return
+      setBusy(true)
+      const json = await readJson(
+        await fetch(`/api/reports/work/${report.id}/submit`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ recipientIds }),
+        }),
+      )
+      setBusy(false)
+      if (!json?.success) {
+        toast({
+          variant: "destructive",
+          title: "Submit failed",
+          description: json?.message ?? json?.error ?? "Request failed",
+        })
+        return
+      }
+      setSubmitOpen(false)
+      await refresh()
+      toast({ title: "Report submitted", description: "Recipients have been notified." })
+    },
+    [report, toast, refresh],
+  )
+
+  const reviseReport = useCallback(async () => {
+    if (!report) return
+    setBusy(true)
+    const json = await readJson(
+      await fetch(`/api/reports/work/${report.id}/revise`, {
+        method: "POST",
+      }),
+    )
+    setBusy(false)
+    if (!json?.success) {
+      toast({
+        variant: "destructive",
+        title: "Revise failed",
+        description: json?.message ?? json?.error ?? "Request failed",
+      })
+      return
+    }
+    const newReport = json.data.report as ReportDto
+    patchState({ reportId: newReport.id })
+    await refresh()
+    toast({ title: "Revision created", description: `New draft #${newReport.id} based on report #${report.id}` })
+  }, [report, toast, refresh, patchState])
+
   // A plain function, not a callback: its closure over the current aggregate, URL state and prose
   // is the point, and the map below is rebuilt every render by design.
   const row = (section: RowSectionKey) => (
@@ -396,7 +447,19 @@ export default function ReportsClient() {
             <Plus className="mr-1 h-4 w-4" />
             New report
           </Button>
-          <Button type="button" size="sm" onClick={() => void saveDraft()} disabled={busy} title={dirty ? "Unsaved changes" : "No changes to save"}>
+          {report?.status === "draft" && (
+            <Button type="button" size="sm" onClick={() => setSubmitOpen(true)} disabled={busy}>
+              <Send className="mr-1 h-4 w-4" />
+              Submit
+            </Button>
+          )}
+          {report && report.status !== "draft" && (
+            <Button type="button" variant="outline" size="sm" onClick={() => void reviseReport()} disabled={busy}>
+              <Undo2 className="mr-1 h-4 w-4" />
+              Revise
+            </Button>
+          )}
+          <Button type="button" size="sm" onClick={() => void saveDraft()} disabled={busy || report?.status !== "draft"} title={dirty ? "Unsaved changes" : "No changes to save"}>
             <Save className="mr-1 h-4 w-4" />
             Save draft
           </Button>
@@ -404,7 +467,7 @@ export default function ReportsClient() {
             <Calculator className="mr-1 h-4 w-4" />
             Recompute
           </Button>
-          <Button type="button" variant="outline" size="sm" onClick={() => setPendingDelete(report)} disabled={busy || report === null}>
+          <Button type="button" variant="outline" size="sm" onClick={() => setPendingDelete(report)} disabled={busy || report === null || report?.status !== "draft"}>
             <Trash2 className="mr-1 h-4 w-4" />
             Delete
           </Button>
@@ -467,6 +530,93 @@ export default function ReportsClient() {
         onCancel={() => setPendingDelete(null)}
         onConfirm={() => void deleteDraft()}
       />
+      {submitOpen && report ? (
+        <SubmitDialog
+          report={report}
+          busy={busy}
+          onSubmit={(recipientIds) => void submitReport(recipientIds)}
+          onClose={() => setSubmitOpen(false)}
+        />
+      ) : null}
+    </div>
+  )
+}
+
+function SubmitDialog({
+  report,
+  busy,
+  onSubmit,
+  onClose,
+}: {
+  report: ReportDto
+  busy: boolean
+  onSubmit: (recipientIds: number[]) => void
+  onClose: () => void
+}) {
+  const [members, setMembers] = useState<{ id: number; name: string }[]>([])
+  const [recipientIds, setRecipientIds] = useState<number[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    Promise.all([
+      fetch("/api/team/members").then((r) => r.json()),
+      fetch("/api/settings").then((r) => r.json()),
+    ]).then(([membersJson, settingsJson]) => {
+      if (membersJson?.success) {
+        setMembers(membersJson.teamMembers.map((m: any) => ({ id: m.id, name: m.name })))
+      }
+      if (settingsJson?.success && Array.isArray(settingsJson.settings.defaultReportRecipients)) {
+        setRecipientIds(settingsJson.settings.defaultReportRecipients)
+      }
+      setLoading(false)
+    })
+  }, [])
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+      <div className="w-full max-w-md rounded-lg bg-background p-6 shadow-lg">
+        <h2 className="text-lg font-semibold">Submit report</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Choose who receives &quot;{report.title}&quot;. Once submitted, the report is locked.
+        </p>
+        {loading ? (
+          <div className="mt-4 space-y-2">
+            <Skeleton className="h-8 w-full" />
+            <Skeleton className="h-8 w-full" />
+            <Skeleton className="h-8 w-full" />
+          </div>
+        ) : (
+          <div className="mt-4 max-h-64 space-y-2 overflow-y-auto">
+            {members.map((m) => (
+              <label key={m.id} className="flex items-center gap-2 rounded border p-2 hover:bg-muted">
+                <input
+                  type="checkbox"
+                  checked={recipientIds.includes(m.id)}
+                  onChange={(e) => {
+                    setRecipientIds((prev) =>
+                      e.target.checked ? [...prev, m.id] : prev.filter((id) => id !== m.id),
+                    )
+                  }}
+                  className="h-4 w-4"
+                />
+                <span className="text-sm">{m.name}</span>
+              </label>
+            ))}
+          </div>
+        )}
+        <div className="mt-6 flex justify-end gap-2">
+          <Button type="button" variant="outline" onClick={onClose} disabled={busy}>
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            onClick={() => onSubmit(recipientIds)}
+            disabled={busy || recipientIds.length === 0}
+          >
+            Submit
+          </Button>
+        </div>
+      </div>
     </div>
   )
 }

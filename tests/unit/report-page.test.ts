@@ -107,7 +107,7 @@ describe("the builder's write path", () => {
   })
 
   it("disables the write buttons while a write is in flight", () => {
-    expect(client()).toMatch(/onClick=\{\(\) => void saveDraft\(\)\} disabled=\{busy\}/u)
+    expect(client()).toMatch(/onClick=\{\(\) => void saveDraft\(\)\} disabled=\{busy \|\| report\?\.status !== "draft"\}/u)
     expect(client()).toMatch(/disabled=\{busy \|\| report === null\}/u)
     expect(dialogs()).toMatch(/disabled=\{busy \|\| draft\.title\.trim\(\) === ""\}/u)
   })
