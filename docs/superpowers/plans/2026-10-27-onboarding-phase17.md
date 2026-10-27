@@ -1915,3 +1915,41 @@ git push origin main
 - **Deliberate deviations from the spec text, to be corrected in the spec at Task 5:** (a) the Phase-2 `DisciplinePicker` is a single-select filter, so step 5 uses a multi-select over the same vocabulary; (b) `preferences.settings.workDisciplines` is where settings writes, and `defaultDisciplineOf` now reads it there; (c) the generic `/api/settings` sanitiser deliberately dropped nested objects, so `onboarding` is the one whitelisted, further-validated namespace.
 - **No placeholders:** every task names files, functions, signatures and the exact assertions. The wizard's per-step handler code is given in full where behaviour is load-bearing (save, advance, skip, finish); layout is specified field by field.
 - **Type consistency:** `OnboardingState`, `OnboardingData`, `OnboardingView`, `ProjectInput`, `InvitationRole` and the route payload keys are used with the same names in every task. `readInvitationByToken` takes a hash; `acceptInvitation` takes the raw token and hashes it.
+---
+
+## Result
+
+Phase 17 shipped 2026-10-27 in five commits: `fba58f7` (state machine, step validation, settings
+merge), `e0b2616` (invitation token, table and additive migration), `9385081` (session-scoped views,
+invitation acceptance, first-project write), `f59323a` (wizard, routing, dashboard door, invite dialog)
+and `56ea258` (the owner's seventeen checks, cross-cutting guards and docs).
+
+Gates at `56ea258`:
+
+1. `npx vitest run` — 103 files, 1729 tests, all passing.
+2. `npx tsc --noEmit` — 0 errors.
+3. `npm run lint` — 1 error, 73 warnings: the known `components/planner/gantt.tsx:43` setState-in-effect
+   error and the unchanged warning baseline.
+4. `npm run build` — succeeds; the route list contains `ƒ /onboarding`, `ƒ /api/onboarding`,
+   `ƒ /api/onboarding/invitation`, `ƒ /api/onboarding/project`, `ƒ /api/onboarding/request-access` and
+   `ƒ /api/team/invitations`.
+
+Migration, run against production Neon (`ep-h***.c-7.us-east-2.aws.neon.tech`) after the owner's
+per-action approval:
+
+```
+$ npm run db:invitations
+table: workspace_invitations
+index: workspace_invitations_email_idx
+unique constraint: token_hash
+invitation rows: 0
+```
+
+Read-only verification afterwards: 9 columns (`id`, `email`, `token_hash`, `role`, `invited_by`,
+`expires_at`, `accepted_at`, `accepted_by`, `created_at`); indexes
+`workspace_invitations_pkey`, `workspace_invitations_email_idx`, `workspace_invitations_token_hash_key`;
+the `token_hash` unique constraint and both `users` foreign keys (`ON DELETE SET NULL`); 0 invitation
+rows; 0 `onboarding` columns on `users`; `tasks` 35 rows and `work_log_entries` 0 rows, both untouched
+by this phase. No deviation was needed — the raw-TCP client connected on the first attempt, unlike
+phase 16. Nothing was dropped, rewritten or seeded, and the rollback (`INVITATIONS_ROLLBACK=yes`) was
+not invoked.

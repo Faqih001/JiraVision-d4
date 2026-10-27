@@ -1019,9 +1019,12 @@ Each phase is a reviewable, green, committed, pushed unit. Pushing auto-deploys 
     path to `tasks`. `/dashboard` reads the onboarding view as a failure-tolerant fifth fetch: it can add a resume
     banner for `in_progress` and a pack-ordered section strip, never block the page or redirect. Finish saves the
     account name first when the profile step was skipped, then writes `status: "completed"`, so a failed save
-    leaves the status untouched. `scripts/create-invitations-table.mjs` is additive and idempotent; the live
-    checkpoint is recorded separately, and `scripts/rollback-invitations-table.mjs` refuses without
-    `INVITATIONS_ROLLBACK=yes`. Suite at the end of this phase: 103 files / 1729 tests.
+    leaves the status untouched. `scripts/create-invitations-table.mjs` is additive and idempotent; it
+    ran against production Neon on 2026-10-27 with the owner's per-action approval and verified one table
+    (9 columns), the `workspace_invitations_email_idx` index, the `token_hash` unique constraint and both
+    `users` foreign keys as `ON DELETE SET NULL`, with 0 invitation rows and no `users` column added.
+    `scripts/rollback-invitations-table.mjs` refuses without `INVITATIONS_ROLLBACK=yes` and was not
+    invoked. Suite at the end of this phase: 103 files / 1729 tests.
 18. **Agent entry for packs, registers and playbooks** — PDF/paste handover ingestion into register rows and
     playbook drafts (credential values refused twice over), grounded precaution suggestions marked as machine
     drafted, and the rule-based recommendation list gaining its AI twin. Needs the provider from phase 6.

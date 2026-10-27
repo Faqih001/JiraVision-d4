@@ -233,9 +233,9 @@ Shared behavior across all four:
   grew a "group into report draft" action — see §9. PDF and XLSX export (phase 5), the team/admin day view
   (phase 4), the Gantt (phase 8). Nothing on the page pretends to do these.
 - **Still separate dimensions.** `lib/roles.ts` holds work classifications only. Job titles,
-  departments and project roles are not in it and are not collapsed into it; they arrive with the
-  phase-15 role packs and the phase-17 onboarding. A discipline preference is a display filter —
-  every read is scoped by `user_id` in SQL regardless of what a member has switched on.
+  departments and project roles are still not in it and are not collapsed into it; they arrived with the
+  phase-15 role packs and the phase-17 onboarding as their own fields. A discipline preference is a
+  display filter — every read is scoped by `user_id` in SQL regardless of what a member has switched on.
 - Guards: `tests/unit/worklog-{day,entries,quick-add,fields,view-state,bulk,summary,api,page}.test.ts`
   — nine files, and the suite is 36 files / 711 tests. `worklog-api` and `worklog-page` sweep the
   source of every route and every section, so a later phase that drops a control fails a test instead
@@ -466,6 +466,13 @@ followed. Manual authoring is the whole surface of this phase — no model write
 A new member's first ten minutes: eight adaptive steps that each save when they pass, a resume that
 survives a closed tab, and a gate that never blocks — or re-asks — someone who was already working.
 The phase adds one table, five routes and no `users` column.
+
+- **The migration ran, additively.** `scripts/create-invitations-table.mjs` (`npm run db:invitations`)
+  uses `CREATE TABLE IF NOT EXISTS` only and seeds nothing, so a re-run is a no-op. It ran against
+  production Neon on 2026-10-27 with the owner's per-action approval and verified one table (9 columns),
+  the `workspace_invitations_email_idx` index, the `token_hash` unique constraint and both `users`
+  foreign keys as `ON DELETE SET NULL`, with 0 invitation rows and no `users` column added.
+  `scripts/rollback-invitations-table.mjs` refuses unless `INVITATIONS_ROLLBACK=yes`.
 
 - **Eight steps, taken adaptively.** Welcome, Profile, Workspace, Industry, Role and disciplines, Project
   management, First project, Review and finish (`ONBOARDING_STEPS` in `lib/onboarding/state.ts`). A
