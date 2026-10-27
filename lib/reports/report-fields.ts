@@ -19,6 +19,7 @@ import {
 } from "./templates"
 
 export { MAX_SECTION_TEXT }
+export type { ReportContent }
 
 export type Fail = { error: string }
 export type Read<T> = T | Fail

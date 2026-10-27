@@ -127,3 +127,16 @@ have been:
 `returned_note`) have no reader and no writer yet. That is phase 4's design, not a forgotten table: the rows exist
 since phase 1, `reportColumns` (`app/api/reports/work/_shared.ts`) returns the lifecycle fields read-only so the
 DTO cannot be wrong about them, and `FORBIDDEN_REPORT_KEYS` keeps every one of them off the write path.
+
+## 9. Submission, inbox, admin view (phase 4, 2026-10-27)
+
+No new placeholder. The inbox page, admin day view, and recipient picker all ship with real data and real actions. The admin day view has an API but no dedicated page yet — it will be consumed by the admin dashboard in a later phase.
+
+Two things a reader could mistake for a stub, because each is an absent *phase* stated in the UI where it would have been:
+
+| Looks missing | Actually |
+|---|---|
+| No "Draft summary from my data", no "Polish this section" | phase 9 (§6's optional AI); both prose editors are the author's own typing, which is what §6 requires for a report a supervisor reads |
+| No PDF or XLSX export of a report | phase 5; the only export in the app is still the work log's client-side CSV over ticked rows |
+| A "Next period" row you cannot click | the planner page is phase 8; the card says plans get their own page in a later phase instead of linking to a route that does not exist |
+| Admin day view has no page | the API exists (`GET /api/reports/admin/day`); the admin dashboard will consume it in a later phase |

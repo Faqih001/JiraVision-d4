@@ -347,3 +347,30 @@ bar still has to be drawn.
   "Live preview — not saved yet" (`SOURCE_LABEL`), never an icon.
 - `?open=<section>` is the expansion. A row's ids print only when open, in `font-mono text-[10px]`, so the
   default report reads like prose and the audit reads like a table.
+
+## 13. Submission, inbox, admin view (phase 4, 2026-10-27)
+
+### Inbox page
+
+`/dashboard/reports-work/inbox` — same grid as the builder. Each report is a card showing title, author, period, submitted date, revision number (if any), and recipient state badge (Pending review / Acknowledged / Returned). Actions: Acknowledge (primary button), Return with note (secondary → textarea → destructive button).
+
+### Status badge
+
+Four states: `draft` (muted), `submitted` (blue), `acknowledged` (green), `returned` (amber). Rendered in the builder header next to the title. The badge is a `<span>` with `inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium` and a background color from the existing palette.
+
+### Recipient picker
+
+Multi-select dialog. Pre-filled from `preferences.settings.defaultReportRecipients`. Each member is a checkbox row with name. Submit button disabled until at least one recipient is selected. The dialog fetches `/api/team/members` and `/api/settings` in parallel on mount.
+
+### Admin day view
+
+Not yet a page; the API exists (`GET /api/reports/admin/day`) and returns a grouped query. The admin dashboard will consume it in a later phase.
+
+### Report copy rules (phase 4)
+
+- Submitted date: "Submitted {date}" in the inbox card footer.
+- Revision: "revision of #{id}" when `revisionOf` is set.
+- Return note: quoted block with "Return note:" label, amber background.
+- Empty inbox: "No reports in your inbox."
+- Admin view label: "All submitted reports (admin view)".
+- Status badge text: capitalized status name (Draft, Submitted, Acknowledged, Returned).

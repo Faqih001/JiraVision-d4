@@ -286,3 +286,22 @@ Shared behavior across all four:
 - Guards: `tests/unit/report-{period,aggregate,templates,fields,view-state,api,page,row-sections,charts}.test.ts`
   — nine new files, and the suite is 45 files / 912 tests. `report-api` and `report-page` sweep the source of
   every route and every card, so a phase-4 change that drops a control fails a test instead of a review.
+
+## 10. Submission, inbox, admin view (phase 4, 2026-10-27)
+
+- **Report lifecycle.** `draft → submitted → acknowledged | returned`. Submission locks the report; corrections are a new `revision_of` version, so a supervisor can never be reading one copy while the author edits another. `returned` carries the recipient's note and pushes the author back to draft. Both actions notify the other side through the existing `createNotification`/`notifyMany` path — a report is a notification *type* (`"report"`) with a link, not a new pipeline.
+- **Recipients.** Chosen from `/api/team/members` at submit time, validated by `lib/reports/recipients.ts` (1–10 ids, no duplicates, sorted). A saved default reporting line in `preferences.settings.defaultReportRecipients` (read/written by `lib/reports/default-recipients.ts`) means "who gets my weekly" is not re-picked every Friday. The settings API at `/api/settings` already merges into `preferences.settings`, so no dedicated endpoint was needed.
+- **Inbox.** `/dashboard/reports-work/inbox` shows newest submissions, unread count, ack and return with a note, and a per-report recipient state list — which is what makes "did my manager read it" answerable rather than vibes. Admins see all submitted reports; regular members see only reports where they are a recipient.
+- **Visibility enforcement.** A log entry, deliverable or report is readable only by its author, that report's listed recipients, and admin/superadmin — enforced in the query, not the UI. `lib/reports/visibility.ts` provides the pure predicate `canReadReport(actor, report, recipientIds)`; the SQL WHERE clause uses it in each route's shared reader.
+- **Admin team day view.** `GET /api/reports/admin/day?date=YYYY-MM-DD` returns who logged what on a given date, gaps, and submitted reports — scoped by the same `isSuperAdmin` policy already in `lib/roles.ts:33`. A member's log is private to them and their report recipients; it is not a surveillance feed by default, and that boundary is enforced in the query, not the UI.
+- **Server routes added:**
+  - `POST /api/reports/work/[id]/submit` — file a draft, write recipients, notify
+  - `POST /api/reports/work/[id]/revise` — start a correction of a filed report
+  - `GET /api/reports/inbox` — submitted reports for recipients/admin
+  - `POST /api/reports/inbox/[id]/ack` — acknowledge a report
+  - `POST /api/reports/inbox/[id]/return` — return a report with a note
+  - `GET /api/reports/admin/day` — admin team day view
+- **Builder UI updates.** Status badge in header (draft/submitted/acknowledged/returned), submit button with recipient picker dialog, revise button for filed reports, return note display, title/save/delete disabled for non-drafts.
+- **No migration.** All tables and columns exist since phase 1; this phase writes the lifecycle columns (`status`, `submitted_at`, `acknowledged_at`, `returned_note`, `revision_of`) and the recipients table.
+- **Deliberately absent** (phases 5, 9): whole-range CSV export, AI prose, PDF/XLSX. The page has no disabled placeholder for any of them.
+- Guards: `tests/unit/report-{recipients,default-recipients,visibility,submit-route,revise-route,inbox-route,ack-return-route,inbox-page,admin-day-route,builder-lifecycle}.test.ts` — ten new files, and the suite is 55 files / 972 tests.
