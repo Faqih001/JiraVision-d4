@@ -840,6 +840,9 @@ errors, `npm run lint` at 0 errors (70-warning baseline), `npm test` green befor
 
 Each phase is a reviewable, green, committed, pushed unit. Pushing auto-deploys to production.
 
+All eighteen phases are shipped as of 2026-10-27. A later phase would need its own additive migration
+script, a fresh owner checkpoint before touching production Neon, and the same gates.
+
 1. **Schema and capture** *(shipped 2026-10-26; the migration ran against production Neon with the owner's
    per-action approval)* — the ten new tables, three `tasks` columns, `lib/cadence.ts` extraction with
    `one-off`/`yearly`, `WORK_DISCIPLINES` + template map, `task_events` writes wired into every existing task
