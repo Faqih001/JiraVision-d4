@@ -65,6 +65,22 @@ describe("member career page", () => {
     expect(layout).toMatch(/href: "\/dashboard\/career"/)
     expect(layout).toMatch(/pathname\.startsWith\("\/dashboard\/career\/"\)/)
   })
+
+  it("offers four Growth AI actions with the key named and honest labels", () => {
+    const growth = codeOnly(src("app/dashboard/career/growth-panel.tsx"))
+    expect(growth).toMatch(/fetch\("\/api\/career\/growth"/)
+    expect(growth).toMatch(/method: "POST"/)
+    expect(growth).toMatch(/GOOGLE_GEMINI_API_KEY/)
+    expect(growth).toMatch(/Suggestion only/)
+    expect(growth).toMatch(/rel="noreferrer"/)
+    expect(growth).toMatch(/\/dashboard\/planner\//)
+    expect(growth).toMatch(/filterGrounded|dropped/)
+    expect(growth).not.toMatch(/computeReadiness|countCareerSignals/)
+  })
+
+  it("mounts the growth panel only when a placement exists", () => {
+    expect(client).toMatch(/<GrowthPanel discipline=\{data\.discipline\} top=\{data\.top\} \/>/)
+  })
 })
 
 describe("admin career page", () => {

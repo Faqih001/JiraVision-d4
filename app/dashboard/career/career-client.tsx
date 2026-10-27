@@ -19,6 +19,7 @@ import {
   ReadinessPanel,
   type CareerMe,
 } from "./readiness-panel"
+import { GrowthPanel } from "./growth-panel"
 
 const STATUS_LABEL: Record<string, string> = {
   draft: "Draft",
@@ -201,6 +202,8 @@ export default function CareerClient({ discipline }: { discipline?: string }) {
           ) : null}
 
           <ReadinessPanel data={data} discipline={data.discipline} />
+
+          <GrowthPanel discipline={data.discipline} top={data.top} />
 
           <SectionCard title="Promotion request" icon={<Clock className="h-4 w-4" />}>
             {data.top ? (
