@@ -883,8 +883,15 @@ Each phase is a reviewable, green, committed, pushed unit. Pushing auto-deploys 
     keyword tier carries 35 keys so most visitors never reach the model, every `GeminiError` kind degrades to
     a scripted answer, and usage tracking fails open. The legal disclosure is the `ai-assistant-answers`
     section of `legalNoticeDoc`, and the same rule is in the model's system prompt: the published page wins.
-11. **Docs and guards** — `FEATURES.md`, `DESIGN_SYSTEM.md` (worklog and planner components, discipline tokens,
-    report layouts), `PLACEHOLDERS.md` (the Granite item closes here), README AI section, guard test files.
+11. **Docs and guards** *(shipped 2026-10-27)* — `FEATURES.md`, `DESIGN_SYSTEM.md` (worklog and planner components,
+    discipline tokens, report layouts), `PLACEHOLDERS.md`, README AI section, guard test files. What the phase
+    added beyond this line: the docs were written phase by phase rather than in one pass, so this phase closed the
+    tail — §15/§16 of `FEATURES.md`, §18 of `DESIGN_SYSTEM.md`, §15 of `PLACEHOLDERS.md`, and a README "AI"
+    section naming the single provider module, the three env vars and the five surfaces. `AI_PUBLIC_DAILY_CAP` was
+    read by `/api/assistant/site` but missing from `.env.example`; it is documented there now, and
+    `tests/unit/ai-config-docs.test.ts` fails if any AI module reads a variable the template does not document, or
+    if the README cites an `/api/` route that has no route file. Suite at the end of this phase: 72 files /
+    1246 tests.
 12. **Career ladder schema and math** — the five §11 tables, `lib/career/{signals,readiness,ladder-seed}.ts` all
     DB-free, 20 seeded rungs with null bands, the readiness and seed tests, `/api/career/{levels,me}` reads. No UI.
 13. **Career UI and review** — `/dashboard/career` with the readiness meter and drill-downs, checklist display,
