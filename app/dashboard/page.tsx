@@ -262,8 +262,8 @@ export default function DashboardHome() {
     setLoading(true)
     setTodayLoading(true)
     try {
-      // Three in parallel, and the log is the third rather than a follow-up: a slow summary
-      // route must not push the sprint data behind it.
+      // Four in parallel, and the log and the register queue are fetches rather than follow-ups:
+      // a slow summary route must not push the sprint data — or the stale count — behind it.
       const [ovRes, spRes, todayRes, staleRes] = await Promise.all([
         fetch("/api/dashboard/overview"),
         fetch("/api/sprints"),

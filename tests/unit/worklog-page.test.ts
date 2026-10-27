@@ -478,7 +478,7 @@ describe("dashboard today strip", () => {
     // the route for its default range instead of today.
     expect(dash()).toMatch(/fetch\("\/api\/worklog\/summary\?v=day"\)/u)
     // One Promise.all: a slow log endpoint cannot hold the sprint data behind it.
-    expect(dash()).toMatch(/const \[ovRes, spRes, todayRes\] = await Promise\.all\(\[/u)
+    expect(dash()).toMatch(/const \[ovRes, spRes, todayRes, staleRes\] = await Promise\.all\(\[/u)
   })
 
   it("keeps the day on the server's calendar, not the browser's", () => {
