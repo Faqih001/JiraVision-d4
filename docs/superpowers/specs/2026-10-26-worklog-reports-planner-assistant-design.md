@@ -1028,6 +1028,15 @@ Each phase is a reviewable, green, committed, pushed unit. Pushing auto-deploys 
 18. **Agent entry for packs, registers and playbooks** — PDF/paste handover ingestion into register rows and
     playbook drafts (credential values refused twice over), grounded precaution suggestions marked as machine
     drafted, and the rule-based recommendation list gaining its AI twin. Needs the provider from phase 6.
+    *(shipped 2026-10-27)* — `lib/agent/{handover,precautions}.ts` and `lib/recommend/{next,read}.ts`, four
+    routes under `/api/agent`, `/dashboard/agent` with both tabs, and the editor's suggestion button. No
+    migration and no new env var: every table and the provider existed. The preview route writes nothing
+    and stores neither the pasted text nor the PDF; commit re-validates every row through the manual
+    validators and dedupes by pack/kind/title. Recommendations render from the six rules with no key; the
+    AI twin keeps only suggestions whose refs exist and whose numbers already appear in the member's facts,
+    and a 502 when none survives. Committed playbooks keep `source='gemini'` and `ai_marked` until a human
+    edits them, so the phase-16 publish gate still applies. Suite at the end of this phase: 108 files /
+    1791 tests.
 
 Phases 1–5 are the reporting product and need no API key at all — that is the part the owner asked for first,
 and it is deliberately sequenced so it can be shipped and used before any AI dependency exists. 6–10 add the

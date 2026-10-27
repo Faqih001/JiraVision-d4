@@ -66,12 +66,12 @@ else — logging, reporting, exporting — works normally. See [AI](#ai).
 ## Layout
 
 - `app/(marketing)/` — 22 public routes (pricing, products, solutions, compare, legal, resources…)
-- `app/dashboard/` — 42 signed-in pages, including `worklog`, `reports-work`, `planner`, `career`, `registers`, `playbooks`, `assistant`
+- `app/dashboard/` — 43 signed-in pages, including `worklog`, `reports-work`, `planner`, `career`, `registers`, `playbooks`, `agent`, `assistant`
 - `app/onboarding/` — the eight-step setup wizard, one signed-in page outside the dashboard shell
 - `app/admin/` — super-admin surfaces: the landing CMS (`/admin/cms`), the career ladder (`/admin/career`) and role-pack authoring (`/admin/packs`)
-- `app/api/` — 172 route handlers; every data route re-checks the session itself
+- `app/api/` — 176 route handlers; every data route re-checks the session itself
 - `components/` — shared UI, including the dashboard shell and the assistant panel
-- `lib/` — auth, data access, roles, and the domain modules: `worklog/`, `reports/`, `planner/`, `assistant/`, `career/`, `packs/`, `registers/`, `playbooks/`, `onboarding/`, `ai/`
+- `lib/` — auth, data access, roles, and the domain modules: `worklog/`, `reports/`, `planner/`, `assistant/`, `career/`, `packs/`, `registers/`, `playbooks/`, `onboarding/`, `agent/`, `recommend/`, `ai/`
 - `drizzle/` — schema (`schema.ts`), migrations, and seed scripts
 - `content/` — marketing copy and the legal notice
 - `tests/unit/`, `tests/e2e/` — Vitest unit tests and the Playwright smoke test
@@ -167,6 +167,21 @@ Joining a workspace works by invitation, not by typing a name. A super-admin sen
 days, is bound to one email address and works once. Until the token is accepted, the wizard's join branch
 offers *request access* instead, which notifies the workspace admins and changes no membership.
 `npm run db:invitations` creates the one new table (additive and safe to re-run).
+
+## Agent entry
+
+`/dashboard/agent` is the one door for machine help, in two tabs kept in the URL. **Handover** reads a
+pasted brief or one PDF (15 MB) against a role pack and shows register rows and playbook drafts as a
+**preview** — nothing is written until the member ticks rows and commits. The preview route stores
+neither the text nor the PDF and logs neither; the commit route re-validates every row through the manual
+validators, dedupes by pack/kind/title, and stamps `source: "gemini"` with playbooks as drafts. Credential
+values are refused at both doors, at any depth, and the refusal names the field path instead of repeating
+the value. **What next** loads six rules computed server-side from the member's own rows
+(`stale_register`, `overdue_renewal`, `deliverable_stuck`, `career_gap`, `report_missing`, `missing_log`);
+the AI twin is a separate button, and a suggestion survives only if the rows it names exist and every
+number it writes already appears in the member's facts. With no key the rules still work; nothing in
+either tab writes a task, and the playbook editor's *Suggest precautions* button marks the row so the
+printed sheet says the advice was model-drafted.
 
 ## Testing
 

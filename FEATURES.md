@@ -528,3 +528,41 @@ The phase adds one table, five routes and no `users` column.
   `onboarding-checks.test.ts` (the owner's seventeen checks, each naming its scenario) — six files, 65
   tests — plus four onboarding guards in `worklog-reports.test.ts`. Suite: 103 files / 1729 tests.
 
+
+## 23. Agent entry (phase 18, 2026-10-27)
+
+- **One page, two jobs.** `/dashboard/agent` keeps `?tab=handover` (default) and `?tab=recommendations`
+  in the URL, so a link opens the same list.
+- **Handover is preview → commit.** `POST /api/agent/handover` reads a pasted brief or one PDF against a
+  chosen role pack and returns normalised register rows, playbook drafts and a refusal list. It writes
+  nothing, stores neither the text nor the PDF, and never logs them.
+- **The second door is the same validator.** `POST /api/agent/handover/commit` re-runs
+  `stripCredentialValues`, `readRegisterFields`, `isRegisterCustody` and `readPlaybookInput` on everything
+  the browser sends back, dedupes registers by `(packKey, kind, title)` and playbooks by `(packKey, title)`,
+  and reports each skipped row by title and reason — never by the value it refused.
+- **Provenance is decided by the server.** Committed registers are `source: "gemini"`; committed playbooks
+  are `status: "draft"`, `version: 1`, `authorId` = the session, `source: "gemini"`, `aiMarked: true`. The
+  publish gate from phase 16 is unchanged, so a model draft still needs a human edit before anyone can rely
+  on it. The editor's PATCH may set `aiMarked` to true and never clears it; clearing stays a human content
+  edit on a model draft.
+- **Precautions come from the unsaved draft.** `POST /api/agent/precautions` takes the editor's current
+  title, method and steps and returns 3–6 `{text, why}`. A suggestion is dropped if it is over 200
+  characters, duplicates a line a person wrote, or asks for a credential value; if none survives, the answer
+  is a 502 rather than a guess. Accepting one appends it to the draft and marks the row, so the printed
+  sheet's "Precautions (model-drafted)" heading is true.
+- **Rules first, AI second.** `lib/recommend/next.ts` holds six rules — `stale_register`, `overdue_renewal`,
+  `deliverable_stuck` (3 days in review), `career_gap`, `report_missing` (a period with work and no report),
+  `missing_log` — each with `{id, kind, why, action, href, confidence, refs}`, capped at 8 and ordered by
+  confidence. `POST /api/agent/recommendations` re-reads the member's rows server-side and returns them with
+  no key at all.
+- **The AI twin cannot invent.** `{ai: true}` adds at most three suggestions; each must name a row whose id
+  exists in the member's own facts, link to a known internal page, and write no number that is not already
+  in the facts. An answer that loses every suggestion is a 502 with nothing rendered. Nothing is persisted —
+  every item is a proposal whose button opens the real form.
+- **Machine advice is labelled everywhere it appears.** The page badges AI rows, the editor badges each
+  suggestion, and both say the line stays marked on the printed sheet.
+- **Deliberately absent.** No handover is stored as a document, no suggestion writes a `tasks` row
+  (promotion is still the only path), and no register value is ever treated as a credential store.
+- Guards: `agent-handover` (10), `agent-precautions` (9), `recommend-next` (13), `agent-routes` (16),
+  `agent-page` (10) — five files, 58 tests, plus two existing guards taught the new gate and the new
+  `aiMarked` rule. Suite: 108 files / 1791 tests.

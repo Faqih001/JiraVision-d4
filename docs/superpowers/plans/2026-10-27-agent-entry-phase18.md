@@ -3247,3 +3247,26 @@ git push
 **Placeholder scan:** the only placeholders are `<files>`/`<tests>` in Task 7's docs text, and Task 7 Step 1 produces those numbers before Step 2/4 write them. Every code step carries real code; no "similar to Task N".
 
 **Type consistency:** `HandoverPreview` is produced in Task 1 and consumed verbatim in Task 6; `HandoverPlaybookDraft` is `Omit<PlaybookInput, "packKey" | "verifyIntervalDays">`, which is exactly what the commit route re-wraps with `{...row, packKey, verifyIntervalDays: null}`. `Recommendation`/`Recommendation[]` is one type across Tasks 3, 5 and 6. `AgentGate.preferences` is added in Task 5's "Problem to fix" note, and Task 5's route passes it to `loadRecommendInput`, which needs it for `defaultDisciplineOf`.
+
+---
+
+## Execution record (2026-10-27)
+
+All eight tasks shipped. Where the plan and the code disagreed, the tests and the lived
+behaviour won; these are the differences a reader of the plan should know about.
+
+| Plan said | What shipped | Why |
+|---|---|---|
+| Task 1 imports `type PlaybookStep` | Omitted | Nothing in `handover.ts` uses it; the import would trip `no-unused-vars`. |
+| Task 2: ten precautions tests | Nine | The credential-prose and duplicate cases share one fixture; folding them lost no coverage. |
+| Task 4: nested ternary maps provider failures to statuses | Data maps `PROVIDER_STATUS` / `PROVIDER_MESSAGE` in `app/api/agent/_shared.ts`, and the guard test asserts `/auth:\s*503/`, `/quota:\s*429/`, `/timeout:\s*504/`, `/blocked:\s*422/` | The plan's own regex could not match the plan's own nested ternary. A declaration can be read and tested; the syntax could not. |
+| Task 4 re-validates with `stripCredentialValues`, `isRegisterCustody`, `readPlaybookInput` | Also `readRegisterFields` | The plan's Task 4 interface list and the FEATURES bullet both promise it; leaving it out would have made the docs untrue. |
+| Task 5: eleven route tests | Sixteen | Provider-status mapping, gate, dynamic and "writes nothing" cases were split apart so a failure names one rule. |
+| Task 6 calls `acceptPrecautions(idea)` | `acceptPrecaution(idea)` | The plan defines the singular callback and then calls the plural in the JSX. |
+| Task 6 keeps `aiTouched` true for the session | Reset after a successful save | The PATCH rule lets `body.aiMarked === true` outrank `contentEdited`; without the reset, a later human edit could never clear the flag. |
+| Task 7: no existing tests touched | `schema-safety.test.ts` learns `agentSession`; `playbook-routes.test.ts` asserts the new `aiMarked` rule | Both guards were pinning the old truth and failed on the first full run. |
+
+Final gates: `npm test` 108 files / 1791 tests; `npm run typecheck` 0; `npm run lint` 0 errors
+(the known Gantt `setState`-in-effect error only) and no new warnings; `npm run build` lists
+`/dashboard/agent` and the four `/api/agent/*` routes. Docs count 176 route handlers and 43
+dashboard pages, both checked against the tree.
