@@ -4,7 +4,9 @@
 // every other role reachable without an edit, and it claims exactly the disciplines the
 // technician pack does not, so resolution is never ambiguous.
 
-import { WORK_DISCIPLINES, type WorkDiscipline } from "@/lib/roles"
+// The explicit `.ts` extension is what lets scripts/create-registers-tables.mjs load this
+// module with Node's type stripping: that loader has no tsconfig path aliases.
+import { WORK_DISCIPLINES, type WorkDiscipline } from "../roles.ts"
 import type { RolePack } from "./types"
 
 const IT_TECHNICIAN_DISCIPLINES: WorkDiscipline[] = [
