@@ -140,3 +140,14 @@ Two things a reader could mistake for a stub, because each is an absent *phase* 
 | No PDF or XLSX export of a report | phase 5; the only export in the app is still the work log's client-side CSV over ticked rows |
 | A "Next period" row you cannot click | the planner page is phase 8; the card says plans get their own page in a later phase instead of linking to a route that does not exist |
 | Admin day view has no page | the API exists (`GET /api/reports/admin/day`); the admin dashboard will consume it in a later phase |
+
+## 10. Exports (phase 5, 2026-10-27)
+
+No new placeholder. The PDF and XLSX exports ship with real data and real downloads. The four new CSV datasets (worklog, deliverables, plans, work_reports) are fully queryable through the existing `/api/reports/export` route.
+
+Two things a reader could mistake for a stub, because each is an absent *phase* stated in the export where it would have been:
+
+| Looks missing | Actually |
+|---|---|
+| No Gantt image in the PDF report | phase 8; the Gantt does not exist yet, so the PDF cannot embed what the app cannot draw |
+| No AI-generated prose in the PDF | phase 9; the export reflects the author's own typing, which is what §6 requires for a report a supervisor reads |

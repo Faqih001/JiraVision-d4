@@ -38,6 +38,8 @@ import {
   type WorkLogKind,
 } from "@/lib/worklog/entries"
 import type { BulkAction } from "@/lib/worklog/bulk"
+import { exportLogPdf } from "@/lib/export/pdf"
+import { exportLogXlsx } from "@/lib/export/xlsx"
 import type { WorklogSummary } from "@/lib/worklog/summary"
 import {
   PRESET_LABEL,
@@ -356,6 +358,28 @@ export default function WorklogClient() {
     toast({ title: "CSV exported", description: `${selectedEntries.length} entries` })
   }, [range.from, range.to, selectedEntries, toast])
 
+  const exportPdf = useCallback(() => {
+    exportLogPdf({
+      entries: selectedEntries,
+      deliverables,
+      from: range.from,
+      to: range.to,
+      authorName: "You",
+    })
+    toast({ title: "PDF exported", description: `${selectedEntries.length} entries` })
+  }, [range.from, range.to, selectedEntries, deliverables, toast])
+
+  const exportXlsx = useCallback(async () => {
+    await exportLogXlsx({
+      entries: selectedEntries,
+      deliverables,
+      from: range.from,
+      to: range.to,
+      authorName: "You",
+    })
+    toast({ title: "Excel exported", description: `${selectedEntries.length} entries` })
+  }, [range.from, range.to, selectedEntries, deliverables, toast])
+
   // A deliverable is a noun with its own lifecycle, so it saves through its own route rather than
   // as a side effect of an entry. `producedOn` empty means "not dated", which the server stores
   // as null — same as a link or evidence note nobody filled in.
@@ -477,6 +501,8 @@ export default function WorklogClient() {
           tasks={tasks}
           onApply={applyBulk}
           onExport={exportCsv}
+          onExportPdf={exportPdf}
+          onExportXlsx={() => void exportXlsx()}
           onClear={() => setSelection([])}
         />
       )}

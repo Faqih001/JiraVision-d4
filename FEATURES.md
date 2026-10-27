@@ -305,3 +305,14 @@ Shared behavior across all four:
 - **No migration.** All tables and columns exist since phase 1; this phase writes the lifecycle columns (`status`, `submitted_at`, `acknowledged_at`, `returned_note`, `revision_of`) and the recipients table.
 - **Deliberately absent** (phases 5, 9): whole-range CSV export, AI prose, PDF/XLSX. The page has no disabled placeholder for any of them.
 - Guards: `tests/unit/report-{recipients,default-recipients,visibility,submit-route,revise-route,inbox-route,ack-return-route,inbox-page,admin-day-route,builder-lifecycle}.test.ts` — ten new files, and the suite is 55 files / 972 tests.
+
+## 11. Exports (phase 5, 2026-10-27)
+
+- **PDF export.** `lib/export/pdf.ts` — three layouts: `report` (cover block with author, period, status, revision; KPI strip; completed tasks and deliverables as tables; page numbers and footer), `log` (day-by-day table of entries and deliverables for an arbitrary range), and `plan` (title, horizon, lane-grouped table). Generated client-side with `jspdf` + `jspdf-autotable`; no server runtime, works on a bad connection because the data is already on screen. Filename convention: `jiravision-<scope>-<stamp>.pdf`.
+- **XLSX export.** `lib/export/xlsx.ts` — multi-sheet workbooks with `exceljs`. Report layout: `Report`, `Completed`, `Deliverables`, `By discipline`, `By status`, and `Monthly series` (yearly only). Log layout: `Entries` and `Deliverables`. Real date/number formats (`yyyy-mm-dd`, `#,##0`), frozen header row, autofilter on data sheets. Filename convention: `jiravision-<scope>-<stamp>.xlsx`.
+- **Extended CSV/JSON datasets.** `app/api/reports/_shared.ts` gains four new datasets: `worklog` (groupBys: kind, discipline, day), `deliverables` (groupBys: status, type, discipline), `plans` (groupBy: status), and `work_reports` (groupBys: status, template, periodType). The existing `/api/reports/export` route now serves these alongside tasks, sprints, team, and wellbeing.
+- **Report builder export buttons.** `app/dashboard/reports-work/reports-client.tsx` — "PDF" and "Excel" buttons next to the existing Reload and Copy link controls. Both are client-side, no server round-trip. The export reflects the exact submitted report: what is seen is what is filed.
+- **Worklog export buttons.** `app/dashboard/worklog/worklog-client.tsx` — "PDF" and "Excel" buttons in the bulk action bar alongside the existing "Export CSV". All three formats reflect the current selection: the file is exactly the rows on screen.
+- **No new server dependencies.** `jspdf`, `jspdf-autotable`, and `exceljs` are client-side libraries; the server runtime is unchanged.
+- **Deliberately absent** (phases 8, 9): Gantt image in PDF (the Gantt does not exist yet), AI prose generation (phase 9), server-side PDF rendering (the spec says client-side).
+- Guards: `tests/unit/export-{pdf,xlsx,datasets}.test.ts` — three new files, and the suite is 58 files / 998 tests.

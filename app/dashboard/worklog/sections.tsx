@@ -529,6 +529,8 @@ export function BulkSection({
   tasks,
   onApply,
   onExport,
+  onExportPdf,
+  onExportXlsx,
   onClear,
 }: {
   selected: EntryDto[]
@@ -537,6 +539,8 @@ export function BulkSection({
   tasks: TaskOption[]
   onApply: (action: BulkAction, payload?: Record<string, unknown>) => void
   onExport: () => void
+  onExportPdf: () => void
+  onExportXlsx: () => void
   onClear: () => void
 }) {
   const [taskId, setTaskId] = useState(NONE)
@@ -652,6 +656,14 @@ export function BulkSection({
         <Button variant="outline" size="sm" className="h-8 text-xs" disabled={busy} onClick={onExport}>
           <Download className="h-3.5 w-3.5" aria-hidden />
           Export CSV
+        </Button>
+        <Button variant="outline" size="sm" className="h-8 text-xs" disabled={busy} onClick={onExportPdf}>
+          <Download className="h-3.5 w-3.5" aria-hidden />
+          PDF
+        </Button>
+        <Button variant="outline" size="sm" className="h-8 text-xs" disabled={busy} onClick={onExportXlsx}>
+          <Download className="h-3.5 w-3.5" aria-hidden />
+          Excel
         </Button>
         <Button
           variant="ghost"

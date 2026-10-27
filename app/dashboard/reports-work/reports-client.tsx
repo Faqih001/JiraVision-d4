@@ -7,11 +7,13 @@
 
 import { useCallback, useEffect, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Calculator, Copy, Plus, RefreshCw, Save, Send, Trash2, Undo2 } from "lucide-react"
+import { Calculator, Copy, Download, Plus, RefreshCw, Save, Send, Trash2, Undo2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useToast } from "@/hooks/use-toast"
 import { localDay } from "@/lib/worklog/local-day"
+import { exportReportPdf } from "@/lib/export/pdf"
+import { exportReportXlsx } from "@/lib/export/xlsx"
 import type { ReportAggregate } from "@/lib/reports/aggregate"
 import { resolvePeriod, type Period } from "@/lib/reports/period"
 import type { ReportDto } from "@/lib/reports/report-fields"
@@ -364,6 +366,28 @@ export default function ReportsClient() {
     toast({ title: "Revision created", description: `New draft #${newReport.id} based on report #${report.id}` })
   }, [report, toast, refresh, patchState])
 
+  const exportPdf = useCallback(() => {
+    if (!report || !aggregate) return
+    exportReportPdf({
+      report,
+      metrics: aggregate,
+      authorName: "You",
+      recipientNames: [],
+    })
+    toast({ title: "PDF exported" })
+  }, [report, aggregate, toast])
+
+  const exportXlsx = useCallback(async () => {
+    if (!report || !aggregate) return
+    await exportReportXlsx({
+      report,
+      metrics: aggregate,
+      authorName: "You",
+      recipientNames: [],
+    })
+    toast({ title: "Excel exported" })
+  }, [report, aggregate, toast])
+
   // A plain function, not a callback: its closure over the current aggregate, URL state and prose
   // is the point, and the map below is rebuilt every render by design.
   const row = (section: RowSectionKey) => (
@@ -478,6 +502,14 @@ export default function ReportsClient() {
           <Button type="button" variant="outline" size="sm" onClick={() => void copyLink()}>
             <Copy className="mr-1 h-4 w-4" />
             Copy link
+          </Button>
+          <Button type="button" variant="outline" size="sm" onClick={exportPdf} disabled={!report || !aggregate}>
+            <Download className="mr-1 h-4 w-4" />
+            PDF
+          </Button>
+          <Button type="button" variant="outline" size="sm" onClick={() => void exportXlsx()} disabled={!report || !aggregate}>
+            <Download className="mr-1 h-4 w-4" />
+            Excel
           </Button>
         </div>
       </div>

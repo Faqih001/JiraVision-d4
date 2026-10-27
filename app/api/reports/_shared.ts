@@ -41,6 +41,38 @@ export const DATASETS = {
     ],
     valueLabel: "check-ins",
   },
+  worklog: {
+    label: "Work log",
+    groupBys: [
+      { key: "kind", label: "Kind" },
+      { key: "discipline", label: "Discipline" },
+      { key: "day", label: "Day" },
+    ],
+    valueLabel: "entries",
+  },
+  deliverables: {
+    label: "Deliverables",
+    groupBys: [
+      { key: "status", label: "Status" },
+      { key: "type", label: "Type" },
+      { key: "discipline", label: "Discipline" },
+    ],
+    valueLabel: "deliverables",
+  },
+  plans: {
+    label: "Forward plans",
+    groupBys: [{ key: "status", label: "Status" }],
+    valueLabel: "plans",
+  },
+  work_reports: {
+    label: "Work reports",
+    groupBys: [
+      { key: "status", label: "Status" },
+      { key: "template", label: "Template" },
+      { key: "periodType", label: "Period type" },
+    ],
+    valueLabel: "reports",
+  },
 } as const
 
 export type DatasetKey = keyof typeof DATASETS
@@ -186,6 +218,97 @@ export async function buildDataset(
           ON t.assignee_id = u.id AND t.status <> 'done'
           AND t.created_at >= now() - make_interval(days => ${rangeDays})
         GROUP BY u.name ORDER BY count(t.id) DESC
+      `)) as unknown as DatasetRow[]
+    }
+    const total = rows.reduce((s, r) => s + r.value, 0)
+    return { rows, total, valueLabel: registry.valueLabel, generatedAt }
+  }
+
+  if (dataset === "worklog") {
+    let rows: DatasetRow[]
+    if (groupBy === "kind") {
+      rows = (await db.execute(sql`
+        SELECT kind::text AS name, count(*)::int AS value
+        FROM work_log_entries
+        WHERE worked_on >= (CURRENT_DATE - ${rangeDays}::int)
+        GROUP BY kind ORDER BY count(*) DESC
+      `)) as unknown as DatasetRow[]
+    } else if (groupBy === "discipline") {
+      rows = (await db.execute(sql`
+        SELECT coalesce(discipline::text, 'No discipline') AS name, count(*)::int AS value
+        FROM work_log_entries
+        WHERE worked_on >= (CURRENT_DATE - ${rangeDays}::int)
+        GROUP BY discipline ORDER BY count(*) DESC
+      `)) as unknown as DatasetRow[]
+    } else {
+      rows = (await db.execute(sql`
+        SELECT to_char(worked_on, 'YYYY-MM-DD') AS name, count(*)::int AS value
+        FROM work_log_entries
+        WHERE worked_on >= (CURRENT_DATE - ${rangeDays}::int)
+        GROUP BY worked_on ORDER BY worked_on
+      `)) as unknown as DatasetRow[]
+    }
+    const total = rows.reduce((s, r) => s + r.value, 0)
+    return { rows, total, valueLabel: registry.valueLabel, generatedAt }
+  }
+
+  if (dataset === "deliverables") {
+    let rows: DatasetRow[]
+    if (groupBy === "type") {
+      rows = (await db.execute(sql`
+        SELECT type::text AS name, count(*)::int AS value
+        FROM deliverables
+        WHERE produced_on >= (CURRENT_DATE - ${rangeDays}::int) OR produced_on IS NULL
+        GROUP BY type ORDER BY count(*) DESC
+      `)) as unknown as DatasetRow[]
+    } else if (groupBy === "discipline") {
+      rows = (await db.execute(sql`
+        SELECT coalesce(discipline::text, 'No discipline') AS name, count(*)::int AS value
+        FROM deliverables
+        WHERE produced_on >= (CURRENT_DATE - ${rangeDays}::int) OR produced_on IS NULL
+        GROUP BY discipline ORDER BY count(*) DESC
+      `)) as unknown as DatasetRow[]
+    } else {
+      rows = (await db.execute(sql`
+        SELECT status::text AS name, count(*)::int AS value
+        FROM deliverables
+        WHERE produced_on >= (CURRENT_DATE - ${rangeDays}::int) OR produced_on IS NULL
+        GROUP BY status ORDER BY count(*) DESC
+      `)) as unknown as DatasetRow[]
+    }
+    const total = rows.reduce((s, r) => s + r.value, 0)
+    return { rows, total, valueLabel: registry.valueLabel, generatedAt }
+  }
+
+  if (dataset === "plans") {
+    const rows = (await db.execute(sql`
+      SELECT status::text AS name, count(*)::int AS value
+      FROM agent_plans
+      GROUP BY status ORDER BY count(*) DESC
+    `)) as unknown as DatasetRow[]
+    const total = rows.reduce((s, r) => s + r.value, 0)
+    return { rows, total, valueLabel: registry.valueLabel, generatedAt }
+  }
+
+  if (dataset === "work_reports") {
+    let rows: DatasetRow[]
+    if (groupBy === "template") {
+      rows = (await db.execute(sql`
+        SELECT template::text AS name, count(*)::int AS value
+        FROM work_reports
+        GROUP BY template ORDER BY count(*) DESC
+      `)) as unknown as DatasetRow[]
+    } else if (groupBy === "periodType") {
+      rows = (await db.execute(sql`
+        SELECT period_type::text AS name, count(*)::int AS value
+        FROM work_reports
+        GROUP BY period_type ORDER BY count(*) DESC
+      `)) as unknown as DatasetRow[]
+    } else {
+      rows = (await db.execute(sql`
+        SELECT status::text AS name, count(*)::int AS value
+        FROM work_reports
+        GROUP BY status ORDER BY count(*) DESC
       `)) as unknown as DatasetRow[]
     }
     const total = rows.reduce((s, r) => s + r.value, 0)

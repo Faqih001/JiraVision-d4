@@ -374,3 +374,32 @@ Not yet a page; the API exists (`GET /api/reports/admin/day`) and returns a grou
 - Empty inbox: "No reports in your inbox."
 - Admin view label: "All submitted reports (admin view)".
 - Status badge text: capitalized status name (Draft, Submitted, Acknowledged, Returned).
+
+## 14. Exports (phase 5, 2026-10-27)
+
+### Export buttons
+
+Three formats available wherever data is shown: CSV (existing), PDF, and Excel. Buttons use the `Download` icon from lucide-react, variant="outline", size="sm". In the report builder, they sit next to Reload and Copy link. In the worklog bulk bar, they sit next to Export CSV.
+
+### PDF layouts
+
+Three layouts, all generated client-side with `jspdf` + `jspdf-autotable`:
+
+- **Report**: cover block (title, author, period, template, status, revision, recipients), KPI strip (5 metrics), completed tasks table, deliverables table. Page numbers and footer on every page.
+- **Log**: header (author, period), entries table (date, title, kind, minutes, task), deliverables table.
+- **Plan**: header (title, horizon), lane-grouped tables (one per lane, items with start/end/status).
+
+Color palette: header background `rgb(41, 128, 185)` (blue-600), text black, footer gray.
+
+### XLSX layouts
+
+Multi-sheet workbooks generated client-side with `exceljs`:
+
+- **Report workbook**: `Report` sheet (metadata), `Completed` sheet (task rows), `Deliverables` sheet, `By discipline` sheet (split bucket), `By status` sheet (split bucket), `Monthly series` sheet (yearly only).
+- **Log workbook**: `Entries` sheet, `Deliverables` sheet.
+
+Every sheet: frozen header row (ySplit: 1), bold header, autofilter on data sheets, date format `yyyy-mm-dd`, number format `#,##0`.
+
+### Filename convention
+
+`jiravision-<scope>-<stamp>.{pdf,xlsx,csv}` where scope is `report`, `log`, or `plan`, and stamp is the ISO date (YYYY-MM-DD).
