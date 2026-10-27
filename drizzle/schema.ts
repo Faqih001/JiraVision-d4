@@ -482,8 +482,9 @@ export const workLogEntries = pgTable(
     deliverableId: integer("deliverable_id").references(() => deliverables.id, {
       onDelete: "set null",
     }),
-    // playbook_id gets its foreign key in phase 16, when the playbooks table is created.
-    playbookId: integer("playbook_id"),
+    // The run route sets both; a row that names a playbook version is a claim the printed
+    // sheet and the report can check.
+    playbookId: integer("playbook_id").references(() => playbooks.id, { onDelete: "set null" }),
     playbookVersion: integer("playbook_version"),
     links: jsonb("links").notNull().default("[]"),
     source: varchar("source", { length: 20 }).notNull().default("manual"),
@@ -755,5 +756,39 @@ export const registerItems = pgTable(
     index("register_items_pack_kind_idx").on(table.packKey, table.kind),
     index("register_items_owner_idx").on(table.ownerId),
     index("register_items_status_idx").on(table.status),
+  ],
+)
+
+// A playbook is the method for a job, as data (design §12 item 5): the method phases, the
+// steps inside them, and the precautions that make the procedure safe. JSON keys inside
+// `steps` follow the spec verbatim (`tools_parts`, `time_estimate`, ...), because the
+// printed sheet and the API hand the same objects around.
+export const playbooks = pgTable(
+  "playbooks",
+  {
+    id: serial("id").primaryKey(),
+    packKey: varchar("pack_key", { length: 60 }).notNull(),
+    discipline: varchar("discipline", { length: 40 }),
+    title: text("title").notNull(),
+    summary: text("summary"),
+    scopeKind: varchar("scope_kind", { length: 40 }),
+    method: jsonb("method").notNull().default("[]"),
+    steps: jsonb("steps").notNull().default("[]"),
+    precautions: jsonb("precautions").notNull().default("[]"),
+    recommendations: jsonb("recommendations").notNull().default("[]"),
+    tags: jsonb("tags").notNull().default("[]"),
+    status: varchar("status", { length: 20 }).notNull().default("draft"),
+    version: integer("version").notNull().default(1),
+    authorId: integer("author_id").references(() => users.id, { onDelete: "set null" }),
+    source: varchar("source", { length: 20 }).notNull().default("manual"),
+    aiMarked: boolean("ai_marked").notNull().default(false),
+    lastVerifiedAt: date("last_verified_at"),
+    verifyIntervalDays: integer("verify_interval_days"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("playbooks_pack_status_idx").on(table.packKey, table.status),
+    index("playbooks_author_idx").on(table.authorId),
   ],
 )
