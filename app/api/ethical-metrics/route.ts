@@ -1,10 +1,10 @@
 // Ethical AI metrics workspace API.
 //
 // Everything the /dashboard/ethical-metrics page shows is derived from live
-// rows (tasks / users / wellbeing_metrics) or from snapshots recorded into the
-// ethical_metrics table. There is no mock data and no model in the loop: the
-// scores are deterministic formulas described by `FORMULAS` below and echoed
-// to the UI so the maths is auditable.
+// rows (tasks / users / career_placement / wellbeing_metrics) or from snapshots
+// recorded into the ethical_metrics table. There is no mock data and no model in
+// the loop: the scores are deterministic formulas described by `FORMULAS` below
+// and echoed to the UI so the maths is auditable.
 //
 // Storage notes (schema is additive-frozen for this page):
 //   * scores + date            -> ethical_metrics (one row per snapshot)
@@ -15,7 +15,14 @@ import { NextResponse } from "next/server"
 import { desc, eq, gte } from "drizzle-orm"
 import { getSession } from "@/lib/auth-actions"
 import { db } from "@/lib/db"
-import { ethicalMetrics, tasks, users, wellbeingMetrics } from "@/drizzle/schema"
+import {
+  careerPlacement,
+  ethicalMetrics,
+  tasks,
+  users,
+  wellbeingMetrics,
+} from "@/drizzle/schema"
+import { senioritySource, seniorityTierOf, type SeniorityTier } from "@/lib/career/seniority"
 import { createNotification } from "@/lib/notifications"
 
 export const dynamic = "force-dynamic"
@@ -96,7 +103,7 @@ export const DEFAULT_CONFIG: EthicsConfig = {
   },
 }
 
-export type SeniorityTier = 1 | 2 | 3
+export type { SeniorityTier }
 
 export type TaskRef = {
   id: number
@@ -116,6 +123,8 @@ export type MemberLoad = {
   department: string | null
   seniorityTier: SeniorityTier
   seniorityLabel: string
+  /** Placement wins; job title + role is the fallback for an unplaced member. */
+  senioritySource: "placement" | "job_title"
   openTasks: number
   openPoints: number
   urgentPoints: number
@@ -244,7 +253,7 @@ export const FORMULAS = {
   deiTaskDistribution:
     "Same dispersion formula applied to urgent + high priority open story points per member, i.e. who gets the high-visibility work.",
   payEquity:
-    "Structural proxy: 100 x (1 - total variation distance) between each member's share of open points and the share expected from their seniority band (job title + role). The schema has no salary column, so this is a load-equity proxy, not a pay-ratio audit.",
+    "Structural proxy: 100 x (1 - total variation distance) between each member's share of open points and the share expected from their seniority band (career ladder placement when one exists, otherwise job title + role). The schema has no salary column, so this is a load-equity proxy, not a pay-ratio audit.",
   overtimeCompliance:
     "Share of members whose most recent wellbeing check-in logs overtime hours at or below the configured weekly limit.",
   composite: "Weighted mean (workload .30, DEI .25, pay-equity proxy .25, overtime .20) renormalised over the measurable scores.",
@@ -311,14 +320,6 @@ const SENIORITY_LABEL: Record<SeniorityTier, string> = {
 }
 
 const SENIORITY_WEIGHT: Record<SeniorityTier, number> = { 1: 1, 2: 1.5, 3: 2 }
-
-/** jobTitle + role -> seniority band. Honest heuristic, surfaced in the UI. */
-export function seniorityTierOf(jobTitle: string | null, role: string | null): SeniorityTier {
-  const text = `${jobTitle ?? ""} ${role ?? ""}`.toLowerCase()
-  if (/(principal|staff|architect|director|head of|vp|lead|manager|scrum master|chief)/.test(text)) return 3
-  if (/(intern|junior|graduate|assistant|apprentice|trainee)/.test(text)) return 1
-  return 2
-}
 
 export function compositeOf(scores: Pick<EthicsScores, "workloadBalance" | "deiTaskDistribution" | "payEquity" | "overtimeCompliance">): number | null {
   const parts: { value: number | null; weight: number }[] = [
@@ -508,7 +509,7 @@ export async function fetchTeamMembers(): Promise<
 /* ------------------------------------------------------------- computation */
 
 export async function computeLive(config: EthicsConfig): Promise<LiveMetrics> {
-  const [memberRows, taskRows, wellbeingRows, snapshotRows] = await Promise.all([
+  const [memberRows, taskRows, wellbeingRows, snapshotRows, placementRows] = await Promise.all([
     fetchTeamMembers(),
     fetchTaskRecords(),
     fetchWellbeingRecords(),
@@ -517,7 +518,16 @@ export async function computeLive(config: EthicsConfig): Promise<LiveMetrics> {
       .from(ethicalMetrics)
       .orderBy(desc(ethicalMetrics.date))
       .limit(1),
+    // A member may hold a rung in more than one discipline; the highest one is their band.
+    db
+      .select({ userId: careerPlacement.userId, level: careerPlacement.level })
+      .from(careerPlacement),
   ])
+
+  const careerLevels = new Map<number, number>()
+  for (const row of placementRows) {
+    careerLevels.set(row.userId, Math.max(careerLevels.get(row.userId) ?? 0, row.level))
+  }
 
   const assignedUserIds = new Set(taskRows.filter((t) => t.assigneeId !== null).map((t) => t.assigneeId as number))
   const wellbeingUserIds = new Set(wellbeingRows.map((w) => w.userId))
@@ -541,7 +551,8 @@ export async function computeLive(config: EthicsConfig): Promise<LiveMetrics> {
     const highPriorityPoints = open
       .filter((t) => t.priority === "urgent" || t.priority === "high")
       .reduce((a, t) => a + t.storyPoints, 0)
-    const tier = seniorityTierOf(m.jobTitle, m.role)
+    const careerLevel = careerLevels.get(m.id) ?? null
+    const tier = seniorityTierOf(m.jobTitle, m.role, careerLevel)
     const w = latestWellbeing.get(m.id)
     return {
       userId: m.id,
@@ -552,6 +563,7 @@ export async function computeLive(config: EthicsConfig): Promise<LiveMetrics> {
       department: m.department,
       seniorityTier: tier,
       seniorityLabel: SENIORITY_LABEL[tier],
+      senioritySource: senioritySource(careerLevel),
       openTasks: open.length,
       openPoints,
       urgentPoints,

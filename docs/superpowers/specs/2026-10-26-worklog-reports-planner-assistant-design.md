@@ -906,9 +906,23 @@ Each phase is a reviewable, green, committed, pushed unit. Pushing auto-deploys 
     verified 20 rows, 0 published bands, and 0 rows in the other four tables; `CAREER_ROLLBACK=yes npm run
     db:career:rollback` reverses it. Nothing here writes; phases 13–14 own the UI, the requests and Growth AI.
     Suite at the end of this phase: 77 files / 1311 tests.
-13. **Career UI and review** — `/dashboard/career` with the readiness meter and drill-downs, checklist display,
+13. **Career UI and review** *(shipped 2026-10-27)* — `/dashboard/career` with the readiness meter and drill-downs, checklist display,
     request flow with its frozen evidence, history timeline, `/admin/career` ladder editor + placements + sign-off +
-    review queue, notifications on submit/approve/return, and `seniorityTierOf` preferring a real placement.
+    review queue, notifications on submit/approve/return, and `seniorityTierOf` preferring a real placement. What the
+    phase added beyond this line: the member page resolves the first placement when no discipline is in the URL and
+    renders an empty state rather than inventing a rung; every percentage, band and count is read from the server, and
+    a guard test bans `computeReadiness`, `countCareerSignals` and the `0.7`/`0.3` weights from the career client files.
+    A submitted request freezes `evidence` and the per-signal row refs before the reviewer sees it, so the queue renders
+    the snapshot instead of recounting. Approval moves the request and the placement in one transaction and refuses
+    if the placement is no longer at the `fromLevel` the request names, which closes the stale-queue double-promotion.
+    A return requires a note and leaves the placement alone. Sign-off writes are admin-only (`ticked_by` is the admin's
+    id) and replace in place, and each rung's payload carries its `levelId` so the editor cannot guess. The ladder
+    editor can change wording, targets, checklist, band and `isActive` but never a placement or a sign-off; a band is
+    accepted only as two whole non-negative ends plus a three-letter currency, and blank clears it. Placements upsert
+    on `(userId, discipline)` with no notification. A new `career` notification type covers submit (admins), approve
+    and return (member). Ethical metrics now reads `career_placement`, takes the member's highest rung across
+    disciplines, reports `senioritySource` per member and prints "· ladder" or "· job title" on the priority matrix, so
+    the row says which source set the band. Suite at the end of this phase: 83 files / 1406 tests.
 14. **Growth AI** — grounded learning paths with the URL-verification rule, benchmark snapshots into
     `growth_reviews` (never into `career_levels`), the periodic review written from the member's own counts, and
     gap-closing task suggestions that land as a draft `agent_plan` for the existing promote path.

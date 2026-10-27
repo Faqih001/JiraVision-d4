@@ -9,18 +9,17 @@ const codeOnly = (source: string) =>
 describe("/api/career/me", () => {
   const route = codeOnly(src("app/api/career/me/route.ts"))
 
-  it("loads the session before touching the database", () => {
+  it("loads the session before reading the profile", () => {
     const sessionAt = route.indexOf("await getSession()")
     expect(sessionAt).toBeGreaterThanOrEqual(0)
-    expect(sessionAt).toBeLessThan(route.indexOf(".from("))
+    expect(sessionAt).toBeLessThan(route.indexOf("loadCareerProfile("))
     expect(route).toMatch(/status: 401/)
   })
 
   it("scopes every member read by the session id, not by a request id", () => {
-    expect(route).toMatch(/eq\(careerPlacement\.userId, session\.id\)/)
-    expect(route).toMatch(/eq\(careerSignoffs\.userId, session\.id\)/)
-    expect(route).toMatch(/userId: session\.id/)
+    expect(route).toMatch(/loadCareerProfile\(\{\s*userId: session\.id/)
     expect(route).not.toMatch(/request\.json\(\)/)
+    expect(route).not.toMatch(/searchParams\.get\("userId"\)/)
   })
 
   it("accepts only a known ladder discipline from the query string", () => {
@@ -28,13 +27,45 @@ describe("/api/career/me", () => {
     expect(route).toMatch(/status: 400/)
   })
 
-  it("computes readiness on the server and never reads a percentage from the caller", () => {
-    expect(route).toMatch(/computeReadiness\(/)
+  it("never reads a percentage from the caller", () => {
     expect(route).not.toMatch(/percent\s*[:=]/)
+    expect(route).not.toMatch(/request\.json\(\)/)
   })
 
   it("never writes", () => {
     expect(route).not.toMatch(/\.insert\(|\.update\(|\.delete\(/)
+  })
+})
+
+describe("career profile reader", () => {
+  const profile = codeOnly(src("lib/career/profile.ts"))
+
+  it("scopes every membership read by the member id it is given", () => {
+    expect(profile).toMatch(/eq\(careerPlacement\.userId, userId\)/)
+    expect(profile).toMatch(/eq\(careerSignoffs\.userId, userId\)/)
+    expect(profile).toMatch(/eq\(careerRequests\.userId, userId\)/)
+    expect(profile).toMatch(/userId,\s*startDay|userId,\s*\n?\s*startDay/)
+  })
+
+  it("computes readiness on the server", () => {
+    expect(profile).toMatch(/computeReadiness\(/)
+    expect(profile).toMatch(/countCareerSignals\(/)
+  })
+})
+
+describe("career evidence reader", () => {
+  const evidence = codeOnly(src("lib/career/evidence.ts"))
+
+  it("scopes every evidence query by the member id", () => {
+    expect(evidence).toMatch(/eq\(workLogEntries\.userId, userId\)/)
+    expect(evidence).toMatch(/eq\(tasks\.assigneeId, userId\)/)
+    expect(evidence).toMatch(/eq\(deliverables\.ownerId, userId\)/)
+    expect(evidence).toMatch(/eq\(workReports\.userId, userId\)/)
+  })
+
+  it("caps the row count instead of returning an unbounded list", () => {
+    expect(evidence).toMatch(/MAX_EVIDENCE_ROWS = 200/)
+    expect(evidence).toMatch(/truncated: rows\.length > MAX_EVIDENCE_ROWS/)
   })
 })
 
@@ -48,12 +79,35 @@ describe("/api/career/levels", () => {
     expect(route).toMatch(/status: 401/)
   })
 
-  it("returns active rungs only", () => {
+  it("returns active rungs only, and shows inactive ones only to a super-admin", () => {
     expect(route).toMatch(/eq\(careerLevels\.isActive, true\)/)
+    expect(route).toMatch(/isSuperAdmin\(session\)/)
+    expect(route).toMatch(/searchParams\.get\("all"\) === "1"/)
   })
 
   it("never writes", () => {
     expect(route).not.toMatch(/\.insert\(|\.update\(|\.delete\(/)
+  })
+})
+
+describe("PATCH /api/career/levels/[id]", () => {
+  const route = codeOnly(src("app/api/career/levels/[id]/route.ts"))
+
+  it("is admin-gated", () => {
+    expect(route).toMatch(/await careerAdmin\(\)/)
+    expect(route).toMatch(/if \("error" in gate\) return gate\.error/)
+  })
+
+  it("validates the band, targets and checklist through the pure readers", () => {
+    expect(route).toMatch(/readBand\(body\.band/)
+    expect(route).toMatch(/readTargets\(body\.signals\)/)
+    expect(route).toMatch(/readChecklist\(body\.checklist\)/)
+  })
+
+  it("only edits the rung itself", () => {
+    expect(route).toMatch(/\.update\(careerLevels\)/)
+    expect(route).toMatch(/updatedAt: new Date\(\)/)
+    expect(route).not.toMatch(/careerPlacement|careerSignoffs|careerRequests/)
   })
 })
 

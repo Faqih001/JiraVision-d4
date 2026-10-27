@@ -1,7 +1,7 @@
 # JiraVision
 
 A team delivery workspace: a public marketing site plus a signed-in dashboard with tasks, sprints,
-kanban, a work log, period work reports, a plan-to-Gantt planner, and an AI assistant.
+kanban, a work log, period work reports, a plan-to-Gantt planner, a career ladder, and an AI assistant.
 
 The original scaffold came from a v0.dev export. This repository is no longer generated or synced by
 v0 — changes land through commits, and Vercel builds from `main`.
@@ -59,8 +59,9 @@ else — logging, reporting, exporting — works normally. See [AI](#ai).
 ## Layout
 
 - `app/(marketing)/` — 22 public routes (pricing, products, solutions, compare, legal, resources…)
-- `app/dashboard/` — 25 signed-in pages, including `worklog`, `reports-work`, `planner`, `assistant`
-- `app/api/` — 146 route handlers; every data route re-checks the session itself
+- `app/dashboard/` — 38 signed-in pages, including `worklog`, `reports-work`, `planner`, `career`, `assistant`
+- `app/admin/` — super-admin surfaces: the landing CMS (`/admin/cms`) and the career ladder (`/admin/career`)
+- `app/api/` — 155 route handlers; every data route re-checks the session itself
 - `components/` — shared UI, including the dashboard shell and the assistant panel
 - `lib/` — auth, data access, roles, and the domain modules: `worklog/`, `reports/`, `planner/`, `assistant/`, `career/`, `ai/`
 - `drizzle/` — schema (`schema.ts`), migrations, and seed scripts

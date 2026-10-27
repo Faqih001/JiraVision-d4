@@ -55,6 +55,7 @@ import {
   Sprout,
   Sun,
   Target,
+  TrendingUp,
   Users,
   X,
 } from "lucide-react"
@@ -253,6 +254,12 @@ export default function DashboardLayout({
           icon: <FileText className="h-5 w-5" />,
           href: "/dashboard/reports-work",
           active: pathname === "/dashboard/reports-work",
+        },
+        {
+          title: "Career",
+          icon: <TrendingUp className="h-5 w-5" />,
+          href: "/dashboard/career",
+          active: pathname === "/dashboard/career" || pathname.startsWith("/dashboard/career/"),
         },
         {
           title: "Backlog",

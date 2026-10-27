@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import { format, formatDistanceToNow, isToday, isYesterday } from "date-fns"
 import {
   AtSign,
+  Award,
   Bell,
   Check,
   CheckCheck,
@@ -82,6 +83,7 @@ const TYPE_ICONS: Record<string, typeof Bell> = {
   ai: Sparkles,
   system: Settings,
   cms: ShieldCheck,
+  career: Award,
 }
 
 function typeIcon(type: string) {

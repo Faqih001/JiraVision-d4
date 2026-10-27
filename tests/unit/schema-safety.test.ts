@@ -137,9 +137,10 @@ describe("no anonymous route leaks the schema or relays mail", () => {
   // resolves the cookie session and returns null without one. tests/unit/worklog-api.test.ts
   // is what proves each work log route acts on that null instead of ignoring it.
   // `reportSession` is phase 3's same-shaped helper for /api/reports/work/*, guarded by
-  // tests/unit/report-api.test.ts for the same reason.
+  // tests/unit/report-api.test.ts for the same reason. `careerSession`/`careerAdmin` are
+  // phase 13's pair for /api/career/*, guarded by tests/unit/career-review-routes.test.ts.
   const authGated = (file: string) =>
-    /getCurrentUser|getSession|worklogSession|reportSession|isSuperAdmin|requireSuperAdmin|requireRole|requireUser|requireAdmin|verifySession/.test(
+    /getCurrentUser|getSession|worklogSession|reportSession|careerSession|careerAdmin|isSuperAdmin|requireSuperAdmin|requireRole|requireUser|requireAdmin|verifySession/.test(
       codeOnly(src(file)),
     )
 
