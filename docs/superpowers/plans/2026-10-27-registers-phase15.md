@@ -325,3 +325,17 @@ git push
 - [x] **Step 4: Stop before the live migration**
 
 Present the migration for the owner's per-action approval with row counts, masked host and one recommended option.
+
+## Result
+
+- Commits: `ed64c43` (schema + migration), `b373825` (rules), `ae3cf4c` (APIs), `39ef2f0` (UI),
+  `a9915ed` (shared guards), `eb06d76` (docs) — pushed to `main`.
+- Gates: `tsc --noEmit` clean; `npm test` 92 files / 1559 tests (phase 15: 7 files / 118 tests);
+  `npm run lint` reports only the known `components/planner/gantt.tsx:43` error plus pre-existing warnings.
+- Migration: `npm run db:registers` ran against production Neon on 2026-10-27 with the owner's per-action
+  approval — `tables: role_packs, register_items`, `role_packs rows: 2`, `register_items rows: 0`.
+  Rollback: `REGISTERS_ROLLBACK=yes npm run db:registers:rollback`.
+- One deviation from the plan text: the client never calls `/api/packs`; the register read returns the packs,
+  so the page cannot invent a kind. Task 5's assertion was re-cut to the shipped design. The seed module imports
+  `../roles.ts` with an explicit extension because the migration script runs it through Node's type stripping,
+  which does not read tsconfig path aliases.

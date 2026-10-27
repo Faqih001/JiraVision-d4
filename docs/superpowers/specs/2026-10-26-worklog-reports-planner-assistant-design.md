@@ -938,7 +938,7 @@ Each phase is a reviewable, green, committed, pushed unit. Pushing auto-deploys 
     `task_suggestions` snapshot in one transaction, and never touches `tasks`. Every action appends one
     `growth_reviews` row (`ai_marked: true`); nothing updates or deletes one. Suite at the end of this phase:
     85 files / 1434 tests.
-15. **Role packs and registers** *(shipped 2026-10-27; the migration is written and unrun)* — `role_packs`/`register_items`,
+15. **Role packs and registers** *(shipped 2026-10-27; the migration ran with the owner's per-action approval)* — `role_packs`/`register_items`,
     `lib/packs/seed.ts` with the IT-technician and `general` packs, the staleness and credential-field modules,
     `/dashboard/registers` CRUD with §4's filter grammar, `/admin/packs`, the stale-document queue wired into
     cadence-generated work items. No AI: the owner types their own inventory. What the phase added beyond this
@@ -962,9 +962,9 @@ Each phase is a reviewable, green, committed, pushed unit. Pushing auto-deploys 
     offers list/grid/by-kind views, create/edit dialogs, lifecycle buttons, a selection bulk bar and a stale
     banner whose "Schedule checks" links to the created plan; `/admin/packs` is the editor behind the same
     super-admin wall as the route. `scripts/create-registers-tables.mjs` is additive and idempotent and
-    `scripts/rollback-registers-tables.mjs` refuses without `REGISTERS_ROLLBACK=yes`; the migration has **not**
-    been run against production Neon, so the pages render their empty state until the owner approves it.
-    Suite at the end of this phase: 92 files / 1559 tests.
+    `scripts/rollback-registers-tables.mjs` refuses without `REGISTERS_ROLLBACK=yes`; the migration ran
+    against production Neon on 2026-10-27 with the owner's approval and verified 2 tables, 2 pack rows and
+    0 register rows. Suite at the end of this phase: 92 files / 1559 tests.
 16. **Playbooks** — `playbooks` table, the six-step method module, manual step editor with reorder/clone, palette
     search, run-mode writing one log row per phase, the printable fourth PDF layout with signature boxes.
 17. **Onboarding** — `/onboarding` as §12.7's eight adaptive steps, writing `preferences.settings.onboarding`
