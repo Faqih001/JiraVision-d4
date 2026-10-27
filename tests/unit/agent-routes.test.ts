@@ -76,3 +76,39 @@ describe("the handover routes", () => {
     expect(shared).toMatch(/blocked:\s*422/)
   })
 })
+
+describe("the agent's advice routes", () => {
+  const ADVICE_ROUTES = [
+    "app/api/agent/precautions/route.ts",
+    "app/api/agent/recommendations/route.ts",
+  ] as const
+
+  it.each(ADVICE_ROUTES)("%s is session-gated and dynamic", (file) => {
+    const body = codeOnly(src(file))
+    expect(body).toMatch(/await agentSession\(\)/)
+    expect(body).toMatch(/401/)
+    expect(body).toMatch(/export const dynamic = "force-dynamic"/)
+  })
+
+  it("suggests precautions without writing one", () => {
+    const route = codeOnly(src("app/api/agent/precautions/route.ts"))
+    expect(route).toMatch(/readPrecautionDraft\(/)
+    expect(route).toMatch(/readPrecautions\(/)
+    expect(route).not.toMatch(/insert\(/)
+    expect(route).not.toMatch(/update\(/)
+  })
+
+  it("re-reads the member's rows instead of trusting the request", () => {
+    const route = codeOnly(src("app/api/agent/recommendations/route.ts"))
+    expect(route).toMatch(/loadRecommendInput\(/)
+    expect(route).toMatch(/buildRecommendations\(/)
+    expect(route).not.toMatch(/body\.registers/)
+  })
+
+  it("serves rules with no key and validates the AI twin", () => {
+    const route = codeOnly(src("app/api/agent/recommendations/route.ts"))
+    expect(route).toMatch(/GOOGLE_GEMINI_API_KEY/)
+    expect(route).toMatch(/readAiSuggestions\(/)
+    expect(route).toMatch(/aiAvailable/)
+  })
+})
