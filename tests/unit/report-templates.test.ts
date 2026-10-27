@@ -14,6 +14,7 @@ import {
   TEMPLATE_METRICS,
   TEMPLATE_SECTIONS,
   emptyContent,
+  formatMetricValue,
   isProseSection,
   isReportTemplate,
   sectionsFor,
@@ -123,6 +124,22 @@ describe("the five templates", () => {
     for (const key of REPORT_TEMPLATES) {
       expect(TEMPLATE_CHARTS[key].length).toBeGreaterThan(0)
       for (const chart of TEMPLATE_CHARTS[key]) expect(CHART_LABEL[chart]).toBeTruthy()
+    }
+  })
+
+  it("reads the minutes metric as time and every other metric as a count", () => {
+    expect(formatMetricValue("minutes", { value: 95, refs: ["entry:1", "entry:2"] })).toBe("1h 35m")
+    expect(formatMetricValue("completedTasks", { value: 3, refs: ["task:1"] })).toBe("3")
+    expect(formatMetricValue("storyPointsCompleted", { value: 8, refs: ["task:1"] })).toBe("8")
+  })
+
+  it("says nothing was logged instead of printing 0m on a quiet period", () => {
+    expect(formatMetricValue("minutes", { value: 0, refs: [] })).toBe("None logged")
+  })
+
+  it("never lets a metric reach the strip as an empty string", () => {
+    for (const key of METRIC_KEYS) {
+      expect(formatMetricValue(key, { value: 0, refs: [] })).toBeTruthy()
     }
   })
 })

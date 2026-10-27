@@ -7,7 +7,8 @@
 // reads as concealment. The difference is what leads and what is charted.
 
 import { DISCIPLINE_TEMPLATE, isWorkDiscipline, type WorkDiscipline } from "@/lib/roles"
-import type { MetricKey } from "./aggregate"
+import { formatMinutes } from "@/lib/worklog/entries"
+import type { Count, MetricKey } from "./aggregate"
 
 export const REPORT_SECTIONS = [
   { key: "header", source: "server" },
@@ -210,4 +211,13 @@ export function emptyContent(template: ReportTemplate): ReportContent {
     if (isProseSection(key)) content[key] = { text: "" }
   }
   return content
+}
+
+/**
+ * One tile per leading metric. Time is the only metric that is not a count, and a quiet period
+ * says so in words: "0m" reads like a rounding error rather than like a week that had no time in it.
+ */
+export function formatMetricValue(key: MetricKey, count: Count): string {
+  if (key === "minutes") return count.value === 0 ? "None logged" : formatMinutes(count.value)
+  return String(count.value)
 }
