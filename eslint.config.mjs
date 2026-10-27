@@ -19,7 +19,6 @@ export default [
     files: [
       "app/dashboard/**",
       "components/dashboard-*.tsx",
-      "components/ai-model-selector.tsx",
       "components/calendar/**",
       "components/kanban/**",
       "components/ethical-metrics/**",

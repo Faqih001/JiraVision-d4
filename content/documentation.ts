@@ -584,12 +584,13 @@ where it stays readable.
 at /dashboard/chat can also call the generation endpoint (/api/ai/generate) when you ask it about a
 sprint.
 
-## Model configuration
+## AI provider
 
-The AI settings page lists the configured providers and models (lib/ai-models.ts). The generation
-endpoint returns which model answered, so you can see what produced a draft. Provider availability
-depends on the keys configured in the environment; when a provider is not configured the endpoint
-says so instead of inventing an answer.
+The AI provider is Google Gemini (lib/ai/gemini.ts). Set GOOGLE_GEMINI_API_KEY in your environment;
+unset = AI controls render disabled, log/reports/exports work fully. GEMINI_MODEL is optional;
+unset = auto-discover first text-capable generation model on cold start. The generation endpoint
+(/api/ai/generate) returns usage metadata; error kinds (auth, quota, blocked, timeout, transport,
+badjson) map to UI-friendly states.
 
 ## Retrospectives
 

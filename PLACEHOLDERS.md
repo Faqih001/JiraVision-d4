@@ -151,3 +151,13 @@ Two things a reader could mistake for a stub, because each is an absent *phase* 
 |---|---|
 | No Gantt image in the PDF report | phase 8; the Gantt does not exist yet, so the PDF cannot embed what the app cannot draw |
 | No AI-generated prose in the PDF | phase 9; the export reflects the author's own typing, which is what §6 requires for a report a supervisor reads |
+
+## 11. AI provider (phase 6, 2026-10-27)
+
+No new placeholder. The Gemini provider ships with real error handling, model discovery, and structured output. The mock AI stack (`lib/ai-models.ts`, `components/ai-model-selector.tsx`, mock branches in `/api/ai/generate`) is deleted, not deprecated.
+
+One thing a reader could mistake for a stub, because it is an absent *phase* stated in the provider where it would have been:
+
+| Looks missing | Actually |
+|---|---|
+| No AI features (planner extraction, report prose, assistant) | phases 7, 9; the provider is the foundation, the features that consume it come next |

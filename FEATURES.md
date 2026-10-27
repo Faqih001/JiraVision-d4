@@ -316,3 +316,14 @@ Shared behavior across all four:
 - **No new server dependencies.** `jspdf`, `jspdf-autotable`, and `exceljs` are client-side libraries; the server runtime is unchanged.
 - **Deliberately absent** (phases 8, 9): Gantt image in PDF (the Gantt does not exist yet), AI prose generation (phase 9), server-side PDF rendering (the spec says client-side).
 - Guards: `tests/unit/export-{pdf,xlsx,datasets}.test.ts` — three new files, and the suite is 58 files / 998 tests.
+
+## 12. AI provider (phase 6, 2026-10-27)
+
+- **Gemini provider.** `lib/ai/gemini.ts` — plain `fetch` against `generativelanguage.googleapis.com/v1beta/models/{model}:generateContent` with `x-goog-api-key`. No `@google/genai` SDK; the surface needed is one POST, and bare `fetch` stubs cleanly in tests. Two entry points: `geminiText(req)` for free-form text, `geminiJson<T>(req, parse)` for structured output with `responseSchema` and zod parsing.
+- **Model discovery.** `GOOGLE_GEMINI_API_KEY` required; `GEMINI_MODEL` optional. Unset `GEMINI_MODEL` → one `GET /v1beta/models` per cold start, first text-capable generation model cached. Google renames models; a constant is an outage.
+- **Error handling.** `GeminiError.kind`: `auth | quota | blocked | timeout | transport | badjson`. Each maps to a stated UI state in `/api/ai/generate`; no stack and no raw Google body reaches the client. `AbortController` timeouts: 20s chat, 120s extraction, 45s report prose.
+- **Structured output.** `responseSchema` sets `responseMimeType: "application/json"`; the payload is zod-parsed anyway because schema-constrained models still emit invalid JSON on truncation. `badjson` is one corrective retry, then honest failure.
+- **Deleted with this phase:** the mock branches in `/api/ai/generate`, all of `lib/ai-models.ts`, the `components/ai-model-selector.tsx` UI. Replaced by a real provider, not apologised for.
+- **Environment config.** `.env.example` gains `GOOGLE_GEMINI_API_KEY` (with where-to-get docs) and `GEMINI_MODEL` (optional, with note about auto-discovery).
+- **Deliberately absent** (phases 7, 9): actual AI features (planner extraction, report prose, workspace assistant). The provider is the foundation; the features that consume it come next.
+- Guards: `tests/unit/gemini.test.ts` — one new file (phase 6 task 6).
