@@ -124,12 +124,15 @@ function TodayStrip({
   summary,
   loading,
   todayIso,
+  staleCount,
 }: {
   summary: WorklogSummary | null
   loading: boolean
   todayIso: string
+  staleCount: number | null
 }) {
   const logHref = `/dashboard/worklog?${new URLSearchParams({ v: "day", day: todayIso })}`
+  const staleHref = "/dashboard/registers?stale=1"
   // `?v=day` resolves to exactly one bucket, so days[0] is the day the heading names.
   const day = summary?.days[0]
   const dayRows = day?.entries.length ?? 0
@@ -148,6 +151,13 @@ function TodayStrip({
         </Button>
       }
     >
+      {staleCount !== null && staleCount > 0 ? (
+        <p className="mb-3 rounded-md bg-destructive/10 px-2 py-1 text-xs text-destructive">
+          <Link href={staleHref} className="underline underline-offset-2">
+            {staleCount} register {staleCount === 1 ? "item is" : "items are"} waiting for a check
+          </Link>
+        </p>
+      ) : null}
       {loading ? (
         <Skeleton className="h-20 w-full" />
       ) : summary === null ? (
@@ -230,6 +240,9 @@ export default function DashboardHome() {
   // means "could not read", which is not the same claim as "nothing logged".
   const [today, setToday] = useState<WorklogSummary | null>(null)
   const [todayLoading, setTodayLoading] = useState(true)
+  // Overdue register checks are a count, not a list: the strip links to the queue and never
+  // pretends "could not read" is zero.
+  const [staleCount, setStaleCount] = useState<number | null>(null)
 
   // task view state
   const [view, setView] = useState<"grid" | "list">("grid")
@@ -251,10 +264,11 @@ export default function DashboardHome() {
     try {
       // Three in parallel, and the log is the third rather than a follow-up: a slow summary
       // route must not push the sprint data behind it.
-      const [ovRes, spRes, todayRes] = await Promise.all([
+      const [ovRes, spRes, todayRes, staleRes] = await Promise.all([
         fetch("/api/dashboard/overview"),
         fetch("/api/sprints"),
         fetch("/api/worklog/summary?v=day"),
+        fetch("/api/registers/stale"),
       ])
       const ovJson = await ovRes.json()
       if (!ovJson.success) throw new Error(ovJson.message ?? "Failed to load dashboard")
@@ -272,9 +286,14 @@ export default function DashboardHome() {
       // day of zeros the member never checked.
       const todayJson = await todayRes.json().catch(() => null)
       setToday(todayRes.ok && todayJson?.success ? (todayJson.data as WorklogSummary) : null)
+      const staleJson = await staleRes.json().catch(() => null)
+      setStaleCount(
+        staleRes.ok && staleJson?.success ? (staleJson.data.stale as unknown[]).length : null,
+      )
     } catch (err) {
       toast({ variant: "destructive", title: "Dashboard", description: (err as Error).message })
       setToday(null)
+      setStaleCount(null)
     } finally {
       setLoading(false)
       setTodayLoading(false)
@@ -826,6 +845,7 @@ export default function DashboardHome() {
         summary={today}
         loading={todayLoading}
         todayIso={today?.range.from ?? localDay(new Date())}
+        staleCount={staleCount}
       />
 
       {/* 6+7 — Burndown & velocity */}

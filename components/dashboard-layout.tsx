@@ -51,6 +51,7 @@ import {
   Search,
   Settings,
   Shield,
+  ShieldCheck,
   SlidersHorizontal,
   Sprout,
   Sun,
@@ -260,6 +261,12 @@ export default function DashboardLayout({
           icon: <TrendingUp className="h-5 w-5" />,
           href: "/dashboard/career",
           active: pathname === "/dashboard/career" || pathname.startsWith("/dashboard/career/"),
+        },
+        {
+          title: "Registers",
+          icon: <ShieldCheck className="h-5 w-5" />,
+          href: "/dashboard/registers",
+          active: pathname === "/dashboard/registers",
         },
         {
           title: "Backlog",
