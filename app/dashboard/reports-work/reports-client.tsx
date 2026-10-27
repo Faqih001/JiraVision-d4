@@ -7,11 +7,13 @@
 
 import { useCallback, useEffect, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Calculator, Copy, Download, Plus, RefreshCw, Save, Send, Trash2, Undo2 } from "lucide-react"
+import Link from "next/link"
+import { Bot, Calculator, Copy, Download, Plus, RefreshCw, Save, Send, Trash2, Undo2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useToast } from "@/hooks/use-toast"
 import { localDay } from "@/lib/worklog/local-day"
+import { assistantLink, periodQuestion } from "@/lib/assistant/ask"
 import { exportReportPdf } from "@/lib/export/pdf"
 import { exportReportXlsx } from "@/lib/export/xlsx"
 import type { ReportAggregate } from "@/lib/reports/aggregate"
@@ -198,6 +200,7 @@ export default function ReportsClient() {
   // `?tpl=auto` is a UI choice; a draft always stores a real template. Resolving it here, above
   // the actions, is what lets both the save body and the new-report dialog use the same answer.
   const templateChoice = effectiveTemplate(state, aggregate)
+  const askHref = assistantLink(periodQuestion(shownPeriod.label, shownPeriod.start, shownPeriod.end))
 
   const copyLink = useCallback(async () => {
     try {
@@ -465,6 +468,13 @@ export default function ReportsClient() {
               ? ` Figures as of ${report.metrics.generatedAt.slice(0, 10)}.`
               : ""}
           </p>
+          <Link
+            href={askHref}
+            className="mt-1 inline-flex items-center gap-1 text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+          >
+            <Bot className="h-3.5 w-3.5" />
+            Ask the assistant about {shownPeriod.label}
+          </Link>
         </div>
         <div className="flex shrink-0 gap-2">
           <Button type="button" variant="outline" size="sm" onClick={() => setNewOpen(true)}>

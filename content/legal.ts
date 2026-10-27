@@ -464,6 +464,14 @@ export const legalNoticeDoc: {
       ],
     },
     {
+      id: "ai-assistant-answers",
+      heading: "AI Assistant Answers",
+      paragraphs: [
+        "The assistant widget on this website answers questions with a machine-learning model when its scripted answers do not cover what you asked. The model reads only the published text of this site — pricing, features, FAQ and legal pages — and has no access to anything that is not already public.",
+        "Machine answers about pricing and terms are a convenience, not a guarantee. The published pages remain the authoritative version of any price, feature or legal statement, and where an assistant answer and a published page disagree, the page wins.",
+      ],
+    },
+    {
       id: "external-links",
       heading: "External Links",
       paragraphs: [

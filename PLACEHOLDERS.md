@@ -195,3 +195,17 @@ Three things a reader could mistake for a stub, because each is an absent *featu
 | No popover panel in top bar | the spec mentions it, but the full page (`/dashboard/assistant`) is the primary surface; the popover is a convenience that can be added later |
 | No "ask about this period" integration | requires context passing UI from reports/worklog pages; the assistant API supports it (just pass the question), but the UI integration is deferred |
 | No streaming responses | the current implementation waits for the full Gemini response; streaming would require SSE or WebSocket infrastructure that is out of scope for this phase |
+
+## 15. AI Assistant completion (phase 9b, 2026-10-27)
+
+Two of the three rows above are now closed, and the phase removed a genuine placeholder rather than adding one.
+
+| Was | Now |
+|---|---|
+| No popover panel in top bar | shipped — `components/assistant-panel.tsx`, mounted desktop-only ahead of the bell |
+| No "ask about this period" integration | shipped — `lib/assistant/ask.ts` plus the `?q=` deep link, entered from the report builder and the work log's view toolbar |
+| No streaming responses | still absent, deliberately — the answer arrives whole; SSE would be new infrastructure for a 20s call |
+| `/api/dashboard/ai-recommendation` picked one of five canned strings at random | the strings are deleted. A client-computed recommendation is stored verbatim; otherwise the route asks Gemini for one built from the sprint's real rows, and a provider failure returns 503/422 with an honest message instead of invented advice |
+
+Nothing in the assistant stack is a stub: every answer is either a scripted response the code owns (keyword tier, error fallback) or a model response grounded in rows the caller can see.
+

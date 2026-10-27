@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import NotificationsBell from "@/components/notifications-bell"
+import { AssistantPanel } from "@/components/assistant-panel"
 import { GoogleTranslateSelect } from "@/components/layout/google-translate"
 import { ThemeSwitch } from "@/components/theme-switch"
 import { AccessibilityLauncher } from "@/components/accessibility/accessibility-launcher"
@@ -552,6 +553,8 @@ export default function DashboardLayout({
             {!isMobile && <ThemeSwitch />}
 
             {!isMobile && <GoogleTranslateSelect />}
+
+            {!isMobile && <AssistantPanel />}
 
             <NotificationsBell />
 

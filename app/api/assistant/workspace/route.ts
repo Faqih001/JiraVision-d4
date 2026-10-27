@@ -3,7 +3,7 @@
 // Returns: { answer, references, dataAsOf, threadId }
 
 import { NextRequest, NextResponse } from "next/server"
-import { eq, desc, and } from "drizzle-orm"
+import { eq, and } from "drizzle-orm"
 import { db } from "@/lib/db"
 import { getSession } from "@/lib/auth-actions"
 import { assistantThreads, assistantMessages } from "@/drizzle/schema"

@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Bot, Plus, Send, Trash2, User } from "lucide-react"
-import { useEffect, useRef, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { toast } from "@/hooks/use-toast"
 
 type Thread = {
@@ -29,6 +30,8 @@ type Message = {
 }
 
 export default function AssistantClient() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const [threads, setThreads] = useState<Thread[]>([])
   const [currentThreadId, setCurrentThreadId] = useState<string | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
@@ -37,6 +40,7 @@ export default function AssistantClient() {
   const [isThreadsLoading, setIsThreadsLoading] = useState(true)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const autoSentRef = useRef(false)
 
   // Load threads on mount
   useEffect(() => {
@@ -54,6 +58,90 @@ export default function AssistantClient() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
+
+  const sendQuestion = useCallback(
+    async (question: string) => {
+      if (isLoading) return
+
+      // Optimistically add user message
+      const tempUserMessage: Message = {
+        id: Date.now(),
+        threadId: currentThreadId ?? "",
+        role: "user",
+        content: question,
+        references: [],
+        tokens: 0,
+        createdAt: new Date(),
+      }
+      setMessages((prev) => [...prev, tempUserMessage])
+
+      try {
+        setIsLoading(true)
+        const res = await fetch("/api/assistant/workspace", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            question,
+            threadId: currentThreadId ?? undefined,
+          }),
+        })
+
+        const json = await res.json()
+        if (!res.ok) {
+          throw new Error(json.error || "Failed to get response")
+        }
+
+        // Add assistant message
+        const assistantMessage: Message = {
+          id: Date.now() + 1,
+          threadId: json.data.threadId,
+          role: "assistant",
+          content: json.data.answer,
+          references: json.data.references,
+          tokens: 0,
+          createdAt: new Date(),
+        }
+        setMessages((prev) => [...prev, assistantMessage])
+
+        // Update thread ID if new
+        if (!currentThreadId) {
+          setCurrentThreadId(json.data.threadId)
+        }
+
+        // Reload threads to update list
+        loadThreads()
+      } catch (error) {
+        console.error("Failed to send message:", error)
+        toast({
+          title: "Error",
+          description: error instanceof Error ? error.message : "Failed to get response",
+          variant: "destructive",
+        })
+        // Remove optimistic message on error
+        setMessages((prev) => prev.filter((m) => m.id !== tempUserMessage.id))
+      } finally {
+        setIsLoading(false)
+      }
+    },
+    [isLoading, currentThreadId],
+  )
+
+  // A deep link like /dashboard/assistant?q=... asks the question once, then
+  // drops the param so a refresh does not re-ask it.
+  useEffect(() => {
+    const question = searchParams.get("q")?.trim()
+    if (!question || autoSentRef.current) return
+    autoSentRef.current = true
+    router.replace("/dashboard/assistant", { scroll: false })
+    void sendQuestion(question)
+  }, [searchParams, sendQuestion, router])
+
+  function handleSend() {
+    const question = input.trim()
+    if (!question) return
+    setInput("")
+    void sendQuestion(question)
+  }
 
   async function loadThreads() {
     try {
@@ -90,73 +178,6 @@ export default function AssistantClient() {
         description: "Failed to load conversation",
         variant: "destructive",
       })
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  async function handleSend() {
-    if (!input.trim() || isLoading) return
-
-    const question = input.trim()
-    setInput("")
-
-    // Optimistically add user message
-    const tempUserMessage: Message = {
-      id: Date.now(),
-      threadId: currentThreadId ?? "",
-      role: "user",
-      content: question,
-      references: [],
-      tokens: 0,
-      createdAt: new Date(),
-    }
-    setMessages((prev) => [...prev, tempUserMessage])
-
-    try {
-      setIsLoading(true)
-      const res = await fetch("/api/assistant/workspace", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          question,
-          threadId: currentThreadId ?? undefined,
-        }),
-      })
-
-      const json = await res.json()
-      if (!res.ok) {
-        throw new Error(json.error || "Failed to get response")
-      }
-
-      // Add assistant message
-      const assistantMessage: Message = {
-        id: Date.now() + 1,
-        threadId: json.data.threadId,
-        role: "assistant",
-        content: json.data.answer,
-        references: json.data.references,
-        tokens: 0,
-        createdAt: new Date(),
-      }
-      setMessages((prev) => [...prev, assistantMessage])
-
-      // Update thread ID if new
-      if (!currentThreadId) {
-        setCurrentThreadId(json.data.threadId)
-      }
-
-      // Reload threads to update list
-      loadThreads()
-    } catch (error) {
-      console.error("Failed to send message:", error)
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to get response",
-        variant: "destructive",
-      })
-      // Remove optimistic message on error
-      setMessages((prev) => prev.filter((m) => m.id !== tempUserMessage.id))
     } finally {
       setIsLoading(false)
     }

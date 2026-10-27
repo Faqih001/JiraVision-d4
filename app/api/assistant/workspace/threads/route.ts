@@ -1,7 +1,7 @@
 // /api/assistant/workspace/threads — list user's assistant threads (design §7)
 // GET → returns user's threads with message counts
 
-import { NextRequest, NextResponse } from "next/server"
+import { NextResponse } from "next/server"
 import { eq, desc, sql } from "drizzle-orm"
 import { db } from "@/lib/db"
 import { getSession } from "@/lib/auth-actions"
@@ -9,7 +9,7 @@ import { assistantThreads, assistantMessages } from "@/drizzle/schema"
 
 export const dynamic = "force-dynamic"
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   const session = await getSession()
   if (!session?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })

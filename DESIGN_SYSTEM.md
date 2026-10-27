@@ -576,3 +576,37 @@ Floating chatbot for public site:
 - Keyboard navigation (Enter to send, Escape to close chatbot)
 - Focus management (input focuses on dialog open)
 - Screen reader friendly message structure
+
+## 18. AI Assistant completion (phase 9b, 2026-10-27)
+
+### Top-bar assistant panel (`components/assistant-panel.tsx`)
+
+A Popover, not a dialog: it sits in the action cluster and must not take the page away from the member.
+
+**Trigger**: ghost icon Button, `h-9 w-9 rounded-full border border-border bg-card hover:bg-muted`, Bot icon at `h-4 w-4`. Deliberately identical in shape to the notifications bell beside it, so the cluster reads as one row of round controls. `aria-label="Open AI assistant"` — the trigger is an icon and nothing else.
+
+**Placement**: desktop only (`{!isMobile && <AssistantPanel />}`), immediately before `<NotificationsBell />`. The mobile bar already carries the menu and the bell; a second popover would not fit.
+
+**Content**: `align="end"`, width `min(24rem, calc(100vw - 2rem))`, `p-0` so the header, scroll area and footer each own their padding and the borders reach the edges.
+
+**Header**: `border-b px-3 py-2`, Bot icon in `text-primary` + "AI Assistant" at `text-sm font-medium`, and a "Full page" link (Maximize2 at `h-3 w-3`, `text-xs text-muted-foreground hover:text-foreground`) to `/dashboard/assistant`. The panel is the short form; the escape hatch to the long form is always visible.
+
+**Empty state**: one line of `text-xs text-muted-foreground` explaining the scope, then three suggestion buttons — `variant="outline" size="sm"`, `h-auto w-full justify-start py-2 text-left text-xs`. Full width and left-aligned so they read as questions, not as controls.
+
+**Messages**: ScrollArea `h-[20rem] px-3 py-2`. Bubbles at `max-w-[85%] rounded-lg p-2 text-xs` — one size down from the full page's `max-w-[70%] p-3 text-sm`, because the panel is 24rem wide and a 70% bubble would wrap every sentence. User right on `bg-primary text-primary-foreground`, assistant left on `bg-muted` with a `h-5 w-5` Bot avatar. References render as a `text-[10px] opacity-70` "Sources:" line under a `border-t border-border/30` rule.
+
+**Loading**: Loader2 `h-3 w-3 animate-spin` + "Thinking…" at `text-xs`, and the submit button swaps its Send icon for the same spinner. No bouncing dots here — the full page has room for them, a 24rem popover does not.
+
+**Footer**: a real `<form>` with `onSubmit`, so Enter sends without a keydown handler. Input `h-8 text-xs`, `maxLength={2000}` (the length the API accepts), submit Button `h-8 w-8`.
+
+**Scrolling**: the effect targets `[data-radix-scroll-area-viewport]`, not the ScrollArea root — the Radix root is `overflow-hidden` and only clips, so scrolling it is a no-op that looks like a stuck conversation.
+
+### "Ask about this period" affordances
+
+Both entry points are links, not buttons: they navigate, and styling a navigation as a control is the kind of lie a design system should not tell.
+
+**Report builder** (`app/dashboard/reports-work/reports-client.tsx`): under the page description, `inline-flex items-center gap-1 text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline` with a Bot at `h-3.5 w-3.5`. Label "Ask the assistant about {period label}" — the label names the period, so the member can see the scope before clicking. It sits outside the action cluster on purpose: that cluster already carries ten buttons, and a question is not an operation on the report.
+
+**Work log** (`app/dashboard/worklog/worklog-client.tsx`): in the view toolbar's day row, after "Today", as a ghost `size="sm"` Button with `asChild` around the Link so it matches the neighbouring controls at `h-7 gap-1 px-2 text-xs`. Label "Ask about this day". The day it asks about is `state.day` — the day the URL already owns, so the link and the screen can never disagree.
+
+**The link itself**: `lib/assistant/ask.ts` owns the wording and the encoding. `/dashboard/assistant?q=…` is asked once (a ref guard makes the effect one-shot) and then the param is replaced away, so a refresh does not ask the same question again.

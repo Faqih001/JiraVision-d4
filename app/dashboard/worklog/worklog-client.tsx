@@ -6,7 +6,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
+import Link from "next/link"
 import {
+  Bot,
   CalendarDays,
   ChevronLeft,
   ChevronRight,
@@ -25,6 +27,7 @@ import { SectionCard } from "@/components/dashboard-kit"
 import { useToast } from "@/hooks/use-toast"
 import { localDay, shiftDays } from "@/lib/worklog/local-day"
 import { parseQuickAdd } from "@/lib/worklog/quick-add"
+import { assistantLink, dayQuestion } from "@/lib/assistant/ask"
 import {
   DELIVERABLE_LABEL_STATUS,
   DELIVERABLE_STATUSES,
@@ -949,6 +952,14 @@ function ViewToolbarSection({
             disabled={state.day === todayIso}
           >
             Today
+          </Button>
+          {/* The day in the URL is the day the question asks about, so the assistant opens already
+              scoped to what the member is looking at. */}
+          <Button variant="ghost" size="sm" className="h-7 gap-1 px-2 text-xs" asChild>
+            <Link href={assistantLink(dayQuestion(state.day))}>
+              <Bot className="h-3.5 w-3.5" aria-hidden />
+              Ask about this day
+            </Link>
           </Button>
         </div>
         <div className="flex flex-wrap gap-1">

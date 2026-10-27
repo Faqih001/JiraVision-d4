@@ -8,7 +8,7 @@ vi.mock("@/lib/db", () => ({
   },
 }))
 
-import { formatContextForPrompt, type AssistantContext } from "@/lib/assistant/context"
+import { formatContextForPrompt } from "@/lib/assistant/context"
 
 describe("formatContextForPrompt", () => {
   it("returns no data message when context is empty", () => {

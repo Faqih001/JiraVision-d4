@@ -306,6 +306,9 @@ and cost is attributable. Surfaces: a Popover panel in the top bar next to the b
 the full transcript, and "ask about this period" pre-scoped from a report draft or a worklog day.
 `/dashboard/ai-scrum-master` keeps its workspace and moves its five hard-coded recommendations
 (`app/api/dashboard/ai-recommendation/route.ts:29-35`) onto the real provider.
+**As shipped (2026-10-27):** all three surfaces exist, and the five strings are deleted rather than kept as a
+fallback — when the client sends nothing, the route builds the prompt from the sprint's own rows and returns
+503/422 on a provider failure.
 
 ### Public site assistant — `/api/assistant/site` (anonymous, capped)
 
@@ -851,19 +854,35 @@ Each phase is a reviewable, green, committed, pushed unit. Pushing auto-deploys 
    chart set, not only the order; and the page states whether it is showing a saved snapshot or a live preview.
    Nothing here submits, names a recipient, exports a file or drafts prose with AI — §6's lifecycle, inbox,
    export and prose buttons stayed in phases 4, 5 and 9, and no control for them exists on the page.
-4. **Submission, inbox, admin view** — recipients and default reporting line, submit/lock/revise, ack and
-   return with notes, notification type with a link, `/dashboard/reports-work/inbox`, visibility enforcement,
-   the admin team day view.
-5. **Exports** — PDF (report / log / plan), XLSX, the four new `DATASETS` entries in the CSV route,
-   selection-aware, yearly sheets.
-6. **Provider** — `lib/ai/gemini.ts`, `.env.example` entries with where-to-get docs, model discovery,
-   `GeminiError`, delete the mock and `lib/ai-models.ts`, disabled states, tests on a stubbed `fetch`.
-7. **Planner** — upload/paste → extract → editable draft → promote transaction; plans list and detail.
-8. **Gantt and views** — lanes, zoom, dependencies, drag with event capture, grid/list/board, filters, bulk.
-9. **Workspace assistant** — context pack, typed grounding, threads, top-bar panel, `/dashboard/assistant`,
-   "ask about this period", AI Scrum Master onto the real provider, optional grounded report drafting.
-10. **Public assistant** — site-knowledge packs, tier-1/tier-2 routing, the five caps, `ai_usage_daily`
-    counting, legal disclosure.
+4. **Submission, inbox, admin view** *(shipped 2026-10-27)* — recipients and default reporting line,
+   submit/lock/revise, ack and return with notes, notification type with a link,
+   `/dashboard/reports-work/inbox`, visibility enforcement, the admin team day view.
+5. **Exports** *(shipped 2026-10-27)* — PDF (report / log / plan), XLSX, the four new `DATASETS` entries in
+   the CSV route, selection-aware, yearly sheets.
+6. **Provider** *(shipped 2026-10-27)* — `lib/ai/gemini.ts`, `.env.example` entries with where-to-get docs,
+   model discovery, `GeminiError`, delete the mock and `lib/ai-models.ts`, disabled states, tests on a
+   stubbed `fetch`.
+7. **Planner** *(shipped 2026-10-27)* — upload/paste → extract → editable draft → promote transaction; plans
+   list and detail.
+8. **Gantt and views** *(shipped 2026-10-27)* — lanes, zoom, dependencies, drag with event capture,
+   grid/list/board, filters, bulk.
+9. **Workspace assistant** *(shipped 2026-10-27)* — context pack, typed grounding, threads, top-bar panel,
+   `/dashboard/assistant`, "ask about this period", AI Scrum Master onto the real provider, optional grounded
+   report drafting. What the phase added beyond this line: the context pack reads exactly the five core
+   tables scoped by `user_id` over the last 30 days and short-circuits **before** the model call when the pack
+   is empty; the top-bar panel and the "ask about this period" links (`lib/assistant/ask.ts`, a `?q=` deep
+   link asked once from the report builder's period and the work log's day) arrived in a follow-up pass after
+   the full page shipped, so both are on the same `POST /api/assistant/workspace`; and
+   `app/api/dashboard/ai-recommendation/route.ts` lost its five canned strings — a client-computed
+   recommendation is still stored verbatim, otherwise the route asks the model for one built from the
+   sprint's own rows and returns 503/422 rather than invented advice when the provider fails. Grounded
+   report drafting stayed optional and is not built.
+10. **Public assistant** *(shipped 2026-10-27)* — site-knowledge packs, tier-1/tier-2 routing, the five caps,
+    `ai_usage_daily` counting, legal disclosure. What the phase added beyond this line: the route map is
+    explicit (18 paths, plus prefix matching for the dynamic ones) rather than inferred from the URL, the
+    keyword tier carries 35 keys so most visitors never reach the model, every `GeminiError` kind degrades to
+    a scripted answer, and usage tracking fails open. The legal disclosure is the `ai-assistant-answers`
+    section of `legalNoticeDoc`, and the same rule is in the model's system prompt: the published page wins.
 11. **Docs and guards** — `FEATURES.md`, `DESIGN_SYSTEM.md` (worklog and planner components, discipline tokens,
     report layouts), `PLACEHOLDERS.md` (the Granite item closes here), README AI section, guard test files.
 12. **Career ladder schema and math** — the five §11 tables, `lib/career/{signals,readiness,ladder-seed}.ts` all
