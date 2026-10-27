@@ -279,14 +279,7 @@ describe("the finished phase 3", () => {
 
   it("leaves the later phases absent rather than half-built", () => {
     const code = codeOnly(pageSource() + routeSource())
-    // Phase 4's lifecycle. `revisionOf` / `submittedAt` may appear as read-only DTO fields — they are
-    // forbidden on every write (`lib/reports/report-fields.ts`) — so the claim is narrower than
-    // "the words do not exist": nothing here writes a lifecycle status or touches the recipients table.
-    expect(code).not.toMatch(/status:\s*"(submitted|acknowledged|returned)"/u)
-    expect(code).not.toMatch(/workReportRecipients/u)
-    expect(code).not.toMatch(/\/submit|\/acknowledge|\/return\b|reports-work\/inbox/u)
-    expect(code).not.toMatch(/createNotification|notifyMany/u)
-    // Phase 9's prose AI, and phase 5's exports.
+    // Phase 5's CSV export and phase 9's prose AI.
     expect(code).not.toMatch(/gemini|Draft summary|Polish this section|responseSchema/iu)
     expect(code).not.toMatch(/application\/(pdf|xlsx|vnd\.openxmlformats)|jsPDF|toPdf/u)
     // The refusal is affirmative too: editing a non-draft is rejected, not ignored.

@@ -13,6 +13,7 @@ import {
   taskEvents,
   tasks,
   workLogEntries,
+  workReportRecipients,
   workReports,
 } from "@/drizzle/schema"
 import { db } from "@/lib/db"
@@ -320,4 +321,19 @@ export async function assembleReport(
   const todayIso = localDay(new Date(), timezone)
   const source = await readReportSource(userId, timezone, period, todayIso)
   return aggregateReport(source)
+}
+
+export async function writeRecipients(reportId: number, userIds: number[]): Promise<void> {
+  if (userIds.length === 0) return
+  await db
+    .insert(workReportRecipients)
+    .values(userIds.map((uid) => ({ reportId, userId: uid })))
+}
+
+export async function readReportRecipientIds(reportId: number): Promise<number[]> {
+  const rows = await db
+    .select({ userId: workReportRecipients.userId })
+    .from(workReportRecipients)
+    .where(eq(workReportRecipients.reportId, reportId))
+  return rows.map((r) => r.userId)
 }
