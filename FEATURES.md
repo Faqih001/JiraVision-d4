@@ -341,3 +341,15 @@ Shared behavior across all four:
 - **Deliberately absent** (phase 8): Gantt view, drag-to-move on Gantt, cadence-based row generation, PDF export of Gantt. The planner delivers Grid (table in editor), List (cards in editor), and Board views are deferred.
 - Guards: `tests/unit/planner-{extract,promote,page}.test.ts` — three new files (69 tests), and the suite is 62 files / 1086 tests.
 
+## 14. Gantt view (phase 8, 2026-10-27)
+
+- **Gantt data model.** `lib/planner/gantt-data.ts` — pure functions to transform plan_items or tasks into Gantt lanes. Groups by discipline or assignee. Calculates date ranges with padding. Handles zoom levels (day/week/month). Resolves dependencies from indices to IDs. Generates time axis labels. Calculates bar positions and moved dates after drag.
+- **Gantt component.** `components/planner/gantt.tsx` — SVG/CSS grid component. Renders lanes as rows, time axis at top, today marker as vertical line. Responsive with horizontal scroll below md breakpoint. Handles keyboard navigation (arrow keys to move selected item). Respects prefers-reduced-motion. ARIA labels for accessibility.
+- **Gantt bar component.** `components/planner/gantt-bar.tsx` — individual bar rendering. SVG rects for regular items, diamond shapes for milestones. Color-coded by status (done=green, in-progress=yellow, todo=blue). Drag-to-move with mouse/touch. Visual feedback during drag (opacity change). Tooltip on hover showing item details. Keyboard accessible (Enter/Space to select).
+- **Gantt controls.** `components/planner/gantt-controls.tsx` — zoom selector (day/week/month) and group-by selector (discipline/assignee). Uses Select components from shadcn/ui.
+- **Plan editor integration.** `app/dashboard/planner/[id]/plan-editor-client.tsx` — view mode toggle (List/Gantt). Gantt view renders when mode is "gantt" and items exist. Drag-to-move commits new dates via PATCH to `/api/planner/[id]/items/[itemId]`. Click on bar scrolls to item in list view. URL query params for view mode, zoom, and groupBy.
+- **Drag-to-move interaction.** Mouse down starts drag, mouse move calculates day delta based on bar width, mouse up commits. Touch support for mobile. Keyboard support: arrow keys move selected item by 1 day (left/right) or 7 days (up/down). Writes task_events row on commit for promoted tasks.
+- **Accessibility.** Visible keyboard focus on bars and controls. ARIA labels for bars, lanes, today marker. Screen reader announcements for move operations. prefers-reduced-motion disables drag animations and simplifies transitions.
+- **Deliberately absent**: PDF export of Gantt (the PDF export module uses a table layout, not the Gantt image), real-time collaboration (no WebSocket sync for drag operations), critical path calculation (dependency arrows show relationships but no CPM algorithm).
+- Guards: `tests/unit/gantt-{data,component}.test.ts` — two new files (53 tests), and the suite is 64 files / 1139 tests.
+

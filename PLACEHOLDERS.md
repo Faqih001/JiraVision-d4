@@ -166,10 +166,20 @@ One thing a reader could mistake for a stub, because it is an absent *phase* sta
 
 No new placeholder. The planner ships with real extraction, real editing, and real promote-to-tasks transaction. The extraction schema, API routes, and UI are all wired to real reads and writes.
 
-Two things a reader could mistake for a stub, because each is an absent *phase* stated in the planner where it would have been:
+One thing a reader could mistake for a stub, because it is an absent *phase* stated in the planner where it would have been:
 
 | Looks missing | Actually |
 |---|---|
-| No Gantt view | phase 8; the planner delivers List view (in the editor), Grid view (table in editor), and Board view is deferred. The Gantt is a layout problem, not a chart-library problem, and is phase 8's deliverable |
-| No drag-to-move on Gantt | phase 8; the Gantt does not exist yet, so drag-to-move cannot exist either |
 | No cadence-based row generation | mentioned in the spec but not core to this phase; the planner extracts items with cadence fields, but materializing dated rows from "generate my month" is deferred |
+
+## 13. Gantt view (phase 8, 2026-10-27)
+
+No new placeholder. The Gantt ships with real rendering, real drag-to-move, and real keyboard navigation. The data model, SVG components, and integration are all wired to real reads and writes.
+
+Two things a reader could mistake for a stub, because each is an absent *feature* stated in the Gantt where it would have been:
+
+| Looks missing | Actually |
+|---|---|
+| No PDF export of Gantt | the PDF export module uses a table layout for plans, not the Gantt image; adding Gantt rasterization to PDF is a separate enhancement |
+| No real-time collaboration | no WebSocket sync for drag operations; the Gantt is single-user, and concurrent edits would require conflict resolution that is out of scope |
+| No critical path calculation | dependency arrows show relationships between items, but no CPM algorithm computes the critical path; that is a separate analytical feature |

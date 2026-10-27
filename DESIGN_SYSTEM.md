@@ -443,8 +443,84 @@ Discipline and Cadence selects use `"none"` as the sentinel value for "no select
 
 ### Deliberately absent (phase 8)
 
-- Gantt view (SVG/CSS grid with lanes, dependency arrows, drag-to-move)
 - Board view (kanban-style grouped by status or discipline)
 - Grid view as a separate mode (the editor's item list is a table-like layout, but a dedicated Grid view with bulk actions is deferred)
 - Cadence-based row generation (materializing dated rows from "generate my month")
+
+## 16. Gantt view (phase 8, 2026-10-27)
+
+### Gantt component (`components/planner/gantt.tsx`)
+
+SVG/CSS grid component with the following structure:
+
+**Layout**:
+- Time axis at top (HEADER_HEIGHT = 40px)
+- Lanes as rows (LANE_HEIGHT = 60px each)
+- Lane label column on left (LABEL_WIDTH = 150px)
+- Today marker as vertical dashed line (red, strokeDasharray="4 4")
+- Horizontal scroll below md breakpoint
+
+**Props**:
+- `items: GanttItem[]` — array of items to render
+- `groupBy?: "discipline" | "assignee"` — lane grouping (default: "discipline")
+- `zoom?: "day" | "week" | "month"` — time scale (default: "week")
+- `onItemMove?: (itemId: number, dayDelta: number) => void` — drag callback
+- `onItemClick?: (item: GanttItem) => void` — click callback
+
+**Responsive**: Uses ResizeObserver to track container width. Total width calculated from date range and zoom level. Horizontal scroll when content exceeds container.
+
+**Keyboard navigation**: Arrow keys move selected item (left/right = ±1 day, up/down = ±7 days). Enter/Space selects bar. Focus visible with ring outline.
+
+**Motion**: Respects `prefers-reduced-motion` media query. Disables drag animations and simplifies transitions when reduced motion is preferred.
+
+### Gantt bar component (`components/planner/gantt-bar.tsx`)
+
+Individual bar rendering within the Gantt:
+
+**Regular items**: SVG rect with rounded corners (rx=4). Width calculated from duration and zoom. Position calculated from start date offset.
+
+**Milestones**: Diamond shape (polygon) centered on the date. Size = height * 0.6.
+
+**Color coding**:
+- Done/completed: `hsl(var(--success))`
+- In-progress: `hsl(var(--warning))`
+- Todo/default: `hsl(var(--chart-1))`
+- Milestone: `hsl(var(--primary))`
+
+**Drag interaction**:
+- Mouse down starts drag (cursor: grab → grabbing)
+- Mouse move calculates day delta based on bar width
+- Mouse up commits via onItemMove callback
+- Visual feedback: opacity 0.7 during drag
+- Touch support for mobile devices
+
+**Tooltip**: Shows on hover (foreignObject with popover styling). Displays title, date range, and discipline. Hidden during drag.
+
+**Accessibility**:
+- `role="button"` with `aria-label` describing item and dates
+- `aria-grabbed` attribute during drag
+- `tabIndex={0}` for keyboard focus
+- onKeyDown handler for Enter/Space
+
+### Gantt controls (`components/planner/gantt-controls.tsx`)
+
+Control panel above the Gantt:
+
+**Zoom selector**: Select component with day/week/month options. Calendar icon. Width 120px.
+
+**Group-by selector**: Select component with discipline/assignee options. Users icon. Width 150px.
+
+**Help text**: "Use arrow keys to move selected item · Click bar for details" (text-xs, text-muted-foreground).
+
+### Plan editor integration
+
+**View mode toggle**: Button group with List and Gantt options. List icon + "List" label, GanttChart icon + "Gantt" label. Default variant for active mode, ghost for inactive.
+
+**Gantt view section**: SectionCard with "Gantt View" title and GanttChart icon. Renders when `viewMode === "gantt"` and `items.length > 0`.
+
+**Drag-to-move**: `handleItemMove` function calculates new dates from dayDelta, sends PATCH to `/api/planner/[id]/items/[itemId]`, updates local state on success, shows toast.
+
+**Click-to-scroll**: `onItemClick` callback finds item in list view and scrolls into view with smooth behavior.
+
+**URL state**: View mode, zoom, and groupBy persisted to URL query params (view, zoom, groupBy).
 - PDF export of Gantt

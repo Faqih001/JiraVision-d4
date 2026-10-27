@@ -1,8 +1,8 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
-import { Save, Trash2, Rocket, Plus, ArrowLeft, Loader2 } from "lucide-react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { Save, Trash2, Rocket, Plus, ArrowLeft, Loader2, List, GanttChart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -11,6 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton"
 import { SectionCard } from "@/components/dashboard-kit"
 import { useToast } from "@/hooks/use-toast"
+import Gantt from "@/components/planner/gantt"
+import type { GanttItem, GanttZoom, GanttGroupBy } from "@/lib/planner/gantt-data"
 
 type PlanItem = {
   id: number
@@ -57,6 +59,7 @@ const CADENCES = ["daily", "weekly", "monthly", "quarterly", "yearly"]
 
 export default function PlanEditorClient({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { toast } = useToast()
 
   const [planId, setPlanId] = useState<number | null>(null)
@@ -65,6 +68,15 @@ export default function PlanEditorClient({ params }: { params: Promise<{ id: str
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [promoting, setPromoting] = useState(false)
+  const [viewMode, setViewMode] = useState<"list" | "gantt">(
+    (searchParams.get("view") as "list" | "gantt") || "list",
+  )
+  const [ganttZoom] = useState<GanttZoom>(
+    (searchParams.get("zoom") as GanttZoom) || "week",
+  )
+  const [ganttGroupBy, setGanttGroupBy] = useState<GanttGroupBy>(
+    (searchParams.get("groupBy") as GanttGroupBy) || "discipline",
+  )
 
   useEffect(() => {
     params.then(({ id }) => setPlanId(Number.parseInt(id)))
@@ -220,6 +232,51 @@ export default function PlanEditorClient({ params }: { params: Promise<{ id: str
     }
   }
 
+  const handleItemMove = async (itemId: number, dayDelta: number) => {
+    const item = items.find((i) => i.id === itemId)
+    if (!item) return
+
+    const newStart = item.startDate
+      ? new Date(new Date(item.startDate).getTime() + dayDelta * 86400000)
+          .toISOString()
+          .split("T")[0]
+      : null
+    const newDue = item.dueDate
+      ? new Date(new Date(item.dueDate).getTime() + dayDelta * 86400000)
+          .toISOString()
+          .split("T")[0]
+      : null
+
+    try {
+      const res = await fetch(`/api/planner/${planId}/items/${itemId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ startDate: newStart, dueDate: newDue }),
+      })
+      const json = await res.json()
+      if (json.success) {
+        setItems(items.map((i) => (i.id === itemId ? { ...i, startDate: newStart, dueDate: newDue } : i)))
+        toast({ title: "Item moved" })
+      } else {
+        toast({ title: "Failed to move item", description: json.message, variant: "destructive" })
+      }
+    } catch {
+      toast({ title: "Network error", description: "Could not move item", variant: "destructive" })
+    }
+  }
+
+  const ganttItems: GanttItem[] = items.map((item, index) => ({
+    id: item.id,
+    title: item.title,
+    startDate: item.startDate,
+    dueDate: item.dueDate,
+    status: item.status,
+    discipline: item.discipline,
+    assigneeId: null,
+    milestone: item.milestone,
+    dependsOn: item.dependsOn || [],
+  }))
+
   if (loading || !plan) {
     return (
       <div className="space-y-6">
@@ -240,6 +297,24 @@ export default function PlanEditorClient({ params }: { params: Promise<{ id: str
           Back to Plans
         </Button>
         <div className="flex gap-2">
+          <div className="flex border rounded-md overflow-hidden">
+            <Button
+              variant={viewMode === "list" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("list")}
+            >
+              <List className="mr-2 h-4 w-4" />
+              List
+            </Button>
+            <Button
+              variant={viewMode === "gantt" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("gantt")}
+            >
+              <GanttChart className="mr-2 h-4 w-4" />
+              Gantt
+            </Button>
+          </div>
           {isDraft && (
             <>
               <Button variant="outline" onClick={savePlanMetadata} disabled={saving}>
@@ -314,6 +389,24 @@ export default function PlanEditorClient({ params }: { params: Promise<{ id: str
           </div>
         </div>
       </SectionCard>
+
+      {viewMode === "gantt" && items.length > 0 && (
+        <SectionCard title="Gantt View" icon={<GanttChart className="h-4 w-4" />}>
+          <Gantt
+            items={ganttItems}
+            zoom={ganttZoom}
+            groupBy={ganttGroupBy}
+            onItemMove={isDraft ? handleItemMove : undefined}
+            onItemClick={(item) => {
+              const planItem = items.find((i) => i.id === item.id)
+              if (planItem) {
+                const element = document.getElementById(`item-${item.id}`)
+                element?.scrollIntoView({ behavior: "smooth", block: "center" })
+              }
+            }}
+          />
+        </SectionCard>
+      )}
 
       <SectionCard
         title={`Items (${items.length})`}
