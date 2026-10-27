@@ -4,6 +4,8 @@ import { db } from "@/lib/db"
 import { users } from "@/drizzle/schema"
 import { getSession } from "@/lib/auth-actions"
 import { createNotification } from "@/lib/notifications"
+import { readSettingsPatch } from "@/lib/settings-patch"
+import { readOnboardingPatch, readOnboardingState } from "@/lib/onboarding/state"
 
 export const dynamic = "force-dynamic"
 
@@ -67,22 +69,10 @@ async function mergeSettings(userId: number, patch: StoredPrefs) {
   `)
 }
 
-function sanitizePatch(body: unknown): { patch: StoredPrefs | null, error?: string } {
-  if (!body || typeof body !== "object" || Array.isArray(body)) {
-    return { patch: null, error: "Body must be a JSON object of settings keys" }
-  }
-  const source = body as StoredPrefs
-  const incoming = asObject(source.settings) // accept { key: value } or { settings: { key: value } }
-  const candidate = Object.keys(incoming).length > 0 ? incoming : source
-  const patch: StoredPrefs = {}
-  for (const [key, value] of Object.entries(candidate)) {
-    if (key === "settings") continue
-    if (typeof value === "function" || (value && typeof value === "object" && !Array.isArray(value))) continue
-    if (key.startsWith("__")) continue
-    if (typeof key !== "string" || key.length === 0 || key.length > 64) continue
-    patch[key] = value
-  }
-  return { patch }
+// Onboarding is the one namespaced object this route accepts; it is validated against
+// the stored state below so a wizard step is a merge, not a rewrite.
+function readOnboardingFromMerged(merged: Record<string, unknown>) {
+  return readOnboardingState(merged.onboarding)
 }
 
 // GET /api/settings -> defaults merged with the user's stored settings
@@ -113,12 +103,22 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 })
     }
     const body = await request.json().catch(() => null)
-    const { patch, error } = sanitizePatch(body)
+    const { patch, error } = readSettingsPatch(body)
     if (!patch || Object.keys(patch).length === 0) {
       return NextResponse.json({ success: false, message: error ?? "No settings provided" }, { status: 400 })
     }
 
     const { merged } = await readSettings(session.id)
+    if ("onboarding" in patch) {
+      const parsed = readOnboardingPatch(
+        patch.onboarding,
+        readOnboardingFromMerged(merged),
+        new Date().toISOString(),
+      )
+      if (!parsed.ok) return NextResponse.json({ success: false, message: parsed.error }, { status: 400 })
+      patch.onboarding = parsed.value
+    }
+
     const changedKeys = Object.entries(patch)
       .filter(([key, value]) => merged[key] !== value)
       .map(([key]) => key)
