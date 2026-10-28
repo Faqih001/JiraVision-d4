@@ -247,10 +247,10 @@ export function AccessibilityWidget() {
             "fixed right-4 z-50 flex min-h-[48px] min-w-[48px] items-center gap-2 rounded-full border bg-card px-4 text-sm font-medium shadow-soft-md",
             // Foot of the right-edge stack: the Assistant pill sits above it, and the
             // cookie banner above the pill. Nothing here has to react to the banner,
-            // because the banner is what moves. One geometry at every width — the
-            // public header is the site navigation on a phone or tablet, so there is no
-            // bottom bar to clear.
-            "bottom-[calc(1rem+env(safe-area-inset-bottom))]",
+            // because the banner is what moves. One geometry at every width, starting
+            // 80px up: the footer's Back-to-top button ends 64px above the page bottom
+            // (24px of row padding plus its 40px height) in this same corner.
+            "bottom-[calc(5rem+env(safe-area-inset-bottom))]",
           )}
         >
           <Accessibility className="h-5 w-5" aria-hidden="true" />

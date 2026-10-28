@@ -64,7 +64,8 @@ Layout: container centered, `padding: 1.5rem`, `2xl` screen at 1240px; extra `xs
 - Nothing is pinned to the bottom edge of a public page. The 4-icon site-shortcuts tab bar was
   removed once the header was reachable again: the header, its drawer and the footer are the whole
   navigation, so the right-edge stack has one geometry at every width and the footer needs no
-  spacer under it.
+  spacer under it. What the stack does clear is the footer's own Back-to-top — in flow, not fixed,
+  and in the same corner from `md` — which is why its foot starts 80px up (see §9).
 - The workspace spends tablet on the page, not the rail: the nav is a slide-over until `lg`, so a
   768px tablet gives the whole width to the content. What the top bar then has to hold is arithmetic,
   not taste — the pill switch, the full language label and the first name are `lg` pay-offs and the
@@ -208,7 +209,7 @@ Observed, enforced-in-practice rules (REDESIGN_PLAN V2-1/V2-3 + homepage impleme
   first frame. Colour/contrast modes rewrite the HSL token triples rather than applying a CSS
   `filter` to a wrapper — a filter on an ancestor makes it the containing block for every
   `position: fixed` descendant (navbar, bottom bar, cookie bar, dialogs).
-- **The bottom-right stack has fixed levels, and the widest element sits on top.** Accessibility launcher owns the corner (16px), the assistant pill rests on it (84px), the cookie bar and the open chat panel rest on the pill (148px) — the same four numbers at every width, since nothing else is fixed to the bottom edge. Positions are static — no control subscribes to consent state, because a bar that overlaps a button is a dead button.
+- **The bottom-right stack has fixed levels, and the widest element sits on top.** Accessibility launcher owns the corner (80px up), the assistant pill rests on it (148px), the cookie bar and the open chat panel rest on the pill (212px) — the same three numbers at every width. The foot is 80px, not 16px, because the footer's compliance row shares that corner from `md`: its Back-to-top button ends 64px above the page bottom (24px of row padding + 40px of height). Positions are static — no control subscribes to consent state, because a bar that overlaps a button is a dead button.
 - **A nav drawer is one accordion, and the state belongs to the drawer.** `navbar.tsx` holds the
   open section (`openGroup: string | null`) and `MobileGroup` is a controlled row, because two
   sections open at once turn a 48px-tall list into an unscrollable stack. Every dismissal path —
@@ -592,9 +593,9 @@ Full-page chat interface with two-column layout:
 
 Floating chatbot for public site:
 
-**Button**: Fixed right edge (`right-4`), rounded-full, primary background, MessageSquare icon + "Assistant" label. z-50. It sits **above** the accessibility launcher, which owns the corner: `bottom-[calc(8.25rem+env(safe-area-inset-bottom))]`, `lg:bottom-[calc(5.25rem+…)]`.
+**Button**: Fixed right edge (`right-4`), rounded-full, primary background, MessageSquare icon + "Assistant" label. z-50. It sits **above** the accessibility launcher, which owns the corner: `bottom-[calc(9.25rem+env(safe-area-inset-bottom))]`, one geometry at every width.
 
-**Dialog**: Card with fixed position (`right-4`, `bottom-[calc(12.25rem+…)]`, `lg:bottom-[calc(9.25rem+…)]` — clears the pill it opens from), max-h 500px or `calc(100dvh - 13.25rem)` (10.25rem from lg), width 22rem or calc(100vw-2rem). z-50.
+**Dialog**: Card with fixed position (`right-4`, `bottom-[calc(13.25rem+…)]` — clears the pill it opens from), max-h 500px or `calc(100dvh - 14.25rem)`, width 22rem or calc(100vw-2rem). z-50.
 
 **Header**: Primary background, Avatar with "JV" fallback, "JiraVision Assistant" title, close button (X icon).
 

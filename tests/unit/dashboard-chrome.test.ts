@@ -256,11 +256,11 @@ describe("footer wordmark gleam", () => {
 
 describe("accessibility entry point", () => {
   // The right-edge stack, bottom up: launcher, assistant pill, then the assistant
-  // panel / cookie bar. One geometry at every width — nothing else is fixed to the bottom
-  // edge of the public pages any more, so no level needs a taller step on a narrow screen.
-  const launcherStep = "bottom-[calc(1rem+env(safe-area-inset-bottom))]"
-  const pillStep = "bottom-[calc(5.25rem+env(safe-area-inset-bottom))]"
-  const panelStep = "bottom-[calc(9.25rem+env(safe-area-inset-bottom))]"
+  // panel / cookie bar. One geometry at every width — and it starts 80px up, because the
+  // footer's Back-to-top button ends 64px above the page bottom in the same corner.
+  const launcherStep = "bottom-[calc(5rem+env(safe-area-inset-bottom))]"
+  const pillStep = "bottom-[calc(9.25rem+env(safe-area-inset-bottom))]"
+  const panelStep = "bottom-[calc(13.25rem+env(safe-area-inset-bottom))]"
 
   it("is the foot of the stack, with the assistant pill above it", () => {
     expect(layout).toContain("<AccessibilityLauncher")

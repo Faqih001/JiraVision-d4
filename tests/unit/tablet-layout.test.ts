@@ -62,8 +62,9 @@ describe("tablet zone (768-1279)", () => {
   })
 
   it("gives the right-edge stack one geometry at every width", () => {
-    // Nothing is fixed to the bottom edge any more, so no control needs a taller step on a
-    // narrow screen: launcher 1rem, pill 5.25rem, panel and cookie bar 9.25rem throughout.
+    // No width-branched steps: launcher 5rem, pill 9.25rem, panel and cookie bar 13.25rem
+    // everywhere. The foot is 80px up rather than 16px because the footer's Back-to-top ends
+    // 64px above the page bottom from md, and a control over a button is a dead button.
     for (const relative of [
       "components/accessibility/accessibility-launcher.tsx",
       "components/accessibility/accessibility-widget.tsx",
@@ -74,7 +75,7 @@ describe("tablet zone (768-1279)", () => {
       expect(text, `${relative} still branches the stack by width`).not.toMatch(/(?:lg|xl):bottom-\[calc/)
     }
     expect(read("components/accessibility/accessibility-launcher.tsx")).toContain(
-      "bottom-[calc(1rem+env(safe-area-inset-bottom))]",
+      "bottom-[calc(5rem+env(safe-area-inset-bottom))]",
     )
   })
 
