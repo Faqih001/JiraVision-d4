@@ -12,7 +12,10 @@ second. The pool is now kept warm and retried once on connection failure; see
 [lib/db.ts:67](file:///Users/kiibridge-tech/Desktop/Projects/jiravision/lib/db.ts#L67) and
 [lib/db.ts:137](file:///Users/kiibridge-tech/Desktop/Projects/jiravision/lib/db.ts#L137).
 
-## The 12 rows
+## The 11 rows
+
+Id 20 (`fakiiahmad001@gmail.com`) was deleted on 2026-10-28 at the owner's request — see
+[Deleting the gmail account](#deleting-the-gmail-account).
 
 | id | Name | Email | Role | Status | Email verified | Created |
 |---|---|---|---|---|---|---|
@@ -27,9 +30,8 @@ second. The pool is now kept warm and retried once on connection failure; see
 | 13 | Kwame Mensah | kwame.mensah@example.com | user | online | yes | 2026-10-24 |
 | 14 | Sofia Lindqvist | sofia.lindqvist@example.com | user | online | yes | 2026-10-24 |
 | 15 | Ravi Chandran | ravi.chandran@example.com | user | online | yes | 2026-10-24 |
-| 20 | Fakii Mohammed | fakiiahmad001@gmail.com | user | offline | no | 2026-10-26 |
 
-Ids 1–4 and 16–19 no longer exist; the table was truncated at some point in its history (see
+Ids 1–4 and 16–20 no longer exist; the table was truncated at some point in its history (see
 `tests/unit/schema-safety.test.ts`, which guards against auth ever doing that again).
 
 ## Where they came from
@@ -39,19 +41,17 @@ Ids 1–4 and 16–19 no longer exist; the table was truncated at some point in 
 | [`scripts/seed-team-members.js`](file:///Users/kiibridge-tech/Desktop/Projects/jiravision/scripts/seed-team-members.js) | 5, 6, 7, 8 — the seeder also defines a `You (Current User)` row and six more members that were never or no longer inserted |
 | [`drizzle/seed-v3.js`](file:///Users/kiibridge-tech/Desktop/Projects/jiravision/drizzle/seed-v3.js) | 10, 11, 12, 13, 14, 15 |
 | A scripted signup against the running app | 9 — a test account, named and timestamped by whatever created it, never verified |
-| The owner, via `/signup` | 20 — the only real account |
 
 Every `@example.com` row is demo data. The `status` values (`online`, `busy`) are seeded literals,
-not live presence.
+not live presence. There is no real user account in the table today.
 
 ## Credentials to log in
 
-Passwords are bcrypt hashes and cannot be read back out of the database. Two cases:
+Passwords are bcrypt hashes and cannot be read back out of the database. Both seeders hash the
+same literal, so every demo account above signs in with `password123` as the password. Treat that
+as public knowledge — it is committed in the repo.
 
-**Demo accounts (ids 5–15).** Both seeders hash the same literal, so these sign in with
-`password123` as the password. Treat that as public knowledge — it is committed in the repo.
-
-**Fakii Mohammed (id 20).** The password was chosen at signup and is stored only as a hash; it
+For a real account, the password is whatever was chosen at signup and is stored only as a hash; it
 cannot be recovered, and nothing in the repo or the database reveals it. To get back in, reset it:
 
 - `/forgot-password` with the address, then follow the emailed link, or
@@ -67,17 +67,20 @@ unreachable until that address signs up (`roleForSignup` stamps it `superadmin` 
 
 ## Deleting the gmail account
 
-`fakiiahmad001@gmail.com` is id 20. Checked before proposing anything:
+`fakiiahmad001@gmail.com` was id 20, the only real account. Checked before deleting:
 
-- **43 foreign-key columns** across the schema point at `users`; every one of them has **0 rows**
-  for id 20. Nothing cascades, nothing restricts, nothing is left orphaned.
-- The address appears in exactly one place in the whole database — its own `users.email` row.
+- **43 foreign-key columns** across the schema point at `users`; every one of them had **0 rows**
+  for id 20. Nothing cascaded, nothing was restricted, nothing left orphaned.
+- The address appeared in exactly one place in the whole database — its own `users.email` row.
   No pending `workspace_invitations`, no report recipients.
 
-So the delete is self-contained:
+Deleted 2026-10-28 after explicit approval:
 
 ```sql
 DELETE FROM users WHERE id = 20;
 ```
 
-It has **not** been run. Any write to live Neon is a separate, explicit decision.
+Verified afterwards: 1 row removed, `users` went from 12 rows to 11, and the address is gone. The
+full row — 18 columns including the old password hash — was saved first to
+`/tmp/jiravision-user-20-backup.json`, which can be re-inserted if that turns out to be wanted.
+`/tmp` does not survive a reboot, so copy it somewhere durable if it should be kept.
