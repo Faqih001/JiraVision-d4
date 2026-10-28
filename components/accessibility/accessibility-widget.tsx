@@ -250,10 +250,11 @@ export function AccessibilityWidget() {
           aria-label="Open the accessibility menu"
           aria-expanded={open}
           className={cn(
-            "fixed left-4 z-50 flex min-h-[48px] min-w-[48px] items-center gap-2 rounded-full border bg-card px-4 text-sm font-medium shadow-soft-md transition-[bottom] duration-200",
+            "fixed right-4 z-50 flex min-h-[48px] min-w-[48px] items-center gap-2 rounded-full border bg-card px-4 text-sm font-medium shadow-soft-md transition-[bottom] duration-200",
+            // Both offsets clear the Assistant pill, which owns bottom-right at 4rem tall.
             bannerVisible
-              ? "bottom-[calc(16rem+env(safe-area-inset-bottom))] lg:bottom-6"
-              : "bottom-[calc(5.5rem+env(safe-area-inset-bottom))] lg:bottom-6",
+              ? "bottom-[calc(16rem+env(safe-area-inset-bottom))]"
+              : "bottom-[calc(5.25rem+env(safe-area-inset-bottom))]",
           )}
         >
           <Accessibility className="h-5 w-5" aria-hidden="true" />

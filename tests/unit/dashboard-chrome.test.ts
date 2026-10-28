@@ -217,6 +217,21 @@ describe("accessibility entry point", () => {
     expect(layout).toContain("<AccessibilityLauncher")
   })
 
+  it("uses the same bottom-right corner on the public site", () => {
+    expect(widget).toContain("fixed right-4")
+    expect(widget).not.toContain("fixed left-4")
+    // Both launchers clear the assistant pill, which owns bottom-4 right-4 at h-12.
+    expect(widget).toContain("bottom-[calc(5.25rem+env(safe-area-inset-bottom))]")
+  })
+
+  it("leaves the floating controls out of the footer", () => {
+    const footer = read("components/layout/footer.tsx")
+    expect(footer).not.toContain("Accessibility settings")
+    expect(footer).not.toContain("OPEN_A11Y_EVENT")
+    // One line from xl up: nothing in the compliance row wraps under another.
+    expect(footer).toContain("xl:flex-row xl:items-center xl:justify-between")
+  })
+
   it("asks the root panel to open instead of mounting a second one", () => {
     expect(launcher).toContain("OPEN_A11Y_EVENT")
     expect(widget).toContain("OPEN_A11Y_EVENT")

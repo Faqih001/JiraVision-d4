@@ -2,11 +2,10 @@
 
 import Image from "next/image"
 import Link from "next/link"
-import { ArrowRight, ArrowUp, ChevronDown, Accessibility, Github, Linkedin, Twitter } from "lucide-react"
+import { ArrowRight, ArrowUp, ChevronDown, Github, Linkedin, Twitter } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import NewsletterForm from "@/components/newsletter-form"
 import { ThemeToggle } from "@/components/layout/theme-toggle"
-import { OPEN_A11Y_EVENT } from "@/lib/accessibility"
 import { OPEN_CONSENT_EVENT } from "@/lib/consent"
 import { overallStatus, services } from "@/content/status"
 import {
@@ -154,32 +153,28 @@ export function Footer() {
           </span>
         </div>
 
-        {/* Compliance row */}
-        <div className="mt-6 flex flex-col gap-4 border-t border-border py-6 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
-          <p>&copy; {new Date().getFullYear()} JiraVision. All rights reserved.</p>
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-            <button
-              type="button"
-              onClick={() => window.dispatchEvent(new Event(OPEN_A11Y_EVENT))}
-              className="inline-flex items-center gap-1.5 text-xs transition-colors duration-150 hover:text-foreground"
-            >
-              <Accessibility className="h-3.5 w-3.5" aria-hidden="true" />
-              Accessibility settings
-            </button>
+        {/* Compliance row. Below xl the three groups stack; from xl they share one line,
+            so no control wraps under another and the legal list stays readable. */}
+        <div className="mt-6 flex flex-col gap-4 border-t border-border py-6 text-sm text-muted-foreground xl:flex-row xl:items-center xl:justify-between xl:gap-6">
+          <p className="whitespace-nowrap">&copy; {new Date().getFullYear()} JiraVision. All rights reserved.</p>
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 xl:flex-nowrap">
             <button
               type="button"
               onClick={() => window.dispatchEvent(new Event(OPEN_CONSENT_EVENT))}
-              className="text-xs transition-colors duration-150 hover:text-foreground"
+              className="whitespace-nowrap text-xs transition-colors duration-150 hover:text-foreground"
             >
               Cookie preferences
             </button>
             <nav aria-label="Legal links">
-              <ul className="flex flex-wrap gap-x-5 gap-y-2 text-xs">
+              <ul className="flex flex-wrap gap-x-5 gap-y-2 text-xs xl:flex-nowrap">
                 {footerColumns
                   .find((c) => c.title === "Legal")!
                   .links.map((link) => (
                     <li key={link.href}>
-                      <Link href={link.href} className="transition-colors duration-150 hover:text-foreground">
+                      <Link
+                        href={link.href}
+                        className="whitespace-nowrap transition-colors duration-150 hover:text-foreground"
+                      >
                         {link.label}
                       </Link>
                     </li>
@@ -190,7 +185,7 @@ export function Footer() {
           <button
             type="button"
             onClick={backToTop}
-            className="inline-flex min-h-[40px] items-center gap-1.5 self-start text-sm font-medium transition-colors duration-150 hover:text-foreground md:self-auto lg:mr-16"
+            className="inline-flex min-h-[40px] items-center gap-1.5 self-start whitespace-nowrap text-sm font-medium transition-colors duration-150 hover:text-foreground xl:self-auto xl:mr-16"
           >
             <ArrowUp className="h-4 w-4" />
             Back to top

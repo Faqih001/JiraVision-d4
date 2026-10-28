@@ -8,9 +8,9 @@ import { OPEN_A11Y_EVENT } from "@/lib/accessibility"
  * Dashboard trigger for the accessibility panel. The panel itself is mounted once in
  * the root layout and listens for OPEN_A11Y_EVENT, so this only has to ask for it.
  *
- * It sits bottom-right, stacked above the assistant pill, because the dashboard has no
- * cookie banner to clear; the public-site launcher stays on the left where it never
- * overlaps the floating bar.
+ * It sits bottom-right, stacked above the assistant pill, which is the same corner the
+ * public-site launcher uses; the two never share a page because the public one stands
+ * down under /dashboard.
  */
 export function AccessibilityLauncher({ className }: { className?: string }) {
   return (

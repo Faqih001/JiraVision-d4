@@ -538,7 +538,7 @@ export const accessibilityDoc: {
       heading: "Accessibility Features",
       paragraphs: ["Our website includes the following accessibility features:"],
       bullets: [
-        "An accessibility menu on every page (bottom-left), with profiles for visual impairment, seizure and epilepsy risk, colour vision deficiency, ADHD and learning differences",
+        "An accessibility menu on every page (bottom-right), with profiles for visual impairment, seizure and epilepsy risk, colour vision deficiency, ADHD and learning differences",
         "From the same menu: text size, line height and letter spacing, readable font, heading/link/button highlighting, image hiding, control tooltips, read-aloud, stop animations, eight contrast and colour modes (one at a time), a reading guide, a reading mask and enlarged cursors",
         "Translation of the whole site into any language Google Translate supports, from a language picker at the top of every page",
         "Semantic HTML to ensure proper structure and navigation",
