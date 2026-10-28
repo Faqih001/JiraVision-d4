@@ -155,39 +155,22 @@ export function Footer() {
           </span>
         </div>
 
-        {/* Compliance row. Below xl the three groups stack; from xl they share one line,
-            so no control wraps under another and the legal list stays readable. */}
+        {/* Compliance row. The legal pages are linked once, by the Legal column of the grid
+            above, so this row is only the copyright, the cookie-preferences re-open and
+            back-to-top. Below xl the three stack; from xl they share one line. */}
         <div className="mt-6 flex flex-col gap-4 border-t border-border py-6 text-sm text-muted-foreground xl:flex-row xl:items-center xl:justify-between xl:gap-6">
           <p className="whitespace-nowrap">&copy; {new Date().getFullYear()} JiraVision. All rights reserved.</p>
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 xl:flex-nowrap">
-            <button
-              type="button"
-              onClick={() => window.dispatchEvent(new Event(OPEN_CONSENT_EVENT))}
-              className="whitespace-nowrap text-xs transition-colors duration-150 hover:text-foreground"
-            >
-              Cookie preferences
-            </button>
-            <nav aria-label="Legal links">
-              <ul className="flex flex-wrap gap-x-5 gap-y-2 text-xs xl:flex-nowrap">
-                {footerColumns
-                  .find((c) => c.title === "Legal")!
-                  .links.map((link) => (
-                    <li key={link.href}>
-                      <Link
-                        href={link.href}
-                        className="whitespace-nowrap transition-colors duration-150 hover:text-foreground"
-                      >
-                        {link.label}
-                      </Link>
-                    </li>
-                  ))}
-              </ul>
-            </nav>
-          </div>
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new Event(OPEN_CONSENT_EVENT))}
+            className="whitespace-nowrap text-xs transition-colors duration-150 hover:text-foreground"
+          >
+            Cookie preferences
+          </button>
           <button
             type="button"
             onClick={backToTop}
-            className="inline-flex min-h-[40px] items-center gap-1.5 self-start whitespace-nowrap text-sm font-medium transition-colors duration-150 hover:text-foreground xl:self-auto xl:mr-16"
+            className="inline-flex min-h-[40px] items-center gap-1.5 self-start whitespace-nowrap text-sm font-medium transition-colors duration-150 hover:text-foreground xl:self-auto"
           >
             <ArrowUp className="h-4 w-4" />
             Back to top

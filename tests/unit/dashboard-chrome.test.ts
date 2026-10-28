@@ -288,6 +288,10 @@ describe("accessibility entry point", () => {
     const footer = read("components/layout/footer.tsx")
     expect(footer).not.toContain("Accessibility settings")
     expect(footer).not.toContain("OPEN_A11Y_EVENT")
+    // The legal pages are linked once, by the Legal column of the grid. The compliance row
+    // used to read that same column out again, so five links showed twice on every page.
+    expect(footer).not.toContain('aria-label="Legal links"')
+    expect(footer).not.toContain('c.title === "Legal"')
     // One line from xl up: nothing in the compliance row wraps under another.
     expect(footer).toContain("xl:flex-row xl:items-center xl:justify-between")
   })
