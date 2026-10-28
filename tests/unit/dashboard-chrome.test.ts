@@ -292,8 +292,10 @@ describe("accessibility entry point", () => {
     // used to read that same column out again, so five links showed twice on every page.
     expect(footer).not.toContain('aria-label="Legal links"')
     expect(footer).not.toContain('c.title === "Legal"')
-    // One line from xl up: nothing in the compliance row wraps under another.
-    expect(footer).toContain("xl:flex-row xl:items-center xl:justify-between")
+    // One line from md up: a tablet has the width for all three, so nothing in the
+    // compliance row wraps under another there.
+    expect(footer).toContain("md:flex-row md:items-center md:justify-between")
+    expect(footer).not.toContain("xl:flex-row")
   })
 
   it("asks the root panel to open instead of mounting a second one", () => {
