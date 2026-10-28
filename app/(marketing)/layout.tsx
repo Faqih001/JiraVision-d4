@@ -18,8 +18,6 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
         {children}
       </main>
       <Footer />
-      {/* Spacer so the fixed mobile bottom bar never covers the compliance row. */}
-      <div aria-hidden="true" className="h-[calc(4.5rem+env(safe-area-inset-bottom))] bg-surface xl:hidden" />
       <BottomBar />
       <SiteSearch />
       <CookieConsent />

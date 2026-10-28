@@ -28,42 +28,42 @@ const relativeOf = (file: string) => path.relative(repo, file)
  * These guards keep the two decisions that follow from that from quietly drifting back.
  */
 describe("tablet zone (768-1279)", () => {
-  it("renders no marketing header bar at all below xl", () => {
-    // Not a CSS hide: the bar carries the language picker, and Google writes into one
-    // container id per document, so the drawer's copy has to be the only one mounted.
-    expect(navbar).toContain('const DESKTOP_NAV_QUERY = "(min-width: 1280px)"')
-    expect(navbar).toContain("const desktopNav = useDesktopNav()")
-    expect(navbar).toContain("useSyncExternalStore(subscribeDesktopNav, readDesktopNav, readDesktopNavOnServer)")
-    expect(navbar).toContain("{desktopNav && (")
+  it("keeps the marketing header at every width and puts the nav in the drawer below xl", () => {
+    // The header is the whole public chrome on a phone or tablet: brand, translator, theme
+    // and the hamburger, with the mega-menu and the desktop CTA cluster starting at xl.
+    expect(navbar).toContain('<NavigationMenu className="hidden xl:flex">')
+    expect(navbar).toContain('<div className="hidden items-center gap-2 xl:flex">')
+    expect(navbar).toContain('<div className="flex items-center gap-1 xl:hidden">')
+    expect(navbar).toContain("aria-label=\"Open menu\"")
   })
 
-  it("leaves no CSS-hidden nav row, hamburger or duplicate cluster to come back", () => {
-    expect(navbar).not.toContain("xl:flex")
-    expect(navbar).not.toContain("xl:hidden")
-    expect(navbar).not.toContain("lg:flex")
-    expect(navbar).not.toContain("SheetTrigger")
-    expect(navbar).not.toContain('"Open menu"')
+  it("renders the header from one tree, not a width-branched pair", () => {
+    // The header used to be swapped out below xl in favour of a bottom tab bar. It is back,
+    // and the split inside it is CSS-only because nothing below it is mounted twice.
+    expect(navbar).not.toContain("DESKTOP_NAV_QUERY")
+    expect(navbar).not.toContain("useDesktopNav")
+    expect(navbar).not.toContain("useSyncExternalStore")
   })
 
   it("keeps the language picker reachable at every width, as one Google container", () => {
-    // Two slots, but they are opposite branches of desktopNav: the bar above xl, the
-    // drawer below it. Never both, or the id Google translates through is ambiguous.
-    const drawer = navbar.slice(navbar.indexOf("<Sheet open="))
-    expect(navbar.slice(0, navbar.indexOf("<Sheet open=")).match(/<GoogleTranslateSelect/g)).toHaveLength(1)
-    expect(drawer.match(/<GoogleTranslateSelect/g)).toHaveLength(1)
-    expect(navbar.slice(0, navbar.indexOf("<Sheet open="))).toContain("{desktopNav && (")
+    // Google writes into one container id per document, so a second copy — in the drawer or
+    // anywhere else on the page — would make the id ambiguous. One mount, every width.
+    expect(navbar.match(/<GoogleTranslateSelect/g)).toHaveLength(1)
   })
 
-  it("hands the whole zone below xl to the bottom tab bar", () => {
-    // The header is gone there, so the tab bar is the only site chrome on screen and its
-    // Menu tab the only way into the drawer. Everything fixed to the bottom edge follows.
-    expect(bottomBar).toContain("bg-background/95 backdrop-blur xl:hidden")
-    expect(bottomBar).toContain("hidden -translate-x-1/2 xl:block")
-    expect(bottomBar).toContain("OPEN_MOBILE_NAV_EVENT")
-    expect(marketingLayout).toContain("bg-surface xl:hidden")
+  it("leaves the bottom edge to the floating reading bar and nothing else", () => {
+    // The 4-icon site-shortcuts tab bar is gone: the header, its drawer and the footer carry
+    // the navigation below xl, so there is no fixed row to pad the page against either.
+    expect(bottomBar).not.toContain("<nav")
+    expect(bottomBar).not.toContain("Site shortcuts")
+    expect(bottomBar).not.toContain("grid-cols-4")
+    expect(bottomBar).toContain("hidden -translate-x-1/2 lg:block")
+    expect(marketingLayout).not.toContain("safe-area-inset-bottom")
   })
 
-  it("lifts the right-edge stack over the bottom bar at the same breakpoint", () => {
+  it("gives the right-edge stack one geometry at every width", () => {
+    // Nothing is fixed to the bottom edge any more, so no control needs a taller step on a
+    // narrow screen: launcher 1rem, pill 5.25rem, panel and cookie bar 9.25rem throughout.
     for (const relative of [
       "components/accessibility/accessibility-launcher.tsx",
       "components/accessibility/accessibility-widget.tsx",
@@ -71,9 +71,11 @@ describe("tablet zone (768-1279)", () => {
       "components/features/cookie-consent.tsx",
     ]) {
       const text = read(relative)
-      expect(text, `${relative} still clears the bar at lg`).not.toMatch(/lg:bottom-\[calc/)
-      expect(text, `${relative} no longer clears the bar at all`).toMatch(/xl:bottom-\[calc/)
+      expect(text, `${relative} still branches the stack by width`).not.toMatch(/(?:lg|xl):bottom-\[calc/)
     }
+    expect(read("components/accessibility/accessibility-launcher.tsx")).toContain(
+      "bottom-[calc(1rem+env(safe-area-inset-bottom))]",
+    )
   })
 
   it("opens one drawer section at a time", () => {

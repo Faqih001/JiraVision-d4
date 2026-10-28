@@ -171,10 +171,10 @@ describe("translator placement", () => {
   })
 
   it("mounts one container per page, the id Google writes into having to stay unique", () => {
-    // Two files hold two mounts each, and in both the pair are opposite branches of one
-    // JavaScript width test: the workspace's top bar or its drawer, the site header below
-    // xl or the drawer that replaces it there.
-    const branchFiles = ["components/dashboard-layout.tsx", "components/layout/navbar.tsx"]
+    // One file holds two mounts: the workspace's top bar and its drawer are opposite
+    // branches of one JavaScript width test. The public header has one, because it is
+    // mounted at every width and its drawer only carries links.
+    const branchFiles = ["components/dashboard-layout.tsx"]
     for (const file of [...publicFiles, ...signedInFiles]) {
       if (branchFiles.includes(file)) continue
       expect(mounts(file), `${file} mounts the translator twice`).toBe(1)
@@ -256,12 +256,11 @@ describe("footer wordmark gleam", () => {
 
 describe("accessibility entry point", () => {
   // The right-edge stack, bottom up: launcher, assistant pill, then the assistant
-  // panel / cookie bar. Below xl every level is 4rem higher because the marketing bottom
-  // bar (components/layout/bottom-bar.tsx) is 52px plus the safe area and is the only site
-  // navigation there.
-  const launcherStep = "bottom-[calc(4.25rem+env(safe-area-inset-bottom))] xl:bottom-[calc(1rem+env(safe-area-inset-bottom))]"
-  const pillStep = "bottom-[calc(8.25rem+env(safe-area-inset-bottom))] xl:bottom-[calc(5.25rem+env(safe-area-inset-bottom))]"
-  const panelStep = "bottom-[calc(12.25rem+env(safe-area-inset-bottom))] xl:bottom-[calc(9.25rem+env(safe-area-inset-bottom))]"
+  // panel / cookie bar. One geometry at every width — nothing else is fixed to the bottom
+  // edge of the public pages any more, so no level needs a taller step on a narrow screen.
+  const launcherStep = "bottom-[calc(1rem+env(safe-area-inset-bottom))]"
+  const pillStep = "bottom-[calc(5.25rem+env(safe-area-inset-bottom))]"
+  const panelStep = "bottom-[calc(9.25rem+env(safe-area-inset-bottom))]"
 
   it("is the foot of the stack, with the assistant pill above it", () => {
     expect(layout).toContain("<AccessibilityLauncher")
@@ -277,9 +276,7 @@ describe("accessibility entry point", () => {
 
   it("lifts the cookie bar over the controls instead of moving the controls per state", () => {
     const consent = read("components/features/cookie-consent.tsx")
-    // The bar's two steps are not adjacent in its class list, so they are read apart.
-    expect(consent).toContain("bottom-[calc(12.25rem+env(safe-area-inset-bottom))]")
-    expect(consent).toContain("xl:bottom-[calc(9.25rem+env(safe-area-inset-bottom))]")
+    expect(consent).toContain(panelStep)
     expect(consent).not.toContain("lg:bottom-6")
     // The launcher used to subscribe to consent and jump to 16rem while the bar was up.
     // One fixed geometry means no control can end up underneath the bar by accident.
