@@ -200,6 +200,7 @@ building from `main`. Environment variables live in the Vercel project settings,
 ## Further reading
 
 - `FEATURES.md` — what the product does, feature by feature
+- `USER_PROFILES.md` — the accounts in the live `users` table, where they came from, and how to sign in
 - `DESIGN_SYSTEM.md` — tokens, components and layout rules
 - `PLACEHOLDERS.md` — every stand-in and what replaced it
 - `docs/superpowers/specs/` — the design spec and per-phase plans
