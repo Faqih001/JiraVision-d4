@@ -19,6 +19,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Section, SectionHeading } from "@/components/sections/section"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { templateCategories, templates, type TemplateCategory, type TemplateDef } from "@/content/templates"
 import { cn } from "@/lib/utils"
 
@@ -217,18 +218,21 @@ export function TemplatesLibrary() {
           />
         </div>
         <div className="flex items-center gap-2">
-          <label htmlFor="template-sort" className="text-xs font-medium text-muted-foreground">
+          <label id="template-sort-label" className="text-xs font-medium text-muted-foreground">
             Sort
           </label>
-          <select
-            id="template-sort"
-            value={sort}
-            onChange={(e) => setSort(e.target.value as SortMode)}
-            className="min-h-[40px] rounded-full border border-input bg-background px-4 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <option value="category">By category</option>
-            <option value="title">A–Z by name</option>
-          </select>
+          <Select value={sort} onValueChange={(value) => setSort(value as SortMode)}>
+            <SelectTrigger
+              aria-labelledby="template-sort-label"
+              className="h-10 w-[10.5rem] rounded-full px-4 text-sm"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="category">By category</SelectItem>
+              <SelectItem value="title">A–Z by name</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 

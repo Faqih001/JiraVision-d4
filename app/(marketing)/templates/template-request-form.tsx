@@ -22,21 +22,25 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { HoneypotField } from "@/components/forms/honeypot-field"
 import { Section, SectionHeading } from "@/components/sections/section"
 import { templates } from "@/content/templates"
 
+const NOT_SURE = "not-sure"
+
 export function TemplateRequestForm() {
   const [sent, setSent] = useState(false)
-  const [picked, setPicked] = useState("")
+  // Radix reserves "" for the Root's placeholder, so "no template" needs a real sentinel.
+  const [picked, setPicked] = useState(NOT_SURE)
   const form = useForm<ContactInput>({
     resolver: zodResolver(contactSchema),
     defaultValues: { name: "", email: "", company: "", topic: "general", message: "", website: "" },
   })
 
   async function onSubmit(values: ContactInput) {
-    const prefix = picked ? `Template request — ${picked}: ` : "Template request: "
+    const prefix = picked === NOT_SURE ? "Template request: " : `Template request — ${picked}: `
     const res = await postForm("/api/contact", { ...values, message: `${prefix}${values.message}` })
     if (res.ok) {
       setSent(true)
@@ -131,22 +135,22 @@ export function TemplateRequestForm() {
                   )}
                 />
                 <div>
-                  <label htmlFor="template-pick" className="text-sm font-medium leading-none">
+                  <label id="template-pick-label" className="text-sm font-medium leading-none">
                     Which template? (optional)
                   </label>
-                  <select
-                    id="template-pick"
-                    value={picked}
-                    onChange={(e) => setPicked(e.target.value)}
-                    className="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    <option value="">Something else / not sure yet</option>
-                    {templates.map((t) => (
-                      <option key={t.id} value={t.title}>
-                        {t.title} ({t.category})
-                      </option>
-                    ))}
-                  </select>
+                  <Select value={picked} onValueChange={setPicked}>
+                    <SelectTrigger aria-labelledby="template-pick-label" className="mt-2 w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={NOT_SURE}>Something else / not sure yet</SelectItem>
+                      {templates.map((t) => (
+                        <SelectItem key={t.id} value={t.title}>
+                          {t.title} ({t.category})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <FormField
                   control={form.control}
