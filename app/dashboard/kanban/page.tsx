@@ -528,7 +528,7 @@ export default function KanbanBoardPage() {
         </div>
         <Skeleton className="h-16" />
         <Skeleton className="h-12" />
-        <div className="grid gap-4 lg:grid-cols-5">
+        <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-5">
           {Array.from({ length: 5 }).map((_, i) => (
             <Skeleton key={i} className="h-72" />
           ))}

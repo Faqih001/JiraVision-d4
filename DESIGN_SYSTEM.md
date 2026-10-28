@@ -52,6 +52,30 @@ the right one. None of them were introduced by the work log and none were change
 
 Layout: container centered, `padding: 1.5rem`, `2xl` screen at 1240px; extra `xs: 475px` breakpoint.
 
+**The breakpoint contract — `md` is a tablet, `lg` is a small laptop, `xl` is a desk.** Tablet
+(768-1279) is a touch zone that is wide enough for a page to breathe but not for pointer chrome:
+
+- Hover menus start at `xl`, and so does the marketing header bar. The mega-menu needs ~1120px
+  beside the brand and the right cluster (and Google Translate can widen every label after
+  hydration), so below `xl` the bar is not rendered at all — not `hidden xl:flex` — and the bottom
+  tab bar is the only site chrome on a phone or tablet. Its Menu tab opens the drawer, which
+  carries the pages, the language switch and the theme switch. The header/drawer split is
+  JavaScript (`useDesktopNav`, a `matchMedia` store) because Google writes its translation
+  container into one id per document, and a CSS hide would mount the picker twice.
+- Everything fixed to the bottom edge of a public page clears that tab bar to the same `xl`, and
+  the layout's footer spacer does too: `lg` in any of them leaves 1024-1279 with no navigation.
+- The workspace spends tablet on the page, not the rail: the nav is a slide-over until `lg`, so a
+  768px tablet gives the whole width to the content. What the top bar then has to hold is arithmetic,
+  not taste — the pill switch, the full language label and the first name are `lg` pay-offs and the
+  search field holds its 200px through tablet. `tests/unit/tablet-layout.test.ts` measures that sum
+  from the class strings on disk.
+- Five cards is a `xl` number. In the workspace `lg` leaves 1024 − 250 (rail) − 32 (padding) = 742px,
+  so KPI strips ramp `grid-cols-2 md:grid-cols-3 xl:grid-cols-5` — including a loading skeleton,
+  which has to ramp with the strip it replaces or the page jumps when it fills.
+- A `sizes` attribute tests `max-width: <breakpoint> − 1`, never the breakpoint itself: Tailwind's
+  steps are `min-width`, so `max-width: 768px` hands a 768px tablet the phone size while the page is
+  already in columns.
+
 ## 3. Typography
 
 - Display: **Fraunces** via `next/font/google` in `app/layout.tsx` — `variable: "--font-display"`,
@@ -183,7 +207,17 @@ Observed, enforced-in-practice rules (REDESIGN_PLAN V2-1/V2-3 + homepage impleme
   first frame. Colour/contrast modes rewrite the HSL token triples rather than applying a CSS
   `filter` to a wrapper — a filter on an ancestor makes it the containing block for every
   `position: fixed` descendant (navbar, bottom bar, cookie bar, dialogs).
-- **The bottom-right stack has fixed levels, and the widest element sits on top.** Accessibility launcher owns the corner (16px from lg), the assistant pill rests on it (84px), the cookie bar and the open chat panel rest on the pill (148px); below `lg` all four are 4rem higher to clear the marketing bottom bar. Positions are static — no control subscribes to consent state, because a bar that overlaps a button is a dead button.
+- **The bottom-right stack has fixed levels, and the widest element sits on top.** Accessibility launcher owns the corner (16px from xl), the assistant pill rests on it (84px), the cookie bar and the open chat panel rest on the pill (148px); below `xl` all four are 4rem higher to clear the marketing bottom bar. Positions are static — no control subscribes to consent state, because a bar that overlaps a button is a dead button.
+- **A nav drawer is one accordion, and the state belongs to the drawer.** `navbar.tsx` holds the
+  open section (`openGroup: string | null`) and `MobileGroup` is a controlled row, because two
+  sections open at once turn a 48px-tall list into an unscrollable stack. Every dismissal path —
+  overlay, Escape, a link, the two auth buttons — goes through `closeDrawer()`, which resets it,
+  so the next open starts at the top.
+- **Below `xl` the drawer is the header.** The bar that holds those controls on a desk is not
+  rendered there, so the drawer carries the language switch and the theme switch under its own
+  brand row, and the bottom tab bar's Menu tab is the only trigger. Removing the bar rather than
+  collapsing it is also what keeps the two Google-translate mounts from ever being on the page
+  together.
 - **Chrome controls declare their edge.** Top-bar and floating controls carry
   `border border-border bg-card` rather than a bare ghost button, so they stay findable
   against the page and keep their shape when an accessibility colour mode rewrites the

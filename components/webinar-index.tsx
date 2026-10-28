@@ -277,7 +277,7 @@ export default function WebinarIndex() {
                   alt="A team presenting to a room"
                   fill
                   className="object-cover"
-                  sizes="(max-width: 768px) 100vw, 50vw"
+                  sizes="(max-width: 767px) 100vw, 50vw"
                 />
               </div>
             </div>

@@ -736,7 +736,7 @@ export default function EthicalMetricsWorkspace() {
           </div>
           <Skeleton className="h-9 w-40" />
         </div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
           {Array.from({ length: 5 }).map((_, i) => (
             <Skeleton key={i} className="h-36 rounded-xl" />
           ))}
@@ -834,7 +834,7 @@ export default function EthicalMetricsWorkspace() {
       {/* 3 — KPI strip */}
       <section aria-label="Key ethical indicators">
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">This week&apos;s live scores</h2>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
           {live && thresholds ? (
             <>
               <KpiCard

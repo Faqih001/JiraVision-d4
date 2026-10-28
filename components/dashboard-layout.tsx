@@ -22,6 +22,7 @@ import NotificationsBell from "@/components/notifications-bell"
 import { AssistantPanel } from "@/components/assistant-panel"
 import { GoogleTranslateSelect } from "@/components/layout/google-translate"
 import { ThemeSwitch } from "@/components/theme-switch"
+import { ThemeToggle } from "@/components/layout/theme-toggle"
 import { AccessibilityLauncher } from "@/components/accessibility/accessibility-launcher"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -571,8 +572,10 @@ export default function DashboardLayout({
                 )
               }}
               className={cn(
+                // The unfocused field stops at 200px and holds there through tablet portrait;
+                // the desktop 300px is what pays for the language switch and name in the bar.
                 "relative flex items-center transition-all",
-                searchFocused ? "w-[180px] sm:w-[250px] md:w-[300px] lg:w-[400px]" : "w-[150px] sm:w-[200px] md:w-[250px] lg:w-[300px]",
+                searchFocused ? "w-[180px] sm:w-[240px] lg:w-[400px]" : "w-[150px] sm:w-[200px] lg:w-[300px]",
               )}
             >
               <Search className="absolute left-2.5 h-4 w-4 text-muted-foreground" />
@@ -588,10 +591,18 @@ export default function DashboardLayout({
               />
             </form>
           </div>
-          <div className="flex items-center gap-2 sm:gap-2 md:gap-3">
-            {!isMobile && <ThemeSwitch />}
+          <div className="flex items-center gap-2 sm:gap-2 lg:gap-3">
+            {/*
+              Tablet portrait (768-1023) is the tight row: the nav is a drawer so the bar has
+              the whole viewport, but the language switch, assistant, bell and avatar all
+              mount at once. The pill switch, the full language label and the name wait for
+              lg; the icon switch takes the pill's place, not an extra stop.
+            */}
+            {!isMobile && <ThemeToggle className="h-9 w-9 lg:hidden" />}
 
-            {!isMobile && <GoogleTranslateSelect />}
+            {!isMobile && <ThemeSwitch className="hidden lg:inline-flex" />}
+
+            {!isMobile && <GoogleTranslateSelect className="w-[7.5rem] lg:w-auto" />}
 
             {!isMobile && <AssistantPanel />}
 
@@ -607,7 +618,7 @@ export default function DashboardLayout({
                     <AvatarImage src={user.avatar || "/placeholder.svg"} alt={user.name} />
                     <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
                   </Avatar>
-                  <span className="hidden text-sm md:inline">{user.name?.split(" ")[0]}</span>
+                  <span className="hidden text-sm lg:inline">{user.name?.split(" ")[0]}</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56 sm:w-60">

@@ -409,7 +409,7 @@ export default function ActivityCenter() {
     return (
       <div className="space-y-6 p-4 md:p-6">
         <Skeleton className="h-10 w-72" />
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
           {Array.from({ length: 5 }).map((_, i) => (
             <Skeleton key={i} className="h-24" />
           ))}
@@ -469,7 +469,7 @@ export default function ActivityCenter() {
       </div>
 
       {/* 2 — KPI strip */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
         {([
           { label: "Events today", value: String(kpis.eventsToday), hint: "since midnight UTC", tone: undefined, small: false },
           { label: "Events last 7 days", value: String(kpis.events7d), hint: `stream window: ${feed.windowDays}d`, tone: undefined, small: false },

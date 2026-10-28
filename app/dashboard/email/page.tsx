@@ -641,7 +641,7 @@ export default function EmailWorkspace() {
       </Card>
 
       {/* 3 — KPI strip */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
         <KpiCard
           loading={loading}
           icon={<LayoutList className="h-4 w-4" />}

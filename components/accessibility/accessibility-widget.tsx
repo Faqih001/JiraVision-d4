@@ -246,10 +246,11 @@ export function AccessibilityWidget() {
           className={cn(
             "fixed right-4 z-50 flex min-h-[48px] min-w-[48px] items-center gap-2 rounded-full border bg-card px-4 text-sm font-medium shadow-soft-md",
             // Foot of the right-edge stack: the Assistant pill sits above it, and the
-            // cookie banner above the pill. Below lg the whole stack clears the marketing
-            // bottom bar, which is 52px tall plus the safe area; nothing here has to
-            // react to the banner, because the banner is what moves.
-            "bottom-[calc(4.25rem+env(safe-area-inset-bottom))] lg:bottom-[calc(1rem+env(safe-area-inset-bottom))]",
+            // cookie banner above the pill. Below xl the whole stack clears the marketing
+            // bottom bar, which is 52px tall plus the safe area and is the site navigation
+            // on a phone or tablet; nothing here has to react to the banner, because the
+            // banner is what moves.
+            "bottom-[calc(4.25rem+env(safe-area-inset-bottom))] xl:bottom-[calc(1rem+env(safe-area-inset-bottom))]",
           )}
         >
           <Accessibility className="h-5 w-5" aria-hidden="true" />

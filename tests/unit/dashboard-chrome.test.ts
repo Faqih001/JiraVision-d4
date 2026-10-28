@@ -81,8 +81,12 @@ describe("dashboard account menu", () => {
 })
 
 describe("dashboard top bar", () => {
+  // Matched by the cluster's own opening, not by its gap steps: the gaps are what tablet
+  // tuning changes first.
+  const clusterOf = () => /flex items-center gap-2 sm:gap-2[^"]*">[\s\S]*?<\/header>/.exec(layout)
+
   it("carries the theme switch, the language dropdown, the bell and the avatar", () => {
-    const cluster = /<div className="flex items-center gap-2 sm:gap-2 md:gap-3">[\s\S]*?<\/header>/.exec(layout)
+    const cluster = clusterOf()
     expect(cluster, "the right-hand top bar cluster is missing").not.toBeNull()
     for (const control of ["<ThemeSwitch", "<GoogleTranslateSelect", "<NotificationsBell", "<Avatar"]) {
       expect(cluster![0]).toContain(control)
@@ -90,7 +94,7 @@ describe("dashboard top bar", () => {
   })
 
   it("gives the top bar controls visible borders", () => {
-    const cluster = /<div className="flex items-center gap-2 sm:gap-2 md:gap-3">[\s\S]*?<\/header>/.exec(layout)![0]
+    const cluster = clusterOf()![0]
     const bordered = (cluster.match(/border border-border/g) ?? []).length
     expect(bordered).toBeGreaterThanOrEqual(2)
     expect(read("components/theme-switch.tsx")).toContain("border border-border")
@@ -99,7 +103,7 @@ describe("dashboard top bar", () => {
 
   it("mounts the language dropdown in one place at a time", () => {
     expect(hrefsIn(layout)).not.toContain("#")
-    expect(layout).toContain("{!isMobile && <GoogleTranslateSelect />}")
+    expect(layout).toContain("{!isMobile && <GoogleTranslateSelect")
     expect(layout).toContain("{isMobile && (")
   })
 })
@@ -167,12 +171,15 @@ describe("translator placement", () => {
   })
 
   it("mounts one container per page, the id Google writes into having to stay unique", () => {
-    // The workspace's two are opposite branches of one isMobile test: top bar, or drawer.
+    // Two files hold two mounts each, and in both the pair are opposite branches of one
+    // JavaScript width test: the workspace's top bar or its drawer, the site header below
+    // xl or the drawer that replaces it there.
+    const branchFiles = ["components/dashboard-layout.tsx", "components/layout/navbar.tsx"]
     for (const file of [...publicFiles, ...signedInFiles]) {
-      if (file === "components/dashboard-layout.tsx") continue
+      if (branchFiles.includes(file)) continue
       expect(mounts(file), `${file} mounts the translator twice`).toBe(1)
     }
-    expect(mounts("components/dashboard-layout.tsx")).toBe(2)
+    for (const file of branchFiles) expect(mounts(file), file).toBe(2)
   })
 
   it("asks a public page to wait for a click before Google is contacted", () => {
@@ -249,11 +256,12 @@ describe("footer wordmark gleam", () => {
 
 describe("accessibility entry point", () => {
   // The right-edge stack, bottom up: launcher, assistant pill, then the assistant
-  // panel / cookie bar. Below lg every level is 4rem higher because the marketing
-  // bottom bar (components/layout/bottom-bar.tsx) is 52px plus the safe area.
-  const launcherStep = "bottom-[calc(4.25rem+env(safe-area-inset-bottom))] lg:bottom-[calc(1rem+env(safe-area-inset-bottom))]"
-  const pillStep = "bottom-[calc(8.25rem+env(safe-area-inset-bottom))] lg:bottom-[calc(5.25rem+env(safe-area-inset-bottom))]"
-  const panelStep = "bottom-[calc(12.25rem+env(safe-area-inset-bottom))] lg:bottom-[calc(9.25rem+env(safe-area-inset-bottom))]"
+  // panel / cookie bar. Below xl every level is 4rem higher because the marketing bottom
+  // bar (components/layout/bottom-bar.tsx) is 52px plus the safe area and is the only site
+  // navigation there.
+  const launcherStep = "bottom-[calc(4.25rem+env(safe-area-inset-bottom))] xl:bottom-[calc(1rem+env(safe-area-inset-bottom))]"
+  const pillStep = "bottom-[calc(8.25rem+env(safe-area-inset-bottom))] xl:bottom-[calc(5.25rem+env(safe-area-inset-bottom))]"
+  const panelStep = "bottom-[calc(12.25rem+env(safe-area-inset-bottom))] xl:bottom-[calc(9.25rem+env(safe-area-inset-bottom))]"
 
   it("is the foot of the stack, with the assistant pill above it", () => {
     expect(layout).toContain("<AccessibilityLauncher")
@@ -271,7 +279,7 @@ describe("accessibility entry point", () => {
     const consent = read("components/features/cookie-consent.tsx")
     // The bar's two steps are not adjacent in its class list, so they are read apart.
     expect(consent).toContain("bottom-[calc(12.25rem+env(safe-area-inset-bottom))]")
-    expect(consent).toContain("lg:bottom-[calc(9.25rem+env(safe-area-inset-bottom))]")
+    expect(consent).toContain("xl:bottom-[calc(9.25rem+env(safe-area-inset-bottom))]")
     expect(consent).not.toContain("lg:bottom-6")
     // The launcher used to subscribe to consent and jump to 16rem while the bar was up.
     // One fixed geometry means no control can end up underneath the bar by accident.

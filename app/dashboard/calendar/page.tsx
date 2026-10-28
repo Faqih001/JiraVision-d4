@@ -775,7 +775,7 @@ export default function CalendarWorkspace() {
       <div className="space-y-6 p-4 md:p-6">
         <Skeleton className="h-10 w-72" />
         <Skeleton className="h-9 w-full max-w-2xl" />
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
           {Array.from({ length: 5 }).map((_, i) => (
             <Skeleton key={i} className="h-24" />
           ))}
@@ -879,7 +879,7 @@ export default function CalendarWorkspace() {
       </Card>
 
       {/* 3 — KPI strip */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
         {[
           { label: "Events this week", value: kpis.thisWeek, hint: "Mon–Sun window" },
           { label: "Events this month", value: kpis.thisMonth, hint: format(cursor, "MMMM") },

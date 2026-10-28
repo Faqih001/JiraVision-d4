@@ -21,7 +21,7 @@ export function AccessibilityLauncher({ className }: { className?: string }) {
       aria-label="Open the accessibility menu"
       className={cn(
         "fixed right-4 z-40",
-        "bottom-[calc(4.25rem+env(safe-area-inset-bottom))] lg:bottom-[calc(1rem+env(safe-area-inset-bottom))]",
+        "bottom-[calc(4.25rem+env(safe-area-inset-bottom))] xl:bottom-[calc(1rem+env(safe-area-inset-bottom))]",
         "flex min-h-[44px] items-center gap-2 rounded-full border border-border bg-card px-3.5",
         "text-xs font-semibold shadow-soft-md transition-colors duration-150",
         "hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",

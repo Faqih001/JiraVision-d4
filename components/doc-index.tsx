@@ -292,7 +292,7 @@ export default function DocIndex() {
                       alt=""
                       fill
                       className="object-cover transition-transform duration-500 group-hover:scale-105 motion-reduce:transition-none motion-reduce:group-hover:scale-100"
-                      sizes="(max-width: 768px) 100vw, 33vw"
+                      sizes="(max-width: 767px) 100vw, 33vw"
                     />
                     <div className="absolute inset-0 bg-foreground/55" aria-hidden="true" />
                     <div className="absolute inset-x-4 bottom-4 text-background">

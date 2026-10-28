@@ -69,7 +69,7 @@ export function BottomBar() {
       {/* Desktop floating contextual bar */}
       <div
         className={cn(
-          "fixed bottom-6 left-1/2 z-40 hidden -translate-x-1/2 lg:block",
+          "fixed bottom-6 left-1/2 z-40 hidden -translate-x-1/2 xl:block",
           "transition-[opacity,transform] duration-300 ease-out motion-reduce:transition-none",
           desktopVisible && !dismissed
             ? "translate-y-0 opacity-100"
@@ -106,11 +106,15 @@ export function BottomBar() {
         </div>
       </div>
 
-      {/* Mobile persistent navigation */}
+      {/*
+        Mobile and tablet navigation. Below xl the marketing header has no bar of its own, so
+        this row is the only site chrome on the screen and its Menu tab is the only way into
+        the drawer that holds the pages.
+      */}
       <nav
         aria-label="Site shortcuts"
         className={cn(
-          "fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 backdrop-blur lg:hidden",
+          "fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 backdrop-blur xl:hidden",
           "transition-transform duration-300 ease-out motion-reduce:transition-none",
           mobileHidden ? "translate-y-full" : "translate-y-0",
         )}

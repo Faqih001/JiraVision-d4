@@ -458,7 +458,7 @@ export default function AnalyticsWorkspace() {
           <Skeleton className="h-9 w-40" />
         </div>
         <Skeleton className="h-16" />
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
           {Array.from({ length: 5 }).map((_, i) => (
             <Skeleton key={i} className="h-24" />
           ))}
@@ -637,7 +637,7 @@ export default function AnalyticsWorkspace() {
       </SectionCard>
 
       {/* 4 — KPI strip */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
         <KpiCard
           label="Avg velocity"
           value={kpis ? `${kpis.avgVelocity}` : "—"}

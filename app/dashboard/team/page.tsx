@@ -628,13 +628,13 @@ export default function TeamWorkspace() {
 
       {/* 2 · KPI strip */}
       {loading ? (
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
           {Array.from({ length: 5 }).map((_, i) => (
             <Skeleton key={i} className="h-20 rounded-lg" />
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-2 text-xs text-muted-foreground">

@@ -468,7 +468,7 @@ export default function SprintsWorkspace() {
           <Skeleton className="h-9 w-48" />
           <Skeleton className="h-9 w-32" />
         </div>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
           {Array.from({ length: 5 }).map((_, i) => (
             <Skeleton key={i} className="h-24" />
           ))}
@@ -503,7 +503,7 @@ export default function SprintsWorkspace() {
   /* ---- section renderers ---- */
 
   const kpiStrip = (
-    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+    <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
       {[
         {
           label: "Active sprint",

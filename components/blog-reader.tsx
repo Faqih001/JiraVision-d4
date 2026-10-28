@@ -100,7 +100,7 @@ export default function BlogReader({ post }: { post: BlogPost }) {
               alt={post.imageAlt}
               fill
               className="object-cover"
-              sizes="(max-width: 768px) 100vw, 1000px"
+              sizes="(max-width: 1279px) 100vw, 1000px"
               priority
             />
           </div>

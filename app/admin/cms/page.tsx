@@ -545,7 +545,7 @@ export default function AdminCmsPage() {
         </section>
 
         {/* 4 — Stats strip */}
-        <section aria-label="Page statistics" className="grid grid-cols-2 gap-3 md:grid-cols-5">
+        <section aria-label="Page statistics" className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
           {[
             { label: "Sections", value: stats.sections },
             { label: "Editable fields", value: stats.fields },

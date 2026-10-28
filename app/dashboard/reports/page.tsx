@@ -478,7 +478,7 @@ export default function ReportsPage() {
     return (
       <div className="space-y-4 p-6">
         <Skeleton className="h-10 w-64" />
-        <div className="grid gap-4 md:grid-cols-5">
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5">
           {Array.from({ length: 5 }).map((_, i) => (
             <Skeleton key={i} className="h-24" />
           ))}
@@ -524,7 +524,7 @@ export default function ReportsPage() {
       </div>
 
       {/* 2 — KPI strip */}
-      <div className="grid gap-4 md:grid-cols-5">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5">
         {[
           { label: "Schedules", value: kpis.total, icon: <FileSpreadsheet className="h-4 w-4" /> },
           { label: "Active", value: kpis.active, icon: <Activity className="h-4 w-4" /> },

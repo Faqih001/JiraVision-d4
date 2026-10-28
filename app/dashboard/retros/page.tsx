@@ -696,7 +696,7 @@ export default function RetrospectivesWorkspace() {
       ) : (
         <>
           {/* 2 · KPI strip */}
-          <section aria-label="Retro KPIs" className="grid grid-cols-2 gap-3 md:grid-cols-5">
+          <section aria-label="Retro KPIs" className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
             {kpis.map((k) => (
               <Card key={k.label}>
                 <CardContent className="p-4">

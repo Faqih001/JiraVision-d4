@@ -72,7 +72,7 @@ export default function CareersPage() {
                 alt="A small distributed team collaborating around a table"
                 fill
                 className="object-cover"
-                sizes="(max-width: 1024px) 100vw, 50vw"
+                sizes="(max-width: 1023px) 100vw, 50vw"
               />
             </div>
           </Reveal>

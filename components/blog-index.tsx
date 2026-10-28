@@ -136,7 +136,7 @@ export default function BlogIndex() {
                   alt={featured.imageAlt}
                   fill
                   className="object-cover"
-                  sizes="(max-width: 768px) 100vw, 50vw"
+                  sizes="(max-width: 767px) 100vw, 50vw"
                   priority
                 />
                 <div className="absolute inset-0 bg-foreground/25" aria-hidden="true" />
@@ -211,7 +211,7 @@ export default function BlogIndex() {
                         alt={post.imageAlt}
                         fill
                         className="object-cover"
-                        sizes="(max-width: 768px) 100vw, 33vw"
+                        sizes="(max-width: 767px) 100vw, (max-width: 1023px) 46vw, 33vw"
                       />
                       <div className="absolute inset-0 bg-foreground/20" aria-hidden="true" />
                     </div>
