@@ -2,6 +2,10 @@
 // main dashboard — KPIs, sprint burndown, velocity, workload, wellbeing, ethics,
 // gamification, insights and the live activity feed. All values are computed
 // from real rows; empty tables produce empty series, never fabricated numbers.
+//
+// The main dashboard reads the "member" scope — the signed-in person's rows only, so
+// a fresh account starts empty. Team, analytics and copilot pages keep the "team"
+// scope: the workspace-wide aggregate.
 
 import { db } from "@/lib/db"
 import {
@@ -26,7 +30,16 @@ export interface Kpis {
   sprintProgressPct: number
   teamHappiness: number
   blockedTasks: number
+  myWellbeing: number
 }
+
+/**
+ * "member" is the signed-in person's own dashboard: every task, sprint and event
+ * read is narrowed to rows that are theirs, so a fresh account has nothing to show
+ * even when the workspace around it is busy. "team" is the workspace aggregate the
+ * team, analytics and copilot pages read.
+ */
+export type OverviewScope = "team" | "member"
 
 export interface SprintSummary {
   id: number
@@ -211,7 +224,11 @@ function isoDay(d: Date) {
   return d.toISOString().slice(0, 10)
 }
 
-export async function getDashboardOverview(userId: number): Promise<DashboardOverview> {
+export async function getDashboardOverview(
+  userId: number,
+  scope: OverviewScope = "team",
+): Promise<DashboardOverview> {
+  const member = scope === "member"
   const now = new Date()
   const todayIso = isoDay(now)
   const weekAgo = new Date(now.getTime() - 7 * 86_400_000)
@@ -219,7 +236,8 @@ export async function getDashboardOverview(userId: number): Promise<DashboardOve
 
   const [
     userRow,
-    activeSprintRow,
+    activeSprintRows,
+    mySprintRows,
     statusCounts,
     myTasksRows,
     myOpenPriorityCounts,
@@ -242,7 +260,8 @@ export async function getDashboardOverview(userId: number): Promise<DashboardOve
       .where(eq(users.id, userId))
       .then((r) => r[0] ?? null),
 
-    // Active sprint: explicit status first, then date window as fallback.
+    // Candidate sprints: explicit status first, then date window as fallback. Which
+    // one is "active" for this viewer is decided below, once their sprint rows are in.
     db
       .select()
       .from(sprints)
@@ -253,13 +272,27 @@ export async function getDashboardOverview(userId: number): Promise<DashboardOve
         ),
       )
       .orderBy(desc(sprints.startDate))
-      .limit(1)
-      .then((r) => r[0] ?? null),
+      .limit(10),
 
-    db
-      .select({ status: tasks.status, count: sql<number>`count(*)::int` })
-      .from(tasks)
-      .groupBy(tasks.status),
+    // Sprints this member actually works in. Skipped for the team scope, where the
+    // newest active sprint is the workspace's own.
+    member
+      ? db
+          .selectDistinct({ sprintId: tasks.sprintId })
+          .from(tasks)
+          .where(eq(tasks.assigneeId, userId))
+      : Promise.resolve([] as { sprintId: number | null }[]),
+
+    member
+      ? db
+          .select({ status: tasks.status, count: sql<number>`count(*)::int` })
+          .from(tasks)
+          .where(eq(tasks.assigneeId, userId))
+          .groupBy(tasks.status)
+      : db
+          .select({ status: tasks.status, count: sql<number>`count(*)::int` })
+          .from(tasks)
+          .groupBy(tasks.status),
 
     db
       .select()
@@ -296,7 +329,7 @@ export async function getDashboardOverview(userId: number): Promise<DashboardOve
         donePoints: sql<number>`coalesce(sum(${tasks.storyPoints}), 0)::int`,
       })
       .from(tasks)
-      .where(and(eq(tasks.status, "done"), gte(tasks.updatedAt, weekAgo)))
+      .where(and(eq(tasks.status, "done"), gte(tasks.updatedAt, weekAgo), member ? eq(tasks.assigneeId, userId) : undefined))
       .groupBy(sql`date_trunc('week', ${tasks.updatedAt})`)
       .orderBy(asc(sql`date_trunc('week', ${tasks.updatedAt})`)),
 
@@ -310,7 +343,19 @@ export async function getDashboardOverview(userId: number): Promise<DashboardOve
         location: calendarEvents.location,
       })
       .from(calendarEvents)
-      .where(gte(calendarEvents.startTime, now))
+      .where(
+        and(
+          gte(calendarEvents.startTime, now),
+          // A member's calendar is the events they run or were invited to; the team
+          // scope keeps the whole workspace's schedule.
+          member
+            ? or(
+                eq(calendarEvents.organizerId, userId),
+                sql`${calendarEvents.attendees} @> ${JSON.stringify([userId])}::jsonb`,
+              )
+            : undefined,
+        ),
+      )
       .orderBy(asc(calendarEvents.startTime))
       .limit(6),
 
@@ -381,23 +426,47 @@ export async function getDashboardOverview(userId: number): Promise<DashboardOve
       .orderBy(desc(aiInsights.createdAt))
       .limit(5),
 
-    db
-      .select({
-        name: sprints.name,
-        committed: sprints.capacity,
-        completed: sql<number>`coalesce(max(${sprintAnalytics.velocity}), max(${sprints.completed}))::int`,
-      })
-      .from(sprints)
-      .leftJoin(sprintAnalytics, eq(sprintAnalytics.sprintId, sprints.id))
-      .where(eq(sprints.status, "completed"))
-      .groupBy(sprints.id, sprints.name, sprints.capacity, sprints.endDate)
-      .orderBy(asc(sprints.endDate))
-      .limit(6),
+    // A member's velocity is the points they personally carried and finished in each
+    // completed sprint; the team scope reads the sprint's own analytics row.
+    member
+      ? db
+          .select({
+            name: sprints.name,
+            committed: sql<number>`coalesce(sum(${tasks.storyPoints}), 0)::int`,
+            completed: sql<number>`coalesce(sum(case when ${tasks.status} = 'done' then ${tasks.storyPoints} else 0 end), 0)::int`,
+          })
+          .from(tasks)
+          .innerJoin(sprints, eq(sprints.id, tasks.sprintId))
+          .where(and(eq(tasks.assigneeId, userId), eq(sprints.status, "completed")))
+          .groupBy(sprints.id, sprints.name, sprints.endDate)
+          .orderBy(asc(sprints.endDate))
+          .limit(6)
+      : db
+          .select({
+            name: sprints.name,
+            committed: sprints.capacity,
+            completed: sql<number>`coalesce(max(${sprintAnalytics.velocity}), max(${sprints.completed}))::int`,
+          })
+          .from(sprints)
+          .leftJoin(sprintAnalytics, eq(sprintAnalytics.sprintId, sprints.id))
+          .where(eq(sprints.status, "completed"))
+          .groupBy(sprints.id, sprints.name, sprints.capacity, sprints.endDate)
+          .orderBy(asc(sprints.endDate))
+          .limit(6),
 
     listNotifications(userId, { limit: 20 }),
   ])
 
   // ---- sprint detail + burndown -------------------------------------------
+  // A member's active sprint is one they have work in; the team scope takes the
+  // newest active sprint as the workspace's own.
+  const mySprintIds = new Set(
+    mySprintRows.map((row) => row.sprintId).filter((id): id is number => id !== null),
+  )
+  const activeSprintRow = member
+    ? (activeSprintRows.find((s) => mySprintIds.has(s.id)) ?? null)
+    : (activeSprintRows[0] ?? null)
+
   let activeSprint: SprintSummary | null = null
   let burndown: BurndownPoint[] = []
   let sprintTaskRows: { storyPoints: number; status: string; updatedAt: Date | null; dueDate: string | null; assigneeId: number | null }[] = []
@@ -412,7 +481,12 @@ export async function getDashboardOverview(userId: number): Promise<DashboardOve
         assigneeId: tasks.assigneeId,
       })
       .from(tasks)
-      .where(eq(tasks.sprintId, activeSprintRow.id))
+      .where(
+        and(
+          eq(tasks.sprintId, activeSprintRow.id),
+          member ? eq(tasks.assigneeId, userId) : undefined,
+        ),
+      )
 
     const totalPoints = sprintTaskRows.reduce((s, t) => s + t.storyPoints, 0)
     const donePoints = sprintTaskRows.filter((t) => t.status === "done").reduce((s, t) => s + t.storyPoints, 0)
@@ -475,6 +549,9 @@ export async function getDashboardOverview(userId: number): Promise<DashboardOve
     teamMoodRows.length > 0
       ? Math.round(teamMoodRows.reduce((s, r) => s + r.score, 0) / teamMoodRows.length)
       : 0
+  // The signed-in member's own latest check-in. A new account has none, which is a
+  // zero — the dashboard must not borrow the team's average for it.
+  const myWellbeing = wellbeingRows[0]?.score ?? 0
   const kpis: Kpis = {
     myOpenTasks: myTasks.filter(notDone).length,
     myDueThisWeek,
@@ -482,6 +559,7 @@ export async function getDashboardOverview(userId: number): Promise<DashboardOve
     sprintProgressPct: activeSprint?.progressPct ?? 0,
     teamHappiness,
     blockedTasks: statusCounts.find((c) => c.status === "blocked")?.count ?? 0,
+    myWellbeing,
   }
 
   // ---- breakdowns -----------------------------------------------------------

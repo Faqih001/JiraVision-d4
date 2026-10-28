@@ -23,7 +23,6 @@ import {
   Activity,
   ArrowRight,
   BarChart3,
-  Brain,
   CalendarClock,
   CheckCheck,
   ChevronRight,
@@ -34,14 +33,12 @@ import {
   Pencil,
   Plus,
   RefreshCw,
-  Scale,
   Search,
   Sparkles,
   Swords,
   Timer,
   Trash2,
   Trophy,
-  Users,
   Zap,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -80,7 +77,6 @@ import { localDay } from "@/lib/worklog/local-day"
 import type { WorklogSummary } from "@/lib/worklog/summary"
 import {
   AXIS,
-  AvatarCircle,
   EmptyNote,
   PRIORITIES,
   PriorityPill,
@@ -97,6 +93,11 @@ import {
 /* ------------------------------------------------------------------ types */
 
 type SprintOption = { id: number; name: string; status: string }
+
+// The home dashboard is this member's own work, not the workspace's. The team,
+// analytics and copilot pages read the same endpoint without the scope, keeping
+// their workspace-wide numbers.
+const OVERVIEW_URL = "/api/dashboard/overview?scope=member"
 
 type TaskDraft = {
   id?: number
@@ -281,7 +282,7 @@ export default function DashboardHome() {
       // Four in parallel, and the log and the register queue are fetches rather than follow-ups:
       // a slow summary route must not push the sprint data — or the stale count — behind it.
       const [ovRes, spRes, todayRes, staleRes, onboardingRes] = await Promise.all([
-        fetch("/api/dashboard/overview"),
+        fetch(OVERVIEW_URL),
         fetch("/api/sprints"),
         fetch("/api/worklog/summary?v=day"),
         fetch("/api/registers/stale"),
@@ -322,7 +323,7 @@ export default function DashboardHome() {
 
   const reloadQuiet = useCallback(async () => {
     try {
-      const ovRes = await fetch("/api/dashboard/overview")
+      const ovRes = await fetch(OVERVIEW_URL)
       const ovJson = await ovRes.json()
       if (ovJson.success) setOverview(ovJson.data)
     } catch {
@@ -340,6 +341,27 @@ export default function DashboardHome() {
   useEffect(() => {
     load()
   }, [load])
+
+  // Coming back to the tab re-reads this member's rows, so work created elsewhere is
+  // not left behind an old render. Failures stay silent: a background revalidation
+  // must not interrupt with a toast.
+  useEffect(() => {
+    const revalidate = () => {
+      if (document.visibilityState !== "visible") return
+      fetch(OVERVIEW_URL, { cache: "no-store" })
+        .then((res) => res.json())
+        .then((json) => {
+          if (json.success) setOverview(json.data)
+        })
+        .catch(() => undefined)
+    }
+    document.addEventListener("visibilitychange", revalidate)
+    window.addEventListener("focus", revalidate)
+    return () => {
+      document.removeEventListener("visibilitychange", revalidate)
+      window.removeEventListener("focus", revalidate)
+    }
+  }, [])
 
   /* ---- task mutations ---- */
 
@@ -452,23 +474,7 @@ export default function DashboardHome() {
     }
   }
 
-  /* ---- insight + activity actions ---- */
-
-  const dismissInsight = async (id: number) => {
-    try {
-      const res = await fetch(`/api/ai-insights/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "dismissed" }),
-      })
-      const json = await res.json()
-      if (!json.success) throw new Error(json.message ?? "Failed")
-      setOverview((ov) => (ov ? { ...ov, insights: ov.insights.filter((i) => i.id !== id) } : ov))
-      toast({ title: "Insight dismissed" })
-    } catch (err) {
-      toast({ variant: "destructive", title: "Insights", description: (err as Error).message })
-    }
-  }
+  /* ---- activity actions ---- */
 
   const markActivityRead = async (id: number, isRead: boolean) => {
     if (isRead) return
@@ -518,11 +524,6 @@ export default function DashboardHome() {
       return true
     })
   }, [overview, search, statusFilter, priorityFilter, sprintFilter])
-
-  const workloadMax = useMemo(
-    () => (overview ? Math.max(1, ...overview.workload.map((w) => w.openPoints)) : 1),
-    [overview],
-  )
 
   /* ---- render ---- */
 
@@ -630,8 +631,8 @@ export default function DashboardHome() {
           { label: "My open tasks", value: kpis.myOpenTasks, icon: <CircleDot className="h-4 w-4" />, hint: `${kpis.myDueThisWeek} due this week`, tone: undefined },
           { label: "Completed this week", value: kpis.myCompletedThisWeek, icon: <CheckCheck className="h-4 w-4" />, hint: "last 7 days", tone: undefined },
           { label: "Sprint progress", value: `${kpis.sprintProgressPct}%`, icon: <Zap className="h-4 w-4" />, hint: activeSprint ? `${activeSprint.donePoints}/${activeSprint.totalPoints} pts` : "no sprint", tone: undefined },
-          { label: "Blocked tasks", value: kpis.blockedTasks, icon: <Timer className="h-4 w-4" />, hint: "team-wide", tone: kpis.blockedTasks > 0 ? "text-red-500" : undefined },
-          { label: "Team happiness", value: kpis.teamHappiness, icon: <Sparkles className="h-4 w-4" />, hint: "avg wellbeing /100", tone: undefined },
+          { label: "Blocked tasks", value: kpis.blockedTasks, icon: <Timer className="h-4 w-4" />, hint: "yours", tone: kpis.blockedTasks > 0 ? "text-red-500" : undefined },
+          { label: "My wellbeing", value: kpis.myWellbeing, icon: <Sparkles className="h-4 w-4" />, hint: "latest check-in /100", tone: undefined },
           { label: "Level", value: overview.gamification?.level ?? 1, icon: <Trophy className="h-4 w-4" />, hint: `${overview.gamification?.xp ?? 0} XP`, tone: undefined },
         ].map((k) => (
           <Card key={k.label}>
@@ -1010,40 +1011,10 @@ export default function DashboardHome() {
         </SectionCard>
       </div>
 
-      {/* 11+12 — Team workload + deadlines */}
+      {/* 11+12 — Deadlines and events, both this member's own. The workspace's roster
+          and schedule live on /dashboard/team and /dashboard/calendar; a home page that
+          borrowed them would look populated to an account that has done nothing yet. */}
       <div className="grid gap-4 lg:grid-cols-2">
-        <SectionCard
-          title="Team workload"
-          icon={<Users className="h-4 w-4" />}
-          action={
-            <Button asChild size="sm" variant="ghost" className="h-7 text-xs">
-              <Link href="/dashboard/team">Manage team</Link>
-            </Button>
-          }
-        >
-          <div className="space-y-2.5">
-            {overview.workload.slice(0, 7).map((w) => (
-              <div key={w.id} className="flex items-center gap-3">
-                <AvatarCircle name={w.name} avatar={w.avatar} />
-                <div className="min-w-0 flex-1">
-                  <div className="flex justify-between text-xs">
-                    <span className="truncate font-medium">{w.name}</span>
-                    <span className="shrink-0 text-muted-foreground">
-                      {w.openPoints} pts · {w.openTasks} open
-                    </span>
-                  </div>
-                  <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted">
-                    <div
-                      className={cn("h-full rounded-full", w.openPoints / workloadMax > 0.8 ? "bg-red-400" : "bg-[hsl(var(--chart-pine))]")}
-                      style={{ width: `${Math.round((w.openPoints / workloadMax) * 100)}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </SectionCard>
-
         <SectionCard
           title="Upcoming deadlines"
           icon={<Timer className="h-4 w-4" />}
@@ -1094,10 +1065,7 @@ export default function DashboardHome() {
             <EmptyNote>No deadlines on your plate.</EmptyNote>
           )}
         </SectionCard>
-      </div>
 
-      {/* 13+14 — Events + activity feed */}
-      <div className="grid gap-4 lg:grid-cols-2">
         <SectionCard
           title="Upcoming events"
           icon={<CalendarClock className="h-4 w-4" />}
@@ -1132,7 +1100,10 @@ export default function DashboardHome() {
             <EmptyNote>Nothing scheduled ahead.</EmptyNote>
           )}
         </SectionCard>
+      </div>
 
+      {/* 13+14 — Activity feed and this member's wellbeing */}
+      <div className="grid gap-4 lg:grid-cols-2">
         <SectionCard
           title="Activity"
           icon={<Activity className="h-4 w-4" />}
@@ -1174,45 +1145,7 @@ export default function DashboardHome() {
             <EmptyNote>No activity yet. Task changes land here live.</EmptyNote>
           )}
         </SectionCard>
-      </div>
 
-      {/* 15 — AI insights */}
-      <SectionCard
-        title="AI scrum master"
-        icon={<Brain className="h-4 w-4" />}
-        action={
-          <Button asChild size="sm" variant="ghost" className="h-7 text-xs">
-            <Link href="/dashboard/ai-scrum-master">Open copilot</Link>
-          </Button>
-        }
-      >
-        {overview.insights.length > 0 ? (
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {overview.insights.map((i) => (
-              <div key={i.id} className="rounded-lg border p-3">
-                <div className="flex items-center justify-between">
-                  <Badge variant="secondary" className="capitalize text-[10px]">
-                    {i.type}
-                  </Badge>
-                  <span className="text-[10px] text-muted-foreground">{relativeTime(i.createdAt)}</span>
-                </div>
-                <p className="mt-2 text-sm font-medium">{i.title}</p>
-                <p className="mt-1 text-xs text-muted-foreground">{i.description}</p>
-                <div className="mt-2 flex justify-end">
-                  <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => dismissInsight(i.id)}>
-                    Dismiss
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <EmptyNote>No active insights. The model flags risks and wins here as sprints run.</EmptyNote>
-        )}
-      </SectionCard>
-
-      {/* 16+17 — Wellbeing trend + team mood */}
-      <div className="grid gap-4 lg:grid-cols-2">
         <SectionCard
           title="My wellbeing"
           icon={<Sparkles className="h-4 w-4" />}
@@ -1243,136 +1176,57 @@ export default function DashboardHome() {
             <EmptyNote>Log a check-in to start your trend.</EmptyNote>
           )}
         </SectionCard>
-
-        <SectionCard title="Team mood" icon={<Users className="h-4 w-4" />}>
-          {overview.teamMood.length > 0 ? (
-            <div className="flex flex-wrap gap-2 pt-1">
-              {overview.teamMood.map((m) => (
-                <div key={m.id} className="flex items-center gap-2 rounded-full border px-2.5 py-1.5 text-xs">
-                  <AvatarCircle name={m.name} avatar={m.avatar} size={20} />
-                  <span className="font-medium">{m.name.split(" ")[0]}</span>
-                  <span className="text-muted-foreground">{m.mood}</span>
-                  <span className="tabular-nums text-muted-foreground">{m.score}</span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <EmptyNote>No check-ins yet.</EmptyNote>
-          )}
-        </SectionCard>
       </div>
 
-      {/* 18+19 — Ethical health + gamification */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        <SectionCard
-          title="Ethical health"
-          icon={<Scale className="h-4 w-4" />}
-          action={
-            <Button asChild size="sm" variant="ghost" className="h-7 text-xs">
-              <Link href="/dashboard/ethical-metrics">Details</Link>
-            </Button>
-          }
-        >
-          {overview.ethics.latest ? (
-            <>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                {[
-                  { label: "Pay equity", value: overview.ethics.latest.payEquity, delta: overview.ethics.deltas?.payEquity },
-                  { label: "Workload balance", value: overview.ethics.latest.workloadBalance, delta: overview.ethics.deltas?.workloadBalance },
-                  { label: "DEI distribution", value: overview.ethics.latest.deiDistribution, delta: overview.ethics.deltas?.deiDistribution },
-                  { label: "Overtime compl.", value: overview.ethics.latest.overtimeCompliance, delta: overview.ethics.deltas?.overtimeCompliance },
-                ].map((m) => (
-                  <div key={m.label} className="rounded-lg border p-2.5 text-center">
-                    <p className="text-lg font-semibold tabular-nums">{m.value}</p>
-                    <p className="text-[10px] leading-tight text-muted-foreground">{m.label}</p>
-                    {m.delta !== undefined && m.delta !== 0 && (
-                      <p className={cn("text-[10px] font-medium", m.delta > 0 ? "text-emerald-600" : "text-red-500")}>
-                        {m.delta > 0 ? "▲" : "▼"} {Math.abs(m.delta)}
-                      </p>
-                    )}
-                  </div>
-                ))}
+      {/* 15 — Personal progress. The leaderboard and ethical scores are workspace
+          aggregates; their pages own them, the home does not borrow them. */}
+      <SectionCard
+        title="Progress & rewards"
+        icon={<Trophy className="h-4 w-4" />}
+        action={
+          <Button asChild size="sm" variant="ghost" className="h-7 text-xs">
+            <Link href="/dashboard/gamification">Skill trees</Link>
+          </Button>
+        }
+      >
+        {overview.gamification ? (
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[hsl(var(--chart-pine))] text-sm font-bold text-white">
+                {overview.gamification.level}
               </div>
-              {overview.ethics.trend.length > 1 && (
-                <ResponsiveContainer width="100%" height={120} className="mt-3">
-                  <LineChart data={overview.ethics.trend}>
-                    <XAxis dataKey="date" hide />
-                    <Tooltip {...TOOLTIP_STYLE} />
-                    <Line type="monotone" dataKey="workloadBalance" name="Workload balance" stroke="hsl(var(--chart-pine))" dot={false} strokeWidth={2} />
-                    <Line type="monotone" dataKey="overtimeCompliance" name="Overtime compliance" stroke="hsl(var(--chart-stone))" dot={false} strokeDasharray="4 3" />
-                  </LineChart>
-                </ResponsiveContainer>
-              )}
-              <p className="mt-2 text-[10px] text-muted-foreground">Weekly aggregate · measured {overview.ethics.latest.date}</p>
-            </>
-          ) : (
-            <EmptyNote>Ethical scoring starts once metrics are recorded.</EmptyNote>
-          )}
-        </SectionCard>
-
-        <SectionCard
-          title="Progress & rewards"
-          icon={<Trophy className="h-4 w-4" />}
-          action={
-            <Button asChild size="sm" variant="ghost" className="h-7 text-xs">
-              <Link href="/dashboard/gamification">Skill trees</Link>
-            </Button>
-          }
-        >
-          {overview.gamification ? (
-            <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[hsl(var(--chart-pine))] text-sm font-bold text-white">
-                  {overview.gamification.level}
+              <div className="min-w-0 flex-1">
+                <div className="flex justify-between text-xs">
+                  <span className="font-medium">{overview.gamification.xp} XP</span>
+                  <span className="text-muted-foreground">next level {overview.gamification.nextLevelXp} XP</span>
                 </div>
-                <div className="min-w-0 flex-1">
+                <Progress value={Math.min(100, Math.round(((overview.gamification.xp % 500) / 500) * 100))} className="mt-1 h-1.5" />
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  {overview.gamification.tasksCompleted} tasks completed · {overview.gamification.achievements} achievements
+                </p>
+              </div>
+            </div>
+            <Separator />
+            {overview.gamification.skillTrees.length > 0 ? (
+              overview.gamification.skillTrees.slice(0, 3).map((s) => (
+                <div key={s.name}>
                   <div className="flex justify-between text-xs">
-                    <span className="font-medium">{overview.gamification.xp} XP</span>
-                    <span className="text-muted-foreground">next level {overview.gamification.nextLevelXp} XP</span>
+                    <span>{s.name}</span>
+                    <span className="text-muted-foreground">
+                      Lv {s.level} · {s.progress}%
+                    </span>
                   </div>
-                  <Progress value={Math.min(100, Math.round(((overview.gamification.xp % 500) / 500) * 100))} className="mt-1 h-1.5" />
-                  <p className="mt-1 text-[11px] text-muted-foreground">
-                    {overview.gamification.tasksCompleted} tasks completed · {overview.gamification.achievements} achievements
-                  </p>
+                  <Progress value={s.progress} className="mt-1 h-1.5" />
                 </div>
-              </div>
-              <Separator />
-              {overview.gamification.skillTrees.length > 0 ? (
-                overview.gamification.skillTrees.slice(0, 3).map((s) => (
-                  <div key={s.name}>
-                    <div className="flex justify-between text-xs">
-                      <span>{s.name}</span>
-                      <span className="text-muted-foreground">
-                        Lv {s.level} · {s.progress}%
-                      </span>
-                    </div>
-                    <Progress value={s.progress} className="mt-1 h-1.5" />
-                  </div>
-                ))
-              ) : (
-                <p className="text-xs text-muted-foreground">Complete tasks to grow skill trees.</p>
-              )}
-              {overview.leaderboard.length > 0 && (
-                <>
-                  <p className="pt-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Leaderboard</p>
-                  <div className="flex flex-wrap gap-2">
-                    {overview.leaderboard.map((l, idx) => (
-                      <div key={l.id} className="flex items-center gap-1.5 rounded-full border px-2 py-1 text-[11px]">
-                        <span className="tabular-nums text-muted-foreground">#{idx + 1}</span>
-                        <AvatarCircle name={l.name} avatar={l.avatar} size={18} />
-                        <span className="font-medium">{l.name.split(" ")[0]}</span>
-                        <span className="text-muted-foreground">{l.xp}xp</span>
-                      </div>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-          ) : (
-            <EmptyNote>Start closing tasks to earn XP.</EmptyNote>
-          )}
-        </SectionCard>
-      </div>
+              ))
+            ) : (
+              <p className="text-xs text-muted-foreground">Complete tasks to grow skill trees.</p>
+            )}
+          </div>
+        ) : (
+          <EmptyNote>Start closing tasks to earn XP.</EmptyNote>
+        )}
+      </SectionCard>
 
       {/* ---- task detail modal ---- */}
       <Dialog open={detailTask !== null} onOpenChange={(o) => !o && setDetailTask(null)}>
