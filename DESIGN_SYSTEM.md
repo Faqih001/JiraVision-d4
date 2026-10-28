@@ -183,6 +183,7 @@ Observed, enforced-in-practice rules (REDESIGN_PLAN V2-1/V2-3 + homepage impleme
   first frame. Colour/contrast modes rewrite the HSL token triples rather than applying a CSS
   `filter` to a wrapper — a filter on an ancestor makes it the containing block for every
   `position: fixed` descendant (navbar, bottom bar, cookie bar, dialogs).
+- **The bottom-right stack has fixed levels, and the widest element sits on top.** Accessibility launcher owns the corner (16px from lg), the assistant pill rests on it (84px), the cookie bar and the open chat panel rest on the pill (148px); below `lg` all four are 4rem higher to clear the marketing bottom bar. Positions are static — no control subscribes to consent state, because a bar that overlaps a button is a dead button.
 - **Chrome controls declare their edge.** Top-bar and floating controls carry
   `border border-border bg-card` rather than a bare ghost button, so they stay findable
   against the page and keep their shape when an accessibility colour mode rewrites the
@@ -556,9 +557,9 @@ Full-page chat interface with two-column layout:
 
 Floating chatbot for public site:
 
-**Button**: Fixed bottom-right (bottom-4, right-4), rounded-full, primary background, MessageSquare icon + "Assistant" label. z-50.
+**Button**: Fixed right edge (`right-4`), rounded-full, primary background, MessageSquare icon + "Assistant" label. z-50. It sits **above** the accessibility launcher, which owns the corner: `bottom-[calc(8.25rem+env(safe-area-inset-bottom))]`, `lg:bottom-[calc(5.25rem+…)]`.
 
-**Dialog**: Card with fixed position (bottom-20, right-4), max-h 500px or 70vh, width 22rem or calc(100vw-2rem). z-50.
+**Dialog**: Card with fixed position (`right-4`, `bottom-[calc(12.25rem+…)]`, `lg:bottom-[calc(9.25rem+…)]` — clears the pill it opens from), max-h 500px or `calc(100dvh - 13.25rem)` (10.25rem from lg), width 22rem or calc(100vw-2rem). z-50.
 
 **Header**: Primary background, Avatar with "JV" fallback, "JiraVision Assistant" title, close button (X icon).
 

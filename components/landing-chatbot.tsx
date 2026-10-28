@@ -7,6 +7,7 @@ import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { usePathname } from "next/navigation"
+import { cn } from "@/lib/utils"
 
 interface Faq {
   question: string
@@ -263,7 +264,12 @@ export default function LandingChatbot() {
   return (
     <>
       <Button
-        className="fixed bottom-4 right-4 z-50 h-12 gap-2 rounded-full px-4 shadow-md"
+        className={cn(
+          // Above the accessibility launcher, which owns the corner itself. Same 4rem
+          // steps as that button, so the pair reads as one stack on both surfaces.
+          "fixed right-4 z-50 h-12 gap-2 rounded-full px-4 shadow-md",
+          "bottom-[calc(8.25rem+env(safe-area-inset-bottom))] lg:bottom-[calc(5.25rem+env(safe-area-inset-bottom))]",
+        )}
         aria-label="Open JiraVision assistant"
         aria-expanded={isOpen}
         onClick={() => setIsOpen(true)}
@@ -276,7 +282,12 @@ export default function LandingChatbot() {
         <Card
           role="dialog"
           aria-label="JiraVision assistant"
-          className="fixed bottom-20 right-4 z-50 flex max-h-[min(500px,70vh)] w-[min(22rem,calc(100vw-2rem))] flex-col shadow-lg"
+          className={cn(
+            "fixed right-4 z-50 flex w-[min(22rem,calc(100vw-2rem))] flex-col shadow-lg",
+            // Clears the pill it was opened from; the cap leaves the stack height below it.
+            "bottom-[calc(12.25rem+env(safe-area-inset-bottom))] lg:bottom-[calc(9.25rem+env(safe-area-inset-bottom))]",
+            "max-h-[min(500px,calc(100dvh-13.25rem))] lg:max-h-[min(500px,calc(100dvh-10.25rem))]",
+          )}
         >
           <CardHeader className="flex flex-row items-center justify-between bg-primary p-3">
             <div className="flex items-center gap-2">

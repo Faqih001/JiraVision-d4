@@ -8,9 +8,10 @@ import { OPEN_A11Y_EVENT } from "@/lib/accessibility"
  * Dashboard trigger for the accessibility panel. The panel itself is mounted once in
  * the root layout and listens for OPEN_A11Y_EVENT, so this only has to ask for it.
  *
- * It sits bottom-right, stacked above the assistant pill, which is the same corner the
- * public-site launcher uses; the two never share a page because the public one stands
- * down under /dashboard.
+ * It is the foot of the right-edge stack, with the assistant pill above it — the same
+ * corner and the same order the public-site launcher uses, and the two never share a
+ * page because the public one stands down under /dashboard. The 4.25rem step below lg
+ * clears the marketing bottom bar so the two surfaces keep one geometry.
  */
 export function AccessibilityLauncher({ className }: { className?: string }) {
   return (
@@ -19,7 +20,8 @@ export function AccessibilityLauncher({ className }: { className?: string }) {
       onClick={() => window.dispatchEvent(new Event(OPEN_A11Y_EVENT))}
       aria-label="Open the accessibility menu"
       className={cn(
-        "fixed bottom-[calc(5.25rem+env(safe-area-inset-bottom))] right-4 z-40",
+        "fixed right-4 z-40",
+        "bottom-[calc(4.25rem+env(safe-area-inset-bottom))] lg:bottom-[calc(1rem+env(safe-area-inset-bottom))]",
         "flex min-h-[44px] items-center gap-2 rounded-full border border-border bg-card px-3.5",
         "text-xs font-semibold shadow-soft-md transition-colors duration-150",
         "hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",

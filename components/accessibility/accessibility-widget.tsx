@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Switch } from "@/components/ui/switch"
 import { cn } from "@/lib/utils"
-import { getConsentSnapshot, subscribeConsent } from "@/lib/consent"
 import {
   applyState,
   getAccessibilityServerSnapshot,
@@ -164,16 +163,11 @@ export function AccessibilityWidget() {
     getAccessibilitySnapshot,
     getAccessibilityServerSnapshot,
   )
-  const consent = useSyncExternalStore(subscribeConsent, getConsentSnapshot, () => null)
   const [open, setOpen] = useState(false)
   // The workspace ships its own launcher, bottom-right next to the assistant pill,
   // so the public one stands down there rather than doubling up.
   const pathname = usePathname()
   const showLauncher = !pathname.startsWith("/dashboard")
-
-  // While the cookie banner is on screen the launcher lifts above it rather than
-  // hiding underneath it on small viewports.
-  const bannerVisible = mounted && !consent && !open
 
   const toggle = useCallback(
     <K extends keyof AccessibilityState>(key: K, value?: AccessibilityState[K]) =>
@@ -250,11 +244,12 @@ export function AccessibilityWidget() {
           aria-label="Open the accessibility menu"
           aria-expanded={open}
           className={cn(
-            "fixed right-4 z-50 flex min-h-[48px] min-w-[48px] items-center gap-2 rounded-full border bg-card px-4 text-sm font-medium shadow-soft-md transition-[bottom] duration-200",
-            // Both offsets clear the Assistant pill, which owns bottom-right at 4rem tall.
-            bannerVisible
-              ? "bottom-[calc(16rem+env(safe-area-inset-bottom))]"
-              : "bottom-[calc(5.25rem+env(safe-area-inset-bottom))]",
+            "fixed right-4 z-50 flex min-h-[48px] min-w-[48px] items-center gap-2 rounded-full border bg-card px-4 text-sm font-medium shadow-soft-md",
+            // Foot of the right-edge stack: the Assistant pill sits above it, and the
+            // cookie banner above the pill. Below lg the whole stack clears the marketing
+            // bottom bar, which is 52px tall plus the safe area; nothing here has to
+            // react to the banner, because the banner is what moves.
+            "bottom-[calc(4.25rem+env(safe-area-inset-bottom))] lg:bottom-[calc(1rem+env(safe-area-inset-bottom))]",
           )}
         >
           <Accessibility className="h-5 w-5" aria-hidden="true" />

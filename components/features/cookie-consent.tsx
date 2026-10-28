@@ -61,7 +61,10 @@ export function CookieConsent() {
         <div
           role="region"
           aria-label="Cookie consent"
-          className="fixed inset-x-4 bottom-[calc(5.25rem+env(safe-area-inset-bottom))] z-50 rounded-lg border bg-card p-4 shadow-soft-md sm:left-auto sm:right-6 sm:w-[26rem] lg:bottom-6"
+          // Rests on top of the right-edge stack (accessibility launcher, then the
+          // assistant pill), so the bar never covers a control and no control has to
+          // watch for the bar. 12.25rem clears the stack below lg, 9.25rem from lg up.
+          className="fixed inset-x-4 bottom-[calc(12.25rem+env(safe-area-inset-bottom))] z-50 rounded-lg border bg-card p-4 shadow-soft-md sm:left-auto sm:right-6 sm:w-[26rem] lg:bottom-[calc(9.25rem+env(safe-area-inset-bottom))]"
         >
           <p className="text-sm leading-relaxed">
             We use only essential cookies by default. Analytics cookies help us improve the product and load only after

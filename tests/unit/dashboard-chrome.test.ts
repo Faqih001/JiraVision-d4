@@ -248,17 +248,35 @@ describe("footer wordmark gleam", () => {
 })
 
 describe("accessibility entry point", () => {
-  it("sits bottom-right of the workspace", () => {
-    expect(launcher).toContain("right-4")
-    expect(launcher).toContain("bottom-[calc(5.25rem+env(safe-area-inset-bottom))]")
+  // The right-edge stack, bottom up: launcher, assistant pill, then the assistant
+  // panel / cookie bar. Below lg every level is 4rem higher because the marketing
+  // bottom bar (components/layout/bottom-bar.tsx) is 52px plus the safe area.
+  const launcherStep = "bottom-[calc(4.25rem+env(safe-area-inset-bottom))] lg:bottom-[calc(1rem+env(safe-area-inset-bottom))]"
+  const pillStep = "bottom-[calc(8.25rem+env(safe-area-inset-bottom))] lg:bottom-[calc(5.25rem+env(safe-area-inset-bottom))]"
+  const panelStep = "bottom-[calc(12.25rem+env(safe-area-inset-bottom))] lg:bottom-[calc(9.25rem+env(safe-area-inset-bottom))]"
+
+  it("is the foot of the stack, with the assistant pill above it", () => {
     expect(layout).toContain("<AccessibilityLauncher")
+    expect(launcher).toContain(launcherStep)
+    expect(widget).toContain(launcherStep)
+    expect(chatbot).toContain(pillStep)
+    expect(chatbot).toContain(panelStep)
+    // Neither control keeps the corner any more, and neither went back to the left edge.
+    expect(chatbot).not.toContain("fixed bottom-4 right-4")
+    expect(widget).not.toContain("fixed left-4")
+    expect(widget).toContain("fixed right-4")
   })
 
-  it("uses the same bottom-right corner on the public site", () => {
-    expect(widget).toContain("fixed right-4")
-    expect(widget).not.toContain("fixed left-4")
-    // Both launchers clear the assistant pill, which owns bottom-4 right-4 at h-12.
-    expect(widget).toContain("bottom-[calc(5.25rem+env(safe-area-inset-bottom))]")
+  it("lifts the cookie bar over the controls instead of moving the controls per state", () => {
+    const consent = read("components/features/cookie-consent.tsx")
+    // The bar's two steps are not adjacent in its class list, so they are read apart.
+    expect(consent).toContain("bottom-[calc(12.25rem+env(safe-area-inset-bottom))]")
+    expect(consent).toContain("lg:bottom-[calc(9.25rem+env(safe-area-inset-bottom))]")
+    expect(consent).not.toContain("lg:bottom-6")
+    // The launcher used to subscribe to consent and jump to 16rem while the bar was up.
+    // One fixed geometry means no control can end up underneath the bar by accident.
+    expect(widget).not.toContain("bannerVisible")
+    expect(widget).not.toContain("getConsentSnapshot")
   })
 
   it("leaves the floating controls out of the footer", () => {
