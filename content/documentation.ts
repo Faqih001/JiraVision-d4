@@ -113,7 +113,8 @@ where to go for each job.
 
 ## How data flows
 
-- Your session is a pair of HttpOnly cookies (session_id and user_id). See the authentication doc.
+- Your session is one HttpOnly cookie (jv_session) backed by a row in auth_sessions. See the
+  authentication doc.
 - Dashboard mutations write a row to Postgres and then create a notification for the people
   affected.
 - Notifications reach open browsers through the SSE feed at /api/notifications/live, which is what
@@ -141,7 +142,7 @@ This walkthrough uses only routes that exist in the app. Follow it top to bottom
 ## 1. Create your account
 
 1. Go to /signup and submit the form. It posts to /api/auth/register.
-2. Sign in at /login. That posts to /api/auth/login and sets the session_id and user_id cookies.
+2. Sign in at /login. That posts to /api/auth/login and sets the jv_session cookie.
 3. Confirm the session with GET /api/user/current — it returns the signed-in user row.
 
 ## 2. Set your profile
@@ -188,7 +189,7 @@ This walkthrough uses only routes that exist in the app. Follow it top to bottom
     `,
     endpoints: [
       { method: "POST", path: "/api/auth/register", description: "Create an account." },
-      { method: "POST", path: "/api/auth/login", description: "Exchange credentials for the session cookies." },
+      { method: "POST", path: "/api/auth/login", description: "Exchange credentials for the session cookie." },
       { method: "GET", path: "/api/user/current", description: "Return the signed-in user." },
       { method: "GET", path: "/api/tasks", description: "Paginated, filterable task list." },
     ],
@@ -215,8 +216,8 @@ real read/write endpoint.
 
 - Security · password posts to /api/auth/forgot-password, which issues a reset token and emails the
   link. The link lands on /reset-password and posts to /api/auth/reset-password.
-- Sessions lists active session cookies and lets you end one. Ending a session calls
-  POST /api/auth/logout for the current browser.
+- Sessions shows the session mechanics: a 24-hour idle timeout, a 30-day absolute limit, and the one
+  cookie involved. Ending it calls POST /api/auth/logout, which revokes the auth_sessions row.
 
 ## Preferences and defaults
 
@@ -460,7 +461,7 @@ happened. The same data is available from the settings payload, so a script can 
       {
         title: "Turn off profile-update notifications",
         code: `PUT /api/team/settings
-Cookie: session_id=...; user_id=...
+Cookie: jv_session=...
 Content-Type: application/json
 
 { "notifications": { "profileUpdated": false } }
@@ -676,7 +677,7 @@ onboarding) rather than duplicating a status.
       {
         title: "Create a task",
         code: `POST /api/tasks
-Cookie: session_id=...; user_id=...
+Cookie: jv_session=...
 Content-Type: application/json
 
 {
@@ -961,7 +962,7 @@ API the dashboard uses: there is no separate public surface, no version prefix a
 Every route:
 
 - accepts and returns JSON
-- reads the session from the request cookies
+- reads the session from the jv_session cookie, and looks up the auth_sessions row it names
 - is rendered dynamically (no cached responses), so a write is visible on the next read
 
 ## Response envelope
@@ -985,12 +986,13 @@ map to which shape.
 
 - 200 read, 201 create
 - 400 malformed body or a value the model rejects
-- 401 no session
+- 401 no session: the cookie is absent, or its row is revoked or expired
 - 403 session exists but the role is not allowed
 - 404 the id does not exist
 - 409 a conflict, such as deleting an account that still has open assigned tasks
 - 429 rate limited
 - 500 an unexpected server error; the message field carries the underlying error text
+- 503 the database did not answer, so the session could not be checked — retry, do not sign out
 
 ## Timestamps
 
@@ -1010,7 +1012,7 @@ Signed in, in the browser console of any dashboard page:
     const r = await fetch("/api/tasks?pageSize=5")
     console.log(await r.json())
 
-The cookies are sent automatically because they belong to the same origin.
+The cookie is sent automatically because it belongs to the same origin.
     `,
     endpoints: [
       { method: "GET", path: "/api/status", description: "Unauthenticated liveness: { success, message, time }." },
@@ -1042,23 +1044,37 @@ const { success, data } = await res.json()
 
 ## Session cookies
 
-Signing in sets two HttpOnly cookies: session_id and user_id. They are sent automatically with every
-same-origin fetch, which is why the dashboard never handles a token in JavaScript. Because they are
-HttpOnly, client code cannot read them — the settings page reports their names rather than values for
-that reason.
+Signing in sets one HttpOnly cookie, jv_session. It holds a 256-bit random token; the database keeps
+only its SHA-256 digest in auth_sessions, alongside user_id, expires_at, last_seen_at and revoked_at.
+The cookie is sent automatically with every same-origin fetch, which is why the dashboard never
+handles a token in JavaScript. Because it is HttpOnly, client code cannot read it — the settings page
+reports the mechanics rather than a value for that reason.
+
+A session ends after 24 hours without activity. Each request slides that window forward (the row is
+renewed when less than 20 hours remain) and last_seen_at is rewritten at most once a minute, so a busy
+tab is not a write per request. No session outlives 30 days from its first sign-in. Signing out sets
+revoked_at rather than deleting the row, which is what makes a copied token useless afterwards.
+
+Two cookies from an earlier version — session_id and user_id — are cleared on the next login or
+logout. Nothing reads them.
 
 ## Routes
 
 1. POST /api/auth/register — create an account.
-2. POST /api/auth/login — exchange email and password for the session cookies.
-3. POST /api/auth/logout — end the current session.
-4. GET /api/auth/session — describe the current session.
+2. POST /api/auth/login — exchange email and password for the session cookie.
+3. POST /api/auth/logout — revoke the current session.
+4. GET /api/auth/session — describe the current session: the user, or the reason it ended, or 503
+   when the database could not be reached.
 5. POST /api/auth/forgot-password — issue a reset token and send the link.
 6. POST /api/auth/reset-password — consume the token and set a new password.
 7. GET /api/auth/verify-token — check a reset token before showing the form.
 
 There is also POST /api/auth/signup, kept for the marketing signup form, which routes into the same
 registration path.
+
+Every one of these is rate limited per IP, and per email address where one is submitted: 20 login
+attempts per 15 minutes, 10 signups an hour, 5 reset mails an hour. A blocked caller gets 429 with a
+Retry-After header.
 
 ## Enforcing it in a route handler
 
@@ -1069,8 +1085,22 @@ registration path.
       return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 })
     }
 
+getSession() throws SessionUnreachableError when the database did not answer, and that must not be
+answered with 401: a 401 says the caller is signed out, and nothing of the sort happened. Let it
+escape as a 500 so the client retries. For the same reason app/api/auth/session answers 503 rather
+than an empty user.
+
 For role checks use getCurrentUser() with isSuperAdmin()/isPrivilegedRole() from lib/session and
 lib/team-settings-model, and answer 403 rather than 401 when the caller is signed in but not allowed.
+
+## Redirects
+
+proxy.ts checks only that the cookie is present and sends anonymous visitors to /login; it is a
+redirect aid, never the boundary. The dashboard layout resolves the session on the server: anonymous
+goes to /login, an invalid session goes to /login?reason=not_found|expired|revoked, and an
+unreachable database falls through to the page instead of redirecting. The login page shows that
+reason and returns the visitor to ?next= after signing in, accepting only a single-slash-rooted
+same-origin path.
 
 ## ADMIN_EMAILS
 
@@ -1090,9 +1120,9 @@ Some task routes permit unauthenticated access when NODE_ENV is development or E
 flag is off and the 401 path applies.
     `,
     endpoints: [
-      { method: "POST", path: "/api/auth/login", description: "Sign in; sets session_id and user_id." },
-      { method: "POST", path: "/api/auth/logout", description: "End the current session." },
-      { method: "GET", path: "/api/auth/session", description: "Current session details." },
+      { method: "POST", path: "/api/auth/login", description: "Sign in; sets the jv_session cookie." },
+      { method: "POST", path: "/api/auth/logout", description: "Revoke the current session." },
+      { method: "GET", path: "/api/auth/session", description: "Current session, or the reason it ended." },
       { method: "POST", path: "/api/auth/register", description: "Create an account." },
       { method: "POST", path: "/api/auth/forgot-password", description: "Issue a reset token." },
       { method: "POST", path: "/api/auth/reset-password", description: "Set a new password with a valid token." },
@@ -1512,7 +1542,7 @@ to the report, which is how a weekly digest reaches people who never open the da
       {
         title: "Download 30 days of tasks grouped by status",
         code: `GET /api/reports/export?dataset=tasks&rangeDays=30&groupBy=status&format=csv
-Cookie: session_id=...; user_id=...
+Cookie: jv_session=...
 
 200
 Content-Type: text/csv; charset=utf-8
@@ -1676,7 +1706,12 @@ written. Fix the value; do not retry as-is.
 
 ## 401 Unauthorized
 
-No session. Either the cookies were never set (not signed in) or they expired. Redirect to /login.
+No session: the jv_session cookie is missing, or the auth_sessions row behind it was revoked, expired
+after 24 hours of inactivity, or never existed. Redirect to /login — the login page carries the reason
+and returns the visitor to where they were.
+
+A 401 is never a database problem. When the session could not be looked up at all the answer is 503,
+and the client retries rather than signing anybody out.
 
 ## 403 Forbidden
 
@@ -1703,14 +1738,22 @@ returns 409 with the offending name in the message.
 
 ## 429 Too Many Requests
 
-Rate limited. The window is 60 seconds and the default maximum is 5 requests per IP on the limited
-routes. Wait for the window rather than retrying in a loop.
+Rate limited. Public form routes allow 5 requests a minute per IP. The auth routes have their own
+budgets — 20 login attempts per 15 minutes, 10 signups an hour, 5 reset mails an hour — keyed by IP
+and, where one was submitted, by email address. The response carries a Retry-After header with the
+seconds to wait; wait for it rather than retrying in a loop.
 
 ## 500 Internal Server Error
 
 Unexpected. The message field says which operation failed ("Failed to build dashboard overview") and
 the error field carries the database or provider text. These are logged server-side with the same
 prefix, so quoting the message in a support request lets us find the log line.
+
+## 503 Service Unavailable
+
+The database did not answer — on Neon that is usually a sleeping compute waking up, which takes a few
+seconds. GET /api/auth/session and the auth actions answer 503 with a Retry-After header instead of
+presenting it as a credential failure. Retry; do not treat it as a sign-out.
 
 ## Reading errors in the browser
 

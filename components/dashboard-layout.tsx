@@ -141,7 +141,7 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
-  const { user, isLoading } = useAuth()
+  const { user, isLoading, status, sessionReason, retrySession } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
@@ -151,6 +151,8 @@ export default function DashboardLayout({
   const [searchQuery, setSearchQuery] = useState("")
   // null while the first read is in flight (or failed) so a badge never claims zero.
   const [newCounts, setNewCounts] = useState<Record<BadgeKey, number | null>>({ activity: null, chat: null })
+  // Set when a badge read came back 401: the browser is signed out, so the polling stops.
+  const [sessionEnded, setSessionEnded] = useState(false)
 
   // Toggle sidebar collapse
   const toggleSidebar = () => {
@@ -165,36 +167,64 @@ export default function DashboardLayout({
   // Unread notifications and unread chat messages are the two stores with real
   // read-state, so they are the only items that can honestly say "new".
   useEffect(() => {
-    if (!user) return
+    if (!user || sessionEnded) return
+
     let cancelled = false
+    let timer: ReturnType<typeof setInterval> | undefined
+
+    const read = async (url: string) => {
+      try {
+        const res = await fetch(url)
+        if (res.status === 401) return { unauthorized: true, value: null }
+        return { unauthorized: false, value: res.ok ? await res.json() : null }
+      } catch {
+        return { unauthorized: false, value: null }
+      }
+    }
+
     const load = async () => {
       const [notifications, chats] = await Promise.all([
-        fetch("/api/notifications?limit=1")
-          .then((res) => (res.ok ? (res.json() as Promise<{ unreadCount?: number }>) : null))
-          .catch(() => null),
-        fetch("/api/chat")
-          .then((res) => (res.ok ? (res.json() as Promise<{ unreadCount?: number }[]>) : null))
-          .catch(() => null),
+        read("/api/notifications?limit=1"),
+        read("/api/chat"),
       ])
       if (cancelled) return
+
+      // 401 is terminal: this browser is signed out and another poll cannot change that. A 503
+      // (the compute waking) or a dropped connection is not, and those keep polling.
+      if (notifications.unauthorized || chats.unauthorized) {
+        clearInterval(timer)
+        setSessionEnded(true)
+        router.refresh()
+        return
+      }
+
+      const unread = notifications.value as { unreadCount?: number } | null
+      const chatRows = chats.value as { unreadCount?: number }[] | null
       setNewCounts({
-        activity: typeof notifications?.unreadCount === "number" ? notifications.unreadCount : null,
-        chat: Array.isArray(chats)
-          ? chats.reduce((sum, chat) => sum + (typeof chat.unreadCount === "number" ? chat.unreadCount : 0), 0)
+        activity: typeof unread?.unreadCount === "number" ? unread.unreadCount : null,
+        chat: Array.isArray(chatRows)
+          ? chatRows.reduce((sum, chat) => sum + (typeof chat.unreadCount === "number" ? chat.unreadCount : 0), 0)
           : null,
       })
     }
+
     void load()
-    const timer = setInterval(load, 30_000)
+    timer = setInterval(load, 30_000)
     return () => {
       cancelled = true
       clearInterval(timer)
     }
-  }, [user, pathname])
+  }, [user, pathname, sessionEnded, router])
 
   useEffect(() => {
-    if (!isLoading && !user) {
-      router.push("/login")
+    // Only a finished read that came back empty is a sign-out. `unavailable` means the database
+    // did not answer, and bouncing on that is the fake 401 this path exists to stop.
+    if (status === "ready" && !user) {
+      const params = new URLSearchParams()
+      if (pathname && pathname !== "/dashboard") params.set("next", pathname)
+      if (sessionReason) params.set("reason", sessionReason)
+      const query = params.toString()
+      router.push(query ? `/login?${query}` : "/login")
     }
 
     // Close mobile sidebar when changing routes
@@ -204,18 +234,31 @@ export default function DashboardLayout({
     if (isMobile) {
       setSidebarCollapsed(true)
     }
-  }, [user, isLoading, router, pathname, isMobile])
+  }, [user, status, sessionReason, router, pathname, isMobile])
 
-  if (isLoading) {
+  if (status === "unavailable") {
+    return (
+      <div className="flex h-screen items-center justify-center px-6">
+        <div className="max-w-sm text-center">
+          <h1 className="text-lg font-semibold">Can&apos;t reach JiraVision right now</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Your session could not be checked because the server did not answer. You have not been
+            signed out — try again in a moment.
+          </p>
+          <Button className="mt-6" onClick={retrySession}>
+            Try again
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  if (isLoading || !user) {
     return (
       <div className="flex h-screen items-center justify-center">
         <CircleJVLoader size="md" showText={true} />
       </div>
     )
-  }
-
-  if (!user) {
-    return null
   }
 
   // Navigation categories

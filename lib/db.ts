@@ -212,8 +212,23 @@ export async function getUserByEmail(email: string): Promise<User | null> {
       updatedAt: user.updatedAt
     };
   } catch (error) {
+    // A sign-in form has to be able to tell "no such account" from "we could not look". While
+    // the compute wakes, a stall used to answer null, which the form read as a wrong password —
+    // and people retried a correct one until the field locked them out conceptually.
+    if (isConnectionFailure(error)) {
+      console.error(`Database unreachable while loading user by email; not reporting a miss:`, error);
+      throw new DatabaseUnreachableError();
+    }
     console.error('Error getting user by email:', error);
     return null;
+  }
+}
+
+/** Thrown by the auth reads when the database did not answer, so a stall is never a miss. */
+export class DatabaseUnreachableError extends Error {
+  constructor() {
+    super('Database unreachable')
+    this.name = 'DatabaseUnreachableError'
   }
 }
 

@@ -78,10 +78,22 @@ else — logging, reporting, exporting — works normally. See [AI](#ai).
 
 ## Authentication
 
-Sign-in sets two cookies — `session_id` (a UUID) and `user_id` — and passwords are bcrypt hashes
-compared at login. `proxy.ts` is a **redirect-only gate**: it checks that the cookies are present and
-sends anonymous visitors to `/login`. It can never be the security boundary, so each API route and
-server action loads the session itself with `getSession()` and scopes its query by `user_id`.
+Sign-in writes one cookie, `jv_session`, holding a 256-bit random token. The database stores only
+its SHA-256 digest, in `auth_sessions`, with `user_id`, `expires_at`, `last_seen_at` and
+`revoked_at`. A session ends after 24 hours without activity, slides forward on use, and is capped
+at 30 days from its first sign-in; signing out sets `revoked_at` rather than deleting the row.
+Passwords are bcrypt hashes compared at login.
+
+`proxy.ts` is a **redirect-only gate**: it checks that the cookie is present and sends anonymous
+visitors to `/login`. It can never be the security boundary, so the dashboard layout and every API
+route resolve the session themselves through `resolveSession()` / `getSession()` in `lib/session.ts`
+and scope their queries by the user id that lookup returns.
+
+Four outcomes are kept distinct, because collapsing them is what produced the "fake 401": a missing
+or unknown token is a sign-out, while a database that did not answer is a retry — it surfaces as a
+503 from `/api/auth/session` and never as a redirect. The two cookies this replaced (`session_id`,
+`user_id`) are cleared on the next login or logout and are never read.
+
 
 ## AI
 

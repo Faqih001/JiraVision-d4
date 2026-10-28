@@ -88,7 +88,7 @@ const DEV_RESOURCES = [
 ]
 
 const SAMPLE_REQUEST = `GET /api/tasks?page=1&pageSize=2&status=in_progress
-Cookie: session_id=…; user_id=…`
+Cookie: jv_session=…`
 
 const SAMPLE_RESPONSE = `{
   "success": true,

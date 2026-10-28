@@ -371,12 +371,21 @@ function NotificationPanel({ rows, connection, errorText, unreadCount, onRowsCha
 }
 
 function LiveBell({ sealed, onRetry }: { sealed: SealedLiveQuery<LiveNotificationRow>; onRetry: () => void }) {
+  const router = useRouter()
+  const [signedOut, setSignedOut] = useState(false)
+
   const refreshQuery = useCallback(async () => {
     const res = await fetch("/api/notifications/live")
+    // A signed-out browser cannot be fixed by reconnecting, so this is terminal: hand the decision
+    // back to the server-side gate. Everything else stays retryable.
+    if (res.status === 401) {
+      setSignedOut(true)
+      router.refresh()
+    }
     if (!res.ok) throw new Error("Could not refresh the live notification query")
     const json = (await res.json()) as { sealed: SealedLiveQuery<LiveNotificationRow> }
     return json.sealed
-  }, [])
+  }, [router])
 
   const { data, status, error } = useLiveQuery(sealed, { refreshQuery })
 
@@ -388,38 +397,63 @@ function LiveBell({ sealed, onRetry }: { sealed: SealedLiveQuery<LiveNotificatio
     <NotificationPanel
       rows={rows}
       connection={connection}
-      errorText={status === "error" ? error?.message ?? "Subscription failed" : null}
-      onRetry={status === "error" ? onRetry : undefined}
+      errorText={
+        signedOut
+          ? "Your session has ended. Taking you to sign in."
+          : status === "error"
+            ? error?.message ?? "Subscription failed"
+            : null
+      }
+      onRetry={status === "error" && !signedOut ? onRetry : undefined}
     />
   )
 }
 
 function PollingBell() {
+  const router = useRouter()
   const [rows, setRows] = useState<NotificationRow[] | undefined>(undefined)
   const [unreadCount, setUnreadCount] = useState<number | undefined>(undefined)
+  const [signedOut, setSignedOut] = useState(false)
 
   useEffect(() => {
+    if (signedOut) return
+
     let cancelled = false
+    let interval: ReturnType<typeof setInterval> | undefined
+
     const load = async () => {
       const res = await fetch("/api/notifications?limit=20").catch(() => null)
-      if (!res?.ok || cancelled) return
+      if (cancelled) return
+
+      // 401 is the server saying this browser is signed out. Polling again cannot fix that — and
+      // the server-side dashboard gate is the one authority on it, so ask it to re-decide. A 5xx
+      // or a dropped connection is not a 401: those keep polling.
+      if (res?.status === 401) {
+        clearInterval(interval)
+        setSignedOut(true)
+        router.refresh()
+        return
+      }
+
+      if (!res?.ok) return
       const json = (await res.json()) as { items: NotificationRow[]; unreadCount?: number }
       if (cancelled) return
       setRows(json.items)
       setUnreadCount(typeof json.unreadCount === "number" ? json.unreadCount : undefined)
     }
     void load()
-    const interval = setInterval(load, 30_000)
+    interval = setInterval(load, 30_000)
     return () => {
       cancelled = true
       clearInterval(interval)
     }
-  }, [])
+  }, [signedOut, router])
 
   return (
     <NotificationPanel
       rows={rows}
-      connection="polling"
+      connection={signedOut ? "error" : "polling"}
+      errorText={signedOut ? "Your session has ended. Taking you to sign in." : null}
       unreadCount={unreadCount}
       onRowsChanged={() => {
         // Row updates are not pushed here, so re-read the feed after every change.

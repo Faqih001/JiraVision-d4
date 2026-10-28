@@ -1,19 +1,20 @@
-import { NextResponse } from "next/server"
 import { login } from "@/lib/auth-actions"
+import { authResult, gate, refundAttempts, serverError } from "../_respond"
 
 export async function POST(request: Request) {
   try {
     const formData = await request.formData()
+    const email = formData.get("email")
+
+    const { blocked, keys } = gate(request, "login", typeof email === "string" ? email : undefined)
+    if (blocked) return blocked
+
     const result = await login(formData)
-    return NextResponse.json(result)
+    if (result.success) refundAttempts(keys)
+
+    return authResult(result)
   } catch (error) {
-    console.error("Login error:", error)
-    return NextResponse.json(
-      {
-        success: false,
-        message: "An unexpected error occurred",
-      },
-      { status: 500 },
-    )
+    console.error("Login route error:", error)
+    return serverError()
   }
 }

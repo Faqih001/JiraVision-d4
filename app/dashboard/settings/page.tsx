@@ -981,25 +981,26 @@ export default function SettingsWorkspace() {
             <div className="space-y-2 text-xs">
               <div className={cn("flex items-center justify-between border-b", rowPad)}>
                 <span className="text-muted-foreground">Session cookie</span>
-                <code className="font-mono">session_id</code>
+                <code className="font-mono">jv_session</code>
               </div>
               <div className={cn("flex items-center justify-between border-b", rowPad)}>
-                <span className="text-muted-foreground">Companion cookie</span>
-                <code className="font-mono">user_id</code>
+                <span className="text-muted-foreground">Idle timeout</span>
+                <span>24 hours without activity</span>
               </div>
               <div className={cn("flex items-center justify-between border-b", rowPad)}>
                 <span className="text-muted-foreground">Signing in as</span>
                 <span>user #{profile?.id ?? "—"}</span>
               </div>
               <div className={cn("flex items-center justify-between", rowPad)}>
-                <span className="text-muted-foreground">Created</span>
-                <span>at login (HttpOnly — not readable from this page)</span>
+                <span className="text-muted-foreground">Absolute limit</span>
+                <span>30 days from first sign-in</span>
               </div>
               <p className="rounded-md bg-muted/60 p-2 text-[11px] leading-relaxed text-muted-foreground">
-                Both cookies are HttpOnly, so this card reports the cookie <em>names</em> and
-                session mechanics documented in <code>lib/auth-actions.ts</code> rather than
+                The cookie is HttpOnly and carries an opaque token; the matching{" "}
+                <code>auth_sessions</code> row is what says whether it is still valid. This card
+                reports the mechanics documented in <code>lib/session.ts</code> rather than
                 inventing a device list there is no server support for. Signing out from the
-                sidebar clears them via <code>POST /api/auth/logout</code>.
+                sidebar revokes the row via <code>POST /api/auth/logout</code>.
               </p>
             </div>
           </SectionCard>
@@ -1112,9 +1113,9 @@ export default function SettingsWorkspace() {
             <div className="space-y-2 text-xs leading-relaxed text-muted-foreground">
               <p>
                 In-app callers authenticate with the same cookie session this page uses:{" "}
-                <code>session_id</code> + <code>user_id</code> (HttpOnly) sent automatically with
-                every fetch. There are no bearer tokens to display — showing none is the correct
-                answer, not a missing feature.
+                <code>jv_session</code> (HttpOnly) sent automatically with every fetch. There are
+                no bearer tokens to display — showing none is the correct answer, not a missing
+                feature.
               </p>
               <Separator />
               <p>

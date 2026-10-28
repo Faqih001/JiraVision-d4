@@ -7,7 +7,12 @@ const ck = (name) => {
   const l = lines.find((x) => { const p = x.split("\t"); return p.length >= 7 && p[5] === name })
   return l ? l.split("\t")[6].trim() : ""
 }
-const cookie = `user_id=${ck("user_id")}; session_id=${ck("session_id")}`
+const sessionToken = ck("jv_session")
+if (!sessionToken) {
+  console.error("No jv_session in /tmp/jv-cookies.txt. Sign in, export the cookies again, retry.")
+  process.exit(1)
+}
+const cookie = `jv_session=${sessionToken}`
 
 const live = await (await fetch("http://localhost:3000/api/notifications/live", { headers: { cookie } })).json()
 if (!live.sealed) { console.error("no sealed query:", live); process.exit(1) }

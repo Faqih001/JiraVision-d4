@@ -4,7 +4,7 @@ import type React from "react"
 
 import { useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Eye, EyeOff, Lock, Mail } from "lucide-react"
 
 import { useAuth } from "@/context/auth-context"
@@ -13,6 +13,10 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { safeNextPath } from "@/lib/auth/next-path"
+import { SESSION_NOTICE, type InvalidReason } from "@/lib/auth/session-state"
+
+const REASONS = new Set<string>(Object.keys(SESSION_NOTICE))
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
@@ -20,8 +24,17 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState("")
-  const { login } = useAuth()
+  const { login, sessionReason } = useAuth()
   const router = useRouter()
+  const searchParams = useSearchParams()
+
+  // `?reason=` is what the server redirect put there; sessionReason is what this tab's own read
+  // found. Either way it is only used as a lookup key, never rendered, so a crafted value cannot
+  // put words on the page.
+  const reasonParam = searchParams?.get("reason")
+  const reason = reasonParam && REASONS.has(reasonParam) ? (reasonParam as InvalidReason) : sessionReason
+  const notice = reason ? SESSION_NOTICE[reason] : null
+  const next = safeNextPath(searchParams?.get("next"))
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -32,7 +45,7 @@ export default function LoginPage() {
       const result = await login(email, password)
 
       if (result.success) {
-        router.push("/dashboard")
+        router.push(next)
       } else {
         setError(result.message || "Invalid email or password")
       }
@@ -61,6 +74,12 @@ export default function LoginPage() {
         </>
       }
     >
+      {notice && !error && (
+        <Alert className="mb-6">
+          <AlertDescription>{notice}</AlertDescription>
+        </Alert>
+      )}
+
       {error && (
         <Alert variant="destructive" className="mb-6">
           <AlertDescription>{error}</AlertDescription>

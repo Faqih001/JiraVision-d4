@@ -1,6 +1,5 @@
 "use server"
 
-import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 import bcrypt from "bcryptjs"
 import { v4 as uuidv4 } from "uuid"
@@ -11,118 +10,74 @@ import {
   getPasswordResetToken,
   deletePasswordResetToken,
   getUserById,
-  type User,
+  DatabaseUnreachableError,
   db,
 } from "./db"
 import { Resend } from "resend"
 import { users } from "@/drizzle/schema"
 import { eq } from "drizzle-orm"
 import { roleForSignup } from "./roles"
+import {
+  beginSession,
+  clearSessionCookies,
+  endSession,
+  getCurrentUser,
+  resolveSession,
+  type SessionUser,
+} from "./session"
 
 const resend = new Resend(process.env.JIRAVISION_RESEND_API)
 
 // Session management
-export async function getSession() {
-  try {
-    console.log("getSession: Starting session retrieval");
-    // In Next.js 15, cookies() returns a Promise that must be awaited
-    const cookieStore = await cookies();
-    console.log("getSession: Got cookie store");
-    
-    // Use optional chaining to safely access the cookie value
-    const sessionId = cookieStore.get("session_id")?.value;
-    console.log(`getSession: Session ID found: ${sessionId ? 'yes' : 'no'}`);
-    if (!sessionId) {
-      console.log("getSession: No session ID cookie found");
-      return null;
-    }
+//
+// Thin wrappers over lib/session.ts, kept here because every data route in this app already
+// imports getSession from this module.
 
-    const userIdCookie = cookieStore.get("user_id")?.value;
-    console.log(`getSession: User ID found: ${userIdCookie ? 'yes' : 'no'}`);
-    if (!userIdCookie) {
-      console.log("getSession: No user ID cookie found");
-      return null;
-    }
+export type { SessionResult, SessionUser } from "./session"
 
-    // Parse the user ID safely
-    let userId: number;
-    try {
-      userId = Number.parseInt(userIdCookie);
-      console.log(`getSession: Parsed user ID: ${userId}`);
-      if (isNaN(userId) || userId <= 0) {
-        console.log("getSession: Invalid user ID value");
-        return null;
-      }
-    } catch (error) {
-      console.log("getSession: Failed to parse user ID:", error);
-      return null;
-    }
-
-    console.log(`getSession: Looking up user with ID: ${userId}`);
-    const user = await getUserById(userId);
-    console.log(`getSession: User found: ${user ? 'yes' : 'no'}`);
-    if (!user) {
-      console.log(`getSession: No user found with ID ${userId}`);
-      return null;
-    }
-
-    const { passwordHash, ...userWithoutPassword } = user;
-    console.log("getSession: Returning user session");
-    return userWithoutPassword as User;
-  } catch (error) {
-    console.error("Session error:", error);
-    return null;
-  }
+/**
+ * Who this request is signed in as: the user the auth_sessions row behind the cookie's token
+ * points to, or null. Returns null for a visitor and for a session that has ended, and throws
+ * when the database could not be reached — see SessionUnreachableError.
+ */
+export async function getSession(): Promise<SessionUser | null> {
+  return getCurrentUser()
 }
 
-export async function createSession(user: User) {
-  console.log(`createSession: Creating session for user ID ${user.id}`);
-  const sessionId = uuidv4()
-  const twoWeeks = 14 * 24 * 60 * 60 * 1000
-  
-  try {
-    // Get the cookies object - must await it in Next.js 15
-    const cookieStore = await cookies();
-    console.log("createSession: Got cookie store");
-
-    console.log(`createSession: Setting session_id cookie: ${sessionId.substring(0, 6)}...`);
-    cookieStore.set("session_id", sessionId, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      expires: new Date(Date.now() + twoWeeks),
-      path: "/",
-    })
-
-    console.log(`createSession: Setting user_id cookie: ${user.id}`);
-    cookieStore.set("user_id", user.id.toString(), {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      expires: new Date(Date.now() + twoWeeks),
-      path: "/",
-    })
-    console.log("createSession: Session cookies set successfully");
-  } catch (error) {
-    console.error("createSession error:", error);
-  }
+/** The same read, with the outcome the caller has to branch on: see resolveSession. */
+export async function getSessionStatus() {
+  return resolveSession()
 }
 
 export async function clearSession() {
-  console.log("clearSession: Clearing user session cookies");
-  try {
-    const cookieStore = await cookies();
-    console.log("clearSession: Got cookie store");
-    cookieStore.delete("session_id");
-    cookieStore.delete("user_id");
-    console.log("clearSession: Session cookies deleted successfully");
-  } catch (error) {
-    console.error("clearSession error:", error);
-  }
+  await clearSessionCookies()
 }
 
 // Authentication actions
-export async function login(formData: FormData) {
+
+export type ActionResult = {
+  success: boolean
+  message?: string
+  /**
+   * True when the attempt failed because the database did not answer rather than because the
+   * credentials were wrong. The routes turn it into a 503 so the form can say "try again"
+   * instead of "invalid email or password" to someone whose password is correct.
+   */
+  unavailable?: boolean
+  user?: SessionUser
+}
+
+const UNAVAILABLE: ActionResult = {
+  success: false,
+  unavailable: true,
+  message: "JiraVision is waking up. Try again in a moment.",
+}
+
+function unreachable(error: unknown): ActionResult | null {
+  return error instanceof DatabaseUnreachableError ? UNAVAILABLE : null
+}
+
+export async function login(formData: FormData): Promise<ActionResult> {
   const email = formData.get("email") as string
   const password = formData.get("password") as string
 
@@ -141,17 +96,19 @@ export async function login(formData: FormData) {
       return { success: false, message: "Invalid email or password" }
     }
 
-    const { passwordHash, ...userWithoutPassword } = user
-    await createSession(userWithoutPassword as User)
+    await beginSession(user.id)
 
+    const { passwordHash, ...userWithoutPassword } = user
     return { success: true, user: userWithoutPassword }
   } catch (error) {
+    const stalled = unreachable(error)
+    if (stalled) return stalled
     console.error("Login error:", error)
     return { success: false, message: "An unexpected error occurred" }
   }
 }
 
-export async function signup(formData: FormData) {
+export async function signup(formData: FormData): Promise<ActionResult> {
   const name = formData.get("name") as string
   const email = formData.get("email") as string
   const password = formData.get("password") as string
@@ -182,11 +139,19 @@ export async function signup(formData: FormData) {
       role: roleForSignup(email),
     })
 
-    const { passwordHash: _, ...userWithoutPassword } = newUser
-    await createSession(userWithoutPassword as User)
+    await beginSession(newUser.id)
 
+    const { passwordHash: _, ...userWithoutPassword } = newUser
     return { success: true, user: userWithoutPassword }
   } catch (error) {
+    // A stalled first read means "we do not know whether this email exists", which is not a
+    // licence to create a second account with it.
+    const stalled = unreachable(error)
+    if (stalled) {
+      console.error("Signup error:", error)
+      return stalled
+    }
+
     console.error("Signup error:", error)
 
     // Check if it's a database connection error
@@ -202,11 +167,11 @@ export async function signup(formData: FormData) {
 }
 
 export async function logout() {
-  await clearSession()
+  await endSession()
   redirect("/")
 }
 
-export async function forgotPassword(formData: FormData) {
+export async function forgotPassword(formData: FormData): Promise<ActionResult> {
   const email = formData.get("email") as string
 
   if (!email) {
@@ -263,6 +228,11 @@ export async function forgotPassword(formData: FormData) {
 
     return { success: true, message: "If your email is registered, you will receive a password reset link" }
   } catch (error) {
+    const stalled = unreachable(error)
+    if (stalled) {
+      console.error("Forgot password error:", error)
+      return stalled
+    }
     console.error("Forgot password error:", error)
     return { success: false, message: "An unexpected error occurred" }
   }
