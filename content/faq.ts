@@ -231,7 +231,7 @@ const companyFaqs: FaqDraft[] = [
   {
     id: "where-based",
     q: "Where are you based?",
-    a: "Our home is Nakuru, Kenya (it's on our contact page with the phone and email to prove it), and we work async with teams across timezones.",
+    a: "Our home is Likoni, Mombasa, Kenya (it's on our contact page with the phone and email to prove it), and we work async with teams across timezones.",
     relatedHref: "/contact",
   },
   {

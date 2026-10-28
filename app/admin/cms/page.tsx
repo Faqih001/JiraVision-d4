@@ -20,6 +20,7 @@ import {
   Search,
   X,
 } from "lucide-react"
+import { GoogleTranslateSelect } from "@/components/layout/google-translate"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -462,6 +463,7 @@ export default function AdminCmsPage() {
             <p className="text-sm font-semibold leading-tight">JiraVision Content Studio</p>
             <p className="text-xs text-muted-foreground">Landing-page copy, without a redeploy</p>
           </div>
+          <GoogleTranslateSelect />
           {activePage && (
             <Button asChild variant="outline" size="sm">
               <a href={activePage.route} target="_blank" rel="noreferrer">

@@ -9,17 +9,16 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 
 // Google's own translate element, so the list of languages is whatever Google supports
 // today rather than a snapshot we would have to maintain. The choice is remembered in
-// localStorage so it survives navigation and reloads.
+// localStorage so it survives navigation and reloads, and it lives on the domain, not on
+// one page: a language picked on a public page is still in force in the workspace.
 //
-// Two controls share one script tag. The footer variant waits for a click before asking
-// Google for anything; the workspace variant (components/dashboard-layout.tsx) shows the
-// language dropdown straight away, because a signed-in visitor has already accepted the
-// translation cookie.
+// One control, mounted once per page by each surface's own header. A signed-in visitor has
+// already accepted Google's cookie, so workspace, setup and admin pages ask Google for the
+// script as the page opens. Public pages pass `lazy` and wait for a click first.
 
 const STORE_KEY = "jv-translate-lang"
 const STORE_EVENT = "jv-translate-lang-change"
 const SCRIPT_SRC = "https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"
-const FOOTER_ELEMENT_ID = "google-translate-element"
 const HEADER_ELEMENT_ID = "google-translate-header"
 
 type TranslateElement = new (options: Record<string, unknown>, elementId: string) => void
@@ -37,7 +36,8 @@ const translateNamespace = () =>
 
 // Google's init callback fires once per document, so containers register and the single
 // callback instantiates all of them. A container id must be unique in the document, which
-// is why the workspace renders exactly one variant at a time.
+// is why every surface mounts exactly one picker: the workspace's two slots (top bar and
+// mobile drawer) are branches of one isMobile test, and the other headers have only the one.
 const requestedIds = new Set<string>()
 let scriptRequested = false
 
@@ -66,14 +66,19 @@ function loadWidget(id: string) {
   document.head.appendChild(script)
 }
 
-/** Google builds its <select> asynchronously; poll until it exists. */
-function waitForCombo(id: string, timeoutMs = 8000): Promise<HTMLSelectElement | null> {
+/**
+ * Google builds its <select> in two passes: the empty element appears first and the
+ * options are appended after. Polling only for the element would snapshot it mid-build
+ * and leave the picker with a heading of "0 languages" and just the Original row, so a
+ * combo only counts as ready once it holds more than the blank "show original" entry.
+ */
+function waitForCombo(id: string, timeoutMs = 15000): Promise<HTMLSelectElement | null> {
   return new Promise((resolve) => {
     const started = Date.now()
     const tick = () => {
       const combo = document.querySelector<HTMLSelectElement>(`#${id} select.goog-te-combo`)
-      if (combo) return resolve(combo)
-      if (Date.now() - started > timeoutMs) return resolve(null)
+      if (combo && combo.options.length > 1) return resolve(combo)
+      if (Date.now() - started > timeoutMs) return resolve(combo ?? null)
       window.setTimeout(tick, 120)
     }
     tick()
@@ -151,6 +156,7 @@ function useTranslateWidget(id: string, active: boolean, driveFromList = false):
       const options = Array.from(combo.options)
         .filter((option) => option.value !== "")
         .map((option) => ({ code: option.value, ...splitGoogleLabel(option.textContent ?? "") }))
+      if (options.length === 0) return
       setEngine({ ready: true, options })
     })
     return () => {
@@ -169,61 +175,22 @@ function selectLanguage(id: string, code: string) {
   combo.dispatchEvent(new Event("change"))
 }
 
-/** Footer compliance row: nothing is requested from Google until it is opened. */
-export function GoogleTranslate({ className }: { className?: string }) {
-  const [revealed, setRevealed] = useState(false)
-  const language = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
-  // A saved choice re-opens the control on the next visit, so the page comes back in
-  // the same language instead of silently reverting to English.
-  const open = revealed || language !== null
-  const { ready } = useTranslateWidget(FOOTER_ELEMENT_ID, open)
-
-  return (
-    <div className={cn("flex flex-wrap items-center gap-x-3 gap-y-1", className)}>
-      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-        <Globe className="h-3.5 w-3.5" aria-hidden="true" />
-        <span>{language ? "Translated" : "Translate"}</span>
-      </span>
-
-      {open ? (
-        <span className="flex items-center gap-2">
-          {/* Google inserts its own gadget span inside this container. */}
-          <span id={FOOTER_ELEMENT_ID} className="jv-translate-gadget inline-flex" />
-          {!ready && <span className="text-xs text-muted-foreground">Loading languages…</span>}
-          {language && (
-            <button
-              type="button"
-              onClick={resetTranslation}
-              className="text-xs underline-offset-2 transition-colors duration-150 hover:text-foreground hover:underline"
-            >
-              Show original
-            </button>
-          )}
-        </span>
-      ) : (
-        <button
-          type="button"
-          onClick={() => setRevealed(true)}
-          className="text-xs underline-offset-2 transition-colors duration-150 hover:text-foreground hover:underline"
-        >
-          Choose a language
-        </button>
-      )}
-    </div>
-  )
-}
-
 /**
- * Workspace top bar: a compact language picker with a flag per language and a search
- * field, instead of Google's own dropdown, whose options spell out "Spanish - Español"
- * and never shrink to fit a crowded header. Choosing a row drives Google's select, so
- * the translation itself is still Google's and the list is still whatever Google offers
- * today rather than a list we would have to keep current.
+ * The app's one language picker, in a surface's header: a compact control with a flag per
+ * language and a search field, instead of Google's own dropdown, whose options spell out
+ * "Spanish - Español" and never shrink to fit a crowded header. Choosing a row drives
+ * Google's select, so the translation itself is still Google's and the list is still
+ * whatever Google offers today rather than a list we would have to keep current.
+ *
+ * `lazy` is for public pages: Google's script is requested only once the visitor opens the
+ * picker, or once a stored choice proves they opted in on an earlier visit.
  */
-export function GoogleTranslateSelect({ className }: { className?: string }) {
+export function GoogleTranslateSelect({ className, lazy = false }: { className?: string; lazy?: boolean }) {
   const language = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
-  const { ready, options } = useTranslateWidget(HEADER_ELEMENT_ID, true, true)
   const [open, setOpen] = useState(false)
+  const [requested, setRequested] = useState(false)
+  const active = !lazy || requested || language !== null
+  const { ready, options } = useTranslateWidget(HEADER_ELEMENT_ID, active, true)
 
   const current = options.find((option) => option.code === language) ?? null
   const flag = flagForLanguage(language)
@@ -234,9 +201,14 @@ export function GoogleTranslateSelect({ className }: { className?: string }) {
     selectLanguage(HEADER_ELEMENT_ID, code)
   }
 
+  const changeOpen = (next: boolean) => {
+    setOpen(next)
+    if (next) setRequested(true)
+  }
+
   return (
     <div className={cn("notranslate flex min-w-0 items-center", className)} translate="no">
-      <Popover open={open} onOpenChange={setOpen}>
+      <Popover open={open} onOpenChange={changeOpen}>
         <PopoverTrigger asChild>
           <button
             type="button"

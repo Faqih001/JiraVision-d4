@@ -363,9 +363,9 @@ export const cookiesDoc: {
       id: "translation-by-google",
       heading: "Translation by Google",
       paragraphs: [
-        "The footer offers a Translate control powered by Google Translate. It stays inactive until you choose a language: only then does your browser load Google's script, which reads the text of the page and stores the translation in a googtrans cookie on this domain.",
-        "The signed-in workspace puts the language dropdown itself in its top bar, so Google's script is requested as soon as a workspace page is opened there. It is the same script and the same cookie, and the control can be dismissed the same way.",
-        "Your language choice is also remembered locally (jv-translate-lang) so the site comes back in the same language. Choosing \"Show original\" clears both and reloads the page in English.",
+        "The header carries a Translate control powered by Google Translate. On the public pages — the site and the sign-in pages — it stays inactive until you open it: only then does your browser load Google's script, which reads the text of the page and stores the translation in a googtrans cookie on this domain.",
+        "A signed-in page asks for that script as it opens, because the workspace top bar, the setup wizard and the admin tools carry the language picker as part of their chrome. It is the same script and the same cookie, and the control can be dismissed the same way.",
+        "Your language choice is also remembered locally (jv-translate-lang) for the whole site, so a language picked on a public page is still in force in the workspace and the other way round. Choosing \"Original (English)\" clears both and reloads the page in English.",
         "Machine translation is a convenience, not a guarantee. The English text remains the authoritative version of any legal or product statement.",
       ],
     },
@@ -540,7 +540,7 @@ export const accessibilityDoc: {
       bullets: [
         "An accessibility menu on every page (bottom-left), with profiles for visual impairment, seizure and epilepsy risk, colour vision deficiency, ADHD and learning differences",
         "From the same menu: text size, line height and letter spacing, readable font, heading/link/button highlighting, image hiding, control tooltips, read-aloud, stop animations, eight contrast and colour modes (one at a time), a reading guide, a reading mask and enlarged cursors",
-        "Translation of the whole site into any language Google Translate supports, from the footer",
+        "Translation of the whole site into any language Google Translate supports, from a language picker at the top of every page",
         "Semantic HTML to ensure proper structure and navigation",
         "ARIA landmarks to identify regions of the page",
         "Alt text for images",

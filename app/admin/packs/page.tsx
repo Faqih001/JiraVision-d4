@@ -6,6 +6,7 @@
 
 import { useCallback, useEffect, useState } from "react"
 import Link from "next/link"
+import { GoogleTranslateSelect } from "@/components/layout/google-translate"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { CircleJVLoader } from "@/components/ui/loader"
@@ -145,6 +146,7 @@ export default function AdminPacksPage() {
               What each role is the keeper of — kinds, method and onboarding, as data
             </p>
           </div>
+          <GoogleTranslateSelect />
           <Button variant="outline" size="sm" onClick={() => void refresh()} disabled={refreshing}>
             <RefreshCw className={refreshing ? "mr-1.5 h-4 w-4 animate-spin" : "mr-1.5 h-4 w-4"} aria-hidden />
             Refresh

@@ -23,6 +23,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet"
 import { AnnouncementBar } from "@/components/layout/announcement-bar"
+import { GoogleTranslateSelect } from "@/components/layout/google-translate"
 import { OPEN_MOBILE_NAV_EVENT } from "@/components/layout/bottom-bar"
 import { ThemeToggle } from "@/components/layout/theme-toggle"
 import {
@@ -217,85 +218,95 @@ export function Navbar() {
             </NavigationMenuList>
           </NavigationMenu>
 
-          <div className="hidden items-center gap-2 lg:flex">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="gap-2 text-muted-foreground"
-              onClick={() => window.dispatchEvent(new Event(OPEN_SEARCH_EVENT))}
-            >
-              <Search className="h-4 w-4" aria-hidden="true" />
-              <span>Search</span>
-              <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
-                &#8984;K
-              </kbd>
-            </Button>
-            <ThemeToggle />
-            <Button asChild variant="ghost" size="sm">
-              <Link href="/login">Log in</Link>
-            </Button>
-            <Button asChild size="sm">
-              <Link href="/signup">Get started</Link>
-            </Button>
-          </div>
+          {/*
+            One translator per document: this instance is mounted at every width, so the
+            container id Google writes into stays unique, and a language picked on a public
+            page is in force the moment the visitor signs in. Its label truncates, so the
+            row compresses rather than overflowing on a narrow phone.
+          */}
+          <div className="flex items-center gap-2">
+            <GoogleTranslateSelect lazy />
 
-          <div className="flex items-center gap-1 lg:hidden">
-            <ThemeToggle />
-            <Sheet open={open} onOpenChange={setDrawerOpen}>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" aria-label="Open menu">
-                  <Menu className="h-5 w-5" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="right" className="w-[88vw] max-w-sm overflow-y-auto p-0">
-                <SheetHeader className="border-b px-5 py-4 text-left">
-                  <SheetTitle>
-                    <BrandMark />
-                  </SheetTitle>
-                  <SheetDescription className="sr-only">Site navigation</SheetDescription>
-                </SheetHeader>
-                <nav className="flex flex-col py-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setOpen(false)
-                      window.dispatchEvent(new Event(OPEN_SEARCH_EVENT))
-                    }}
-                    className="mx-4 mb-2 flex min-h-[48px] items-center gap-2 rounded-md border border-border bg-background px-3 text-sm text-muted-foreground"
-                  >
-                    <Search className="h-4 w-4" aria-hidden="true" />
-                    Search
-                  </button>
-                  {menuGroups.map((group) => (
-                    <MobileGroup
-                      key={group.title}
-                      title={group.title}
-                      items={group.items}
-                      onNavigate={() => setOpen(false)}
-                    />
-                  ))}
-                  {directLinks.map((link) => (
-                    <Link
-                      key={link.href}
-                      href={link.href}
-                      onClick={() => setOpen(false)}
-                      className="min-h-[48px] px-5 py-3 text-sm font-medium hover:bg-accent"
+            <div className="hidden items-center gap-2 lg:flex">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="gap-2 text-muted-foreground"
+                onClick={() => window.dispatchEvent(new Event(OPEN_SEARCH_EVENT))}
+              >
+                <Search className="h-4 w-4" aria-hidden="true" />
+                <span>Search</span>
+                <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
+                  &#8984;K
+                </kbd>
+              </Button>
+              <ThemeToggle />
+              <Button asChild variant="ghost" size="sm">
+                <Link href="/login">Log in</Link>
+              </Button>
+              <Button asChild size="sm">
+                <Link href="/signup">Get started</Link>
+              </Button>
+            </div>
+
+            <div className="flex items-center gap-1 lg:hidden">
+              <ThemeToggle />
+              <Sheet open={open} onOpenChange={setDrawerOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="ghost" size="icon" aria-label="Open menu">
+                    <Menu className="h-5 w-5" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="right" className="w-[88vw] max-w-sm overflow-y-auto p-0">
+                  <SheetHeader className="border-b px-5 py-4 text-left">
+                    <SheetTitle>
+                      <BrandMark />
+                    </SheetTitle>
+                    <SheetDescription className="sr-only">Site navigation</SheetDescription>
+                  </SheetHeader>
+                  <nav className="flex flex-col py-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setOpen(false)
+                        window.dispatchEvent(new Event(OPEN_SEARCH_EVENT))
+                      }}
+                      className="mx-4 mb-2 flex min-h-[48px] items-center gap-2 rounded-md border border-border bg-background px-3 text-sm text-muted-foreground"
                     >
-                      {link.title}
-                    </Link>
-                  ))}
-                  <div className="mt-2 flex flex-col gap-2 border-t border-border px-5 pt-4">
-                    <Button asChild variant="outline" onClick={() => setOpen(false)}>
-                      <Link href="/login">Log in</Link>
-                    </Button>
-                    <Button asChild onClick={() => setOpen(false)}>
-                      <Link href="/signup">Get started</Link>
-                    </Button>
-                  </div>
-                </nav>
-              </SheetContent>
-            </Sheet>
+                      <Search className="h-4 w-4" aria-hidden="true" />
+                      Search
+                    </button>
+                    {menuGroups.map((group) => (
+                      <MobileGroup
+                        key={group.title}
+                        title={group.title}
+                        items={group.items}
+                        onNavigate={() => setOpen(false)}
+                      />
+                    ))}
+                    {directLinks.map((link) => (
+                      <Link
+                        key={link.href}
+                        href={link.href}
+                        onClick={() => setOpen(false)}
+                        className="min-h-[48px] px-5 py-3 text-sm font-medium hover:bg-accent"
+                      >
+                        {link.title}
+                      </Link>
+                    ))}
+                    <div className="mt-2 flex flex-col gap-2 border-t border-border px-5 pt-4">
+                      <Button asChild variant="outline" onClick={() => setOpen(false)}>
+                        <Link href="/login">Log in</Link>
+                      </Button>
+                      <Button asChild onClick={() => setOpen(false)}>
+                        <Link href="/signup">Get started</Link>
+                      </Button>
+                    </div>
+                  </nav>
+                </SheetContent>
+              </Sheet>
+            </div>
           </div>
         </div>
       </div>

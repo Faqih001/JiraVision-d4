@@ -4,7 +4,7 @@
 // names and headcounts, funding history, customer counts. Until then all rendered
 // copy is deliberately generic-true ("built by a small team that kept hitting X")
 // and never invents names, dates or numbers.
-// Real anchors reused from content/site.ts: contact address (Nakuru, Kenya),
+// Real anchors reused from content/site.ts: contact address (Mombasa, Kenya),
 // responsible-AI stance from content/home.ts, updates from content/changelog.ts.
 
 import type { Cta } from "@/components/sections/page-kit"
@@ -248,7 +248,7 @@ export const faq = {
     },
     {
       q: "Where are you based?",
-      a: "Our home is Nakuru, Kenya (it's on our contact page with the phone and email to prove it), and we work async with teams across timezones.",
+      a: "Our home is Likoni, Mombasa, Kenya (it's on our contact page with the phone and email to prove it), and we work async with teams across timezones.",
     },
     // NOTE(PLACEHOLDER): if the owner confirms investment or ownership facts, publish them here plainly.
     {

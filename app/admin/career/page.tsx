@@ -17,6 +17,7 @@ import {
   TrendingUp,
   Users,
 } from "lucide-react"
+import { GoogleTranslateSelect } from "@/components/layout/google-translate"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { CircleJVLoader } from "@/components/ui/loader"
@@ -157,6 +158,7 @@ export default function AdminCareerPage() {
               Ladder wording, placements and sign-offs, and the promotion review queue
             </p>
           </div>
+          <GoogleTranslateSelect />
           <Button variant="outline" size="sm" onClick={() => void load()} disabled={refreshing}>
             <RefreshCw className={cn("mr-1.5 h-4 w-4", refreshing && "animate-spin")} aria-hidden />
             Reload

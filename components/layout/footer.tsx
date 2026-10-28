@@ -5,7 +5,6 @@ import Link from "next/link"
 import { ArrowRight, ArrowUp, ChevronDown, Accessibility, Github, Linkedin, Twitter } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import NewsletterForm from "@/components/newsletter-form"
-import { GoogleTranslate } from "@/components/layout/google-translate"
 import { ThemeToggle } from "@/components/layout/theme-toggle"
 import { OPEN_A11Y_EVENT } from "@/lib/accessibility"
 import { OPEN_CONSENT_EVENT } from "@/lib/consent"
@@ -187,7 +186,6 @@ export function Footer() {
                   ))}
               </ul>
             </nav>
-            <GoogleTranslate />
           </div>
           <button
             type="button"

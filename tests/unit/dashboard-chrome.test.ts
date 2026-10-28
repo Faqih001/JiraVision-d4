@@ -144,6 +144,52 @@ describe("language picker", () => {
   })
 })
 
+describe("translator placement", () => {
+  const publicFiles = ["components/layout/navbar.tsx", "components/auth/auth-shell.tsx"]
+  const signedInFiles = [
+    "components/dashboard-layout.tsx",
+    "app/onboarding/onboarding-wizard.tsx",
+    "app/admin/cms/page.tsx",
+    "app/admin/career/page.tsx",
+    "app/admin/packs/page.tsx",
+  ]
+  const mounts = (relative: string) => (read(relative).match(/<GoogleTranslateSelect\b/g) ?? []).length
+
+  it("sits in the site header, and the footer no longer carries one", () => {
+    expect(read("components/layout/navbar.tsx")).toContain("<GoogleTranslateSelect lazy />")
+    expect(read("components/layout/footer.tsx")).not.toContain("GoogleTranslate")
+  })
+
+  it("is on every surface's own header, so one Google Translate covers the app", () => {
+    for (const file of [...publicFiles, ...signedInFiles]) {
+      expect(mounts(file), `${file} has no translator`).toBeGreaterThan(0)
+    }
+  })
+
+  it("mounts one container per page, the id Google writes into having to stay unique", () => {
+    // The workspace's two are opposite branches of one isMobile test: top bar, or drawer.
+    for (const file of [...publicFiles, ...signedInFiles]) {
+      if (file === "components/dashboard-layout.tsx") continue
+      expect(mounts(file), `${file} mounts the translator twice`).toBe(1)
+    }
+    expect(mounts("components/dashboard-layout.tsx")).toBe(2)
+  })
+
+  it("asks a public page to wait for a click before Google is contacted", () => {
+    for (const file of publicFiles) expect(read(file)).toContain("<GoogleTranslateSelect lazy />")
+    for (const file of signedInFiles) expect(read(file)).toContain("<GoogleTranslateSelect />")
+    expect(translate).toContain("const active = !lazy || requested || language !== null")
+    expect(translate).toContain("if (next) setRequested(true)")
+  })
+
+  it("waits for Google's option list, not just its empty <select>", () => {
+    // The element arrives before Google fills it, and a snapshot taken in between
+    // leaves the picker showing only the Original row.
+    expect(translate).toContain("combo.options.length > 1")
+    expect(translate).toContain("if (options.length === 0) return")
+  })
+})
+
 describe("theme switch", () => {
   it("shows both icons and animates the change", () => {
     const source = read("components/theme-switch.tsx")

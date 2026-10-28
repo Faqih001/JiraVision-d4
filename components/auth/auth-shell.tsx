@@ -1,6 +1,10 @@
 "use client"
 
 import Image from "next/image"
+import Link from "next/link"
+import { Home } from "lucide-react"
+import { GoogleTranslateSelect } from "@/components/layout/google-translate"
+import { cn } from "@/lib/utils"
 
 interface AuthShellProps {
   /** Unsplash URL for the panel beside the form. */
@@ -57,6 +61,23 @@ export function AuthShell({
       >
         {/* my-auto (not justify-center) so tall forms scroll instead of clipping at the top. */}
         <div className="mx-auto my-auto w-full max-w-sm p-6 md:p-10">
+          {/* These pages carry no marketing chrome, so the way back to the site and the
+              translator live here: a visitor who cannot read the form cannot sign in.
+              Public page, so Google is asked only once the picker is opened. */}
+          <div className="mb-5 flex items-center justify-between gap-2">
+            <Link
+              href="/"
+              className={cn(
+                "flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3",
+                "text-xs font-medium transition-colors duration-150 hover:bg-muted",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+              )}
+            >
+              <Home className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+              Home
+            </Link>
+            <GoogleTranslateSelect lazy />
+          </div>
           <h1 className="font-display text-2xl font-medium tracking-tight">{title}</h1>
           {subtitle && <p className="mt-2 text-sm text-muted-foreground">{subtitle}</p>}
           <div className="mt-6">{children}</div>

@@ -399,7 +399,7 @@
 }
 
 /* -------------------------------------------------------------------------
-   Google Translate element (footer compliance row).
+   Google Translate element (the header language picker).
    Once a language is chosen Google injects a banner frame above the page and
    offsets <body> by its height; both are removed so the site keeps its own
    chrome. The language menu itself, and Google's "Powered by" credit, stay —
@@ -415,26 +415,7 @@ body {
   top: 0 !important;
 }
 
-.jv-translate-gadget .goog-te-gadget {
-  font-size: 0.75rem;
-  color: hsl(var(--muted-foreground));
-}
-
-.jv-translate-gadget .goog-te-gadget a.goog-logo-link {
-  font-size: 0.6875rem;
-}
-
-.jv-translate-gadget select.goog-te-combo {
-  background-color: hsl(var(--background));
-  color: hsl(var(--foreground));
-  border: 1px solid hsl(var(--border));
-  border-radius: var(--radius);
-  font-size: 0.75rem;
-  line-height: 1.4;
-  padding: 0.25rem 0.5rem;
-}
-
-/* Header variant: the flag list is ours, so Google's gadget is kept in the DOM only as
+/* The flag list is ours, so Google's gadget is kept in the DOM only as
    the translation engine — it still reads and writes the `googtrans` cookie, so it is
    clipped rather than removed. The credit is announced with an sr-only label instead. */
 .jv-translate-engine {

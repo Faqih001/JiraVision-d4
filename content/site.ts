@@ -251,8 +251,8 @@ export const contactDetails = {
   whatsapp: "254741140250",
   email: "info@jiravision.com",
   supportEmail: "support@jiravision.com",
-  address: { line1: "Kabarak University", line2: "Nakuru, Kenya" },
-  mapQuery: "Kabarak University, Nakuru, Kenya",
+  address: { line1: "Likoni", line2: "Mombasa, Kenya" },
+  mapQuery: "Likoni, Mombasa, Kenya",
   hours: { days: "Monday – Friday", time: "9:00 AM – 6:00 PM EAT" },
 }
 

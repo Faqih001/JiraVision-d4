@@ -11,6 +11,7 @@ import {
   Loader2,
   Sparkles,
 } from "lucide-react"
+import { GoogleTranslateSelect } from "@/components/layout/google-translate"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -390,19 +391,22 @@ export function OnboardingWizard({ initial, inviteToken, account }: Props) {
 
   return (
     <div className="container max-w-5xl py-8">
-      <div className="mb-6">
-        <p className="text-xs uppercase tracking-wide text-muted-foreground">Workspace setup</p>
-        <h1
-          ref={headingRef}
-          tabIndex={-1}
-          className="mt-1 text-2xl font-semibold outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-        >
-          {current.title}
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground" aria-live="polite">
-          Step {step + 1} of {ONBOARDING_STEP_COUNT}
-          {initial.status === "completed" ? " — setup is already complete, so you can re-tread any step." : ""}
-        </p>
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-xs uppercase tracking-wide text-muted-foreground">Workspace setup</p>
+          <h1
+            ref={headingRef}
+            tabIndex={-1}
+            className="mt-1 text-2xl font-semibold outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          >
+            {current.title}
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground" aria-live="polite">
+            Step {step + 1} of {ONBOARDING_STEP_COUNT}
+            {initial.status === "completed" ? " — setup is already complete, so you can re-tread any step." : ""}
+          </p>
+        </div>
+        <GoogleTranslateSelect />
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[220px_minmax(0,1fr)]">
