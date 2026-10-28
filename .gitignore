@@ -20,6 +20,9 @@ yarn-error.log*
 .env*
 !.env.example
 
+# row dumps that contain password hashes
+/jiravision-user-*-backup.json
+
 # user uploads
 /public/uploads/*
 !/public/uploads/README.md

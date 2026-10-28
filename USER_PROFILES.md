@@ -82,5 +82,5 @@ DELETE FROM users WHERE id = 20;
 
 Verified afterwards: 1 row removed, `users` went from 12 rows to 11, and the address is gone. The
 full row — 18 columns including the old password hash — was saved first to
-`/tmp/jiravision-user-20-backup.json`, which can be re-inserted if that turns out to be wanted.
-`/tmp` does not survive a reboot, so copy it somewhere durable if it should be kept.
+`jiravision-user-20-backup.json` in the project root, which can be re-inserted if that turns out to
+be wanted. It is git-ignored and chmod 600, because it holds a password hash.
