@@ -139,6 +139,16 @@ export async function GET(request: Request) {
       )
     }
 
+    // `scope=mine`: the member's own board only lists sprints they hold tasks in.
+    if (searchParams.get("scope") === "mine") {
+      const mySprintRows = await db
+        .selectDistinct({ sprintId: tasks.sprintId })
+        .from(tasks)
+        .where(eq(tasks.assigneeId, session.id))
+      const mine = new Set(mySprintRows.map((r) => r.sprintId).filter((id): id is number => id !== null))
+      rows = rows.filter((r) => mine.has(r.id))
+    }
+
     const now = new Date()
     const aggMap = await loadTaskAggregates(rows.map((r) => r.id))
     const data = rows.map((r) => serializeSprint(r, computeAggregates(r, aggMap.get(r.id), now)))

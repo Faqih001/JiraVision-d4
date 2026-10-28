@@ -284,7 +284,7 @@ export default function DashboardHome() {
       // a slow summary route must not push the sprint data — or the stale count — behind it.
       const [ovRes, spRes, todayRes, staleRes, onboardingRes] = await Promise.all([
         fetch(OVERVIEW_URL),
-        fetch("/api/sprints"),
+        fetch("/api/sprints?scope=mine"),
         fetch("/api/worklog/summary?v=day"),
         fetch("/api/registers/stale"),
         fetch("/api/onboarding").catch(() => null),

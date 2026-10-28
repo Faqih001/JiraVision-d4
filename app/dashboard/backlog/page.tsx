@@ -144,10 +144,16 @@ export default function DashboardBacklog() {
   const [failed, setFailed] = useState(false)
 
   // filters (client-side over the fetched list)
+  const [boardScope, setBoardScope] = useState<"mine" | "workspace">("mine")
   const [search, setSearch] = useState("")
   const [priorityFilter, setPriorityFilter] = useState("all")
   const [assigneeFilter, setAssigneeFilter] = useState("all")
   const [ageFilter, setAgeFilter] = useState("all")
+  const scopeParam = boardScope === "mine" ? "scope=mine" : "scope=all"
+  const switchScope = (next: "mine" | "workspace") => {
+    setBoardScope(next)
+    if (next === "mine") setAssigneeFilter("all")
+  }
 
   // grooming queue drafts
   const [groomDrafts, setGroomDrafts] = useState<Record<number, GroomDraft>>({})
@@ -182,7 +188,7 @@ export default function DashboardBacklog() {
       let page = 1
       // pageSize 200, walk pages until exhausted (capped at 10 pages)
       for (;;) {
-        const res = await fetch(`/api/tasks?pageSize=200&page=${page}`)
+        const res = await fetch(`/api/tasks?pageSize=200&page=${page}&${scopeParam}`)
         const json = await res.json()
         if (!json.success) throw new Error(json.message ?? "Failed to load tasks")
         collected.push(...(json.data as TaskRow[]))
@@ -192,7 +198,10 @@ export default function DashboardBacklog() {
       }
       setTasks(collected)
 
-      const [spRes, ovRes] = await Promise.all([fetch("/api/sprints"), fetch("/api/dashboard/overview")])
+      const [spRes, ovRes] = await Promise.all([
+        fetch(`/api/sprints?${scopeParam}`),
+        fetch("/api/dashboard/overview?scope=member"),
+      ])
       const spJson = await spRes.json()
       if (spJson.success)
         setSprints(
@@ -219,17 +228,17 @@ export default function DashboardBacklog() {
     } finally {
       setLoading(false)
     }
-  }, [toast])
+  }, [toast, scopeParam])
 
   const reloadQuiet = useCallback(async () => {
     try {
-      const res = await fetch("/api/tasks?pageSize=200")
+      const res = await fetch(`/api/tasks?pageSize=200&${scopeParam}`)
       const json = await res.json()
       if (json.success) setTasks(json.data as TaskRow[])
     } catch {
       /* the rows already on screen stay; the manual refresh button reports failures */
     }
-  }, [])
+  }, [scopeParam])
 
   useLiveRefresh(reloadQuiet, { intervalMs: LIVE_REFRESH_MS })
 
@@ -592,6 +601,24 @@ export default function DashboardBacklog() {
       <Card>
         <CardContent className="flex flex-wrap items-center gap-2 py-3">
           <Filter className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+          <div className="flex items-center gap-1 rounded-md border p-0.5" role="group" aria-label="Backlog scope">
+            <Button
+              size="sm"
+              variant={boardScope === "mine" ? "secondary" : "ghost"}
+              className="h-7 px-2 text-xs"
+              onClick={() => switchScope("mine")}
+            >
+              My backlog
+            </Button>
+            <Button
+              size="sm"
+              variant={boardScope === "workspace" ? "secondary" : "ghost"}
+              className="h-7 px-2 text-xs"
+              onClick={() => switchScope("workspace")}
+            >
+              Workspace
+            </Button>
+          </div>
           <div className="relative min-w-40 flex-1">
             <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -615,20 +642,22 @@ export default function DashboardBacklog() {
               ))}
             </SelectContent>
           </Select>
-          <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
-            <SelectTrigger className="h-9 w-40 text-sm" aria-label="Filter by assignee">
-              <SelectValue placeholder="Assignee" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All owners</SelectItem>
-              <SelectItem value="unassigned">Unassigned</SelectItem>
-              {members.map((m) => (
-                <SelectItem key={m.id} value={String(m.id)}>
-                  {m.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {boardScope === "workspace" ? (
+            <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
+              <SelectTrigger className="h-9 w-40 text-sm" aria-label="Filter by assignee">
+                <SelectValue placeholder="Assignee" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All owners</SelectItem>
+                <SelectItem value="unassigned">Unassigned</SelectItem>
+                {members.map((m) => (
+                  <SelectItem key={m.id} value={String(m.id)}>
+                    {m.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : null}
           <Select value={ageFilter} onValueChange={setAgeFilter}>
             <SelectTrigger className="h-9 w-36 text-sm" aria-label="Filter by age">
               <SelectValue placeholder="Age" />

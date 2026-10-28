@@ -42,7 +42,9 @@ export async function GET(request: Request) {
       sprintId: searchParams.get("sprintId") 
         ? parseInt(searchParams.get("sprintId") as string, 10) 
         : undefined,
-      search: searchParams.get("search") || undefined
+      search: searchParams.get("search") || undefined,
+      // `scope=mine` is the member's own board: the session id, never the query string.
+      memberUserId: searchParams.get("scope") === "mine" ? session?.id : undefined,
     }
     
     // Get paginated tasks

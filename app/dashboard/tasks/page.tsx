@@ -187,8 +187,14 @@ export default function TasksWorkspacePage() {
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [priorityFilter, setPriorityFilter] = useState("all")
+  const [boardScope, setBoardScope] = useState<"mine" | "workspace">("mine")
   const [assigneeFilter, setAssigneeFilter] = useState("all")
   const [sprintFilter, setSprintFilter] = useState("all")
+  const scopeParam = boardScope === "mine" ? "scope=mine" : "scope=all"
+  const switchScope = (next: "mine" | "workspace") => {
+    setBoardScope(next)
+    if (next === "mine") setAssigneeFilter("all")
+  }
   const [sortKey, setSortKey] = useState<SortKey>("updated")
   const [view, setView] = useState<"grid" | "table" | "compact">("table")
 
@@ -224,7 +230,7 @@ export default function TasksWorkspacePage() {
     let page = 1
     let pageCount = 1
     while (page <= pageCount && page <= 10) {
-      const res = await fetch(`/api/tasks?page=${page}&pageSize=100`)
+      const res = await fetch(`/api/tasks?page=${page}&pageSize=100&${scopeParam}`)
       const json = await res.json()
       if (!json.success) throw new Error(json.message ?? "Failed to load tasks")
       collected.push(...(json.data as ApiTask[]))
@@ -232,12 +238,15 @@ export default function TasksWorkspacePage() {
       page += 1
     }
     setAllTasks(collected)
-  }, [])
+  }, [scopeParam])
 
   const loadBase = useCallback(async () => {
     setPageLoading(true)
     try {
-      const [ovRes, spRes] = await Promise.all([fetch("/api/dashboard/overview"), fetch("/api/sprints")])
+      const [ovRes, spRes] = await Promise.all([
+        fetch("/api/dashboard/overview?scope=member"),
+        fetch(`/api/sprints?${scopeParam}`),
+      ])
       const ovJson = await ovRes.json()
       if (!ovJson.success) throw new Error(ovJson.message ?? "Failed to load dashboard")
       setOverview(ovJson.data)
@@ -256,7 +265,7 @@ export default function TasksWorkspacePage() {
     } finally {
       setPageLoading(false)
     }
-  }, [loadRawTasks, toast])
+  }, [loadRawTasks, toast, scopeParam])
 
   const loadVisible = useCallback(async (quiet = false) => {
     if (!quiet) setListLoading(true)
@@ -274,7 +283,7 @@ export default function TasksWorkspacePage() {
       // expressed as API filters, so widen the query and drop rows client-side.
       if (sprintFilter === BACKLOG || assigneeFilter === "none") params.set("pageSize", "500")
 
-      const res = await fetch(`/api/tasks?${params.toString()}`)
+      const res = await fetch(`/api/tasks?${params.toString()}&${scopeParam}`)
       const json = await res.json()
       if (!json.success) throw new Error(json.message ?? "Failed to load tasks")
       let rows = json.data as ApiTask[]
@@ -289,7 +298,7 @@ export default function TasksWorkspacePage() {
     } finally {
       if (!quiet) setListLoading(false)
     }
-  }, [pagination.page, pagination.pageSize, statusFilter, priorityFilter, assigneeFilter, sprintFilter, search, toast])
+  }, [pagination.page, pagination.pageSize, statusFilter, priorityFilter, assigneeFilter, sprintFilter, search, scopeParam, toast])
 
   useEffect(() => {
     loadBase()
@@ -739,6 +748,24 @@ export default function TasksWorkspacePage() {
       {/* 3 — search + multi-filter bar */}
       <Card>
         <CardContent className="flex flex-wrap items-center gap-2 py-3">
+          <div className="flex items-center gap-1 rounded-md border p-0.5" role="group" aria-label="Task scope">
+            <Button
+              size="sm"
+              variant={boardScope === "mine" ? "secondary" : "ghost"}
+              className="h-7 px-2 text-xs"
+              onClick={() => switchScope("mine")}
+            >
+              My tasks
+            </Button>
+            <Button
+              size="sm"
+              variant={boardScope === "workspace" ? "secondary" : "ghost"}
+              className="h-7 px-2 text-xs"
+              onClick={() => switchScope("workspace")}
+            >
+              Workspace
+            </Button>
+          </div>
           <div className="relative min-w-40 flex-1">
             <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -775,20 +802,22 @@ export default function TasksWorkspacePage() {
               ))}
             </SelectContent>
           </Select>
-          <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
-            <SelectTrigger className="h-9 w-40 text-sm" aria-label="Filter by assignee">
-              <SelectValue placeholder="Assignee" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All assignees</SelectItem>
-              <SelectItem value="none">Unassigned</SelectItem>
-              {overview.workload.map((w) => (
-                <SelectItem key={w.id} value={String(w.id)}>
-                  {w.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {boardScope === "workspace" ? (
+            <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
+              <SelectTrigger className="h-9 w-40 text-sm" aria-label="Filter by assignee">
+                <SelectValue placeholder="Assignee" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All assignees</SelectItem>
+                <SelectItem value="none">Unassigned</SelectItem>
+                {overview.workload.map((w) => (
+                  <SelectItem key={w.id} value={String(w.id)}>
+                    {w.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : null}
           <Select value={sprintFilter} onValueChange={setSprintFilter}>
             <SelectTrigger className="h-9 w-40 text-sm" aria-label="Filter by sprint">
               <SelectValue placeholder="Sprint" />

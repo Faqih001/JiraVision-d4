@@ -268,6 +268,8 @@ export default function CalendarWorkspace() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [search, setSearch] = useState("")
   const [typeFilter, setTypeFilter] = useState<string>("all")
+  const [boardScope, setBoardScope] = useState<"mine" | "workspace">("mine")
+  const scopeParam = boardScope === "mine" ? "scope=mine" : "scope=all"
 
   // create/edit dialog
   const [formOpen, setFormOpen] = useState(false)
@@ -295,9 +297,9 @@ export default function CalendarWorkspace() {
     try {
       const [evRes, ovRes, spRes, tkRes, ntRes] = await Promise.all([
         fetch("/api/calendar/events"),
-        fetch("/api/dashboard/overview"),
-        fetch("/api/sprints"),
-        fetch("/api/tasks?pageSize=100"),
+        fetch("/api/dashboard/overview?scope=member"),
+        fetch(`/api/sprints?${scopeParam}`),
+        fetch(`/api/tasks?pageSize=100&${scopeParam}`),
         fetch("/api/notifications?limit=50"),
       ])
       const evJson = await evRes.json()
@@ -330,7 +332,7 @@ export default function CalendarWorkspace() {
     } finally {
       setLoading(false)
     }
-  }, [toast])
+  }, [toast, scopeParam])
 
   const reloadEvents = useCallback(async () => {
     try {
@@ -729,7 +731,7 @@ export default function CalendarWorkspace() {
     }
     taskTimer.current = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/tasks?search=${encodeURIComponent(value.trim())}&pageSize=8`)
+        const res = await fetch(`/api/tasks?search=${encodeURIComponent(value.trim())}&pageSize=8&${scopeParam}`)
         const json = await res.json()
         setTaskResults(
           json.success ? (json.data as TaskRow[]).map((t) => ({ id: t.id, title: t.title })) : [],
@@ -839,9 +841,27 @@ export default function CalendarWorkspace() {
         </div>
       </div>
 
-      {/* 2 — filter bar: search + event type */}
+      {/* 2 — filter bar: scope + search + event type */}
       <Card>
         <CardContent className="flex flex-wrap items-center gap-2 py-3">
+          <div className="flex items-center gap-1 rounded-md border p-0.5" role="group" aria-label="Calendar scope">
+            <Button
+              size="sm"
+              variant={boardScope === "mine" ? "secondary" : "ghost"}
+              className="h-7 px-2 text-xs"
+              onClick={() => setBoardScope("mine")}
+            >
+              My calendar
+            </Button>
+            <Button
+              size="sm"
+              variant={boardScope === "workspace" ? "secondary" : "ghost"}
+              className="h-7 px-2 text-xs"
+              onClick={() => setBoardScope("workspace")}
+            >
+              Workspace
+            </Button>
+          </div>
           <div className="relative min-w-40 flex-1">
             <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input

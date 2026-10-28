@@ -181,11 +181,13 @@ export default function KanbanBoardPage() {
   const [loadError, setLoadError] = useState<string | null>(null)
 
   // filters + view
+  const [boardScope, setBoardScope] = useState<"mine" | "workspace">("mine")
   const [search, setSearch] = useState("")
   const [priorityFilter, setPriorityFilter] = useState("all")
   const [assigneeFilter, setAssigneeFilter] = useState("all")
   const [sprintFilter, setSprintFilter] = useState("all")
   const [view, setView] = useState<"board" | "lanes">("board")
+  const scopeParam = boardScope === "mine" ? "scope=mine" : "scope=all"
 
   // drag state
   const [dragOverStatus, setDragOverStatus] = useState<string | null>(null)
@@ -201,9 +203,9 @@ export default function KanbanBoardPage() {
 
   const load = useCallback(async () => {
     const [tasksRes, sprintsRes, overviewRes, notifRes] = await Promise.all([
-      fetch("/api/tasks?pageSize=200"),
-      fetch("/api/sprints"),
-      fetch("/api/dashboard/overview"),
+      fetch(`/api/tasks?pageSize=200&${scopeParam}`),
+      fetch(`/api/sprints?${scopeParam}`),
+      fetch("/api/dashboard/overview?scope=member"),
       fetch("/api/notifications?limit=30"),
     ])
     const tasksJson = await tasksRes.json()
@@ -236,12 +238,12 @@ export default function KanbanBoardPage() {
 
     const notifJson = await notifRes.json().catch(() => null)
     if (notifJson && Array.isArray(notifJson.items)) setActivity(notifJson.items as ActivityItem[])
-  }, [])
+  }, [scopeParam])
 
   const reloadTasks = useCallback(async () => {
     try {
       const [tasksRes, notifRes] = await Promise.all([
-        fetch("/api/tasks?pageSize=200"),
+        fetch(`/api/tasks?pageSize=200&${scopeParam}`),
         fetch("/api/notifications?limit=30"),
       ])
       const tasksJson = await tasksRes.json()
@@ -251,7 +253,7 @@ export default function KanbanBoardPage() {
     } catch {
       /* the board on screen stays; the refresh button reports failures */
     }
-  }, [])
+  }, [scopeParam])
 
   useLiveRefresh(reloadTasks, { intervalMs: LIVE_REFRESH_MS })
 
@@ -743,6 +745,24 @@ export default function KanbanBoardPage() {
       {/* 3 — Filter bar (search, priority, assignee) + view toggle */}
       <Card>
         <CardContent className="flex flex-wrap items-center gap-2 py-3">
+          <div className="flex items-center gap-1 rounded-md border p-0.5" role="group" aria-label="Board scope">
+            <Button
+              size="sm"
+              variant={boardScope === "mine" ? "secondary" : "ghost"}
+              className="h-7 px-2 text-xs"
+              onClick={() => setBoardScope("mine")}
+            >
+              My board
+            </Button>
+            <Button
+              size="sm"
+              variant={boardScope === "workspace" ? "secondary" : "ghost"}
+              className="h-7 px-2 text-xs"
+              onClick={() => setBoardScope("workspace")}
+            >
+              Workspace
+            </Button>
+          </div>
           <div className="relative min-w-40 flex-1">
             <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -766,20 +786,22 @@ export default function KanbanBoardPage() {
               ))}
             </SelectContent>
           </Select>
-          <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
-            <SelectTrigger className="h-9 w-40 text-sm" aria-label="Filter by assignee">
-              <SelectValue placeholder="Assignee" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Everyone</SelectItem>
-              <SelectItem value="none">Unassigned</SelectItem>
-              {members.map((m) => (
-                <SelectItem key={m.id} value={String(m.id)}>
-                  {m.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {boardScope === "workspace" ? (
+            <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
+              <SelectTrigger className="h-9 w-40 text-sm" aria-label="Filter by assignee">
+                <SelectValue placeholder="Assignee" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Everyone</SelectItem>
+                <SelectItem value="none">Unassigned</SelectItem>
+                {members.map((m) => (
+                  <SelectItem key={m.id} value={String(m.id)}>
+                    {m.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : null}
           <div className="ml-auto flex items-center gap-1 rounded-md border p-0.5" role="group" aria-label="View mode">
             <Button
               size="sm"

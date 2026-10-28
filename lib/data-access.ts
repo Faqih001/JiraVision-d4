@@ -239,7 +239,9 @@ export async function getPaginatedTasks(
     priority?: string, 
     assigneeId?: number, 
     sprintId?: number,
-    search?: string
+    search?: string,
+    /** The signed-in member's id, set by `scope=mine` on GET /api/tasks. */
+    memberUserId?: number,
   }
 ) {
   try {
@@ -259,6 +261,10 @@ export async function getPaginatedTasks(
       
       if (filters.assigneeId) {
         whereConditions.push(eq(tasks.assigneeId, filters.assigneeId))
+      }
+
+      if (filters.memberUserId) {
+        whereConditions.push(eq(tasks.assigneeId, filters.memberUserId))
       }
       
       if (filters.sprintId) {
