@@ -71,6 +71,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
+import { LIVE_REFRESH_MS, useLiveRefresh } from "@/hooks/use-live-refresh"
 import { cn } from "@/lib/utils"
 import type { DashboardOverview } from "@/lib/dashboard-data"
 import {
@@ -257,8 +258,8 @@ export default function TasksWorkspacePage() {
     }
   }, [loadRawTasks, toast])
 
-  const loadVisible = useCallback(async () => {
-    setListLoading(true)
+  const loadVisible = useCallback(async (quiet = false) => {
+    if (!quiet) setListLoading(true)
     try {
       const params = new URLSearchParams()
       params.set("page", String(pagination.page))
@@ -284,9 +285,9 @@ export default function TasksWorkspacePage() {
       setTasks(rows)
       setPagination((p) => ({ ...p, total, pageCount: Math.max(1, Math.ceil(total / p.pageSize)) }))
     } catch (err) {
-      toast({ variant: "destructive", title: "Tasks", description: (err as Error).message })
+      if (!quiet) toast({ variant: "destructive", title: "Tasks", description: (err as Error).message })
     } finally {
-      setListLoading(false)
+      if (!quiet) setListLoading(false)
     }
   }, [pagination.page, pagination.pageSize, statusFilter, priorityFilter, assigneeFilter, sprintFilter, search, toast])
 
@@ -301,6 +302,10 @@ export default function TasksWorkspacePage() {
   const reloadAll = useCallback(async () => {
     await Promise.all([loadRawTasks(), loadVisible()])
   }, [loadRawTasks, loadVisible])
+
+  // Re-reads the visible page only: the filters, sort and page number are the
+  // viewer's, so a background refresh must not reset them.
+  useLiveRefresh(() => loadVisible(true), { intervalMs: LIVE_REFRESH_MS })
 
   const refresh = useCallback(async () => {
     setRefreshing(true)

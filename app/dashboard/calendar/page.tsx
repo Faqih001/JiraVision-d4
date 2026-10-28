@@ -85,6 +85,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
+import { LIVE_REFRESH_MS, useLiveRefresh } from "@/hooks/use-live-refresh"
 import { cn } from "@/lib/utils"
 import {
   AXIS,
@@ -351,6 +352,8 @@ export default function CalendarWorkspace() {
     setRefreshing(false)
     toast({ title: "Calendar refreshed" })
   }, [load, toast])
+
+  useLiveRefresh(reloadEvents, { intervalMs: LIVE_REFRESH_MS })
 
   /* ---- filtered events ---- */
 

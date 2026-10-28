@@ -53,6 +53,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { useToast } from "@/hooks/use-toast"
+import { LIVE_REFRESH_MS, useLiveRefresh } from "@/hooks/use-live-refresh"
 import { cn } from "@/lib/utils"
 import type { DashboardOverview } from "@/lib/dashboard-data"
 import {
@@ -355,6 +356,8 @@ export default function AIScrumMasterPage() {
       /* keep stale data on silent refresh failure */
     }
   }, [])
+
+  useLiveRefresh(reloadQuiet, { intervalMs: LIVE_REFRESH_MS })
 
   /* ---- URL-driven status filter tabs ---- */
 

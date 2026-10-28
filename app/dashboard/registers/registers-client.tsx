@@ -39,6 +39,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
 import { SectionCard, EmptyNote } from "@/components/dashboard-kit"
+import { LIVE_REFRESH_MS, useLiveRefresh } from "@/hooks/use-live-refresh"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 import {
@@ -228,26 +229,33 @@ export default function RegistersClient() {
     router.replace(query ? `/dashboard/registers?${query}` : "/dashboard/registers", { scroll: false })
   }, [query, router])
 
-  const refresh = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const res = await fetch(`/api/registers?${query}`)
-      const json = await res.json().catch(() => null)
-      if (!res.ok || !json?.success) {
-        throw new Error(json?.error ?? json?.message ?? `Request failed (${res.status})`)
+  const refresh = useCallback(
+    async (quiet = false) => {
+      if (!quiet) {
+        setLoading(true)
+        setError(null)
       }
-      setData(json.data as RegistersPayload)
-    } catch (err) {
-      setError((err as Error).message)
-    } finally {
-      setLoading(false)
-    }
-  }, [query])
+      try {
+        const res = await fetch(`/api/registers?${query}`)
+        const json = await res.json().catch(() => null)
+        if (!res.ok || !json?.success) {
+          throw new Error(json?.error ?? json?.message ?? `Request failed (${res.status})`)
+        }
+        setData(json.data as RegistersPayload)
+      } catch (err) {
+        if (!quiet) setError((err as Error).message)
+      } finally {
+        if (!quiet) setLoading(false)
+      }
+    },
+    [query],
+  )
 
   useEffect(() => {
     void refresh()
   }, [refresh])
+
+  useLiveRefresh(() => refresh(true), { intervalMs: LIVE_REFRESH_MS })
 
   const rows = useMemo(() => data?.registers ?? [], [data])
   const admin = data?.admin ?? false

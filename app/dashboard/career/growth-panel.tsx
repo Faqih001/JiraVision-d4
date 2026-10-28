@@ -11,6 +11,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { EmptyNote, SectionCard } from "@/components/dashboard-kit"
+import { LIVE_REFRESH_MS, useLiveRefresh } from "@/hooks/use-live-refresh"
 import { useToast } from "@/hooks/use-toast"
 import { GROWTH_ACTIONS, GROWTH_ACTION_LABEL, type GrowthAction } from "@/lib/career/growth"
 
@@ -69,7 +70,7 @@ export function GrowthPanel({ discipline, top }: { discipline: string | null; to
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState<GrowthAction | null>(null)
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (quiet = false) => {
     try {
       const res = await fetch("/api/career/growth")
       const json = await res.json().catch(() => null)
@@ -78,7 +79,7 @@ export function GrowthPanel({ discipline, top }: { discipline: string | null; to
       setRows((json.data.reviews ?? []) as GrowthRow[])
       setError(null)
     } catch (err) {
-      setError((err as Error).message)
+      if (!quiet) setError((err as Error).message)
     } finally {
       setLoading(false)
     }
@@ -87,6 +88,9 @@ export function GrowthPanel({ discipline, top }: { discipline: string | null; to
   useEffect(() => {
     void load()
   }, [load])
+
+  // A teammate's review lands here from the server; the panel re-reads it quietly.
+  useLiveRefresh(() => load(true), { intervalMs: LIVE_REFRESH_MS })
 
   const run = async (action: GrowthAction) => {
     if (!discipline) return

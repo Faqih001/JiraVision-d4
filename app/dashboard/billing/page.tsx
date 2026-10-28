@@ -56,6 +56,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
+import { LIVE_REFRESH_MS, useLiveRefresh } from "@/hooks/use-live-refresh"
 import { cn } from "@/lib/utils"
 import {
   AXIS,
@@ -237,9 +238,13 @@ export default function BillingPage() {
       setPmLabel(json.data.state.settings.paymentMethodLabel)
       setCycle(json.data.state.billingCycle)
       setFailed(false)
+      return true
     } catch (err) {
-      if (!quiet) setFailed(true)
-      toast({ variant: "destructive", title: "Billing", description: (err as Error).message })
+      if (!quiet) {
+        setFailed(true)
+        toast({ variant: "destructive", title: "Billing", description: (err as Error).message })
+      }
+      return false
     } finally {
       setLoading(false)
     }
@@ -266,10 +271,21 @@ export default function BillingPage() {
 
   const refresh = useCallback(async () => {
     setRefreshing(true)
-    await Promise.all([load(true), loadActivity()])
+    const [ok] = await Promise.all([load(true), loadActivity()])
     setRefreshing(false)
-    toast({ title: "Billing refreshed" })
+    toast(
+      ok
+        ? { title: "Billing refreshed" }
+        : { variant: "destructive", title: "Billing", description: "Could not reach the billing service." },
+    )
   }, [load, loadActivity, toast])
+
+  useLiveRefresh(
+    async () => {
+      await Promise.all([load(true), loadActivity()])
+    },
+    { intervalMs: LIVE_REFRESH_MS },
+  )
 
   /* ---- plan switching ---- */
 

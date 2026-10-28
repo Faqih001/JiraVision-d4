@@ -44,6 +44,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
+import { LIVE_REFRESH_MS, useLiveRefresh } from "@/hooks/use-live-refresh"
 import { cn } from "@/lib/utils"
 import {
   AXIS,
@@ -260,6 +261,19 @@ export default function ActivityCenter() {
   useEffect(() => {
     loadRealtimeFlag()
   }, [loadRealtimeFlag])
+
+  // A quiet reread: same endpoint, no skeleton, no toast. It keeps whatever is on
+  // screen when the read fails, so a waking Neon compute never blanks the feed.
+  const reloadQuiet = useCallback(async () => {
+    const res = await fetch(buildUrl(0))
+    if (!res.ok) return
+    const json = (await res.json()) as ActivityFeed
+    setFeed(json)
+    setItems(json.items)
+    setHasMore(json.hasMore)
+  }, [buildUrl])
+
+  useLiveRefresh(reloadQuiet, { intervalMs: LIVE_REFRESH_MS })
 
   /* ---- mutations (notifications via the existing API) ---- */
 

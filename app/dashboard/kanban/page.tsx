@@ -66,6 +66,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useToast } from "@/hooks/use-toast"
+import { LIVE_REFRESH_MS, useLiveRefresh } from "@/hooks/use-live-refresh"
 import { cn } from "@/lib/utils"
 import {
   AXIS,
@@ -248,9 +249,11 @@ export default function KanbanBoardPage() {
       const notifJson = await notifRes.json().catch(() => null)
       if (notifJson && Array.isArray(notifJson.items)) setActivity(notifJson.items as ActivityItem[])
     } catch {
-      toast({ variant: "destructive", title: "Kanban", description: "Silent refresh failed." })
+      /* the board on screen stays; the refresh button reports failures */
     }
-  }, [toast])
+  }, [])
+
+  useLiveRefresh(reloadTasks, { intervalMs: LIVE_REFRESH_MS })
 
   useEffect(() => {
     let cancelled = false

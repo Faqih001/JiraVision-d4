@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
+import { LIVE_REFRESH_MS, useLiveRefresh } from "@/hooks/use-live-refresh"
 import { useToast } from "@/hooks/use-toast"
 import { jsonFetch, type AchievementEntry, type RosterPlayer } from "../_kit"
 
@@ -53,8 +54,8 @@ export default function AchievementsAdminPage() {
   const [confirmDelete, setConfirmDelete] = useState<{ userId: number; name: string } | null>(null)
   const [deleting, setDeleting] = useState(false)
 
-  const load = useCallback(async () => {
-    setLoading(true)
+  const load = useCallback(async (quiet = false) => {
+    if (!quiet) setLoading(true)
     try {
       const [achJson, rosterJson] = await Promise.all([
         jsonFetch<{ success: boolean; data: AchievementRow[] }>("/api/gamification/achievements"),
@@ -64,16 +65,19 @@ export default function AchievementsAdminPage() {
       setRoster(rosterJson.data)
       setMyUserId(rosterJson.me?.userId ?? null)
     } catch (err) {
+      if (quiet) return
       toast({ variant: "destructive", title: "Achievements", description: (err as Error).message })
       setRows([])
     } finally {
-      setLoading(false)
+      if (!quiet) setLoading(false)
     }
   }, [toast])
 
   useEffect(() => {
-    load()
+    void load()
   }, [load])
+
+  useLiveRefresh(() => load(true), { intervalMs: LIVE_REFRESH_MS })
 
   const filtered = useMemo(
     () => (rows ?? []).filter((r) => userFilter === "all" || String(r.userId) === userFilter),

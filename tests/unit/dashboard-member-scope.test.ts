@@ -55,8 +55,8 @@ describe("the home dashboard reads only this member's rows", () => {
   })
 
   it("re-reads on focus instead of waiting for a manual refresh", () => {
-    expect(page).toContain('addEventListener("visibilitychange", revalidate)')
-    expect(page).toContain('addEventListener("focus", revalidate)')
+    // The shared hook owns the focus/visibility listeners; its own guard pins that behaviour.
+    expect(page).toContain("useLiveRefresh(reloadQuiet")
   })
 
   it("leaves the workspace panels to the pages that own them", () => {

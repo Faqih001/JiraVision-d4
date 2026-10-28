@@ -61,6 +61,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { LIVE_REFRESH_MS, useLiveRefresh } from "@/hooks/use-live-refresh"
 import { useToast } from "@/hooks/use-toast"
 import type { DashboardOverview } from "@/lib/dashboard-data"
 import {
@@ -271,8 +272,8 @@ export default function AnalyticsWorkspace() {
 
   /* ---- base data: overview + raw tasks + saved reports ---- */
 
-  const loadBase = useCallback(async () => {
-    setBaseLoading(true)
+  const loadBase = useCallback(async (quiet = false) => {
+    if (!quiet) setBaseLoading(true)
     try {
       const [ovRes, tkRes, rpRes] = await Promise.all([
         fetch("/api/dashboard/overview"),
@@ -299,15 +300,30 @@ export default function AnalyticsWorkspace() {
       }
       if (rpJson.success && Array.isArray(rpJson.data)) setReports(rpJson.data)
     } catch (err) {
-      toast({ variant: "destructive", title: "Analytics", description: (err as Error).message })
+      if (!quiet) toast({ variant: "destructive", title: "Analytics", description: (err as Error).message })
     } finally {
-      setBaseLoading(false)
+      if (!quiet) setBaseLoading(false)
     }
   }, [toast])
 
   useEffect(() => {
-    loadBase()
+    void loadBase()
   }, [loadBase, reloadTick])
+
+  // Focus and the minute tick re-read the same endpoints the first paint used, without
+  // flipping the skeletons: the charts the viewer is reading stay on screen.
+  const reloadQuiet = useCallback(async () => {
+    const qs = new URLSearchParams({
+      rangeDays: filters.rangeDays,
+      sprintId: filters.sprintId,
+      priority: filters.priority,
+    })
+    const [res] = await Promise.all([fetch(`/api/analytics?${qs}`), loadBase(true)])
+    const json = await res.json().catch(() => null)
+    if (json?.success) setAnalytics(json.data)
+  }, [filters, loadBase])
+
+  useLiveRefresh(reloadQuiet, { intervalMs: LIVE_REFRESH_MS })
 
   /* ---- client-side derived series ---- */
 

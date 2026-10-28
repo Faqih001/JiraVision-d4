@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
+import { LIVE_REFRESH_MS, useLiveRefresh } from "@/hooks/use-live-refresh"
 import { useToast } from "@/hooks/use-toast"
 import { jsonFetch, type Redemption, type RewardItem } from "../_kit"
 
@@ -45,22 +46,25 @@ export default function RewardsCatalogPage() {
   const [confirmDelete, setConfirmDelete] = useState<RewardItem | null>(null)
   const [confirmRedeem, setConfirmRedeem] = useState<RewardItem | null>(null)
 
-  const load = useCallback(async () => {
-    setLoading(true)
+  const load = useCallback(async (quiet = false) => {
+    if (!quiet) setLoading(true)
     try {
       const json = await jsonFetch<{ success: boolean; data: RewardsData }>("/api/gamification/rewards")
       setData(json.data)
     } catch (err) {
+      if (quiet) return
       toast({ variant: "destructive", title: "Rewards", description: (err as Error).message })
       setData(null)
     } finally {
-      setLoading(false)
+      if (!quiet) setLoading(false)
     }
   }, [toast])
 
   useEffect(() => {
-    load()
+    void load()
   }, [load])
+
+  useLiveRefresh(() => load(true), { intervalMs: LIVE_REFRESH_MS })
 
   const openCreate = () => {
     setDraft(emptyDraft)
@@ -180,7 +184,7 @@ export default function RewardsCatalogPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" className="gap-1" onClick={load} disabled={loading}>
+          <Button variant="outline" size="sm" className="gap-1" onClick={() => void load()} disabled={loading}>
             <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} /> Refresh
           </Button>
           <Button variant="outline" size="sm" className="gap-1" asChild>

@@ -12,6 +12,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { SectionCard, EmptyNote } from "@/components/dashboard-kit"
+import { LIVE_REFRESH_MS, useLiveRefresh } from "@/hooks/use-live-refresh"
 import { useToast } from "@/hooks/use-toast"
 import { DISCIPLINE_LABEL, isWorkDiscipline } from "@/lib/roles"
 import {
@@ -46,27 +47,34 @@ export default function CareerClient({ discipline }: { discipline?: string }) {
   const [error, setError] = useState<string | null>(null)
   const [requesting, setRequesting] = useState(false)
 
-  const load = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const qs = discipline ? `?discipline=${encodeURIComponent(discipline)}` : ""
-      const res = await fetch(`/api/career/me${qs}`)
-      const json = await res.json().catch(() => null)
-      if (!res.ok || !json?.success) {
-        throw new Error(json?.error ?? `Request failed (${res.status})`)
+  const load = useCallback(
+    async (quiet = false) => {
+      if (!quiet) {
+        setLoading(true)
+        setError(null)
       }
-      setData(json.data as CareerMe)
-    } catch (err) {
-      setError((err as Error).message)
-    } finally {
-      setLoading(false)
-    }
-  }, [discipline])
+      try {
+        const qs = discipline ? `?discipline=${encodeURIComponent(discipline)}` : ""
+        const res = await fetch(`/api/career/me${qs}`)
+        const json = await res.json().catch(() => null)
+        if (!res.ok || !json?.success) {
+          throw new Error(json?.error ?? `Request failed (${res.status})`)
+        }
+        setData(json.data as CareerMe)
+      } catch (err) {
+        if (!quiet) setError((err as Error).message)
+      } finally {
+        if (!quiet) setLoading(false)
+      }
+    },
+    [discipline],
+  )
 
   useEffect(() => {
     void load()
   }, [load])
+
+  useLiveRefresh(() => load(true), { intervalMs: LIVE_REFRESH_MS })
 
   const requestPromotion = async () => {
     if (!data?.discipline) return

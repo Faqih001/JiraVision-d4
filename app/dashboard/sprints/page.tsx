@@ -65,6 +65,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
+import { LIVE_REFRESH_MS, useLiveRefresh } from "@/hooks/use-live-refresh"
 import { cn } from "@/lib/utils"
 import {
   AXIS,
@@ -252,6 +253,24 @@ export default function SprintsWorkspace() {
       setLoading(false)
     })()
   }, [load])
+
+  // The sprint list only — no detail skeleton, no toast. Picks up sprints someone
+  // else started or closed without disturbing the panel the viewer is reading.
+  const reloadQuiet = useCallback(async () => {
+    try {
+      const res = await fetch("/api/sprints")
+      const json = await res.json()
+      if (!json.success) return
+      const list: Sprint[] = json.data
+      setSprints(list)
+      setStats(json.stats ?? null)
+      setSelectedId((cur) => (cur !== null && list.some((s) => s.id === cur) ? cur : list[0]?.id ?? null))
+    } catch {
+      /* keep the list already on screen */
+    }
+  }, [])
+
+  useLiveRefresh(reloadQuiet, { intervalMs: LIVE_REFRESH_MS })
 
   useEffect(() => {
     if (selectedId === null) {

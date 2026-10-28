@@ -59,6 +59,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
+import { LIVE_REFRESH_MS, useLiveRefresh } from "@/hooks/use-live-refresh"
 import { cn } from "@/lib/utils"
 import { CADENCE_LABEL, CADENCES, type Cadence } from "@/lib/cadence"
 import {
@@ -177,7 +178,7 @@ export default function ReportsPage() {
 
   /* ------------------------------------------------------------- fetching */
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (quiet = false) => {
     try {
       const [repRes, memRes] = await Promise.all([
         fetch("/api/reports"),
@@ -200,7 +201,7 @@ export default function ReportsPage() {
       }
       setError(null)
     } catch (e) {
-      setError((e as Error).message)
+      if (!quiet) setError((e as Error).message)
     } finally {
       setLoading(false)
     }
@@ -209,6 +210,8 @@ export default function ReportsPage() {
   useEffect(() => {
     void load()
   }, [load])
+
+  useLiveRefresh(() => load(true), { intervalMs: LIVE_REFRESH_MS })
 
   /* -------------------------------------------------------------- builder */
 

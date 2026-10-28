@@ -62,6 +62,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
+import { LIVE_REFRESH_MS, useLiveRefresh } from "@/hooks/use-live-refresh"
 import {
   AXIS,
   AvatarCircle,
@@ -285,9 +286,9 @@ export default function RetrospectivesWorkspace() {
   }, [toast])
 
   const load = useCallback(
-    async (initial: boolean, preferId?: number | null) => {
+    async (initial: boolean, preferId?: number | null, quiet = false) => {
       if (initial) setLoading(true)
-      else setRefreshing(true)
+      else if (!quiet) setRefreshing(true)
       try {
         const [retrosRes, sprintsRes, overviewRes, notifRes] = await Promise.all([
           fetch("/api/retros"),
@@ -328,10 +329,10 @@ export default function RetrospectivesWorkspace() {
           return retrosJson.data.items[0]?.id ?? null
         })
       } catch (err) {
-        toast({ variant: "destructive", title: "Retros workspace", description: (err as Error).message })
+        if (!quiet) toast({ variant: "destructive", title: "Retros workspace", description: (err as Error).message })
       } finally {
         setLoading(false)
-        setRefreshing(false)
+        if (!quiet) setRefreshing(false)
       }
     },
     [toast],
@@ -340,6 +341,8 @@ export default function RetrospectivesWorkspace() {
   useEffect(() => {
     void load(true)
   }, [load])
+
+  useLiveRefresh(() => load(false, null, true), { intervalMs: LIVE_REFRESH_MS })
 
   useEffect(() => {
     if (selectedId === null) {

@@ -61,6 +61,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
+import { LIVE_REFRESH_MS, useLiveRefresh } from "@/hooks/use-live-refresh"
 import { cn } from "@/lib/utils"
 import { AXIS, AvatarCircle, EmptyNote, SectionCard, TOOLTIP_STYLE, relativeTime } from "@/components/dashboard-kit"
 
@@ -201,11 +202,12 @@ export default function TeamWellbeingPage() {
       const res = await fetch("/api/dashboard/wellbeing?days=30")
       const json = await res.json()
       if (json.success) setRows(json.data as CheckInRow[])
-      else throw new Error(json.message)
     } catch {
-      toast({ variant: "destructive", title: "Wellbeing", description: "Refresh failed." })
+      /* the check-ins already on screen stay */
     }
-  }, [toast])
+  }, [])
+
+  useLiveRefresh(reloadQuiet, { intervalMs: LIVE_REFRESH_MS })
 
   const refresh = useCallback(async () => {
     setRefreshing(true)

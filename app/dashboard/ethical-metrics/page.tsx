@@ -72,6 +72,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { useToast } from "@/hooks/use-toast"
+import { LIVE_REFRESH_MS, useLiveRefresh } from "@/hooks/use-live-refresh"
 import {
   AXIS,
   AvatarCircle,
@@ -479,6 +480,19 @@ export default function EthicalMetricsWorkspace() {
     loadWorkspace()
     loadAux()
   }, [loadWorkspace, loadAux, reloadTick])
+
+  // Re-reads the snapshot list only — no skeleton, no error banner, no aux refetch.
+  const reloadQuiet = useCallback(async () => {
+    try {
+      const res = await fetch("/api/ethical-metrics?limit=12", { cache: "no-store" })
+      const json = await readJson(res)
+      if (res.ok && json.success === true) setEthics(json.data as EthicsResponse)
+    } catch {
+      /* the snapshots already on screen stay */
+    }
+  }, [])
+
+  useLiveRefresh(reloadQuiet, { intervalMs: LIVE_REFRESH_MS })
 
   useEffect(() => {
     if (ethics && !configDraft) setConfigDraft(ethics.config)

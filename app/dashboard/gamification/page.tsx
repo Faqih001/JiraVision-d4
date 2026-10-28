@@ -36,6 +36,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Progress } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
+import { LIVE_REFRESH_MS, useLiveRefresh } from "@/hooks/use-live-refresh"
 import { useToast } from "@/hooks/use-toast"
 import {
   computeStreak,
@@ -117,8 +118,8 @@ export default function GamificationHubPage() {
     load()
   }, [load])
 
-  const refresh = useCallback(async () => {
-    setRefreshing(true)
+  const refresh = useCallback(async (quiet = false) => {
+    if (!quiet) setRefreshing(true)
     try {
       const [rosterJson, rewardsJson, configureJson, tasksJson, notifJson] = await Promise.all([
         jsonFetch<{ success: boolean; data: RosterPlayer[]; me: MeSnapshot | null }>("/api/gamification"),
@@ -133,13 +134,15 @@ export default function GamificationHubPage() {
       setSettings(configureJson.data)
       setTasks(Array.isArray(tasksJson.data) ? tasksJson.data : [])
       setActivity(Array.isArray(notifJson?.items) ? (notifJson.items as NotificationLite[]) : [])
-      toast({ title: "Gamification refreshed" })
+      if (!quiet) toast({ title: "Gamification refreshed" })
     } catch {
-      toast({ variant: "destructive", title: "Gamification", description: "Refresh failed." })
+      if (!quiet) toast({ variant: "destructive", title: "Gamification", description: "Refresh failed." })
     } finally {
-      setRefreshing(false)
+      if (!quiet) setRefreshing(false)
     }
   }, [toast])
+
+  useLiveRefresh(() => refresh(true), { intervalMs: LIVE_REFRESH_MS })
 
   const redeem = useCallback(
     async (reward: RewardItem) => {
@@ -264,7 +267,7 @@ export default function GamificationHubPage() {
           <h1 className="text-3xl font-bold">Gamification</h1>
           <p className="text-muted-foreground">Levels, XP, skill trees, achievements and rewards — all from live team data.</p>
         </div>
-        <Button variant="outline" size="sm" className="gap-1" onClick={refresh} disabled={refreshing || loading}>
+        <Button variant="outline" size="sm" className="gap-1" onClick={() => void refresh()} disabled={refreshing || loading}>
           <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
           Refresh
         </Button>

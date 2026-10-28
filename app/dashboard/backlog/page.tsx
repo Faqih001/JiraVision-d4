@@ -60,6 +60,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
+import { LIVE_REFRESH_MS, useLiveRefresh } from "@/hooks/use-live-refresh"
 import { cn } from "@/lib/utils"
 import {
   AXIS,
@@ -226,9 +227,11 @@ export default function DashboardBacklog() {
       const json = await res.json()
       if (json.success) setTasks(json.data as TaskRow[])
     } catch {
-      toast({ variant: "destructive", title: "Backlog", description: "Refresh failed." })
+      /* the rows already on screen stay; the manual refresh button reports failures */
     }
-  }, [toast])
+  }, [])
+
+  useLiveRefresh(reloadQuiet, { intervalMs: LIVE_REFRESH_MS })
 
   const refresh = useCallback(async () => {
     setRefreshing(true)

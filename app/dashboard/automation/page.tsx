@@ -55,6 +55,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
+import { LIVE_REFRESH_MS, useLiveRefresh } from "@/hooks/use-live-refresh"
 import { cn } from "@/lib/utils"
 import {
   AXIS,
@@ -181,7 +182,7 @@ export default function AutomationPage() {
 
   /* ------------------------------------------------------------- fetching */
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (quiet = false) => {
     try {
       const [autoRes, memRes, sprintRes] = await Promise.all([
         fetch("/api/automation"),
@@ -202,7 +203,7 @@ export default function AutomationPage() {
       }
       setError(null)
     } catch (e) {
-      setError((e as Error).message)
+      if (!quiet) setError((e as Error).message)
     } finally {
       setLoading(false)
     }
@@ -211,6 +212,8 @@ export default function AutomationPage() {
   useEffect(() => {
     void load()
   }, [load])
+
+  useLiveRefresh(() => load(true), { intervalMs: LIVE_REFRESH_MS })
 
   const loadRuleRuns = useCallback(async (ruleId: number) => {
     setSelectedRuns(null)

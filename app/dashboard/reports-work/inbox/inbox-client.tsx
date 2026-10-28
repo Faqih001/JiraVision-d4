@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react"
 import { Check, MessageSquare } from "lucide-react"
+import { LIVE_REFRESH_MS, useLiveRefresh } from "@/hooks/use-live-refresh"
 
 type InboxReport = {
   report: {
@@ -34,23 +35,25 @@ export default function InboxClient() {
   const [returnNote, setReturnNote] = useState("")
   const [returningId, setReturningId] = useState<number | null>(null)
 
-  const refresh = useCallback(async () => {
-    setLoading(true)
+  const refresh = useCallback(async (quiet = false) => {
+    if (!quiet) setLoading(true)
     try {
       const res = await fetch("/api/reports/inbox")
-      const json = await res.json()
-      if (json.success) {
+      const json = await res.json().catch(() => null)
+      if (json?.success) {
         setReports(json.data.reports)
         setAdmin(json.data.admin)
       }
     } finally {
-      setLoading(false)
+      if (!quiet) setLoading(false)
     }
   }, [])
 
   useEffect(() => {
-    refresh()
+    void refresh()
   }, [refresh])
+
+  useLiveRefresh(() => refresh(true), { intervalMs: LIVE_REFRESH_MS })
 
   const handleAck = async (id: number) => {
     setActionInProgress(id)

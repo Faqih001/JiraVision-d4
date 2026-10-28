@@ -60,6 +60,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { LIVE_REFRESH_MS, useLiveRefresh } from "@/hooks/use-live-refresh"
 import { useToast } from "@/hooks/use-toast"
 import {
   AXIS,
@@ -328,6 +329,10 @@ export default function EmailWorkspace() {
       // non-fatal: the next manual refresh will re-sync
     }
   }
+
+  // Only the digest rows, counters and activity refresh on their own: templates and
+  // preferences are edited in place, so a background read must not reset those switches.
+  useLiveRefresh(() => loadSummaryQuietly(), { intervalMs: LIVE_REFRESH_MS })
 
   const deleteTarget = async () => {
     if (!confirm) return

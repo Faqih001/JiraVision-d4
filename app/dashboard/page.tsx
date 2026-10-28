@@ -65,6 +65,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { LIVE_REFRESH_MS, useLiveRefresh } from "@/hooks/use-live-refresh"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 import type { DashboardOverview } from "@/lib/dashboard-data"
@@ -321,15 +322,17 @@ export default function DashboardHome() {
     }
   }, [toast])
 
+  // Silent by design: it runs after every mutation and on focus, and a failed background
+  // read leaves the rows already on screen — the next read re-syncs them.
   const reloadQuiet = useCallback(async () => {
     try {
       const ovRes = await fetch(OVERVIEW_URL)
       const ovJson = await ovRes.json()
       if (ovJson.success) setOverview(ovJson.data)
     } catch {
-      toast({ variant: "destructive", title: "Dashboard", description: "Refresh failed." })
+      /* keep the current rows */
     }
-  }, [toast])
+  }, [])
 
   const refresh = useCallback(async () => {
     setRefreshing(true)
@@ -342,26 +345,9 @@ export default function DashboardHome() {
     load()
   }, [load])
 
-  // Coming back to the tab re-reads this member's rows, so work created elsewhere is
-  // not left behind an old render. Failures stay silent: a background revalidation
-  // must not interrupt with a toast.
-  useEffect(() => {
-    const revalidate = () => {
-      if (document.visibilityState !== "visible") return
-      fetch(OVERVIEW_URL, { cache: "no-store" })
-        .then((res) => res.json())
-        .then((json) => {
-          if (json.success) setOverview(json.data)
-        })
-        .catch(() => undefined)
-    }
-    document.addEventListener("visibilitychange", revalidate)
-    window.addEventListener("focus", revalidate)
-    return () => {
-      document.removeEventListener("visibilitychange", revalidate)
-      window.removeEventListener("focus", revalidate)
-    }
-  }, [])
+  // Coming back to the tab — and every minute it stays visible — re-reads this member's
+  // rows, so work created elsewhere is not left behind an old render.
+  useLiveRefresh(reloadQuiet, { intervalMs: LIVE_REFRESH_MS })
 
   /* ---- task mutations ---- */
 

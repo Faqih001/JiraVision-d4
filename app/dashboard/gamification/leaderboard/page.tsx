@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { LIVE_REFRESH_MS, useLiveRefresh } from "@/hooks/use-live-refresh"
 import { useToast } from "@/hooks/use-toast"
 import { jsonFetch, type RosterPlayer } from "../_kit"
 
@@ -35,8 +36,8 @@ export default function GamificationLeaderboardPage() {
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc")
   const [myUserId, setMyUserId] = useState<number | null>(null)
 
-  const load = useCallback(async () => {
-    setLoading(true)
+  const load = useCallback(async (quiet = false) => {
+    if (!quiet) setLoading(true)
     try {
       const [rosterJson, tasksJson] = await Promise.all([
         jsonFetch<{ success: boolean; data: RosterPlayer[]; me: { userId: number } | null }>("/api/gamification"),
@@ -46,16 +47,19 @@ export default function GamificationLeaderboardPage() {
       setMyUserId(rosterJson.me?.userId ?? null)
       setTasks(Array.isArray(tasksJson.data) ? tasksJson.data : [])
     } catch (err) {
+      if (quiet) return
       toast({ variant: "destructive", title: "Leaderboard", description: (err as Error).message })
       setRoster([])
     } finally {
-      setLoading(false)
+      if (!quiet) setLoading(false)
     }
   }, [toast])
 
   useEffect(() => {
-    load()
+    void load()
   }, [load])
+
+  useLiveRefresh(() => load(true), { intervalMs: LIVE_REFRESH_MS })
 
   /** XP estimated from done-task completions inside a window, per assignee. */
   const recentXpByUser = useCallback(

@@ -62,6 +62,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
+import { LIVE_REFRESH_MS, useLiveRefresh } from "@/hooks/use-live-refresh"
 import { cn } from "@/lib/utils"
 import {
   AXIS,
@@ -188,7 +189,7 @@ export default function GoalsPage() {
 
   /* ------------------------------------------------------------- fetching */
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (quiet = false) => {
     try {
       const [goalsRes, membersRes] = await Promise.all([
         fetch("/api/goals"),
@@ -212,7 +213,7 @@ export default function GoalsPage() {
       }
       setError(null)
     } catch (e) {
-      setError((e as Error).message)
+      if (!quiet) setError((e as Error).message)
     } finally {
       setLoading(false)
     }
@@ -221,6 +222,8 @@ export default function GoalsPage() {
   useEffect(() => {
     void load()
   }, [load])
+
+  useLiveRefresh(() => load(true), { intervalMs: LIVE_REFRESH_MS })
 
   const loadProgress = useCallback(async (goalId: number) => {
     setSelectedCheckins(null)

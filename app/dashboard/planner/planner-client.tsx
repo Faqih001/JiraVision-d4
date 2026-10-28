@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Skeleton } from "@/components/ui/skeleton"
 import { SectionCard } from "@/components/dashboard-kit"
 import { useToast } from "@/hooks/use-toast"
+import { LIVE_REFRESH_MS, useLiveRefresh } from "@/hooks/use-live-refresh"
 
 type PlanSummary = {
   id: number
@@ -37,17 +38,17 @@ export default function PlannerClient() {
   const [pdfFile, setPdfFile] = useState<File | null>(null)
   const [sourceName, setSourceName] = useState("")
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (quiet = false) => {
     try {
       const res = await fetch("/api/planner")
       const json = await res.json()
       if (json.success) {
         setPlans(json.plans)
-      } else {
+      } else if (!quiet) {
         toast({ title: "Failed to load plans", description: json.message, variant: "destructive" })
       }
     } catch {
-      toast({ title: "Network error", description: "Could not load plans", variant: "destructive" })
+      if (!quiet) toast({ title: "Network error", description: "Could not load plans", variant: "destructive" })
     } finally {
       setLoading(false)
     }
@@ -56,6 +57,8 @@ export default function PlannerClient() {
   useEffect(() => {
     refresh()
   }, [refresh])
+
+  useLiveRefresh(() => refresh(true), { intervalMs: LIVE_REFRESH_MS })
 
   const handleExtract = async () => {
     if (inputMode === "text" && !text.trim()) {
@@ -122,7 +125,7 @@ export default function PlannerClient() {
       } else {
         toast({ title: "Failed to discard", description: json.message, variant: "destructive" })
       }
-    } catch (error) {
+    } catch {
       toast({ title: "Network error", description: "Could not discard plan", variant: "destructive" })
     }
   }

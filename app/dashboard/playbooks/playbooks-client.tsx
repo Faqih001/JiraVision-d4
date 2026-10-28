@@ -41,6 +41,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
 import { EmptyNote, SectionCard } from "@/components/dashboard-kit"
 import { useToast } from "@/hooks/use-toast"
+import { LIVE_REFRESH_MS, useLiveRefresh } from "@/hooks/use-live-refresh"
 import { cn } from "@/lib/utils"
 import {
   PLAYBOOK_STATUSES,
@@ -185,9 +186,11 @@ export default function PlaybooksClient() {
     })
   }, [query, router])
 
-  const refresh = useCallback(async () => {
-    setLoading(true)
-    setError(null)
+  const refresh = useCallback(async (quiet = false) => {
+    if (!quiet) {
+      setLoading(true)
+      setError(null)
+    }
     try {
       const res = await fetch(`/api/playbooks?${query}`)
       const json = await res.json().catch(() => null)
@@ -196,7 +199,7 @@ export default function PlaybooksClient() {
       }
       setData(json.data as PlaybooksPayload)
     } catch (err) {
-      setError((err as Error).message)
+      if (!quiet) setError((err as Error).message)
     } finally {
       setLoading(false)
     }
@@ -205,6 +208,8 @@ export default function PlaybooksClient() {
   useEffect(() => {
     void refresh()
   }, [refresh])
+
+  useLiveRefresh(() => refresh(true), { intervalMs: LIVE_REFRESH_MS })
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {

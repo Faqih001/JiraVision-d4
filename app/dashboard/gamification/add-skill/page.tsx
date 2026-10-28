@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
+import { LIVE_REFRESH_MS, useLiveRefresh } from "@/hooks/use-live-refresh"
 import { useToast } from "@/hooks/use-toast"
 import { jsonFetch, type SkillTree } from "../_kit"
 
@@ -27,22 +28,26 @@ export default function AddSkillPage() {
   const [tasksToNextLevel, setTasksToNextLevel] = useState("3")
   const [description, setDescription] = useState("")
 
-  const load = useCallback(async () => {
-    setLoading(true)
+  const load = useCallback(async (quiet = false) => {
+    if (!quiet) setLoading(true)
     try {
       const json = await jsonFetch<{ success: boolean; data: SkillTree[] }>("/api/gamification/skills")
       setTrees(json.data)
     } catch (err) {
+      if (quiet) return
       toast({ variant: "destructive", title: "Skill trees", description: (err as Error).message })
       setTrees([])
     } finally {
-      setLoading(false)
+      if (!quiet) setLoading(false)
     }
   }, [toast])
 
   useEffect(() => {
-    load()
+    void load()
   }, [load])
+
+  // Only the tree list behind the duplicate-name check is re-read; the form in progress is local.
+  useLiveRefresh(() => load(true), { intervalMs: LIVE_REFRESH_MS })
 
   const nameTaken =
     !!name.trim() && (trees ?? []).some((t) => t.name.trim().toLowerCase() === name.trim().toLowerCase())

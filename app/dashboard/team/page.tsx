@@ -65,6 +65,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
+import { LIVE_REFRESH_MS, useLiveRefresh } from "@/hooks/use-live-refresh"
 import { cn } from "@/lib/utils"
 import type { DashboardOverview } from "@/lib/dashboard-data"
 import {
@@ -286,6 +287,21 @@ export default function TeamWorkspace() {
   useEffect(() => {
     load()
   }, [load])
+
+  // Quiet: no spinner on the refresh button, no error toast — the roster simply
+  // catches up with rows other admins changed.
+  useLiveRefresh(
+    () =>
+      Promise.all([
+        fetch("/api/team/members").then((res) => res.json()).then((json) => {
+          if (json.success && Array.isArray(json.teamMembers)) setMembers(json.teamMembers as TeamRow[])
+        }),
+        fetch("/api/dashboard/overview").then((res) => res.json()).then((json) => {
+          if (json.success) setOverview(json.data as DashboardOverview)
+        }),
+      ]).then(() => undefined),
+    { intervalMs: LIVE_REFRESH_MS },
+  )
 
   /* ---- derived data ---- */
 

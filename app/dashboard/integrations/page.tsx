@@ -53,6 +53,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
+import { LIVE_REFRESH_MS, useLiveRefresh } from "@/hooks/use-live-refresh"
 import { cn } from "@/lib/utils"
 import {
   AXIS,
@@ -417,6 +418,8 @@ export default function IntegrationsWorkspace() {
   useEffect(() => {
     void load()
   }, [load])
+
+  useLiveRefresh(reloadQuiet, { intervalMs: LIVE_REFRESH_MS })
 
   /* ------------------------------------------------------------ persistence */
 

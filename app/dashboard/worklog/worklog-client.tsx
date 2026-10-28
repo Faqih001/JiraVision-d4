@@ -24,6 +24,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { SectionCard } from "@/components/dashboard-kit"
+import { LIVE_REFRESH_MS, useLiveRefresh } from "@/hooks/use-live-refresh"
 import { useToast } from "@/hooks/use-toast"
 import { localDay, shiftDays } from "@/lib/worklog/local-day"
 import { parseQuickAdd } from "@/lib/worklog/quick-add"
@@ -147,8 +148,8 @@ export default function WorklogClient() {
     }
   }, [])
 
-  const refresh = useCallback(async () => {
-    setLoading(true)
+  const refresh = useCallback(async (quiet = false) => {
+    if (!quiet) setLoading(true)
     const qs = serializeViewState(state, todayIso)
     try {
       const [entriesRes, summaryRes] = await Promise.all([
@@ -172,15 +173,19 @@ export default function WorklogClient() {
         setDeliverables(deliverablesJson.data.deliverables as DeliverableDto[])
       }
     } catch (error) {
-      toast({ variant: "destructive", title: "Work log", description: (error as Error).message })
+      if (!quiet) toast({ variant: "destructive", title: "Work log", description: (error as Error).message })
     } finally {
-      setLoading(false)
+      if (!quiet) setLoading(false)
     }
   }, [state, todayIso, toast])
 
   useEffect(() => {
     void refresh()
   }, [refresh])
+
+  // The day, the totals and the deliverables move when a teammate edits their side, so the
+  // page re-reads them quietly; a failed background read leaves the rows already on screen.
+  useLiveRefresh(() => refresh(true), { intervalMs: LIVE_REFRESH_MS })
 
   useEffect(() => {
     fetch("/api/tasks?pageSize=200")
