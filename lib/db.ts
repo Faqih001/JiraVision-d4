@@ -57,11 +57,15 @@ if (!connectionString) {
 
 console.log('Database connection: Using Neon PostgreSQL Database');
 
-// Configure connection options for Neon
+// A cold handshake to the Neon pooler measures 3.6-9.0s while the compute wakes,
+// even though TCP and TLS to the same host are clean (~250ms / ~500ms). The old
+// 20s idle / 10s connect pair discarded warm sockets between requests and then
+// killed the replacement handshake at the exact bound it was measured against, so
+// nearly every dev request paid a cold connect and some failed it outright.
 const connectionOptions: postgres.Options<{}> = {
   max: 10, // Maximum pool size for Neon
-  idle_timeout: 20,
-  connect_timeout: 10,
+  idle_timeout: 300,
+  connect_timeout: 30,
   // Neon requires SSL
   ssl: 'require',
   // Connection pooling for better performance
@@ -70,8 +74,17 @@ const connectionOptions: postgres.Options<{}> = {
   }
 };
 
+// Next re-evaluates this module on every HMR pass. Without the globalThis cache each
+// pass built a fresh ten-slot pool and abandoned the previous one, leaving sockets
+// whose stalled queries reject with nobody awaiting them — the unhandledRejection
+// flood that follows every timeout in the dev log.
+const globalForDb = globalThis as unknown as { jiravisionQueryClient?: postgres.Sql<{}> };
+
 // Initialize a singleton Postgres client for Neon
-export const queryClient = postgres(connectionString, connectionOptions);
+export const queryClient =
+  globalForDb.jiravisionQueryClient ?? postgres(connectionString, connectionOptions);
+
+globalForDb.jiravisionQueryClient = queryClient;
 
 // Initialize and export a singleton Drizzle instance
 export const db = drizzle(queryClient, {
@@ -96,10 +109,46 @@ export async function withDb<T>(callback: (db: PostgresJsDatabase<typeof schema>
 
 // Helper functions for common database operations
 
+// The compute frequently answers on the second attempt, once the wake that stalled
+// the first one has finished — measured back-to-back connects of 6189ms then
+// 3644ms, and 5078ms then 9037ms. Drizzle wraps the driver error, so the code is
+// found by walking `cause` rather than read off the top-level object.
+const CONNECTION_ERROR_CODES = new Set([
+  'ETIMEDOUT',
+  'CONNECT_TIMEOUT',
+  'ECONNRESET',
+  'ECONNREFUSED',
+  'EPIPE',
+  'EAI_AGAIN',
+  '57P01',
+  '57P02',
+  '57P03',
+]);
+
+function isConnectionFailure(error: unknown): boolean {
+  let current = error as { code?: unknown; cause?: unknown } | null;
+  while (current) {
+    if (current.code && CONNECTION_ERROR_CODES.has(String(current.code))) return true;
+    current = current.cause as { code?: unknown; cause?: unknown } | null;
+  }
+  return false;
+}
+
+async function withConnectionRetry<T>(run: () => PromiseLike<T>): Promise<T> {
+  try {
+    return await run();
+  } catch (error) {
+    if (!isConnectionFailure(error)) throw error;
+    console.warn('Database unreachable, retrying once:', (error as Error).message);
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    return await run();
+  }
+}
+
 // Get user by ID
 export async function getUserById(id: number): Promise<User | null> {
   try {
-    const result = await db.select().from(users).where(eq(users.id, id));
+    const result = await withConnectionRetry(() => db.select().from(users).where(eq(users.id, id)));
     if (!result || result.length === 0) return null;
     
     const user = result[0];
@@ -124,7 +173,13 @@ export async function getUserById(id: number): Promise<User | null> {
       updatedAt: user.updatedAt
     };
   } catch (error) {
-    console.error('Error getting user by ID:', error);
+    // Callers turn a null into 401, so a timeout here reads as "signed out".
+    // Say which one happened instead of leaving both looking identical.
+    if (isConnectionFailure(error)) {
+      console.error(`Database unreachable while loading user ${id}; reporting no session:`, error);
+    } else {
+      console.error('Error getting user by ID:', error);
+    }
     return null;
   }
 }
@@ -132,7 +187,7 @@ export async function getUserById(id: number): Promise<User | null> {
 // Get user by email
 export async function getUserByEmail(email: string): Promise<User | null> {
   try {
-    const result = await db.select().from(users).where(eq(users.email, email));
+    const result = await withConnectionRetry(() => db.select().from(users).where(eq(users.email, email)));
     if (!result || result.length === 0) return null;
     
     const user = result[0];
