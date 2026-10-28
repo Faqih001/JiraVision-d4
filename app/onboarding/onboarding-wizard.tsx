@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
+import { ComboboxInput } from "@/components/ui/combobox-input"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
@@ -620,19 +621,17 @@ export function OnboardingWizard({ initial, inviteToken, account }: Props) {
               <div className="space-y-4">
                 <div className="space-y-1.5">
                   <Label htmlFor="ind-primary">Primary industry</Label>
-                  <Input
+                  <ComboboxInput
                     id="ind-primary"
-                    list="industry-suggestions"
                     value={industry.primary}
-                    onChange={(e) => setIndustry({ ...industry, primary: e.target.value, unsure: false })}
+                    onValueChange={(value) => setIndustry({ ...industry, primary: value, unsure: false })}
+                    options={INDUSTRY_SUGGESTIONS}
                     placeholder="e.g. Education"
+                    describedBy="ind-primary-help"
                   />
-                  <datalist id="industry-suggestions">
-                    {INDUSTRY_SUGGESTIONS.map((entry) => (
-                      <option key={entry} value={entry} />
-                    ))}
-                  </datalist>
-                  <p className="text-xs text-muted-foreground">A suggestion, never a restriction.</p>
+                  <p id="ind-primary-help" className="text-xs text-muted-foreground">
+                    A suggestion, never a restriction.
+                  </p>
                 </div>
 
                 <div className="space-y-1.5">
