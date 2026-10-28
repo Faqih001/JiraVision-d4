@@ -87,8 +87,8 @@ export default function ResetPasswordPage() {
 
   return (
     <AuthShell
-      image="https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=1200&q=80"
-      imageAlt="A desk with a calculator and scheduling notes"
+      image="https://images.unsplash.com/photo-1710855492709-aa06902e181c?auto=format&fit=crop&w=1200&q=80"
+      imageAlt="A laptop, tablet on a stand and phone arranged on a clean white desk"
       imageSide="right"
       panelTitle="One last step"
       panelBody="Set a new password and you’re straight back in. If this link has already been used, request a fresh one."

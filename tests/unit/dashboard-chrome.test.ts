@@ -239,6 +239,30 @@ describe("accessibility entry point", () => {
   })
 })
 
+describe("auth image cards", () => {
+  const authPages = [
+    ["login", read("app/(auth)/login/page.tsx")],
+    ["signup", read("app/(auth)/signup/page.tsx")],
+    ["forgot-password", read("app/(auth)/forgot-password/page.tsx")],
+    ["reset-password", read("app/(auth)/reset-password/page.tsx")],
+  ] as const
+
+  const photoOf = (source: string) => source.match(/images\.unsplash\.com\/(photo-[0-9a-z-]+)/)?.[1]
+
+  it("gives every step its own photo, from the one host next.config allows", () => {
+    const ids = authPages.map(([, source]) => photoOf(source))
+    ids.forEach((id, index) => expect(id, `${authPages[index][0]} has no Unsplash photo`).toBeTruthy())
+    // Four steps that read as one journey, but a card repeated four times looks like a bug.
+    expect(new Set(ids).size, "two auth cards share a photo").toBe(4)
+  })
+
+  it("describes the photo it shows", () => {
+    for (const [page, source] of authPages) {
+      expect(source.match(/imageAlt="([^"]{20,})"/)?.[1], `${page} has no imageAlt`).toBeTruthy()
+    }
+  })
+})
+
 describe("assistant trigger", () => {
   it("is labelled with text, not only an icon", () => {
     expect(chatbot).toContain(">Assistant</span>")

@@ -52,8 +52,8 @@ export default function SignupPage() {
 
   return (
     <AuthShell
-      image="https://images.unsplash.com/photo-1461749280684-dccba630e2f6?auto=format&fit=crop&w=1200&q=80"
-      imageAlt="Developers working together at a whiteboard"
+      image="https://images.unsplash.com/photo-1726649339368-28dacc581266?auto=format&fit=crop&w=1200&q=80"
+      imageAlt="A colleague at a laptop while a teammate writes on a whiteboard behind"
       imageSide="right"
       panelTitle="Join JiraVision"
       panelBody="Create your account and start planning sprints your team can sustain."
