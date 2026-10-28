@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
 import { EmptyNote, SectionCard } from "@/components/dashboard-kit"
@@ -246,18 +247,18 @@ export default function AgentClient() {
                 <Label htmlFor="agent-pack" className="text-xs text-muted-foreground">
                   Which role pack?
                 </Label>
-                <select
-                  id="agent-pack"
-                  className="h-9 rounded-md border bg-background px-3 text-sm"
-                  value={packKey}
-                  onChange={(event) => setPackKey(event.target.value)}
-                >
-                  {packs.map((pack) => (
-                    <option key={pack.packKey} value={pack.packKey}>
-                      {pack.title}
-                    </option>
-                  ))}
-                </select>
+                <Select value={packKey} onValueChange={setPackKey}>
+                  <SelectTrigger id="agent-pack" className="h-9 text-sm" aria-label="Role pack">
+                    <SelectValue placeholder="Choose a role pack" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {packs.map((pack) => (
+                      <SelectItem key={pack.packKey} value={pack.packKey}>
+                        {pack.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-2">
