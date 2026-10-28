@@ -4,10 +4,11 @@
 
 import { and, eq, isNull } from "drizzle-orm"
 import { db } from "@/lib/db"
-import { agentPlans, planItems, users, workspaceInvitations } from "@/drizzle/schema"
+import { agentPlans, planItems, userOnboarding, users, workspaceInvitations } from "@/drizzle/schema"
 import { createNotification, notifyMany } from "@/lib/notifications"
 import { isInvitationRole, invitationProblem, invitationTokenHash, type InvitationRole } from "./invitation"
 import { listWorkspaceAdmins, readInvitationByToken } from "./read"
+import type { OnboardingState } from "./state"
 
 export type AcceptResult = { ok: true; role: InvitationRole } | { ok: false; status: number; error: string }
 
@@ -129,4 +130,75 @@ export async function createOnboardingProject(args: { userId: number; input: Pro
     return created
   })
   return { planId: plan.id, created: true }
+}
+
+// ---------------------------------------------------------------------------------------
+// The gate row. Answers stay in preferences; user_onboarding is the memory of whether
+// setup was dealt with, and it is the only thing /dashboard redirects on.
+// ---------------------------------------------------------------------------------------
+
+/**
+ * Mirrors a saved wizard step into the gate row. The row is created on the first save, so
+ * an account that started setup is never mistaken for one that never opened it.
+ */
+export async function syncOnboardingRow(args: {
+  userId: number
+  state: OnboardingState
+  source?: "wizard" | "signup" | "backfill"
+}): Promise<void> {
+  const { userId, state } = args
+  const now = new Date()
+  const completedAt = state.status === "completed" ? new Date(state.completedAt ?? now) : null
+  const skippedAt = state.status === "skipped" ? now : null
+
+  await db
+    .insert(userOnboarding)
+    .values({
+      userId,
+      status: state.status,
+      step: state.step,
+      version: state.version,
+      source: args.source ?? "wizard",
+      startedAt: state.status === "not_started" ? null : now,
+      completedAt,
+      skippedAt,
+      updatedAt: now,
+    })
+    .onConflictDoUpdate({
+      target: userOnboarding.userId,
+      set: { status: state.status, step: state.step, version: state.version, completedAt, skippedAt, updatedAt: now },
+    })
+}
+
+/** "Set up later": a decision, not a failure — the gate stops asking until a restart. */
+export async function markOnboardingSkipped(userId: number, now = new Date()): Promise<void> {
+  await db
+    .insert(userOnboarding)
+    .values({ userId, status: "skipped", step: 0, source: "wizard", skippedAt: now, updatedAt: now })
+    .onConflictDoUpdate({
+      target: userOnboarding.userId,
+      set: { status: "skipped", skippedAt: now, completedAt: null, updatedAt: now },
+    })
+}
+
+/** Reopens setup for a member who finished or skipped it, keeping the answers already given. */
+export async function restartOnboarding(userId: number, now = new Date()): Promise<void> {
+  await db
+    .insert(userOnboarding)
+    .values({ userId, status: "in_progress", step: 0, source: "wizard", startedAt: now, updatedAt: now })
+    .onConflictDoUpdate({
+      target: userOnboarding.userId,
+      set: { status: "in_progress", step: 0, completedAt: null, skippedAt: null, updatedAt: now },
+    })
+}
+
+/**
+ * First contact from the gate. It records that the account was handled without claiming
+ * progress the member never made, and it never overwrites a row that already exists.
+ */
+export async function ensureGateRow(userId: number, now = new Date()): Promise<void> {
+  await db
+    .insert(userOnboarding)
+    .values({ userId, status: "not_started", step: 0, source: "gate", updatedAt: now })
+    .onConflictDoNothing({ target: userOnboarding.userId })
 }

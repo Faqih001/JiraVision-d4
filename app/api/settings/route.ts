@@ -5,7 +5,9 @@ import { users } from "@/drizzle/schema"
 import { getSession } from "@/lib/auth-actions"
 import { createNotification } from "@/lib/notifications"
 import { readSettingsPatch } from "@/lib/settings-patch"
-import { readOnboardingPatch, readOnboardingState } from "@/lib/onboarding/state"
+import { readOnboardingPatch, readOnboardingState, type OnboardingState } from "@/lib/onboarding/state"
+import { readGateRow } from "@/lib/onboarding/read"
+import { syncOnboardingRow } from "@/lib/onboarding/write"
 
 export const dynamic = "force-dynamic"
 
@@ -109,14 +111,20 @@ export async function PATCH(request: NextRequest) {
     }
 
     const { merged } = await readSettings(session.id)
+    let savedOnboarding: OnboardingState | null = null
     if ("onboarding" in patch) {
+      // A member who pressed "Restart setup" has a row that says in_progress while the old
+      // preference still says completed; that pairing is the one way back is allowed.
+      const row = await readGateRow(session.id)
       const parsed = readOnboardingPatch(
         patch.onboarding,
         readOnboardingFromMerged(merged),
         new Date().toISOString(),
+        { allowRestart: row?.status === "in_progress" },
       )
       if (!parsed.ok) return NextResponse.json({ success: false, message: parsed.error }, { status: 400 })
       patch.onboarding = parsed.value
+      savedOnboarding = parsed.value
     }
 
     const changedKeys = Object.entries(patch)
@@ -137,6 +145,9 @@ export async function PATCH(request: NextRequest) {
         })
       }
     }
+
+    // The gate reads the row, not the preference, so every saved step lands there too.
+    if (savedOnboarding) await syncOnboardingRow({ userId: session.id, state: savedOnboarding })
 
     const { merged: after } = await readSettings(session.id)
     return NextResponse.json({ success: true, settings: after, changedKeys })

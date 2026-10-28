@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { useTheme } from "next-themes"
 import {
   AlertTriangle,
@@ -149,6 +150,7 @@ async function readJson(res: Response): Promise<Record<string, unknown>> {
 
 export default function SettingsWorkspace() {
   const { toast } = useToast()
+  const router = useRouter()
   const { theme, setTheme, resolvedTheme } = useTheme()
 
   const [mounted, setMounted] = useState(false)
@@ -172,6 +174,7 @@ export default function SettingsWorkspace() {
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleteBusy, setDeleteBusy] = useState(false)
   const [sendResetLinkBusy, setSendResetLinkBusy] = useState(false)
+  const [restartingSetup, setRestartingSetup] = useState(false)
   const [uploading, setUploading] = useState(false)
 
   useEffect(() => setMounted(true), [])
@@ -397,6 +400,30 @@ export default function SettingsWorkspace() {
   }, [setTheme, toast])
 
   /* ----------------------------------------------------- danger actions */
+
+  // Reopens setup from outside the wizard. The gate reads the user_onboarding row, so the
+  // restart is a server write, not just a navigation.
+  const restartSetup = useCallback(async () => {
+    setRestartingSetup(true)
+    try {
+      const res = await fetch("/api/onboarding", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "restart" }),
+      })
+      const data = await readJson(res)
+      if (!res.ok || data.success === false) throw new Error(String(data.message ?? `HTTP ${res.status}`))
+      router.push("/onboarding")
+    } catch (error) {
+      toast({
+        title: "Setup not restarted",
+        description: error instanceof Error ? error.message : "Could not reopen setup.",
+        variant: "destructive",
+      })
+    } finally {
+      setRestartingSetup(false)
+    }
+  }, [router, toast])
 
   const deletionRequestedAt = str(draftSettings.deletionRequestedAt)
 
@@ -736,16 +763,35 @@ export default function SettingsWorkspace() {
             <div className="space-y-3">
               <p className="text-xs text-muted-foreground">
                 {onboarding?.status === "completed"
-                  ? "Complete. Every answer stays editable here, and the wizard can be re-read any time."
-                  : onboarding?.status === "in_progress"
-                    ? `In progress — step ${Math.min(onboarding.step + 1, ONBOARDING_STEP_COUNT)} of ${ONBOARDING_STEP_COUNT}.`
-                    : "Not started. Eight short steps: profile, workspace, industry, disciplines, preferences and a first project."}
+                  ? onboarding.grandfathered
+                    ? "Complete — this account predates the wizard, so it was carried over rather than asked to go through it."
+                    : "Complete. Every answer stays editable here, and the wizard can be re-read any time."
+                  : onboarding?.status === "skipped"
+                    ? "Set aside for now. You chose “set up later”, so the workspace no longer sends you back to it."
+                    : onboarding?.status === "in_progress"
+                      ? `In progress — step ${Math.min(onboarding.step + 1, ONBOARDING_STEP_COUNT)} of ${ONBOARDING_STEP_COUNT}.`
+                      : "Not started. Eight short steps: profile, workspace, industry, disciplines, preferences and a first project."}
               </p>
-              <Button asChild size="sm" variant="outline">
-                <Link href="/onboarding">
-                  Open setup wizard <ArrowRight className="ml-1 h-3.5 w-3.5" />
-                </Link>
-              </Button>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button asChild size="sm" variant="outline">
+                  <Link href="/onboarding">
+                    Open setup wizard <ArrowRight className="ml-1 h-3.5 w-3.5" />
+                  </Link>
+                </Button>
+                {onboarding && onboarding.status !== "in_progress" ? (
+                  <Button size="sm" variant="ghost" onClick={() => void restartSetup()} disabled={restartingSetup}>
+                    <RotateCcw className="mr-1 h-3.5 w-3.5" />
+                    {restartingSetup ? "Reopening…" : "Restart setup"}
+                  </Button>
+                ) : null}
+              </div>
+              {onboarding ? (
+                <p className="rounded-md bg-muted/60 p-2 text-[11px] leading-relaxed text-muted-foreground">
+                  Status is read from your <code>user_onboarding</code> row, where{" "}
+                  <code>{onboarding.origin}</code> says which rule decided it. Completing the wizard, or
+                  choosing “Set up later”, is what stops the workspace from redirecting here.
+                </p>
+              ) : null}
             </div>
           </SectionCard>
 

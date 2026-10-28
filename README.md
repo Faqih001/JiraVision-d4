@@ -82,12 +82,18 @@ Sign-in writes one cookie, `jv_session`, holding a 256-bit random token. The dat
 its SHA-256 digest, in `auth_sessions`, with `user_id`, `expires_at`, `last_seen_at` and
 `revoked_at`. A session ends after 24 hours without activity, slides forward on use, and is capped
 at 30 days from its first sign-in; signing out sets `revoked_at` rather than deleting the row.
-Passwords are bcrypt hashes compared at login.
+Passwords are bcrypt hashes compared at login, and a password-reset link carries 32 random bytes whose
+SHA-256 digest is the only thing `password_reset_tokens` stores.
 
 `proxy.ts` is a **redirect-only gate**: it checks that the cookie is present and sends anonymous
-visitors to `/login`. It can never be the security boundary, so the dashboard layout and every API
-route resolve the session themselves through `resolveSession()` / `getSession()` in `lib/session.ts`
-and scope their queries by the user id that lookup returns.
+visitors to `/login?next=…` so the page they asked for survives the sign-in. It can never be the
+security boundary, so the dashboard layout and every API route resolve the session themselves through
+`resolveSession()` / `getSession()` in `lib/session.ts` and scope their queries by the user id that
+lookup returns. `?next=` is validated by `safeNextPath` on the way back in.
+
+`npm run db:auth-sessions` creates `auth_sessions` (additive and safe to re-run). The marketing header
+reads the same session: a signed-in visitor sees their avatar with Dashboard, Settings and Log out in
+place of the Log in / Get started pair, and the drawer repeats it.
 
 Four outcomes are kept distinct, because collapsing them is what produced the "fake 401": a missing
 or unknown token is a sign-out, while a database that did not answer is a retry — it surfaces as a
@@ -163,16 +169,24 @@ safe to re-run.
 disciplines, Project management, First project, Review and finish. It is adaptive rather than required:
 every step but Welcome and Review can be skipped, and skipping leaves the default in place.
 
-State lives in `preferences.settings.onboarding` (`{ status, step, completedAt, version, data }`) and is
-written through `/api/settings`' existing jsonb merge, so no `users` column was added and no migration
-accompanies the wizard. Each step saves when it validates, which makes a refresh, a closed tab or a
-logout-then-signin lossless; a member can resume from the dashboard banner or reopen the wizard from
-`/dashboard/settings`.
+The answers live in `preferences.settings.onboarding` (`{ status, step, completedAt, version, data }`) and
+are written through `/api/settings`' existing jsonb merge, so no `users` column carries setup state. Each
+step saves when it validates, which makes a refresh, a closed tab or a logout-then-signin lossless; a
+member can resume from the banner, reopen the wizard from `/dashboard/settings`, pick *Set up later*
+(persisted as `skipped`) or *Restart setup*.
+
+Whether an account still owes setup is its own row: `user_onboarding` (`user_id`, `status`, `step`,
+`version`, `source`, timestamps), created by the dashboard gate on first contact. With an
+`active` session the dashboard layout redirects to `/onboarding` only when that row says `not_started` or
+`in_progress` — a failed gate read never redirects, and `skipped` counts as settled. The row always beats
+the stored preference, which is what makes Restart work. `npm run db:user-onboarding` is additive and safe
+to re-run; `npm run db:user-onboarding:backfill` previews one row per existing account and writes nothing
+without `--apply`.
 
 Existing members are grandfathered: an account created before 2026-10-27, or one that already has a task
 or a work-log row, reads as complete on first visit and is never routed through the wizard. Nothing on
-the path clears a saved preference, and the dashboard never redirects — an incomplete member sees a
-*Resume setup* banner, not a wall.
+the path clears a saved preference, and `/dashboard` itself never redirects — an `in_progress` member sees
+a *Resume setup* banner, not a wall.
 
 Joining a workspace works by invitation, not by typing a name. A super-admin sends a link from
 `/dashboard/team`; the token in `/onboarding?invite=…` is stored as a SHA-256 hash, expires after seven

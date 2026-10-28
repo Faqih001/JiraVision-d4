@@ -831,3 +831,27 @@ export const authSessions = pgTable(
   },
   (table) => [index("auth_sessions_user_idx").on(table.userId)],
 )
+
+// Whether an account has ever been through setup is a fact about the account, not a
+// preference, so it gets its own row: one row per user, created by the gate on first
+// contact or by the backfill for accounts that predate the wizard. The answers themselves
+// stay in users.preferences.settings.onboarding.data; this is the gate's memory.
+// status: not_started | in_progress | completed | skipped. Only completed and skipped
+// let a member into the workspace.
+export const userOnboarding = pgTable(
+  "user_onboarding",
+  {
+    userId: integer("user_id").primaryKey().references(() => users.id, { onDelete: "cascade" }),
+    status: varchar("status", { length: 16 }).notNull().default("not_started"),
+    step: integer("step").notNull().default(0),
+    version: integer("version").notNull().default(1),
+    // How the row came to exist: gate | wizard | signup | backfill.
+    source: varchar("source", { length: 16 }).notNull().default("gate"),
+    startedAt: timestamp("started_at", { withTimezone: true }),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    skippedAt: timestamp("skipped_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [index("user_onboarding_status_idx").on(table.status)],
+)

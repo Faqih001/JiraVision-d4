@@ -207,7 +207,8 @@ describe("onboarding does not become a second schema", () => {
   it("sends the session, never a client flag, to decide the step", () => {
     const page = codeOnly(src("app/onboarding/page.tsx"))
     expect(page).toMatch(/getCurrentUser\(\)/)
-    expect(page).toMatch(/redirect\("\/login"\)/)
+    // Anonymous goes to /login carrying the path (and the invite query) it was asked for.
+    expect(page).toMatch(/redirect\(`\/login\?next=\$\{encodeURIComponent\(requested\)\}`\)/)
   })
 
   it("does not read the invitation token from a header or log it", () => {

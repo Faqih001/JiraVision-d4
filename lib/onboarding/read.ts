@@ -4,17 +4,19 @@
 
 import { and, eq, isNull, sql } from "drizzle-orm"
 import { db } from "@/lib/db"
-import { users, workspaceInvitations } from "@/drizzle/schema"
+import { userOnboarding, users, workspaceInvitations } from "@/drizzle/schema"
 import type { SessionUser } from "@/lib/session"
 import { isSuperAdmin } from "@/lib/roles"
 import { loadPacks, defaultDisciplineOf } from "@/lib/registers/read"
 import { resolvePack } from "@/lib/packs/pack"
 import { readTeamSettings } from "@/lib/team-settings"
 import {
-  effectiveStatus,
+  decideOnboardingGate,
+  readOnboardingRow,
   readOnboardingState,
-  resumeStep,
   type OnboardingData,
+  type OnboardingGateDecision,
+  type OnboardingRow,
   type OnboardingState,
   type OnboardingStatus,
 } from "./state"
@@ -23,6 +25,9 @@ export type OnboardingView = {
   status: OnboardingStatus
   step: number
   completedAt: string | null
+  skippedAt: string | null
+  /** Which rule decided the status: the row, the legacy preference, the grandfather rule or nothing. */
+  origin: OnboardingGateDecision["origin"]
   data: OnboardingData
   grandfathered: boolean
   canRenameTeam: boolean
@@ -48,25 +53,67 @@ function storedOnboarding(user: SessionUser): unknown {
   return (settings as Record<string, unknown>).onboarding
 }
 
-export async function readOnboardingView(user: SessionUser): Promise<OnboardingView> {
+export async function readOnboardingView(user: SessionUser, gate?: OnboardingGateDecision): Promise<OnboardingView> {
   const state: OnboardingState = readOnboardingState(storedOnboarding(user))
-  const activity = await hasActivity(user.id)
-  const createdAtIso = user.createdAt ? new Date(user.createdAt).toISOString() : null
-  const status = effectiveStatus(state, { createdAtIso, hasActivity: activity })
+  const decision = gate ?? (await readOnboardingGate(user))
   const packs = await loadPacks(false)
   const pack = resolvePack(packs, defaultDisciplineOf(user))
   const team = await readTeamSettings()
 
   return {
-    status,
-    step: resumeStep(state),
-    completedAt: state.completedAt,
+    status: decision.status,
+    step: decision.step,
+    completedAt: decision.completedAt ?? state.completedAt,
+    skippedAt: decision.skippedAt,
+    origin: decision.origin,
     data: state.data,
-    grandfathered: status === "completed" && state.status === "not_started",
+    grandfathered: decision.grandfathered,
     canRenameTeam: isSuperAdmin(user),
     teamName: team.teamName,
     pack: pack ? { packKey: pack.packKey, title: pack.title, sections: pack.sections } : null,
   }
+}
+
+/** The user_onboarding row, or null when the account has never been recorded. */
+export async function readGateRow(userId: number): Promise<OnboardingRow | null> {
+  const [row] = await db
+    .select({
+      status: userOnboarding.status,
+      step: userOnboarding.step,
+      version: userOnboarding.version,
+      source: userOnboarding.source,
+      completedAt: userOnboarding.completedAt,
+      skippedAt: userOnboarding.skippedAt,
+    })
+    .from(userOnboarding)
+    .where(eq(userOnboarding.userId, userId))
+    .limit(1)
+  if (!row) return null
+  return readOnboardingRow({
+    status: row.status,
+    step: row.step,
+    version: row.version,
+    source: row.source,
+    completedAt: row.completedAt ? row.completedAt.toISOString() : null,
+    skippedAt: row.skippedAt ? row.skippedAt.toISOString() : null,
+  })
+}
+
+/**
+ * The one question the dashboard asks: does this account still owe setup? The row answers
+ * when it exists; otherwise the legacy preference and the grandfather rule decide, so an
+ * account created before the wizard is never dragged back through it. The activity count
+ * costs two lookups, so it is only paid when there is no row to answer first.
+ */
+export async function readOnboardingGate(user: SessionUser): Promise<OnboardingGateDecision> {
+  const legacy = readOnboardingState(storedOnboarding(user))
+  const createdAtIso = user.createdAt ? new Date(user.createdAt).toISOString() : null
+
+  const row = await readGateRow(user.id)
+  if (row) return decideOnboardingGate({ row, legacy, user: { createdAtIso, hasActivity: false } })
+
+  const hasWork = await hasActivity(user.id)
+  return decideOnboardingGate({ row: null, legacy, user: { createdAtIso, hasActivity: hasWork } })
 }
 
 export type InvitationRecord = {

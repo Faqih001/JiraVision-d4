@@ -1110,8 +1110,9 @@ with a note about where the value comes from) rather than in code.
 
 ## Password resets
 
-Tokens are stored in password_reset_tokens with an expiry. /forgot-password requests one,
-/reset-password consumes it. A token can be used once.
+The link carries a 256-bit random token; password_reset_tokens stores only its SHA-256 digest, with an
+expiry. /forgot-password requests one, /reset-password consumes it. A token can be used once. If the
+database cannot answer, both routes reply 503 instead of calling the link invalid.
 
 ## Development note
 

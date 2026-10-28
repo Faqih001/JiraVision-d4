@@ -78,6 +78,34 @@ describe("the edge gate cannot fight the workspace", () => {
   })
 })
 
+describe("the marketing header shows the member, not an invitation", () => {
+  const code = codeOnly(src("components/layout/navbar.tsx"))
+
+  it("an avatar menu replaces Log in / Get started once a user is known", () => {
+    expect(code).toMatch(/\{user \? \(\s*<AccountMenu \/>/)
+    expect(code).toMatch(/aria-label=\{`Account menu for/)
+    expect(code).toMatch(/onClick=\{\(\) => void logout\(\)\}/)
+  })
+
+  it("the pair only renders for a finished read that found nobody", () => {
+    expect(code).toMatch(/: isLoading \? \(\s*<span\s+aria-hidden="true"\s+className="h-8 w-8 animate-pulse rounded-full bg-muted"/)
+    expect(code).toMatch(/<Link href="\/login">Log in<\/Link>/)
+    expect(code).toMatch(/<Link href="\/signup">Get started<\/Link>/)
+  })
+
+  it("the drawer repeats the same three states", () => {
+    expect(code).toMatch(/<UserAvatar user=\{user\} className="h-9 w-9" \/>/)
+    expect(code).toMatch(/<Link href="\/dashboard">Dashboard<\/Link>/)
+    // Two sign-out paths, the menu's and the drawer's, each a real call.
+    expect(code.match(/void logout\(\)/g)).toHaveLength(2)
+  })
+
+  it("the avatar falls back to initials, never an empty circle", () => {
+    expect(code).toMatch(/function initialsOf\(/)
+    expect(code).toMatch(/<AvatarFallback className="text-xs font-semibold">\{initialsOf\(user\)\}<\/AvatarFallback>/)
+  })
+})
+
 describe("the auth layer keeps its own secrets", () => {
   it("no session id or user id is written to the log", () => {
     for (const file of ["lib/auth-actions.ts", "lib/session.ts", "app/api/auth/session/route.ts"]) {
@@ -137,7 +165,28 @@ describe("the redirect back into the app is validated", () => {
   it("the workspace sends an anonymous visitor to /login with where they were", () => {
     const code = codeOnly(src("components/dashboard-layout.tsx"))
     expect(code).toMatch(/status === "ready" && !user/)
-    expect(code).toMatch(/params\.set\("next", pathname\)/)
+    expect(code).toMatch(/params\.set\("next", target\)/)
+    expect(code).toMatch(/window\.location\.search/)
+  })
+
+  it("the edge gate carries the deep link into /login", () => {
+    const code = codeOnly(src("proxy.ts"))
+    expect(code).toMatch(/loginUrl\.searchParams\.set\("next", requested\)/)
+    expect(code).toMatch(/requestHeaders\.set\(PATH_HEADER, requested\)/)
+    expect(code).toMatch(/const requested = `\$\{path\}\$\{request\.nextUrl\.search\}`/)
+    // The query string is part of where they were going: an invite link must survive sign-in.
+    expect(code).toMatch(/request\.nextUrl\.search/)
+  })
+
+  it("the server layouts validate the recorded path instead of trusting it", () => {
+    const dashboard = codeOnly(src("app/dashboard/layout.tsx"))
+    expect(dashboard).toMatch(/safeNextPath\(\(await headers\(\)\)\.get\("x-jv-path"\)\)/)
+    expect(dashboard).toMatch(/if \(session\.state === "anonymous"\) redirect\(loginHref\(\)\)/)
+    expect(dashboard).toMatch(/redirect\(loginHref\(session\.reason\)\)/)
+
+    const onboarding = codeOnly(src("app/onboarding/page.tsx"))
+    expect(onboarding).toMatch(/safeNextPath\(\(await headers\(\)\)\.get\("x-jv-path"\)\)/)
+    expect(onboarding).toMatch(/redirect\(`\/login\?next=\$\{encodeURIComponent\(requested\)\}`\)/)
   })
 })
 

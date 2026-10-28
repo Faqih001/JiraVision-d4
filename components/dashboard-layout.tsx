@@ -221,7 +221,8 @@ export default function DashboardLayout({
     // did not answer, and bouncing on that is the fake 401 this path exists to stop.
     if (status === "ready" && !user) {
       const params = new URLSearchParams()
-      if (pathname && pathname !== "/dashboard") params.set("next", pathname)
+      const target = `${pathname}${window.location.search}`
+      if (pathname && target !== "/dashboard") params.set("next", target)
       if (sessionReason) params.set("reason", sessionReason)
       const query = params.toString()
       router.push(query ? `/login?${query}` : "/login")

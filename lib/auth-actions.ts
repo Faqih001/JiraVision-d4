@@ -2,7 +2,6 @@
 
 import { redirect } from "next/navigation"
 import bcrypt from "bcryptjs"
-import { v4 as uuidv4 } from "uuid"
 import {
   createUser,
   getUserByEmail,
@@ -17,6 +16,7 @@ import { Resend } from "resend"
 import { users } from "@/drizzle/schema"
 import { eq } from "drizzle-orm"
 import { roleForSignup } from "./roles"
+import { createResetToken } from "./auth/reset-token"
 import {
   beginSession,
   clearSessionCookies,
@@ -98,7 +98,7 @@ export async function login(formData: FormData): Promise<ActionResult> {
 
     await beginSession(user.id)
 
-    const { passwordHash, ...userWithoutPassword } = user
+    const { passwordHash: _passwordHash, ...userWithoutPassword } = user
     return { success: true, user: userWithoutPassword }
   } catch (error) {
     const stalled = unreachable(error)
@@ -185,8 +185,8 @@ export async function forgotPassword(formData: FormData): Promise<ActionResult> 
       return { success: true, message: "If your email is registered, you will receive a password reset link" }
     }
 
-    // Generate a secure token
-    const token = uuidv4()
+    // A 256-bit random token; the table keeps only its digest (lib/auth/reset-token.ts).
+    const token = createResetToken()
     const expiresAt = new Date()
     expiresAt.setHours(expiresAt.getHours() + 1) // Token expires in 1 hour
 
@@ -256,6 +256,11 @@ export async function verifyResetToken(token: string) {
 
     return { valid: true }
   } catch (error) {
+    // A database that did not answer must not read as a dead link: the link is fine and the
+    // person would request a new one for nothing.
+    if (unreachable(error)) {
+      return { valid: false, unavailable: true, message: UNAVAILABLE.message }
+    }
     console.error("Verify token error:", error)
     return { valid: false, message: "An unexpected error occurred" }
   }
@@ -300,6 +305,8 @@ export async function resetPassword(formData: FormData) {
 
     return { success: true, message: "Password has been reset successfully" }
   } catch (error) {
+    // Same rule as verify: a stall is a retry, not "invalid or expired token".
+    if (unreachable(error)) return UNAVAILABLE
     console.error("Reset password error:", error)
     return { success: false, message: "An unexpected error occurred" }
   }

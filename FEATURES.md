@@ -466,8 +466,9 @@ followed. Manual authoring is the whole surface of this phase — no model write
 ## 22. Onboarding (phase 17, 2026-10-27)
 
 A new member's first ten minutes: eight adaptive steps that each save when they pass, a resume that
-survives a closed tab, and a gate that never blocks — or re-asks — someone who was already working.
-The phase adds one table, five routes and no `users` column.
+survives a closed tab, and a gate that only sends an account that still owes setup — never one that was
+already working. The phase adds one table, five routes and no `users` column; a later wave adds a second,
+`user_onboarding`, which is the gate's memory.
 
 - **The migration ran, additively.** `scripts/create-invitations-table.mjs` (`npm run db:invitations`)
   uses `CREATE TABLE IF NOT EXISTS` only and seeds nothing, so a re-run is a no-op. It ran against
@@ -482,22 +483,41 @@ The phase adds one table, five routes and no `users` column.
   and Review has *Skip*, and skipping is a valid answer that leaves the default in place. The rail marks
   the current step with `aria-current="step"`, the step heading takes focus on each move and progress is
   announced with `aria-live="polite"`.
-- **State is one namespaced object, no migration.** `preferences.settings.onboarding` holds
-  `{ status, step, completedAt, version, data }` and is written through the existing `/api/settings`
-  `jsonb_set` merge. `/api/settings` now permits exactly one namespaced object — `onboarding` — and hands
-  it to `readOnboardingPatch`, which refuses unknown fields, credential-shaped paths, a reset back to
-  `not_started`, a downgrade from `completed`, an unknown status and a discipline outside
-  `WORK_DISCIPLINES`; it stamps `completedAt` only on completion. Profile fields go through the existing
-  `/api/user/profile` PATCH. A step persists when it validates, which is what makes a refresh, a closed
-  tab and a logout-then-signin all lossless.
-- **Existing members are grandfathered, never reset.** `effectiveStatus` treats an account created before
-  `2026-10-27`, or one that already has a task or work-log row, as completed on first read, and a stored
-  status always wins over that fallback. Nothing on the onboarding path clears a saved preference — the
-  write is a merge, and a `completed` member who reopens the wizard can change answers without losing them.
-- **The gate redirects no one.** `/onboarding` reads the server session (`getCurrentUser()`, anonymous →
-  `/login`); the dashboard never redirects to it. The only automatic change is signup's push becoming
-  `router.push("/onboarding")`; after that, a member whose status is `in_progress` sees a dashed
-  *Resume setup — step N of 8* banner, and one who is complete sees nothing. There is no wall and no loop.
+- **The answers are one namespaced object; the gate has its own row.** `preferences.settings.onboarding`
+  holds `{ status, step, completedAt, version, data }` and is written through the existing `/api/settings`
+  `jsonb_set` merge, so no `users` column carries setup state. `/api/settings` permits exactly one
+  namespaced object — `onboarding` — and hands it to `readOnboardingPatch`, which refuses unknown fields,
+  credential-shaped paths, a reset back to `not_started`, a downgrade from `completed` (unless the gate row
+  says the member is restarting), an unknown status and a discipline outside `WORK_DISCIPLINES`; it stamps
+  `completedAt` only on completion. Profile fields go through the existing `/api/user/profile` PATCH. A step
+  persists when it validates, which is what makes a refresh, a closed tab and a logout-then-signin all lossless.
+- **The gate's memory is `user_onboarding`, one row per account.** `scripts/create-user-onboarding-table.mjs`
+  (`npm run db:user-onboarding`) is additive-only — `CREATE TABLE IF NOT EXISTS`, one FK to `users` as
+  `ON DELETE CASCADE`, one status index, no seed rows — and `scripts/rollback-user-onboarding-table.mjs`
+  refuses unless `USER_ONBOARDING_ROLLBACK=yes`. Columns: `user_id` (PK), `status`
+  (`not_started | in_progress | completed | skipped`), `step`, `version`, `source`
+  (`gate | wizard | signup | backfill`), `started_at`, `completed_at`, `skipped_at`, timestamps. A saved step
+  writes the row through `syncOnboardingRow`; `PATCH /api/onboarding` accepts exactly two actions — `skip`
+  (*Set up later*) marks the row `skipped`, `restart` returns it to `in_progress` at step 0 and clears the
+  settled timestamps. The row wins over the stored preference, which is what lets Restart work on a
+  completed member who still has `completed` in preferences.
+- **Existing members are grandfathered, never reset.** With no row, `decideOnboardingGate` falls back to
+  `effectiveStatus`, which treats an account created before `2026-10-27`, or one that already has a task or
+  work-log row, as completed on first read, and a stored status beats that fallback.
+  `scripts/backfill-user-onboarding.mjs` (`npm run db:user-onboarding:backfill`) previews a per-user plan
+  and writes nothing without `--apply`; `--apply` inserts with `ON CONFLICT (user_id) DO NOTHING`, so a
+  re-run cannot overwrite a row the gate already made. Nothing on the onboarding path clears a saved
+  preference — the write is a merge, and a `completed` member who reopens the wizard can change answers
+  without losing them.
+- **The gate sends only the accounts that still owe setup.** `/dashboard/layout.tsx` reads the gate after an
+  `active` session read and redirects to `/onboarding` only when the decision says `pending` (status
+  `not_started` or `in_progress`, not grandfathered); the first such redirect creates the row
+  (`source: "gate"`) so the account has a memory from then on. A *failed* gate read never redirects — the
+  same rule as a failed session read: a database that did not answer never decides where somebody goes.
+  `/onboarding` itself reads the server session (anonymous → `/login`); apart from signup's
+  `router.push("/onboarding")` there is no other push, `skipped` and `completed` both settle the account,
+  and `/dashboard` never redirects — an `in_progress` member sees a dashed *Resume setup — step N of 8*
+  banner. There is no wall and no loop.
 - **Invitations are tokens, not typed emails.** `workspace_invitations` stores a SHA-256 hash of a
   32-byte base64url token, the invited email, the granted role (`user` or `admin`), the inviter and an
   expiry seven days out. `POST /api/team/invitations` is super-admin only and returns the plaintext link
@@ -518,17 +538,21 @@ The phase adds one table, five routes and no `users` column.
   read — a 401 or a slow DB can only drop a banner, never block the page. When a pack is resolved, a strip
   lists its sections (filtered to the five the dashboard actually has) in the pack's order; when the
   status is `in_progress`, the resume banner appears above the KPI cards.
-- **Re-editable, and finished in two writes.** `/dashboard/settings` carries a *Setup wizard* card that
-  states the status and links back to `/onboarding`. *Finish* saves the account name first when the
-  profile step was skipped past (so the required-name rule is not a trap), then saves
-  `status: "completed"`; a failed save leaves the status untouched and shows the reason.
+- **Re-editable, deferrable, restartable, and finished in two writes.** `/dashboard/settings` carries a
+  *Setup wizard* card that states the status (including the grandfathered variant), names the row and its
+  `origin`, links back to `/onboarding` and offers *Restart setup* whenever the account is not already
+  `in_progress`. The wizard's *Set up later* is a persisted `skipped`, not a no-op. *Finish* saves the
+  account name first when the profile step was skipped past (so the required-name rule is not a trap), then
+  saves `status: "completed"`; a failed save leaves the status untouched and shows the reason.
 - **Deliberately absent**: a `phone` or onboarding column on `users`; an organization or membership table
   beyond the invitation; a team name editable by a non-admin; an auto-created project or task; password
   collection anywhere in the wizard; and any client-side flag deciding completion — the stored row does.
 - Guards: `tests/unit/onboarding-state.test.ts`, `settings-patch.test.ts`,
-  `onboarding-invitation.test.ts`, `onboarding-schema.test.ts`, `onboarding-routes.test.ts` and
-  `onboarding-checks.test.ts` (the owner's seventeen checks, each naming its scenario) — six files, 65
-  tests — plus four onboarding guards in `worklog-reports.test.ts`. Suite: 103 files / 1729 tests.
+  `onboarding-invitation.test.ts`, `onboarding-schema.test.ts`, `onboarding-routes.test.ts`,
+  `onboarding-checks.test.ts` (the owner's seventeen checks, each naming its scenario) and
+  `onboarding-gate.test.ts` (the gate rules, skip/restart, the layout wiring, the page's no-redirect rule
+  and the three scripts) — seven files, 97 tests — plus four onboarding guards in `worklog-reports.test.ts`.
+  Suite: 121 files / 1981 tests.
 
 
 ## 23. Agent entry (phase 18, 2026-10-27)
@@ -568,3 +592,51 @@ The phase adds one table, five routes and no `users` column.
 - Guards: `agent-handover` (10), `agent-precautions` (9), `recommend-next` (13), `agent-routes` (16),
   `agent-page` (10) — five files, 58 tests, plus two existing guards taught the new gate and the new
   `aiMarked` rule. Suite: 108 files / 1791 tests.
+
+## 24. Sessions, deep links and a signed-in header (2026-10-28)
+
+A login is a row, not a pair of self-asserted cookies; a deep link survives the sign-in it interrupts;
+and the public header greets a member with their own face instead of an invitation to join. One new
+table, nine new guard files, no change to how the pages themselves are written.
+
+- **The cookie is opaque and the database decides.** `jv_session` carries 32 random bytes as base64url;
+  only `sha256(token)` is stored, in `auth_sessions` (`user_id` FK cascade, `expires_at`, `last_seen_at`,
+  `revoked_at`). A session ends after 24 idle hours, slides forward when it is used (renewed under 20h),
+  and is capped at 30 days from its first sign-in; `last_seen_at` is written at most once a minute so a
+  poll cannot turn into a write per request. Signing out sets `revoked_at` — the row is the record.
+  `scripts/create-auth-sessions-table.mjs` (`npm run db:auth-sessions`) is additive-only and
+  `scripts/rollback-auth-sessions-table.mjs` refuses unless `AUTH_SESSIONS_ROLLBACK=yes`.
+- **Four outcomes, never collapsed into two.** `anonymous`, `invalid` (`not_found | expired | revoked`),
+  `unreachable` and `active` are distinct end to end. A missing, unknown or revoked token is a sign-out;
+  a database that did not answer is a retry — `/api/auth/session` answers 503 with `Retry-After`, and the
+  dashboard layout falls through instead of redirecting. That distinction is the "fake 401" fix: a waking
+  Neon compute can no longer look like an attacker.
+- **The old cookies are cleared, never honoured.** `session_id` and `user_id` are deleted on the next
+  login or logout and never read; no route or action accepts a user id from the browser.
+- **A deep link survives sign-in.** `proxy.ts` sends an anonymous visitor to
+  `/login?next=<path + query>` and records the same value in an `x-jv-path` request header for the server
+  layouts, which redirect only after reading the row. The login page runs `?next=` through
+  `safeNextPath` — single-slash-rooted, no backslash, no control characters, no path that would bounce
+  back into auth — and falls back to `/dashboard`. `/onboarding?invite=…` travels the same way, so an
+  invited visitor returns to the exact link.
+- **Every auth endpoint is rate limited.** Fixed-window counters keyed by `auth:<scope>:ip:<ip>` and
+  `auth:<scope>:email:<email>` answer 429 with `Retry-After`; a successful login refunds its attempts so
+  a busy shared IP does not lock the next person out.
+- **A reset link is a digest too.** `lib/auth/reset-token.ts` mints 32 random bytes and
+  `password_reset_tokens.token` stores only `sha256(token)`, so a dump of that table is not a set of
+  working links; the lookup and the delete hash the incoming value the same way. A stalled database on
+  this path now throws `DatabaseUnreachableError` instead of answering null, so `/api/auth/verify-token`
+  and `/api/auth/reset-password` reply 503 and the page says "try again" rather than "invalid or expired
+  token" to somebody whose link is perfectly good.
+- **The header shows the member.** The marketing navbar reads `useAuth()` and renders three states: the
+  avatar menu (name, email, Dashboard, Settings, Log out) for a known user; the Log in / Get started pair
+  for a finished read that found nobody; and an avatar-sized placeholder while the first read is still in
+  flight, so nobody is called signed out before the cookie is read. Initials fall back from the name to
+  the email's first letter. The drawer repeats the same three states with the account block above
+  Dashboard and Log out.
+- **Deliberately absent**: a JWT or refresh token; a second cookie; a written `last_seen_at` on every
+  request; a reverse bounce off `/login` (a signed-in visitor may see the form; nothing there is unsafe);
+  a client-side opinion about who is signed in; and any redirect decided on `unreachable`.
+- Guards: `session-token`, `session-expiry`, `session-state`, `session-store`, `session-schema`,
+  `session-read`, `session-guards`, `next-path`, `rate-limit`, `reset-token` — ten files, 131
+  tests. Suite: 121 files / 1981 tests.

@@ -365,8 +365,17 @@ export function OnboardingWizard({ initial, inviteToken, account }: Props) {
     setSaving(true)
     setError("")
     try {
-      await saveOnboarding({ status: "in_progress", step })
+      // "Set up later" has to be recorded as a decision on the gate row, or the dashboard
+      // gate sends the member straight back here on the next request.
+      const res = await fetch("/api/onboarding", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "skip" }),
+      })
+      const json = await res.json().catch(() => null)
+      if (!res.ok || !json?.success) throw new Error(json?.message ?? "Could not save that choice")
       router.push("/dashboard")
+      router.refresh()
     } catch (err) {
       setError((err as Error).message)
       setSaving(false)
@@ -906,7 +915,7 @@ export function OnboardingWizard({ initial, inviteToken, account }: Props) {
 
               <div className="ml-auto flex flex-wrap items-center gap-2">
                 <Button type="button" variant="ghost" onClick={finishLater} disabled={saving}>
-                  Finish later
+                  Set up later
                 </Button>
                 {showSkip ? (
                   <Button type="button" variant="outline" onClick={skip} disabled={saving}>

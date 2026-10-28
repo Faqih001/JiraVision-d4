@@ -3,6 +3,7 @@ import postgres from 'postgres';
 import * as schema from '@/drizzle/schema';
 import { eq } from 'drizzle-orm';
 import { users, passwordResetTokens } from '@/drizzle/schema';
+import { resetTokenHash } from '@/lib/auth/reset-token';
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 
 // User type for authentication
@@ -309,7 +310,7 @@ export async function createPasswordResetToken(
     const [result] = await db.insert(passwordResetTokens)
       .values({
         userId: userId,
-        token: token,
+        token: resetTokenHash(token),
         expiresAt: expiresAt,
         createdAt: new Date()
       })
@@ -317,6 +318,12 @@ export async function createPasswordResetToken(
     
     return result;
   } catch (error) {
+    // The caller has just told the visitor to check their inbox. If the insert did not happen, no
+    // link exists, so a stall has to surface as "not saved" rather than as a silent success.
+    if (isConnectionFailure(error)) {
+      console.error("Database unreachable while storing a reset token:", error);
+      throw new DatabaseUnreachableError();
+    }
     console.error("Error creating password reset token:", error);
     return null;
   }
@@ -325,11 +332,16 @@ export async function createPasswordResetToken(
 export async function getPasswordResetToken(token: string) {
   try {
     const result = await db.query.passwordResetTokens.findFirst({
-      where: eq(passwordResetTokens.token, token)
+      where: eq(passwordResetTokens.token, resetTokenHash(token))
     });
     
     return result;
   } catch (error) {
+    // A cold database is not a bad link. Same rule as getUserByEmail: a stall is never a miss.
+    if (isConnectionFailure(error)) {
+      console.error("Database unreachable while reading a reset token:", error);
+      throw new DatabaseUnreachableError();
+    }
     console.error("Error getting password reset token:", error);
     return null;
   }
@@ -338,7 +350,7 @@ export async function getPasswordResetToken(token: string) {
 export async function deletePasswordResetToken(token: string) {
   try {
     await db.delete(passwordResetTokens)
-      .where(eq(passwordResetTokens.token, token));
+      .where(eq(passwordResetTokens.token, resetTokenHash(token)));
   } catch (error) {
     console.error("Error deleting password reset token:", error);
   }

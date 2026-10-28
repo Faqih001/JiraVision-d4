@@ -25,8 +25,12 @@ export const ONBOARDING_EPOCH_ISO = "2026-10-27"
 export const ONBOARDING_VERSION = 1
 export const ONBOARDING_KEY = "onboarding"
 
-export const ONBOARDING_STATUSES = ["not_started", "in_progress", "completed"] as const
+export const ONBOARDING_STATUSES = ["not_started", "in_progress", "completed", "skipped"] as const
 export type OnboardingStatus = (typeof ONBOARDING_STATUSES)[number]
+
+/** How a user_onboarding row came to exist. */
+export const ONBOARDING_SOURCES = ["gate", "wizard", "signup", "backfill"] as const
+export type OnboardingSource = (typeof ONBOARDING_SOURCES)[number]
 
 export const SPRINT_VIEWS = ["board", "list", "grid"] as const
 export const WORKSPACE_KINDS = ["personal", "team", "joined", "requested"] as const
@@ -213,6 +217,9 @@ export type OnboardingPatch =
   | { ok: true; value: OnboardingState }
   | { ok: false; error: string }
 
+/** Restarting is the one way a completed member may move backwards, and only from their own row. */
+export type OnboardingPatchOptions = { allowRestart?: boolean }
+
 const PATCH_FIELDS = ["status", "step", "data"] as const
 
 /**
@@ -220,7 +227,12 @@ const PATCH_FIELDS = ["status", "step", "data"] as const
  * `completed` without the one required field, cannot downgrade a completed member, and
  * cannot store a key the state does not declare.
  */
-export function readOnboardingPatch(value: unknown, current: OnboardingState, nowIso: string): OnboardingPatch {
+export function readOnboardingPatch(
+  value: unknown,
+  current: OnboardingState,
+  nowIso: string,
+  options: OnboardingPatchOptions = {},
+): OnboardingPatch {
   const source = asObject(value)
   if (Object.keys(source).length === 0) return { ok: false, error: "No onboarding change provided" }
 
@@ -242,7 +254,7 @@ export function readOnboardingPatch(value: unknown, current: OnboardingState, no
   if (status === "not_started" && current.status !== "not_started") {
     return { ok: false, error: "Onboarding cannot be reset through this route." }
   }
-  if (status === "in_progress" && current.status === "completed") {
+  if (status === "in_progress" && current.status === "completed" && !options.allowRestart) {
     return { ok: false, error: "Setup is already complete." }
   }
 
@@ -264,7 +276,12 @@ export function readOnboardingPatch(value: unknown, current: OnboardingState, no
     value: {
       status: status as OnboardingStatus,
       step,
-      completedAt: status === "completed" ? current.completedAt ?? nowIso : current.completedAt,
+      completedAt:
+        status === "completed"
+          ? current.completedAt ?? nowIso
+          : status === "in_progress" && current.status === "completed"
+            ? null // a restart clears the old finish; finishing again stamps a new one
+            : current.completedAt,
       version: ONBOARDING_VERSION,
       data,
     },
@@ -288,4 +305,92 @@ export function effectiveStatus(
 
 export function resumeStep(state: OnboardingState): number {
   return clampStep(state.step)
+}
+
+// ---------------------------------------------------------------------------------------
+// The gate: one row per account says whether setup was dealt with, and only two statuses
+// let a member into the workspace. Answers stay in preferences; this is the memory.
+// ---------------------------------------------------------------------------------------
+
+export type OnboardingRow = {
+  status: OnboardingStatus
+  step: number
+  version: number
+  source: OnboardingSource
+  completedAt: string | null
+  skippedAt: string | null
+}
+
+/** A row that cannot be trusted reads as `null`, which makes the gate fall back to the old rules. */
+export function readOnboardingRow(value: unknown): OnboardingRow | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null
+  const row = value as Record<string, unknown>
+  return {
+    status: oneOf(row.status, ONBOARDING_STATUSES, "not_started"),
+    step: clampStep(row.step),
+    version: int(row.version) ?? ONBOARDING_VERSION,
+    source: oneOf(row.source, ONBOARDING_SOURCES, "gate"),
+    completedAt: iso(row.completedAt),
+    skippedAt: iso(row.skippedAt),
+  }
+}
+
+/** Only these let a member into the workspace; the gate sends every other status to /onboarding. */
+export function isOnboardingSettled(status: OnboardingStatus): boolean {
+  return status === "completed" || status === "skipped"
+}
+
+export type OnboardingGateDecision = {
+  status: OnboardingStatus
+  step: number
+  completedAt: string | null
+  skippedAt: string | null
+  redirect: boolean
+  grandfathered: boolean
+  /** Which rule produced this answer — useful in the settings card and in tests. */
+  origin: "row" | "legacy" | "grandfather" | "new"
+  row: OnboardingRow | null
+}
+
+export type OnboardingGateInput = {
+  row: OnboardingRow | null
+  /** preferences.settings.onboarding, which predates the table and still holds the answers. */
+  legacy: OnboardingState
+  user: { createdAtIso: string | null; hasActivity: boolean }
+}
+
+const LAST_STEP = ONBOARDING_STEP_COUNT - 1
+
+/**
+ * The row wins whenever it exists, including `skipped` and `in_progress` after a restart —
+ * otherwise "set up later" would be re-asked on every page load. With no row the legacy
+ * status and the grandfather rule decide, so an account that predates the wizard is never
+ * dragged back through it.
+ */
+export function decideOnboardingGate({ row, legacy, user }: OnboardingGateInput): OnboardingGateDecision {
+  if (row) {
+    return {
+      status: row.status,
+      step: row.status === "in_progress" ? row.step : row.status === "completed" ? LAST_STEP : 0,
+      completedAt: row.completedAt,
+      skippedAt: row.skippedAt,
+      redirect: !isOnboardingSettled(row.status),
+      grandfathered: false,
+      origin: "row",
+      row,
+    }
+  }
+
+  const status = effectiveStatus(legacy, user)
+  const grandfathered = status === "completed" && legacy.status === "not_started"
+  return {
+    status,
+    step: status === "in_progress" ? resumeStep(legacy) : status === "completed" ? LAST_STEP : 0,
+    completedAt: status === "completed" ? legacy.completedAt : null,
+    skippedAt: null,
+    redirect: !isOnboardingSettled(status),
+    grandfathered,
+    origin: grandfathered ? "grandfather" : status !== "not_started" ? "legacy" : "new",
+    row: null,
+  }
 }

@@ -25,6 +25,16 @@ import {
 import { AnnouncementBar } from "@/components/layout/announcement-bar"
 import { GoogleTranslateSelect } from "@/components/layout/google-translate"
 import { ThemeToggle } from "@/components/layout/theme-toggle"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { useAuth, type User } from "@/context/auth-context"
 import {
   menuFeatures,
   productItems,
@@ -33,7 +43,7 @@ import {
   type MenuFeature,
   type NavItem,
 } from "@/content/site"
-import { ChevronDown, Menu, Search } from "lucide-react"
+import { ChevronDown, LayoutDashboard, LogOut, Menu, Search, Settings } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { OPEN_SEARCH_EVENT } from "@/components/features/site-search"
 
@@ -94,7 +104,74 @@ function FeaturedCard({ feature }: { feature: MenuFeature }) {
 }
 
 /**
- * One drawer group can be open at a time, so the accordion state lives on the Navbar and
+ * Two letters from a name ("Amara Okafor" → "AO"), one from a single word, and the email's
+ * first letter when there is no name — never an empty circle.
+ */
+function initialsOf(user: Pick<User, "name" | "email">): string {
+  const words = (user.name ?? "").trim().split(/\s+/).filter(Boolean)
+  if (words.length >= 2) return (words[0][0] + words[words.length - 1][0]).toUpperCase()
+  if (words.length === 1) return words[0].slice(0, 1).toUpperCase()
+  return ((user.email ?? "").trim()[0] ?? "?").toUpperCase()
+}
+
+function UserAvatar({ user, className }: { user: User; className?: string }) {
+  return (
+    <Avatar className={cn("border border-border", className)}>
+      {user.avatar ? <AvatarImage src={user.avatar} alt="" /> : null}
+      <AvatarFallback className="text-xs font-semibold">{initialsOf(user)}</AvatarFallback>
+    </Avatar>
+  )
+}
+
+/**
+ * The signed-in half of the header: the avatar replaces the Log in / Get started pair, so a
+ * returning member is greeted by their own face instead of an invitation to join.
+ */
+function AccountMenu() {
+  const { user, logout } = useAuth()
+  if (!user) return null
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="rounded-full"
+          aria-label={`Account menu for ${user.name || user.email}`}
+        >
+          <UserAvatar user={user} className="h-8 w-8" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-60">
+        <DropdownMenuLabel>
+          <span className="block truncate text-sm font-medium">{user.name}</span>
+          <span className="block truncate text-xs font-normal text-muted-foreground">{user.email}</span>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <Link href="/dashboard" className="flex items-center">
+            <LayoutDashboard className="mr-2 h-4 w-4" />
+            Dashboard
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href="/dashboard/settings" className="flex items-center">
+            <Settings className="mr-2 h-4 w-4" />
+            Settings
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => void logout()} className="flex items-center">
+          <LogOut className="mr-2 h-4 w-4" />
+          Log out
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
+
+/**
  * each row is told whether it is the open one. Tapping the open row closes it.
  */
 function MobileGroup({
@@ -133,6 +210,7 @@ function MobileGroup({
 }
 
 export function Navbar() {
+  const { user, isLoading, logout } = useAuth()
   const [open, setOpen] = useState(false)
   const [hidden, setHidden] = useState(false)
   const [scrolled, setScrolled] = useState(false)
@@ -263,12 +341,25 @@ export function Navbar() {
                 </kbd>
               </Button>
               <ThemeToggle />
-              <Button asChild variant="ghost" size="sm">
-                <Link href="/login">Log in</Link>
-              </Button>
-              <Button asChild size="sm">
-                <Link href="/signup">Get started</Link>
-              </Button>
+              {/*
+                Three states, never two: a member (avatar), no member (the pair), and a first
+                read still in flight (a placeholder the same size as the avatar). Guessing
+                "signed out" while the cookie is being checked is the flash this avoids.
+              */}
+              {user ? (
+                <AccountMenu />
+              ) : isLoading ? (
+                <span aria-hidden="true" className="h-8 w-8 animate-pulse rounded-full bg-muted" />
+              ) : (
+                <>
+                  <Button asChild variant="ghost" size="sm">
+                    <Link href="/login">Log in</Link>
+                  </Button>
+                  <Button asChild size="sm">
+                    <Link href="/signup">Get started</Link>
+                  </Button>
+                </>
+              )}
             </div>
 
             <div className="flex items-center gap-1 xl:hidden">
@@ -319,12 +410,43 @@ export function Navbar() {
                       </Link>
                     ))}
                     <div className="mt-2 flex flex-col gap-2 border-t border-border px-5 pt-4">
-                      <Button asChild variant="outline" onClick={closeDrawer}>
-                        <Link href="/login">Log in</Link>
-                      </Button>
-                      <Button asChild onClick={closeDrawer}>
-                        <Link href="/signup">Get started</Link>
-                      </Button>
+                      {user ? (
+                        <>
+                          <div className="flex items-center gap-3 pb-2">
+                            <UserAvatar user={user} className="h-9 w-9" />
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-medium">{user.name}</p>
+                              <p className="truncate text-xs text-muted-foreground">{user.email}</p>
+                            </div>
+                          </div>
+                          <Button asChild onClick={closeDrawer}>
+                            <Link href="/dashboard">Dashboard</Link>
+                          </Button>
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              closeDrawer()
+                              void logout()
+                            }}
+                          >
+                            Log out
+                          </Button>
+                        </>
+                      ) : isLoading ? (
+                        <span
+                          aria-hidden="true"
+                          className="h-10 w-full animate-pulse rounded-md bg-muted"
+                        />
+                      ) : (
+                        <>
+                          <Button asChild variant="outline" onClick={closeDrawer}>
+                            <Link href="/login">Log in</Link>
+                          </Button>
+                          <Button asChild onClick={closeDrawer}>
+                            <Link href="/signup">Get started</Link>
+                          </Button>
+                        </>
+                      )}
                     </div>
                   </nav>
                 </SheetContent>
