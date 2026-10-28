@@ -72,6 +72,10 @@ export async function POST(request: Request) {
         contents,
         responseSchema: HANDOVER_SCHEMA,
         temperature: 0.1,
+        // Thinking costs ~9k tokens on a handover PDF: 68s measured on, 24–36s off. Off, with
+        // one retry inside the same 120s so Google's occasional stall doesn't become a 504.
+        thinkingBudget: 0,
+        retries: 1,
         timeoutMs: 120_000,
       },
       (raw) => readHandover(raw, handoverPack),

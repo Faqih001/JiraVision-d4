@@ -80,6 +80,27 @@ describe("the Gemini provider module", () => {
   })
 })
 
+describe("thinking and retry budget", () => {
+  it("only sends thinkingConfig when the request sets a budget, and only to models that think", () => {
+    expect(source).toContain("thinkingBudget?: number")
+    expect(source).toContain("thinkingConfig")
+    expect(source).toMatch(/if \(req\.thinkingBudget !== undefined && thinks\(model\)\)/u)
+  })
+
+  it("treats pre-2.5 models and versioned aliases correctly", () => {
+    expect(source).toContain("function thinks(model: string): boolean")
+    expect(source).toMatch(/major === 2 && minor >= 5/u)
+    expect(source).toMatch(/if \(!version\) return true/u)
+  })
+
+  it("splits the timeout across retries and retries only a timeout", () => {
+    expect(source).toContain("retries?: number")
+    expect(source).toMatch(/const attempts = Math\.max\(1, \(req\.retries \?\? 0\) \+ 1\)/u)
+    expect(source).toMatch(/const attemptMs = Math\.max\(1_000, Math\.floor\(timeoutMs \/ attempts\)\)/u)
+    expect(source).toMatch(/error\.kind === "timeout" && attempt < attempts/u)
+  })
+})
+
 describe("grounding support", () => {
   it("opts into google_search only when asked", () => {
     expect(source).toContain("googleSearch?: boolean")

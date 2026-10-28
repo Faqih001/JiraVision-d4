@@ -180,4 +180,12 @@ describe("the prompt", () => {
     expect(HANDOVER_SYSTEM).toMatch(/where (it|the credential) is kept/i)
     expect(HANDOVER_SYSTEM).toMatch(/do not invent/i)
   })
+
+  it("bounds the answer to what the reader keeps, so extraction stays inside the wait", () => {
+    const prompt = handoverPrompt({ pack: PACK, source: "pdf" })
+    expect(prompt).toContain("at most 10 playbooks of at most 12 steps")
+    expect(prompt).toContain("at most 40 register rows")
+    expect(prompt).toMatch(/one short sentence/u)
+    expect(prompt).toMatch(/optional step fields only where the document states them/u)
+  })
 })

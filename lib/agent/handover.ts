@@ -124,6 +124,10 @@ export function handoverPrompt(input: { pack: HandoverPack; source: "text" | "pd
     `Source: ${source === "pdf" ? "the attached PDF" : "the text below"}`,
     "",
     "Return the register rows and playbook drafts the document supports. Omit anything it does not state.",
+    // Unbounded, a 240 KB handover produced ~12k tokens and took 49s; this bounds it to ~5.6k
+    // and 27s. The reader drops anything past these caps anyway, so nothing usable is lost.
+    "Keep every title, action and note to one short sentence, and fill the optional step fields only where the document states them.",
+    `Propose at most ${MAX_PLAYBOOKS} playbooks of at most 12 steps, and at most ${MAX_REGISTERS} register rows — the ones a successor needs first.`,
     source === "text" ? "" : "The document follows as an attachment.",
   ].join("\n")
 }

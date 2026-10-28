@@ -115,13 +115,20 @@ Configure it in `.env.local` (see `.env.example` for where to get a key):
 | `GEMINI_MODEL` | no | Unset → the first text-capable model is discovered once per cold start |
 | `AI_PUBLIC_DAILY_CAP` | no | Global daily ceiling for the anonymous site assistant (default 200) |
 
-Six surfaces use it:
+A free-tier key is metered per model per day (20 requests/day for `gemini-2.5-flash` as of 2026-10-28)
+and answers 429 once spent — enable billing before a team relies on these surfaces. Document extraction
+runs with the model's thinking disabled (`thinkingBudget: 0`) and prompt-level length bounds, then retries
+once inside the same 120s budget: thinking over a handover PDF doubled both output and latency, and a
+hung request from Google's side is what the retry absorbs.
+
+Seven surfaces use it:
 
 | Surface | Route | Who can call it | Grounded in |
 |---|---|---|---|
 | Site assistant | `POST /api/assistant/site` | Anyone (rate-limited) | Published `content/*` text for the current pathname |
 | Workspace assistant | `POST /api/assistant/workspace` (+ `/threads`) | Signed-in member | That member's own tasks, work log, deliverables, reports |
 | Planner extraction | `POST /api/planner/extract` | Signed-in member | The pasted or uploaded brief |
+| Agent handover | `POST /api/agent/handover` | Signed-in member | The pasted brief or one uploaded PDF, normalised against their role pack |
 | AI scrum master | `POST /api/dashboard/ai-recommendation` | Signed-in member | The sprint's own rows |
 | Career growth | `GET/POST /api/career/growth` | Signed-in member | Their own counts and gaps, plus Google Search results whose URLs are verified against grounding metadata |
 | Provider proxy | `POST /api/ai/generate` | Signed-in member | Whatever the caller sends |

@@ -68,6 +68,13 @@ describe("the handover routes", () => {
     expect(route).toMatch(/existing/)
   })
 
+  it("keeps extraction under the wait: thinking off, one retry inside the same budget", () => {
+    const route = codeOnly(src("app/api/agent/handover/route.ts"))
+    expect(route).toMatch(/thinkingBudget: 0/)
+    expect(route).toMatch(/retries: 1/)
+    expect(route).toMatch(/timeoutMs: 120_000/)
+  })
+
   it("maps provider failures to honest statuses", () => {
     const shared = codeOnly(src("app/api/agent/_shared.ts"))
     expect(shared).toMatch(/auth:\s*503/)

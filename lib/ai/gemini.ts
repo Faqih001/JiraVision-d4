@@ -54,6 +54,10 @@ export interface GeminiRequest {
   maxOutputTokens?: number
   temperature?: number
   timeoutMs?: number
+  /** Gemini 2.5 models think before answering; 0 turns that off. Extraction sets it. */
+  thinkingBudget?: number
+  /** Extra attempts when the provider times out; the timeoutMs budget is split between them. */
+  retries?: number
   /** Enable Google Search grounding. Only the career growth actions use this. */
   googleSearch?: boolean
 }
@@ -125,6 +129,15 @@ function classifyError(status: number, body: string): GeminiErrorKind {
   return "transport"
 }
 
+// 2.5 and later think; earlier models answer 400 to a thinkingConfig. Aliases carry no
+// version and point at the latest model, so they count as thinking.
+function thinks(model: string): boolean {
+  const version = /gemini-(\d+)\.(\d+)/.exec(model)
+  if (!version) return true
+  const [major, minor] = [Number(version[1]), Number(version[2])]
+  return major > 2 || (major === 2 && minor >= 5)
+}
+
 export async function geminiText(req: GeminiRequest): Promise<{ text: string; usage: TokenUsage; grounding: Grounding | null }> {
   const model = await discoverModel()
   const apiKey = process.env.GOOGLE_GEMINI_API_KEY
@@ -144,6 +157,9 @@ export async function geminiText(req: GeminiRequest): Promise<{ text: string; us
 
     if (req.system) body.systemInstruction = { parts: [{ text: req.system }] }
     if (req.googleSearch) body.tools = [{ google_search: {} }]
+    if (req.thinkingBudget !== undefined && thinks(model)) {
+      body.generationConfig = { thinkingConfig: { thinkingBudget: req.thinkingBudget } }
+    }
     if (req.maxOutputTokens) body.maxOutputTokens = req.maxOutputTokens
     if (req.temperature !== undefined) body.temperature = req.temperature
 
@@ -197,74 +213,94 @@ export async function geminiJson<T>(
   const model = await discoverModel()
   const apiKey = process.env.GOOGLE_GEMINI_API_KEY
   if (!apiKey) throw new GeminiError("auth", "GOOGLE_GEMINI_API_KEY is not set")
+  const key = apiKey
 
   const timeoutMs = req.timeoutMs ?? DEFAULT_TIMEOUTS.extraction
-  const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+  const attempts = Math.max(1, (req.retries ?? 0) + 1)
+  const attemptMs = Math.max(1_000, Math.floor(timeoutMs / attempts))
 
-  try {
-    const body: Record<string, unknown> = {
-      contents: req.contents.map((part) => {
-        if ("text" in part) return { role: "user", parts: [{ text: part.text }] }
-        return { role: "user", parts: [{ inlineData: part.inlineData }] }
-      }),
-      generationConfig: {
+  async function ask() {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), attemptMs)
+
+    try {
+      const generationConfig: Record<string, unknown> = {
         responseMimeType: "application/json",
         responseSchema: req.responseSchema,
         maxOutputTokens: req.maxOutputTokens,
         temperature: req.temperature,
-      } as Record<string, unknown>,
+      }
+      if (req.thinkingBudget !== undefined && thinks(model)) {
+        generationConfig.thinkingConfig = { thinkingBudget: req.thinkingBudget }
+      }
+
+      const body: Record<string, unknown> = {
+        contents: req.contents.map((part) => {
+          if ("text" in part) return { role: "user", parts: [{ text: part.text }] }
+          return { role: "user", parts: [{ inlineData: part.inlineData }] }
+        }),
+        generationConfig,
+      }
+
+      if (req.system) body.systemInstruction = { parts: [{ text: req.system }] }
+      if (req.googleSearch) body.tools = [{ google_search: {} }]
+
+      const res = await fetch(`${GEMINI_API_BASE}/models/${model}:generateContent?key=${key}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": key,
+        },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      })
+
+      clearTimeout(timeoutId)
+
+      if (!res.ok) {
+        const text = await res.text()
+        throw new GeminiError(classifyError(res.status, text), `Gemini request failed: ${res.status}`)
+      }
+
+      const json = await res.json()
+      const candidate = json.candidates?.[0]
+      const rawText = candidate?.content?.parts?.[0]?.text
+
+      if (!rawText) throw new GeminiError("badjson", "No text in Gemini response")
+
+      let parsed: unknown
+      try {
+        parsed = JSON.parse(rawText)
+      } catch {
+        throw new GeminiError("badjson", "Invalid JSON in Gemini response")
+      }
+
+      const data = parse(parsed)
+      const usage = json.usageMetadata ?? {}
+      return {
+        data,
+        usage: {
+          promptTokens: usage.promptTokenCount ?? 0,
+          completionTokens: usage.candidatesTokenCount ?? 0,
+          totalTokens: usage.totalTokenCount ?? 0,
+        },
+        grounding: readGrounding(json),
+      }
+    } catch (error) {
+      clearTimeout(timeoutId)
+      if (error instanceof GeminiError) throw error
+      if ((error as Error).name === "AbortError") throw new GeminiError("timeout", `Request timed out after ${attemptMs}ms`)
+      throw new GeminiError("transport", `Network error: ${(error as Error).message}`)
     }
+  }
 
-    if (req.system) body.systemInstruction = { parts: [{ text: req.system }] }
-    if (req.googleSearch) body.tools = [{ google_search: {} }]
-
-    const res = await fetch(`${GEMINI_API_BASE}/models/${model}:generateContent?key=${apiKey}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-goog-api-key": apiKey,
-      },
-      body: JSON.stringify(body),
-      signal: controller.signal,
-    })
-
-    clearTimeout(timeoutId)
-
-    if (!res.ok) {
-      const text = await res.text()
-      throw new GeminiError(classifyError(res.status, text), `Gemini request failed: ${res.status}`)
-    }
-
-    const json = await res.json()
-    const candidate = json.candidates?.[0]
-    const rawText = candidate?.content?.parts?.[0]?.text
-
-    if (!rawText) throw new GeminiError("badjson", "No text in Gemini response")
-
-    let parsed: unknown
+  for (let attempt = 1; ; attempt++) {
     try {
-      parsed = JSON.parse(rawText)
-    } catch {
-      throw new GeminiError("badjson", "Invalid JSON in Gemini response")
+      return await ask()
+    } catch (error) {
+      const retry = error instanceof GeminiError && error.kind === "timeout" && attempt < attempts
+      if (!retry) throw error
     }
-
-    const data = parse(parsed)
-    const usage = json.usageMetadata ?? {}
-    return {
-      data,
-      usage: {
-        promptTokens: usage.promptTokenCount ?? 0,
-        completionTokens: usage.candidatesTokenCount ?? 0,
-        totalTokens: usage.totalTokenCount ?? 0,
-      },
-      grounding: readGrounding(json),
-    }
-  } catch (error) {
-    clearTimeout(timeoutId)
-    if (error instanceof GeminiError) throw error
-    if ((error as Error).name === "AbortError") throw new GeminiError("timeout", `Request timed out after ${timeoutMs}ms`)
-    throw new GeminiError("transport", `Network error: ${(error as Error).message}`)
   }
 }
 

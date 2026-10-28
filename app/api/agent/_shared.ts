@@ -44,7 +44,7 @@ const PROVIDER_STATUS: Record<GeminiErrorKind, number> = {
 
 const PROVIDER_MESSAGE: Record<GeminiErrorKind, string> = {
   auth: "AI drafting is not configured on this deployment.",
-  quota: "The AI provider is rate-limited right now. Try again in a minute.",
+  quota: "The AI provider is rate-limited or out of quota for this key. Try again later.",
   blocked: "The AI provider refused this content.",
   timeout: "The AI provider did not answer in time.",
   transport: "The AI provider could not be reached.",
