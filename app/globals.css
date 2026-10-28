@@ -486,3 +486,72 @@ body {
 .jv-theme-icon[data-jv-anim="pop"] {
   animation: jv-theme-pop 340ms cubic-bezier(0.22, 0.61, 0.36, 1);
 }
+
+/* -------------------------------------------------------------------------
+   Footer wordmark gleam. The giant JiraVision stays the outlined flourish it
+   always was: the letters keep their transparent fill and hairline stroke, and
+   a soft band of brand colour sweeps through them once every 9s, leaving a
+   brief halo. Two paint layers clipped to the glyphs — layer 1 is the travelling
+   band, layer 2 the standing tint.
+
+   Declared as @keyframes here, not as a Tailwind animation, for the same reason
+   the theme switch is: this is chrome motion. The band rides background-position,
+   which is not GPU-composited, so the 4.3s of stillness in every cycle is what
+   keeps a 11rem glyph from repainting continuously.
+
+   Colours are tokens, so dark mode and the eight contrast modes recolour the
+   sweep with no extra rule. The resting state parks the band off the left edge,
+   and the reduced-motion and stop-animations kill-switches shorten the duration
+   without filling backwards — so when motion is off the wordmark is a clean
+   outline with a faint fill, not a sweep frozen mid-glyph.
+-------------------------------------------------------------------------- */
+@keyframes jv-wordmark-gleam {
+  0%,
+  48% {
+    background-position:
+      104% 0,
+      0 0;
+    text-shadow:
+      0 0 0 hsl(var(--primary) / 0),
+      0 0 0 hsl(var(--clay) / 0);
+  }
+  72% {
+    text-shadow:
+      0 0 14px hsl(var(--primary) / 0.45),
+      0 0 34px hsl(var(--clay) / 0.22);
+  }
+  100% {
+    background-position:
+      -8% 0,
+      0 0;
+    text-shadow:
+      0 0 0 hsl(var(--primary) / 0),
+      0 0 0 hsl(var(--clay) / 0);
+  }
+}
+
+.jv-wordmark {
+  background-image: linear-gradient(
+      100deg,
+      hsl(var(--clay) / 0) 34%,
+      hsl(var(--clay) / 0.42) 44%,
+      hsl(var(--primary) / 0.95) 50%,
+      hsl(var(--clay) / 0.42) 56%,
+      hsl(var(--clay) / 0) 66%
+    ),
+    linear-gradient(
+      to bottom,
+      hsl(var(--foreground) / 0.13),
+      hsl(var(--foreground) / 0.02)
+    );
+  background-size:
+    250% 100%,
+    100% 100%;
+  background-position:
+    104% 0,
+    0 0;
+  background-repeat: no-repeat;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: jv-wordmark-gleam 9s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}

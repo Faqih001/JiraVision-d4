@@ -146,9 +146,11 @@ export function Footer() {
           ))}
         </div>
 
-        {/* Outlined wordmark flourish */}
+        {/* Outlined wordmark flourish. The gleam lives in globals.css: it clips a
+            gradient to the glyphs, so text-transparent and the hairline stroke stay as
+            they were and only the paint inside the letters moves. */}
         <div aria-hidden="true" className="select-none overflow-hidden pt-6">
-          <span className="block whitespace-nowrap text-center font-display text-[clamp(4rem,15vw,11rem)] font-bold leading-[1.1] tracking-tight text-transparent [-webkit-text-stroke:1px_hsl(var(--border))]">
+          <span className="jv-wordmark block whitespace-nowrap text-center font-display text-[clamp(4rem,15vw,11rem)] font-bold leading-[1.1] tracking-tight text-transparent [-webkit-text-stroke:1px_hsl(var(--border))]">
             JiraVision
           </span>
         </div>

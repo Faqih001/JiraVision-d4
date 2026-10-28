@@ -193,6 +193,14 @@ Observed, enforced-in-practice rules (REDESIGN_PLAN V2-1/V2-3 + homepage impleme
   `components/theme-switch.tsx` slides its knob with `@keyframes jv-theme-to-dark`,
   `jv-theme-to-light` and `jv-theme-pop` (app/globals.css); the inline transform is just
   the resting state those animations move towards.
+- **Ambient motion sweeps a token gradient, and its resting state is a design.** The footer
+  wordmark's gleam is `.jv-wordmark` + `@keyframes jv-wordmark-gleam` (app/globals.css): a
+  `--primary`/`--clay` band clipped to the glyphs travels 48%→100% of each 9s cycle and
+  stands still for the first 48%, because `background-position` on `background-clip: text`
+  repaints the glyphs instead of compositing. Both reduced-motion kill-switches shorten the
+  duration without filling backwards, so the base rule — band parked off the left edge,
+  letters a bare outline with a faint fill — is what a motion-off visitor sees. No hard hex:
+  dark mode and the eight contrast modes rewrite the token triples the gradient reads.
 - Icons: **lucide-react only**, decorative ones get `aria-hidden`. No emoji anywhere in the
   marketing kit (the old chatbot `👋` was removed in D1 fix).- Cards: `rounded-lg border bg-card shadow-soft`; prose: `prose-body`; headings: `font-display`.
 - Chrome is provided once by `app/(marketing)/layout.tsx` (skip link, `<main id="main">`,

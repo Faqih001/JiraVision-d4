@@ -210,6 +210,43 @@ describe("theme switch", () => {
   })
 })
 
+describe("footer wordmark gleam", () => {
+  const footer = read("components/layout/footer.tsx")
+  const css = read("app/globals.css")
+  const rule = css.slice(css.indexOf(".jv-wordmark {"))
+
+  it("paints the existing outline instead of replacing it", () => {
+    const span = footer.match(/<span className="(jv-wordmark[^"]*)"/)?.[1]
+    expect(span, "the wordmark lost its gleam class").toContain("jv-wordmark")
+    // Still an outlined flourish: transparent glyphs clipped to a gradient, hairline kept.
+    expect(span).toContain("text-transparent")
+    expect(span).toContain("[-webkit-text-stroke:1px_hsl(var(--border))]")
+    expect(css).toContain("-webkit-background-clip: text")
+    // Decorative, so the sweep must not reach a screen reader.
+    expect(footer).toContain('aria-hidden="true" className="select-none overflow-hidden pt-6"')
+  })
+
+  it("paints with tokens, so dark mode and the contrast modes recolour the sweep", () => {
+    expect(rule).toContain("hsl(var(--primary)")
+    expect(rule).toContain("hsl(var(--clay)")
+    // The tutorial this came from used #4d4d4d / #ffffff; hard hex would break both
+    // dark mode and the eight contrast modes in accessibility.css.
+    expect(rule).not.toMatch(/#[0-9a-f]{3,8}/i)
+  })
+
+  it("rests parked off the glyphs, because the kill-switches shorten rather than rewind", () => {
+    // prefers-reduced-motion and data-jv-stop-animations set duration + iteration-count
+    // and no fill-mode is declared, so the base rule is what a motion-off reader sees.
+    expect(rule).not.toContain("animation-fill-mode")
+    expect(rule).toContain(`background-position:
+    104% 0,
+    0 0;`)
+    // The cycle holds that parked band for almost half its length: background-position
+    // on clipped text repaints the glyphs, so the stillness is what makes it affordable.
+    expect(css).toMatch(/@keyframes jv-wordmark-gleam \{\s*0%,\s*48% \{/)
+  })
+})
+
 describe("accessibility entry point", () => {
   it("sits bottom-right of the workspace", () => {
     expect(launcher).toContain("right-4")
