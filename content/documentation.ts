@@ -581,9 +581,10 @@ where it stays readable.
 
 ## Insights
 
-/api/ai-insights stores generated insights as rows you can list, read and delete. The chat assistant
-at /dashboard/chat can also call the generation endpoint (/api/ai/generate) when you ask it about a
-sprint.
+/api/ai-insights stores generated insights as rows you can list, edit and delete: GET /api/ai-insights,
+then PATCH or DELETE /api/ai-insights/<id>. The assistant surfaces are the workspace assistant
+(/api/assistant/workspace, from /dashboard/assistant and the top-bar panel) and the public site assistant
+(/api/assistant/site); /dashboard/chat is message storage only and makes no AI call.
 
 ## AI provider
 
@@ -602,9 +603,9 @@ owners. Each write goes through /api/retros/<id>/notes, /api/retros/<id>/notes/<
     endpoints: [
       { method: "POST", path: "/api/dashboard/ai-recommendation", description: "Generate a capacity-aware sprint draft." },
       { method: "GET", path: "/api/ai-insights", description: "List stored insights." },
-      { method: "POST", path: "/api/ai-insights", description: "Store an insight." },
+      { method: "PATCH", path: "/api/ai-insights/<id>", description: "Edit or dismiss a stored insight." },
       { method: "DELETE", path: "/api/ai-insights/<id>", description: "Delete an insight." },
-      { method: "POST", path: "/api/ai/generate", description: "Chat-style generation. Simulated text until a provider key is configured; the reply labels the model it emulated." },
+      { method: "POST", path: "/api/ai/generate", description: "Direct provider call for a signed-in member: text or schema-shaped JSON, with usage metadata. No product page uses it yet." },
       { method: "GET", path: "/api/retros", description: "List retrospectives." },
     ],
   },
@@ -1178,9 +1179,9 @@ Angle brackets mean a path parameter. All routes are same-origin JSON endpoints 
 ## AI
 
 - POST /api/dashboard/ai-recommendation
-- GET/POST /api/ai-insights; GET/DELETE /api/ai-insights/<id>
+- GET /api/ai-insights; PATCH/DELETE /api/ai-insights/<id>
 - POST /api/ai/generate
-- /api/aitopia/<...path> for the assistant surface
+- POST /api/assistant/site (public) and POST /api/assistant/workspace (+ /threads) for the assistants
 
 ## People signals
 

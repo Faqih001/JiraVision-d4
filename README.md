@@ -116,12 +116,13 @@ Configure it in `.env.local` (see `.env.example` for where to get a key):
 | `AI_PUBLIC_DAILY_CAP` | no | Global daily ceiling for the anonymous site assistant (default 200) |
 
 A free-tier key is metered per model per day (20 requests/day for `gemini-2.5-flash` as of 2026-10-28)
-and answers 429 once spent — enable billing before a team relies on these surfaces. Document extraction
+and answers 429 once spent — enable billing before a team relies on these surfaces. The agent handover
 runs with the model's thinking disabled (`thinkingBudget: 0`) and prompt-level length bounds, then retries
 once inside the same 120s budget: thinking over a handover PDF doubled both output and latency, and a
-hung request from Google's side is what the retry absorbs.
+hung request from Google's side is what the retry absorbs. Planner extraction keeps thinking on — a
+30-item plan needs it.
 
-Seven surfaces use it:
+Nine surfaces call it, plus the route that writes what the handover preview proposed:
 
 | Surface | Route | Who can call it | Grounded in |
 |---|---|---|---|
@@ -129,9 +130,15 @@ Seven surfaces use it:
 | Workspace assistant | `POST /api/assistant/workspace` (+ `/threads`) | Signed-in member | That member's own tasks, work log, deliverables, reports |
 | Planner extraction | `POST /api/planner/extract` | Signed-in member | The pasted or uploaded brief |
 | Agent handover | `POST /api/agent/handover` | Signed-in member | The pasted brief or one uploaded PDF, normalised against their role pack |
+| Handover commit | `POST /api/agent/handover/commit` | Signed-in member | The rows the member ticked — re-validated, **no model call** |
+| Precaution suggestions | `POST /api/agent/precautions` | Signed-in member | The playbook draft currently in the editor, before it is saved |
+| Recommendation AI twin | `POST /api/agent/recommendations` | Signed-in member | The same rows the deterministic rule list already used |
 | AI scrum master | `POST /api/dashboard/ai-recommendation` | Signed-in member | The sprint's own rows |
 | Career growth | `GET/POST /api/career/growth` | Signed-in member | Their own counts and gaps, plus Google Search results whose URLs are verified against grounding metadata |
 | Provider proxy | `POST /api/ai/generate` | Signed-in member | Whatever the caller sends |
+
+[GEMINI_AGENT.md](GEMINI_AGENT.md) is the deep version: per-surface knobs, what each may read and
+write, and how a failure reaches the member.
 
 Four rules hold across all of them:
 
@@ -140,7 +147,7 @@ Four rules hold across all of them:
    the client is the fallback, not a plausible sentence.
 2. **The model reads only what it is given.** The public assistant gets published site text, so it cannot
    disclose anything private; the workspace assistant gets one member's rows, scoped by `user_id`.
-3. **The cheap path answers first.** The site assistant answers from 35 keyword entries before it ever calls
+3. **The cheap path answers first.** The site assistant answers from 33 keyword entries before it ever calls
    the model, so most visitor questions cost nothing. Per-visitor caps are 8/hour and 24/day; the global
    ceiling is `AI_PUBLIC_DAILY_CAP`.
 4. **Web answers are verified, not trusted.** The career growth actions (learning path and benchmark) are the
