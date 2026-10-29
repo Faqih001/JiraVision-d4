@@ -7,7 +7,9 @@ import { resolve } from "node:path"
 // retros, automation, scheduled-reports and calendar reads, and on the sprints page (whose
 // API already supported `scope=mine` but was never asked for it). These guards pin the rule:
 // a read of rows that carry an author, owner or invitee list them for that person by
-// default, and the workspace-wide view is something the member opts into.
+// default, and the workspace-wide view is something the member opts into. The last
+// block is the opposite case: a team-level panel that legitimately reads the whole
+// roster, and only has to stop talking when the caller has no work of their own.
 
 const src = (relative: string) => readFileSync(resolve(process.cwd(), relative), "utf8")
 const codeOnly = (source: string) =>
@@ -25,6 +27,7 @@ const reportsRoute = codeOnly(src("app/api/reports/route.ts"))
 const calendarRoute = codeOnly(src("app/api/calendar/events/route.ts"))
 const calendarPage = codeOnly(src("app/dashboard/calendar/page.tsx"))
 const sprintsPage = codeOnly(src("app/dashboard/sprints/page.tsx"))
+const tasksPage = codeOnly(src("app/dashboard/tasks/page.tsx"))
 
 describe("the OKR read belongs to the member", () => {
   it("names the two columns that make a goal yours", () => {
@@ -149,5 +152,28 @@ describe("the sprints page asks for the sprints it is a member of", () => {
     expect(sprintsPage.match(/fetch\(`\/api\/sprints\?\$\{scopeParam\}`\)/g)?.length).toBe(2)
     expect(sprintsPage).not.toContain('fetch("/api/sprints")')
     expect(sprintsPage).toContain('aria-label="Sprint scope"')
+  })
+})
+
+describe("a workload comparison needs the caller's own work before it speaks", () => {
+  // overview.workload is deliberately the whole roster — the assignee picker, the
+  // calendar invite list and the scrum master all read it — so the fix here is not a
+  // narrower query. It is the card refusing to rank the member against a team when
+  // they carry nothing.
+  const start = tasksPage.indexOf('title="My workload vs team"')
+  const card = tasksPage.slice(start, tasksPage.indexOf("</SectionCard>", start))
+
+  it("finds the card at all", () => {
+    expect(start).toBeGreaterThan(-1)
+  })
+
+  it("gates the card on the caller's own open load", () => {
+    expect(card).toContain("myWorkload.myTasks === 0 && myWorkload.myPoints === 0")
+    expect(card).toMatch(/<EmptyNote>[\s\S]{0,200}No work assigned to you yet/u)
+  })
+
+  it("still keeps the team directory whole for the pickers that need it", () => {
+    expect(card).toContain("[...overview.workload]")
+    expect(tasksPage).toContain("{overview.workload.map((w) => (")
   })
 })

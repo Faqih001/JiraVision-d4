@@ -1375,6 +1375,12 @@ export default function TasksWorkspacePage() {
         </SectionCard>
 
         <SectionCard title="My workload vs team" icon={<Scale className="h-4 w-4" />}>
+          {myWorkload.myTasks === 0 && myWorkload.myPoints === 0 ? (
+            <EmptyNote>
+              No work assigned to you yet, so there is nothing to compare. The team
+              picture fills in as soon as a task lands on you.
+            </EmptyNote>
+          ) : (
           <div className="space-y-4 pt-1">
             <div>
               <div className="flex justify-between text-xs">
@@ -1430,6 +1436,7 @@ export default function TasksWorkspacePage() {
                 ))}
             </div>
           </div>
+          )}
         </SectionCard>
       </div>
 
