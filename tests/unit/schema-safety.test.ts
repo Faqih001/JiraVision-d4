@@ -143,7 +143,7 @@ describe("no anonymous route leaks the schema or relays mail", () => {
   // tests/unit/register-routes.test.ts. `playbookSession` is phase 16's for /api/playbooks/*,
   // guarded by tests/unit/playbook-routes.test.ts.
   const authGated = (file: string) =>
-    /getCurrentUser|getSession|worklogSession|reportSession|careerSession|careerAdmin|registerSession|playbookSession|agentSession|isSuperAdmin|requireSuperAdmin|requireRole|requireUser|requireAdmin|verifySession/.test(
+    /getCurrentUser|getSession|worklogSession|reportSession|careerSession|careerAdmin|registerSession|playbookSession|agentSession|opsSession|isSuperAdmin|requireSuperAdmin|requireRole|requireUser|requireAdmin|verifySession/.test(
       codeOnly(src(file)),
     )
 

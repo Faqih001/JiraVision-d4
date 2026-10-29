@@ -153,6 +153,8 @@ export default function DashboardLayout({
   const [newCounts, setNewCounts] = useState<Record<BadgeKey, number | null>>({ activity: null, chat: null })
   // Set when a badge read came back 401: the browser is signed out, so the polling stops.
   const [sessionEnded, setSessionEnded] = useState(false)
+  // Whether the member's pack has an opsConfig — gates the "My Operations" sidebar group.
+  const [hasOpsConfig, setHasOpsConfig] = useState(false)
 
   // Toggle sidebar collapse
   const toggleSidebar = () => {
@@ -215,6 +217,24 @@ export default function DashboardLayout({
       clearInterval(timer)
     }
   }, [user, pathname, sessionEnded, router])
+
+  // One-shot read: does the member's pack carry an opsConfig? Gates the sidebar group.
+  useEffect(() => {
+    if (!user || sessionEnded) return
+    let cancelled = false
+    fetch("/api/ops/pack")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json) => {
+        if (cancelled) return
+        setHasOpsConfig(Boolean(json?.data?.hasOpsConfig))
+      })
+      .catch(() => {
+        if (!cancelled) setHasOpsConfig(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [user, sessionEnded])
 
   useEffect(() => {
     // Only a finished read that came back empty is a sign-out. `unavailable` means the database
@@ -335,6 +355,33 @@ export default function DashboardLayout({
         },
       ],
     },
+    ...(hasOpsConfig
+      ? [
+          {
+            title: "My Operations",
+            items: [
+              {
+                title: "Operations overview",
+                icon: <Activity className="h-5 w-5" />,
+                href: "/dashboard/ops",
+                active: pathname === "/dashboard/ops",
+              },
+              {
+                title: "Activity logs",
+                icon: <FileText className="h-5 w-5" />,
+                href: "/dashboard/ops/logs",
+                active: pathname === "/dashboard/ops/logs",
+              },
+              {
+                title: "KPIs",
+                icon: <TrendingUp className="h-5 w-5" />,
+                href: "/dashboard/ops/kpis",
+                active: pathname === "/dashboard/ops/kpis",
+              },
+            ],
+          } satisfies NavCategory,
+        ]
+      : []),
     {
       title: "Planning",
       items: [
