@@ -68,6 +68,7 @@ import {
 } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
 import { LIVE_REFRESH_MS, useLiveRefresh } from "@/hooks/use-live-refresh"
+import { autoPopulateFromJobTitle, type AutoPopulateResult } from "@/lib/auto-populate"
 import { DEPARTMENTS, getDepartmentByCode, getDepartmentName } from "@/lib/departments"
 import { getDisciplineForJobTitle } from "@/lib/job-titles"
 import { DISCIPLINE_LABEL, type WorkDiscipline } from "@/lib/roles"
@@ -242,6 +243,7 @@ export default function TeamWorkspace() {
   // dialogs
   const [formOpen, setFormOpen] = useState(false)
   const [draft, setDraft] = useState<MemberDraft | null>(null)
+  const [autoPopulated, setAutoPopulated] = useState<AutoPopulateResult | null>(null)
   const [saving, setSaving] = useState(false)
   const [detailRow, setDetailRow] = useState<TeamRow | null>(null)
   const [detail, setDetail] = useState<MemberDetail | null>(null)
@@ -463,16 +465,18 @@ export default function TeamWorkspace() {
 
   const openEdit = (m: TeamRow) => {
     setDetailRow(null)
+    const deptCode = getDepartmentCodeFromName(m.department)
     setDraft({
       id: m.id,
       name: m.name,
       email: m.email,
       role: m.role,
-      department: getDepartmentCodeFromName(m.department),
+      department: deptCode,
       location: m.location ?? "",
       status: m.status || "offline",
       avatar: m.avatar ?? "",
     })
+    setAutoPopulated(autoPopulateFromJobTitle(m.role, deptCode))
     setFormOpen(true)
   }
 
@@ -1227,7 +1231,10 @@ export default function TeamWorkspace() {
                   <DepartmentSelect
                     id="member-department"
                     value={draft.department}
-                    onValueChange={(value) => setDraft({ ...draft, department: value, role: "" })}
+                    onValueChange={(value) => {
+                      setDraft({ ...draft, department: value, role: "" })
+                      setAutoPopulated(autoPopulateFromJobTitle("", value))
+                    }}
                   />
                 </div>
                 <div className="space-y-1">
@@ -1235,39 +1242,46 @@ export default function TeamWorkspace() {
                   <JobTitleSelect
                     id="member-role"
                     value={draft.role}
-                    onValueChange={(value) => setDraft({ ...draft, role: value })}
+                    onValueChange={(value) => {
+                      setDraft({ ...draft, role: value })
+                      setAutoPopulated(autoPopulateFromJobTitle(value, draft.department))
+                    }}
                     departmentCode={draft.department || null}
                   />
-                  {draft.role && (
-                    <p className="text-xs text-muted-foreground">
-                      Discipline: {DISCIPLINE_LABEL[getDisciplineForJobTitle(draft.role) ?? "general"]}
-                    </p>
-                  )}
                 </div>
-                <div className="space-y-1">
-                  <Label htmlFor="member-location">Location</Label>
-                  <Input
-                    id="member-location"
-                    value={draft.location}
-                    onChange={(e) => setDraft({ ...draft, location: e.target.value })}
-                    placeholder="Nairobi"
-                  />
+              </div>
+              {autoPopulated?.discipline && (
+                <div className="rounded-md bg-muted p-3 text-sm">
+                  <p className="font-medium mb-1">Auto-populated from job title:</p>
+                  <p>Discipline: {DISCIPLINE_LABEL[autoPopulated.discipline]}</p>
+                  <p>Role pack: {autoPopulated.rolePack}</p>
+                  {autoPopulated.careerLadder && <p>Career ladder: {autoPopulated.careerLadder}</p>}
+                  <p>Report template: {autoPopulated.reportTemplate}</p>
                 </div>
-                <div className="space-y-1">
-                  <Label htmlFor="member-status">Presence</Label>
-                  <Select value={draft.status} onValueChange={(v) => setDraft({ ...draft, status: v })}>
-                    <SelectTrigger id="member-status">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {STATUSES.filter((s) => s.value !== "all").map((s) => (
-                        <SelectItem key={s.value} value={s.value}>
-                          {s.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+              )}
+              <div className="space-y-1">
+                <Label htmlFor="member-location">Location</Label>
+                <Input
+                  id="member-location"
+                  value={draft.location}
+                  onChange={(e) => setDraft({ ...draft, location: e.target.value })}
+                  placeholder="Nairobi"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="member-status">Presence</Label>
+                <Select value={draft.status} onValueChange={(v) => setDraft({ ...draft, status: v })}>
+                  <SelectTrigger id="member-status">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {STATUSES.filter((s) => s.value !== "all").map((s) => (
+                      <SelectItem key={s.value} value={s.value}>
+                        {s.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1">
                 <Label htmlFor="member-avatar">Avatar (path or URL)</Label>

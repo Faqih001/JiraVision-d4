@@ -21,6 +21,7 @@ import { ComboboxInput } from "@/components/ui/combobox-input"
 import { DEPARTMENTS, getDepartmentByCode, getDepartmentName } from "@/lib/departments"
 import { DepartmentSelect } from "@/components/ui/department-select"
 import { Input } from "@/components/ui/input"
+import { autoPopulateFromJobTitle, type AutoPopulateResult } from "@/lib/auto-populate"
 import { getDisciplineForJobTitle } from "@/lib/job-titles"
 import { JobTitleSelect } from "@/components/ui/job-title-select"
 import { Label } from "@/components/ui/label"
@@ -125,6 +126,9 @@ export function OnboardingWizard({ initial, inviteToken, account }: Props) {
         : detectedTimezone(),
     language: initial.data.profile.language ?? "en-US",
   })
+  const [autoPopulated, setAutoPopulated] = useState<AutoPopulateResult>(() =>
+    autoPopulateFromJobTitle(initial.data.profile.jobTitle, getDepartmentCodeFromName(initial.data.profile.department)),
+  )
   const [workspaceKind, setWorkspaceKind] = useState<OnboardingData["workspace"]["kind"]>(initial.data.workspace.kind)
   const [teamName, setTeamName] = useState(initial.teamName)
   const [invite, setInvite] = useState(inviteToken ?? "")
@@ -515,7 +519,10 @@ export function OnboardingWizard({ initial, inviteToken, account }: Props) {
                   <DepartmentSelect
                     id="onb-department"
                     value={profile.department}
-                    onValueChange={(value) => setProfile({ ...profile, department: value, jobTitle: "" })}
+                    onValueChange={(value) => {
+                      setProfile({ ...profile, department: value, jobTitle: "" })
+                      setAutoPopulated(autoPopulateFromJobTitle("", value))
+                    }}
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -523,13 +530,19 @@ export function OnboardingWizard({ initial, inviteToken, account }: Props) {
                   <JobTitleSelect
                     id="onb-role"
                     value={profile.jobTitle}
-                    onValueChange={(value) => setProfile({ ...profile, jobTitle: value })}
+                    onValueChange={(value) => {
+                      setProfile({ ...profile, jobTitle: value })
+                      setAutoPopulated(autoPopulateFromJobTitle(value, profile.department))
+                    }}
                     departmentCode={profile.department || null}
                   />
-                  {profile.jobTitle && (
-                    <p className="text-xs text-muted-foreground">
-                      Discipline: {DISCIPLINE_LABEL[getDisciplineForJobTitle(profile.jobTitle) ?? "general"]}
-                    </p>
+                  {autoPopulated.discipline && (
+                    <div className="space-y-1 rounded-md bg-muted p-2 text-xs">
+                      <p className="font-medium">Auto-populated from job title:</p>
+                      <p>Discipline: {DISCIPLINE_LABEL[autoPopulated.discipline]}</p>
+                      <p>Role pack: {autoPopulated.rolePack}</p>
+                      {autoPopulated.careerLadder && <p>Career ladder: {autoPopulated.careerLadder}</p>}
+                    </div>
                   )}
                 </div>
                 <div className="space-y-1.5">
@@ -720,7 +733,10 @@ export function OnboardingWizard({ initial, inviteToken, account }: Props) {
                     <DepartmentSelect
                       id="role-department"
                       value={profile.department}
-                      onValueChange={(value) => setProfile({ ...profile, department: value, jobTitle: "" })}
+                      onValueChange={(value) => {
+                        setProfile({ ...profile, department: value, jobTitle: "" })
+                        setAutoPopulated(autoPopulateFromJobTitle("", value))
+                      }}
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -728,16 +744,23 @@ export function OnboardingWizard({ initial, inviteToken, account }: Props) {
                     <JobTitleSelect
                       id="role-title"
                       value={profile.jobTitle}
-                      onValueChange={(value) => setProfile({ ...profile, jobTitle: value })}
+                      onValueChange={(value) => {
+                        setProfile({ ...profile, jobTitle: value })
+                        setAutoPopulated(autoPopulateFromJobTitle(value, profile.department))
+                      }}
                       departmentCode={profile.department || null}
                     />
-                    {profile.jobTitle && (
-                      <p className="text-xs text-muted-foreground">
-                        Discipline: {DISCIPLINE_LABEL[getDisciplineForJobTitle(profile.jobTitle) ?? "general"]}
-                      </p>
-                    )}
                   </div>
                 </div>
+                {autoPopulated.discipline && (
+                  <div className="rounded-md bg-muted p-3 text-sm">
+                    <p className="font-medium mb-1">Auto-populated from job title:</p>
+                    <p>Discipline: {DISCIPLINE_LABEL[autoPopulated.discipline]}</p>
+                    <p>Role pack: {autoPopulated.rolePack}</p>
+                    {autoPopulated.careerLadder && <p>Career ladder: {autoPopulated.careerLadder}</p>}
+                    <p>Report template: {autoPopulated.reportTemplate}</p>
+                  </div>
+                )}
 
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className="text-xs text-muted-foreground">
