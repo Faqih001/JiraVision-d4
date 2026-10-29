@@ -49,7 +49,19 @@ describe("work log client", () => {
     // The browser's zone is a guess until the first response. If the guess is stale and nobody
     // picked a day, the stale one would be pinned into the URL as `?day=` the moment todayIso
     // shifts, and the member would open on yesterday.
-    expect(client()).toMatch(/setState\(\(prev\) => \(prev\.day === todayIso \? \{ \.\.\.prev, day: serverToday \} : prev\)\)/u)
+    expect(client()).toMatch(/setState\(\(prev\) => adoptServerDay\(prev, todayIso, serverToday\)\)/u)
+    // `adoptServerDay` keeps the object identical when the day already matches. A spread with the
+    // same values is a state change, so `refresh` (which closes over `state`) would rebuild, the
+    // load effect would re-run, and the page would fetch and re-skeleton itself forever.
+    expect(client()).toMatch(/import \{[\s\S]{0,400}adoptServerDay[\s\S]{0,400}\} from "@\/lib\/worklog\/view-state"/u)
+  })
+
+  it("keeps a background read off the skeleton flag", () => {
+    // The live refresh passes quiet; a quiet read that flipped `loading` would blank every card
+    // on the page once a minute for data that may not have moved.
+    expect(client()).toMatch(/if \(!quiet\) setLoading\(true\)/u)
+    expect(client()).toMatch(/if \(!quiet\) setLoading\(false\)/u)
+    expect(client()).toMatch(/useLiveRefresh\(\(\) => refresh\(true\), \{ intervalMs: LIVE_REFRESH_MS \}\)/u)
   })
 
   it("reads all four endpoints through one fetch set", () => {

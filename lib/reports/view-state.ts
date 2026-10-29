@@ -62,6 +62,21 @@ export function defaultReportState(dayIso: string): ReportState {
   }
 }
 
+/**
+ * Move the period anchor onto the server's clock, but only while nobody has picked one — and
+ * return the same state object when there is nothing to change.
+ *
+ * The page opens on the browser's zone, which is a guess; the first read carries the account's
+ * day. The identity rule is not cosmetic: the page loads through a `refresh` that closes over
+ * this state, so a fresh object with the same values is a state change, which rebuilds
+ * `refresh`, which re-runs the load, which paints the skeletons again — a circle that never
+ * needs any data to move.
+ */
+export function adoptServerAnchor(state: ReportState, todayIso: string, serverDay: string): ReportState {
+  if (state.anchor !== todayIso || state.anchor === serverDay) return state
+  return { ...state, anchor: serverDay }
+}
+
 export function parseReportView(search: URLSearchParams, todayIso: string): ReportState {
   const base = defaultReportState(todayIso)
   const periodType = readEnum<PeriodType>(search.get("p"), PERIOD_TYPES, base.periodType)

@@ -50,6 +50,7 @@ import {
   RANGE_PRESETS,
   VIEW_LABEL,
   WORKLOG_VIEWS,
+  adoptServerDay,
   defaultViewState,
   parseViewState,
   resolveRange,
@@ -164,8 +165,9 @@ export default function WorklogClient() {
       setTimezone(entriesJson.data.timezone as string | null)
       setTodayIso(serverToday)
       // A day nobody chose follows the server's clock. Left alone, a stale browser guess would
-      // be pinned into the URL as `?day=` the moment todayIso moves.
-      setState((prev) => (prev.day === todayIso ? { ...prev, day: serverToday } : prev))
+      // be pinned into the URL as `?day=` the moment todayIso moves. Once the day matches, the
+      // updater returns the same object; a new one with the same values re-runs this loader.
+      setState((prev) => adoptServerDay(prev, todayIso, serverToday))
       const summaryJson = await readJson(summaryRes)
       if (summaryJson?.success) setSummary(summaryJson.data as WorklogSummary)
       const deliverablesJson = await readJson(await fetch("/api/worklog/deliverables"))

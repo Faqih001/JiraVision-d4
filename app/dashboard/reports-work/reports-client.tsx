@@ -27,6 +27,7 @@ import {
 } from "@/lib/reports/templates"
 import type { RowSectionKey } from "@/lib/reports/row-sections"
 import {
+  adoptServerAnchor,
   defaultReportState,
   effectiveTemplate,
   metricsSource,
@@ -142,8 +143,9 @@ export default function ReportsClient() {
       setTimezone(listJson.data.timezone as string | null)
       setTodayIso(serverToday)
       // A day nobody chose follows the server's clock. Left alone, a stale browser guess would be
-      // pinned into the URL as `?d=` the moment todayIso moves.
-      setState((prev) => (prev.anchor === todayIso ? { ...prev, anchor: serverToday } : prev))
+      // pinned into the URL as `?d=` the moment todayIso moves. Once the anchor matches, the same
+      // object comes back: a new one with the same values rebuilds this loader and re-runs it.
+      setState((prev) => adoptServerAnchor(prev, todayIso, serverToday))
 
       if (state.view === "build") {
         const previewJson = await readJson(await fetch(`/api/reports/work/preview?${qs}`))

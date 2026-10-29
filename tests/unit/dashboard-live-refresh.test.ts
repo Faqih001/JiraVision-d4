@@ -111,3 +111,15 @@ describe("no dashboard page reads demo fixtures", () => {
     expect(src(file)).not.toContain("lib/seed-data")
   })
 })
+
+describe("a loader cannot re-trigger its own load", () => {
+  // `setState((prev) => (prev.day === todayIso ? { ...prev, day: serverToday } : prev))` reads as
+  // a no-op when the value already matches, but a spread is a new object, which is a state change,
+  // which rebuilds a loader that closes over that state, which re-runs the load effect, which
+  // flips the skeleton flag — the page reloads its own cards forever with no data moving. Both
+  // pages that adopted the server's day do it through a helper that returns the same object
+  // instead: `adoptServerDay` and `adoptServerAnchor`.
+  it.each([...DATA_PAGES, ...DRAFT_PAGES])("%s never spreads an unchanged value back into state", (file) => {
+    expect(src(file)).not.toMatch(/setState\(\(prev\) => \(prev\.\w+ === \w+ \? \{ \.\.\.prev/u)
+  })
+})

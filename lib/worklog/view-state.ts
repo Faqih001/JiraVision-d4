@@ -76,6 +76,23 @@ export function defaultViewState(dayIso: string): ViewState {
   }
 }
 
+/**
+ * Move the day onto the server's clock, but only while nobody has chosen one.
+ *
+ * The page opens on the browser's own zone, which is a guess: at midnight in the member's real
+ * zone the guess is yesterday. The first response carries the account's day and this replaces
+ * the guess — and a day the member navigated to is never replaced.
+ *
+ * Returning the same object when there is nothing to change is the point of the helper. The page
+ * runs this on every read, background ones included; a fresh object holding the same values is a
+ * state change, so the loader would rebuild, its effect would re-run, and the page would fetch
+ * and re-paint its skeletons forever with no data moving.
+ */
+export function adoptServerDay(state: ViewState, todayIso: string, serverDay: string): ViewState {
+  if (state.day !== todayIso || state.day === serverDay) return state
+  return { ...state, day: serverDay }
+}
+
 export function parseViewState(search: URLSearchParams, todayIso: string): ViewState {
   const base = defaultViewState(todayIso)
 

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 import {
   AUTO_TEMPLATE,
   SOURCE_LABEL,
+  adoptServerAnchor,
   defaultReportState,
   effectiveTemplate,
   metricsSource,
@@ -152,5 +153,25 @@ describe("metricsSource", () => {
     expect(SOURCE_LABEL.snapshot).toContain("saved")
     // The shipped copy capitalises the label as a sentence; the claim is the word, not its case.
     expect(SOURCE_LABEL.live.toLowerCase()).toContain("live")
+  })
+})
+
+describe("adoptServerAnchor", () => {
+  it("moves an unchosen anchor onto the server's clock", () => {
+    const guessed = defaultReportState("2026-10-25")
+    expect(adoptServerAnchor(guessed, "2026-10-25", TODAY).anchor).toBe(TODAY)
+  })
+
+  it("leaves an anchor the member picked alone", () => {
+    const chosen = { ...defaultReportState(TODAY), anchor: "2026-10-20" }
+    expect(adoptServerAnchor(chosen, TODAY, "2026-11-11")).toBe(chosen)
+  })
+
+  it("returns the same object once the anchor already matches, so a refresh cannot re-trigger itself", () => {
+    // The page loads on `refresh` and `refresh` closes over the state. A fresh object holding the
+    // same values is a state change, so the effect re-runs, setLoading(true) re-paints the
+    // skeletons, and the page fetches itself in a circle with no data moving.
+    const settled = defaultReportState(TODAY)
+    expect(adoptServerAnchor(settled, TODAY, TODAY)).toBe(settled)
   })
 })

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 import {
   VIEW_LABEL,
   WORKLOG_VIEWS,
+  adoptServerDay,
   defaultViewState,
   parseViewState,
   resolveRange,
@@ -126,5 +127,32 @@ describe("viewDays", () => {
   it("refuses to render a range wider than the view can hold", () => {
     const long = listed({ preset: "custom" as const, from: "2020-01-01", to: "2026-10-26" })
     expect(viewDays(long, TODAY)).toHaveLength(90)
+  })
+})
+
+describe("adoptServerDay", () => {
+  it("moves a day nobody chose onto the server's clock", () => {
+    // The browser's zone is a guess until the first response: a member at midnight in their own
+    // zone must not open on yesterday.
+    const guessed = defaultViewState("2026-10-25")
+    expect(adoptServerDay(guessed, "2026-10-25", TODAY).day).toBe(TODAY)
+  })
+
+  it("leaves a day the member navigated to alone", () => {
+    const chosen = { ...defaultViewState(TODAY), day: "2026-10-20" }
+    expect(adoptServerDay(chosen, TODAY, "2026-11-11")).toBe(chosen)
+  })
+
+  it("returns the same object once the day already matches, so a refresh cannot re-trigger itself", () => {
+    // The loader runs this on every read. A fresh object with the same values is a state change,
+    // which rebuilds the loader, which re-runs the non-quiet load, which paints the skeletons
+    // again — forever, with no data to show for it.
+    const settled = defaultViewState(TODAY)
+    expect(adoptServerDay(settled, TODAY, TODAY)).toBe(settled)
+  })
+
+  it("carries the other controls through untouched", () => {
+    const filtered = { ...defaultViewState(TODAY), view: "week" as const, q: "pump", kind: "blocker" as const }
+    expect(adoptServerDay(filtered, TODAY, "2026-10-27")).toEqual({ ...filtered, day: "2026-10-27" })
   })
 })

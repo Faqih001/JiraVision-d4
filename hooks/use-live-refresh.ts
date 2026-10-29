@@ -21,7 +21,9 @@ interface LiveRefreshOptions {
  * page already has on screen.
  *
  * Pass the page's quiet loader — one that updates rows without flipping the
- * skeleton — so a refresh never looks like a page load.
+ * skeleton — so a refresh never looks like a page load. The loader must also leave its
+ * own inputs alone: a read that writes state listed in its dependency array rebuilds the
+ * loader, the page's load effect re-runs, and the skeleton returns on its own schedule.
  */
 export function useLiveRefresh(refresh: Refresh, options: LiveRefreshOptions = {}) {
   const latest = useRef(refresh)

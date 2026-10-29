@@ -48,7 +48,10 @@ describe("the reports-work page", () => {
 
   it("takes the day from the server, not the browser clock", () => {
     expect(client()).toMatch(/const serverToday = listJson\.data\.today as string/u)
-    expect(client()).toMatch(/prev\.anchor === todayIso \? \{ \.\.\.prev, anchor: serverToday \}/u)
+    // Identity matters as much as the value: `refresh` closes over `state` and an effect runs it
+    // on `[refresh]`, so an updater that returns a new object with the same anchor rebuilds the
+    // loader, re-runs the load, and re-paints the skeletons in a circle.
+    expect(client()).toMatch(/setState\(\(prev\) => adoptServerAnchor\(prev, todayIso, serverToday\)\)/u)
     // toISOString().slice(0, 10) is yesterday for anyone west of UTC, and a report dated wrong
     // is worse than one dated late.
     expect(codeOnly(client())).not.toMatch(/toISOString\(\)\.slice\(0, *10\)/u)
