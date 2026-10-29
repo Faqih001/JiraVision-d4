@@ -14,7 +14,7 @@ Frontend-only redesign of the marketing site. Dashboard app, auth, and API logic
 | Tailwind | 3.4.17, shadcn-style HSL CSS variables (`tailwind.config.ts` + `app/globals.css`) |
 | TypeScript | `strict: true` in tsconfig, **but `next.config.mjs:5-7` sets `typescript.ignoreBuildErrors: true`** — type errors are silently ignored at build |
 | Images | `next.config.mjs:8-10` sets `images.unoptimized: true` — `next/image` gives no optimization; remote images also have no `remotePatterns` whitelist |
-| Rewrites | `/api/aitopia/*` proxied to `extensions.aitopia.ai` (`next.config.mjs:18-24`) — third-party dependency, kept as-is |
+| Rewrites | ~~`/api/aitopia/*` proxied to `extensions.aitopia.ai`~~ — removed (2026-10-29); the open relay was a security gap and no product code called it |
 | Fonts | Inter only, via `next/font/google` in [app/layout.tsx:3](file:///Users/kiibridge-tech/Desktop/Projects/jiravision/app/layout.tsx#L3). No display face. `styles/globals.css` (v0 leftover) sets Arial and is imported nowhere — dead file. |
 | Metadata | `generator: 'v0.dev'` at [app/layout.tsx:21](file:///Users/kiibridge-tech/Desktop/Projects/jiravision/app/layout.tsx#L21). No per-page metadata, no OG/Twitter cards, canonical URLs, sitemap, or robots — `public/` has no `sitemap.xml` or `robots.txt`, and there is no `app/sitemap.ts`. |
 | package.json | Name is still `"my-v0-project"`. |

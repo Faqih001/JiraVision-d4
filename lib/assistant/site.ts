@@ -144,13 +144,28 @@ ${siteKnowledge}`
 
   // Call Gemini
   try {
-    const { text } = await geminiText({
+    const { text, usage } = await geminiText({
       system: systemPrompt,
       contents: [{ text: question }],
       temperature: 0.5,
       maxOutputTokens: 500,
       timeoutMs: 15_000,
     })
+
+    // Update token usage for today's row
+    const today = new Date().toISOString().split("T")[0]
+    try {
+      await db
+        .update(aiUsageDaily)
+        .set({
+          inputTokens: sql`${aiUsageDaily.inputTokens} + ${usage.promptTokens}`,
+          outputTokens: sql`${aiUsageDaily.outputTokens} + ${usage.completionTokens}`,
+        })
+        .where(and(eq(aiUsageDaily.date, today), eq(aiUsageDaily.scope, "site")))
+    } catch (error) {
+      console.error("Token tracking error:", error)
+      // Non-fatal: the call still succeeds, just without token tracking
+    }
 
     return { answer: text, source: "gemini" }
   } catch (error) {

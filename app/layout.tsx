@@ -7,7 +7,6 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { AuthProvider } from "@/context/auth-context"
 import { Toaster } from "@/components/ui/toaster"
 import LandingChatbot from "@/components/landing-chatbot"
-import ClientCorsWrapper from "@/app/providers/client-cors-wrapper"
 import { AccessibilityWidget } from "@/components/accessibility/accessibility-widget"
 import { bootstrapScript } from "@/lib/accessibility"
 
@@ -68,8 +67,6 @@ export default function RootLayout({
         <Toaster />
         <LandingChatbot />
         <AccessibilityWidget />
-        {/* Add CORS handler in development mode via client wrapper */}
-        <ClientCorsWrapper />
       </body>
     </html>
   )

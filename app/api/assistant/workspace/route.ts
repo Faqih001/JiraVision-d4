@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
       role: "assistant",
       content: response.answer,
       references: response.references,
-      tokens: 0, // TODO: track actual token usage
+      tokens: response.usage?.totalTokens ?? 0,
     })
 
     // Update thread timestamp

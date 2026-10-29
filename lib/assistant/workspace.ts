@@ -17,7 +17,13 @@ const WorkspaceResponseSchema = z.object({
   dataAsOf: z.string(),
 })
 
-export type WorkspaceAssistantResponse = z.infer<typeof WorkspaceResponseSchema>
+export type WorkspaceAssistantResponse = z.infer<typeof WorkspaceResponseSchema> & {
+  usage?: {
+    promptTokens: number
+    completionTokens: number
+    totalTokens: number
+  }
+}
 
 function workspaceResponseJsonSchema(): Record<string, unknown> {
   return {
@@ -97,6 +103,7 @@ ${contextText}`
       answer: result.data.answer,
       references: result.data.references,
       dataAsOf: context.dataAsOf,
+      usage: result.usage,
     }
   } catch (error) {
     if (error instanceof GeminiError) {

@@ -9,15 +9,6 @@ const nextConfig = {
       },
     ],
   },
-  // Add async rewrites to proxy aitopia.ai requests
-  async rewrites() {
-    return [
-      {
-        source: '/api/aitopia/:path*',
-        destination: 'https://extensions.aitopia.ai/:path*',
-      },
-    ];
-  },
   // Font optimization is now handled automatically by Next.js
   turbopack: {},
 }

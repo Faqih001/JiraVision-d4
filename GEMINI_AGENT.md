@@ -82,13 +82,12 @@ answers 429 until the daily reset.** Consequences worth knowing:
 - The surfaces that answer without the model (rules, keyword tier, deterministic calculations) exist
   partly for this reason. Enable billing before a team relies on any of §4.
 
-**Usage is not metered per member.** `ai_usage_daily` (`date`, `scope`, `calls`) is written by the
-site assistant only, and its `inputTokens`/`outputTokens` columns are always written as `0` — token
-counts come back on `usage` but are stored nowhere. `assistant_messages.tokens` is the same: hardcoded
-`0` with a `// TODO: track actual token usage` at
-[app/api/assistant/workspace/route.ts:81](file:///Users/kiibridge-tech/Desktop/Projects/jiravision/app/api/assistant/workspace/route.ts#L81).
-No surface records its own spend, so there is no per-surface cost report yet — the only budget signal is
-the 429.
+**Usage is metered per call, not per member.** `ai_usage_daily` (`date`, `scope`, `calls`, `inputTokens`,
+`outputTokens`) is written by the site assistant: `calls` is incremented before the Gemini call, and
+`inputTokens`/`outputTokens` are updated with the actual usage metadata from the response
+(lib/assistant/site.ts:155-168). `assistant_messages.tokens` is likewise persisted from the workspace
+assistant's response usage (app/api/assistant/workspace/route.ts:82). There is no per-member quota yet —
+the only throttle is the key's own daily limit, which is why one member's curiosity can spend it (§2).
 
 ## 3. The nine surfaces at a glance
 
@@ -305,37 +304,6 @@ arithmetic is finished.
 
 Note for operators: `.env.example` still names "report prose" as an AI feature. It is not one —
 reports contain no model call.
-
-### The one other outbound AI-ish call is not Gemini, and it is an open proxy
-
-`app/api/aitopia/[...path]/route.ts` (`GET`/`POST`/`OPTIONS`) joins the URL segments it was matched on
-and fetches `https://extensions.aitopia.ai/<path>`, then echoes that upstream's status and JSON body back
-to the caller. It is not a model surface — nothing here touches `lib/ai/gemini.ts` — but it belongs in
-this document because it is the app's only other outbound call to an AI vendor, and it is the one route
-that leaves this deployment with someone else's credentials:
-
-- **No session check.** `tests/unit/schema-safety.test.ts:178` pins it as a *known* ungated endpoint, so
-  it is a documented exception, not an oversight.
-- **Every inbound header but `host`, `origin` and `referer` is forwarded upstream** (`route.ts:30-34`,
-  `:75-79`) — so an `Authorization` header or this app's own session `Cookie` on the incoming request is
-  replayed to `extensions.aitopia.ai`.
-- **`Access-Control-Allow-Origin: *`** on every response and on the preflight, so any website can drive
-  this route as a relay into that one origin's path space (the destination host is fixed, so it is not
-  arbitrary SSRF; the path and query string are entirely caller-controlled).
-- The proxied URL, query string included, is written to the server log (`route.ts:23`, `:68`).
-- `next.config.mjs:13-20` also declares an `afterFiles` rewrite to the same destination. Route handlers
-  win over `afterFiles` rewrites, so the route above is what runs and the rewrite is dead weight.
-- `app/api/cors-middleware.ts` sets the same CORS headers but is **not active** — Next only loads
-  `middleware.ts` at the project root (or `src/`), and there is none.
-- The browser half is dev-only: `app/providers/client-cors-wrapper.tsx:10` renders the `fetch`
-  interceptor solely when `NODE_ENV === 'development'`.
-- **No product code calls it.** The interceptor only rewrites requests that already name
-  `extensions.aitopia.ai`, and none do. `REDESIGN_PLAN.md:17` records the dependency as "kept as-is".
-
-That makes it an unused outbound relay, not a feature. Removing the route, the rewrite, the interceptor,
-the wrapper and its entry in `schema-safety.test.ts`'s allow-list would close it with nothing to
-re-wire; it is left in place because deleting a third-party integration is the owner's call, not a
-documentation fix.
 
 ## 8. Adding a tenth surface
 

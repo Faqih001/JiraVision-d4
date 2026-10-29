@@ -175,7 +175,6 @@ describe("no anonymous route leaks the schema or relays mail", () => {
     const ungated = apiRoutes.filter((f) => !authGated(f))
     expect(ungated.sort()).toEqual(
       [
-        "app/api/aitopia/[...path]/route.ts",
         "app/api/assistant/site/route.ts",
         "app/api/auth/forgot-password/route.ts",
         "app/api/auth/login/route.ts",
