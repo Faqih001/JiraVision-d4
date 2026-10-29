@@ -1,6 +1,7 @@
 // GET/POST /api/retros — the retrospectives workspace feed.
-// GET returns every retro with persisted note/action counters, the top-voted
-// note preview, plus workspace-wide stats (KPI strip + analytics series).
+// GET returns the caller's retros by default (?scope=team for every retro), each
+// with persisted note/action counters, the top-voted note preview, plus stats
+// and a category mix measured over exactly those retros.
 // POST creates a retro (draft or scheduled). A scheduled retro notifies its
 // creator through the shared notification pipeline.
 //
@@ -46,11 +47,30 @@ function isIsoDate(value: unknown): value is string {
   return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(value))
 }
 
+export type RetroScope = "mine" | "team"
+
+/**
+ * `mine` is the read the member-facing page uses. A retrospective is yours when
+ * you called it, wrote on it, or were handed one of its actions — the three ways
+ * a person ends up in a retro. A new account then opens on nothing rather than
+ * on another team's post-mortems.
+ */
+export function retroVisibility(userId: number, scope: RetroScope) {
+  if (scope === "team") return sql``
+  return sql`WHERE r.created_by = ${userId}
+      OR EXISTS (SELECT 1 FROM retro_notes n WHERE n.retro_id = r.id AND n.author_id = ${userId})
+      OR EXISTS (SELECT 1 FROM retro_actions a WHERE a.retro_id = r.id AND a.owner_id = ${userId})`
+}
+
 /* ------------------------------------------------------------------- GET */
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const session = await getSession()
   if (!session || typeof session.id !== "number") return unauthorized()
+
+  const scope: RetroScope =
+    new URL(request.url).searchParams.get("scope") === "team" ? "team" : "mine"
+  const visibility = retroVisibility(session.id, scope)
 
   try {
     const items = (await db.execute(sql`
@@ -83,14 +103,18 @@ export async function GET() {
       FROM retros r
       LEFT JOIN users u ON u.id = r.created_by
       LEFT JOIN sprints s ON s.id = r.sprint_id
+      ${visibility}
       ORDER BY r.date DESC, r.id DESC
     `)) as unknown as RetroListItem[]
 
-    // One grouped query for the category-mix donut across ALL retros.
+    // One grouped query for the category-mix donut, over the same retros the
+    // caller was allowed to see.
     const categoryMix = (await db.execute(sql`
-      SELECT category, count(*)::int AS count
-      FROM retro_notes
-      GROUP BY category
+      SELECT n.category, count(*)::int AS count
+      FROM retro_notes n
+      JOIN retros r ON r.id = n.retro_id
+      ${visibility}
+      GROUP BY n.category
     `)) as unknown as { category: string; count: number }[]
 
     const retrosHeld = items.filter((r) => r.status === "completed").length

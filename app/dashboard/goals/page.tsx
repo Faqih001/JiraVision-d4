@@ -168,6 +168,7 @@ export default function GoalsPage() {
   const [error, setError] = useState<string | null>(null)
 
   const [query, setQuery] = useState("")
+  const [goalScope, setGoalScope] = useState<"mine" | "team">("mine")
   const [statusFilter, setStatusFilter] = useState("all")
   const [quarterFilter, setQuarterFilter] = useState("all")
   const [ownerFilter, setOwnerFilter] = useState("all")
@@ -187,12 +188,20 @@ export default function GoalsPage() {
   const [deleteConfirm, setDeleteConfirm] = useState(false)
   const [busyId, setBusyId] = useState<number | null>(null)
 
+  const scopeParam = goalScope === "mine" ? "scope=mine" : "scope=team"
+  const switchScope = (next: "mine" | "team") => {
+    setGoalScope(next)
+    // An owner picked from the team view may own none of my goals, which would
+    // read as "the workspace is empty".
+    if (next === "mine") setOwnerFilter("all")
+  }
+
   /* ------------------------------------------------------------- fetching */
 
   const load = useCallback(async (quiet = false) => {
     try {
       const [goalsRes, membersRes] = await Promise.all([
-        fetch("/api/goals"),
+        fetch(`/api/goals?${scopeParam}`),
         fetch("/api/team/members"),
       ])
       if (!goalsRes.ok) throw new Error(`Goals API responded ${goalsRes.status}`)
@@ -217,7 +226,7 @@ export default function GoalsPage() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [scopeParam])
 
   useEffect(() => {
     void load()
@@ -257,6 +266,15 @@ export default function GoalsPage() {
       Array.from(new Set(goals.map((g) => g.quarter).filter((q): q is string => Boolean(q)))).sort(),
     [goals],
   )
+
+  // The owner filter narrows the goals on screen, so it only ever offers the
+  // people who actually own one of them. The roster behind the create dialog
+  // stays the whole team.
+  const owners = useMemo(() => {
+    const byId = new Map<number, string>()
+    for (const g of goals) if (!byId.has(g.ownerId)) byId.set(g.ownerId, g.ownerName)
+    return Array.from(byId, ([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name))
+  }, [goals])
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -590,6 +608,28 @@ export default function GoalsPage() {
       {/* 3 — filters */}
       <SectionCard title="Filters" icon={<Search className="h-4 w-4" />}>
         <div className="flex flex-wrap items-end gap-3">
+          <div
+            className="flex items-center gap-1 self-center rounded-md border p-0.5"
+            role="group"
+            aria-label="Goal scope"
+          >
+            <Button
+              size="sm"
+              variant={goalScope === "mine" ? "secondary" : "ghost"}
+              className="h-7 px-2 text-xs"
+              onClick={() => switchScope("mine")}
+            >
+              My goals
+            </Button>
+            <Button
+              size="sm"
+              variant={goalScope === "team" ? "secondary" : "ghost"}
+              className="h-7 px-2 text-xs"
+              onClick={() => switchScope("team")}
+            >
+              Whole team
+            </Button>
+          </div>
           <div className="min-w-[180px] flex-1">
             <Label className="text-xs">Search</Label>
             <Input
@@ -638,7 +678,7 @@ export default function GoalsPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All owners</SelectItem>
-                {members.map((m) => (
+                {owners.map((m) => (
                   <SelectItem key={m.id} value={String(m.id)}>
                     {m.name}
                   </SelectItem>
@@ -703,7 +743,13 @@ export default function GoalsPage() {
           </div>
         }
       >
-        {filtered.length === 0 ? (
+        {goals.length === 0 ? (
+          <EmptyNote>
+            {goalScope === "mine"
+              ? "No goals assigned to you or drafted by you yet. Create one, or switch to Whole team."
+              : "This workspace has no goals yet."}
+          </EmptyNote>
+        ) : filtered.length === 0 ? (
           <EmptyNote>No goals match these filters.</EmptyNote>
         ) : view === "grid" ? (
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">

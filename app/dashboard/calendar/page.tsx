@@ -296,7 +296,7 @@ export default function CalendarWorkspace() {
     setLoading(true)
     try {
       const [evRes, ovRes, spRes, tkRes, ntRes] = await Promise.all([
-        fetch("/api/calendar/events"),
+        fetch(`/api/calendar/events?${scopeParam}`),
         fetch("/api/dashboard/overview?scope=member"),
         fetch(`/api/sprints?${scopeParam}`),
         fetch(`/api/tasks?pageSize=100&${scopeParam}`),
@@ -336,13 +336,13 @@ export default function CalendarWorkspace() {
 
   const reloadEvents = useCallback(async () => {
     try {
-      const res = await fetch("/api/calendar/events")
+      const res = await fetch(`/api/calendar/events?${scopeParam}`)
       const json = await res.json()
       if (json.success) setEvents(json.events ?? [])
     } catch {
       toast({ variant: "destructive", title: "Calendar", description: "Could not refresh events." })
     }
-  }, [toast])
+  }, [toast, scopeParam])
 
   useEffect(() => {
     void load()

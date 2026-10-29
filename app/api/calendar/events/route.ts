@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { calendarEvents, users } from "@/drizzle/schema"
-import { and, desc, eq, gte, lte, sql } from "drizzle-orm"
+import { and, desc, eq, or, gte, lte, sql } from "drizzle-orm"
 import { getSession } from "@/lib/auth-actions"
 import { createNotification } from "@/lib/notifications"
 
@@ -146,7 +146,10 @@ const selectShape = {
   organizerAvatar: users.avatar,
 }
 
-// GET /api/calendar/events — real rows only; optional ?startDate&endDate ISO window filter.
+// GET /api/calendar/events — real rows only; optional ?startDate&endDate ISO
+// window filter and `?scope=mine`, the events the caller organises or is invited
+// to. The page defaults to that scope, so a member who is in nothing sees an
+// empty month instead of the workspace's schedule.
 export async function GET(request: Request) {
   try {
     const session = await getSession()
@@ -157,6 +160,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const startDate = searchParams.get("startDate")
     const endDate = searchParams.get("endDate")
+    const mineOnly = searchParams.get("scope") === "mine"
 
     const conditions = []
     if (startDate && !Number.isNaN(Date.parse(startDate))) {
@@ -165,6 +169,14 @@ export async function GET(request: Request) {
     if (endDate && !Number.isNaN(Date.parse(endDate))) {
       conditions.push(lte(calendarEvents.endTime, new Date(endDate)))
     }
+    if (mineOnly) {
+      conditions.push(
+        or(
+          eq(calendarEvents.organizerId, session.id),
+          sql`${calendarEvents.attendees} @> ${JSON.stringify([session.id])}::jsonb`,
+        )!,
+      )
+    }
 
     const [allUsers, rows] = await Promise.all([
       loadUsersLite(),
@@ -172,7 +184,7 @@ export async function GET(request: Request) {
         .select(selectShape)
         .from(calendarEvents)
         .leftJoin(users, eq(calendarEvents.organizerId, users.id))
-        .where(conditions.length > 0 ? and(...conditions) : sql`1=1`)
+        .where(conditions.length > 0 ? and(...conditions) : sql`true`)
         .orderBy(desc(calendarEvents.startTime)),
     ])
 

@@ -1,5 +1,6 @@
 // /api/goals — list + create goals for the OKR workspace.
-// GET  → all goals (owner/creator joined), every check-in (cap 1000) and the
+// GET  → the caller's goals by default (?scope=team adds the whole workspace),
+//        each with owner/creator joined, the check-ins they can see and the
 //        caller's identity so the page can render charts/feeds without extra
 //        round-trips.
 // POST → create a goal; notifies the owner when owner ≠ creator.
@@ -22,16 +23,23 @@ import {
   isMetricType,
   serverError,
   unauthorized,
+  type GoalScope,
 } from "./queries"
 
 export const dynamic = "force-dynamic"
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const session = await getSession()
   if (!session || typeof session.id !== "number") return unauthorized()
 
   try {
-    const [goals, checkins] = await Promise.all([fetchGoals(), fetchCheckins(1000)])
+    // The session id is the scope anchor — never a user-supplied id.
+    const scope: GoalScope =
+      request.nextUrl.searchParams.get("scope") === "team" ? "team" : "mine"
+    const [goals, checkins] = await Promise.all([
+      fetchGoals(session.id, scope),
+      fetchCheckins(session.id, scope, 1000),
+    ])
     return NextResponse.json({
       success: true,
       data: {

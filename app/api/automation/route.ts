@@ -32,7 +32,7 @@ export async function GET() {
   if (!session || typeof session.id !== "number") return unauthorized()
 
   try {
-    const [rules, runs] = await Promise.all([fetchRules(), fetchRuns(50)])
+    const [rules, runs] = await Promise.all([fetchRules(session.id), fetchRuns(session.id, 50)])
     return NextResponse.json({ success: true, data: { rules, runs, templates: TEMPLATES } })
   } catch (error) {
     return serverError(error, "fetch automation rules")
@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
       metadata: { ruleId: row.id, action: "created" },
     })
 
-    const rules = await fetchRules()
+    const rules = await fetchRules(session.id)
     return NextResponse.json(
       { success: true, data: { rule: rules.find((r) => r.id === row.id) ?? null } },
       { status: 201 },

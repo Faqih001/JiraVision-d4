@@ -30,7 +30,7 @@ export async function GET() {
   if (!session || typeof session.id !== "number") return unauthorized()
 
   try {
-    const [schedules, runs] = await Promise.all([fetchSchedules(), fetchRuns(50)])
+    const [schedules, runs] = await Promise.all([fetchSchedules(session.id), fetchRuns(session.id, 50)])
     return NextResponse.json({
       success: true,
       data: { schedules, runs, datasets: DATASETS },
@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
       metadata: { scheduleId: row.id, action: "created" },
     })
 
-    const schedules = await fetchSchedules()
+    const schedules = await fetchSchedules(session.id)
     return NextResponse.json(
       { success: true, data: { schedule: schedules.find((s) => s.id === row.id) ?? null } },
       { status: 201 },

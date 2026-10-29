@@ -227,6 +227,8 @@ export default function RetrospectivesWorkspace() {
   const [sprints, setSprints] = useState<SprintOption[]>([])
   const [members, setMembers] = useState<MemberOption[]>([])
   const [notifications, setNotifications] = useState<NotifItem[]>([])
+  const [retroScope, setRetroScope] = useState<"mine" | "team">("mine")
+  const scopeParam = retroScope === "mine" ? "scope=mine" : "scope=team"
 
   // selection + detail
   const [selectedId, setSelectedId] = useState<number | null>(null)
@@ -291,7 +293,7 @@ export default function RetrospectivesWorkspace() {
       else if (!quiet) setRefreshing(true)
       try {
         const [retrosRes, sprintsRes, overviewRes, notifRes] = await Promise.all([
-          fetch("/api/retros"),
+          fetch(`/api/retros?${scopeParam}`),
           fetch("/api/sprints"),
           fetch("/api/dashboard/overview"),
           fetch("/api/notifications?limit=60"),
@@ -335,7 +337,7 @@ export default function RetrospectivesWorkspace() {
         if (!quiet) setRefreshing(false)
       }
     },
-    [toast],
+    [toast, scopeParam],
   )
 
   useEffect(() => {
@@ -679,6 +681,28 @@ export default function RetrospectivesWorkspace() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <div
+            className="flex items-center gap-1 rounded-md border p-0.5"
+            role="group"
+            aria-label="Retro scope"
+          >
+            <Button
+              size="sm"
+              variant={retroScope === "mine" ? "secondary" : "ghost"}
+              className="h-7 px-2 text-xs"
+              onClick={() => setRetroScope("mine")}
+            >
+              My retros
+            </Button>
+            <Button
+              size="sm"
+              variant={retroScope === "team" ? "secondary" : "ghost"}
+              className="h-7 px-2 text-xs"
+              onClick={() => setRetroScope("team")}
+            >
+              Whole team
+            </Button>
+          </div>
           <Button variant="outline" size="sm" onClick={() => void load(false)} disabled={refreshing}>
             <RefreshCw className={`mr-1.5 h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
             Refresh

@@ -192,9 +192,14 @@ export function serializeRule(row: RuleRawRow): RuleDto {
   }
 }
 
-export async function fetchRules(): Promise<RuleDto[]> {
+/**
+ * A rule belongs to whoever wrote it — `automation_rules.user_id` is set on
+ * insert and the run history hangs off the rule — so both reads take the
+ * owner. A member who has never built an automation opens on an empty page.
+ */
+export async function fetchRules(userId: number): Promise<RuleDto[]> {
   const rows = (await db.execute(sql`
-    SELECT ${RULE_PROJECTION} FROM automation_rules ar ORDER BY ar.updated_at DESC
+    SELECT ${RULE_PROJECTION} FROM automation_rules ar WHERE ar.user_id = ${userId} ORDER BY ar.updated_at DESC
   `)) as unknown as RuleRawRow[]
   return rows.map(serializeRule)
 }
@@ -206,13 +211,14 @@ export async function fetchRuleById(id: number): Promise<RuleDto | null> {
   return rows.length ? serializeRule(rows[0]) : null
 }
 
-export async function fetchRuns(limit = 50): Promise<RunDto[]> {
+export async function fetchRuns(userId: number, limit = 50): Promise<RunDto[]> {
   const rows = (await db.execute(sql`
     SELECT au.id, au.rule_id, ar.name AS rule_name, au.status::text AS status,
       au.matched, au.acted, au.detail,
       to_char(au.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS created_at
     FROM automation_runs au
     JOIN automation_rules ar ON ar.id = au.rule_id
+    WHERE ar.user_id = ${userId}
     ORDER BY au.created_at DESC
     LIMIT ${limit}
   `)) as unknown as {

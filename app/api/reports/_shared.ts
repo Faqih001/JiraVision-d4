@@ -437,10 +437,15 @@ export function serializeSchedule(row: ScheduleRawRow): ScheduleDto {
   }
 }
 
-export async function fetchSchedules(): Promise<ScheduleDto[]> {
+/**
+ * A schedule belongs to whoever built it — `report_schedules.user_id` is set on
+ * insert and every run hangs off its schedule — so both reads take the owner.
+ */
+export async function fetchSchedules(userId: number): Promise<ScheduleDto[]> {
   const rows = (await db.execute(sql`
     SELECT ${SCHEDULE_PROJECTION}
     FROM report_schedules rs
+    WHERE rs.user_id = ${userId}
     ORDER BY rs.updated_at DESC
   `)) as unknown as ScheduleRawRow[]
   return rows.map(serializeSchedule)
@@ -455,13 +460,14 @@ export async function fetchScheduleById(id: number): Promise<ScheduleDto | null>
   return rows.length ? serializeSchedule(rows[0]) : null
 }
 
-export async function fetchRuns(limit = 50): Promise<RunDto[]> {
+export async function fetchRuns(userId: number, limit = 50): Promise<RunDto[]> {
   const rows = (await db.execute(sql`
     SELECT rr.id, rr.schedule_id, rs.name AS schedule_name, rr.status::text AS status,
       rr.rows, rr.detail,
       to_char(rr.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS created_at
     FROM report_runs rr
     JOIN report_schedules rs ON rs.id = rr.schedule_id
+    WHERE rs.user_id = ${userId}
     ORDER BY rr.created_at DESC
     LIMIT ${limit}
   `)) as unknown as {

@@ -204,6 +204,8 @@ export default function SprintsWorkspace() {
   const [loadFailed, setLoadFailed] = useState(false)
 
   const [view, setView] = useState<"cards" | "table" | "timeline">("cards")
+  const [boardScope, setBoardScope] = useState<"mine" | "workspace">("mine")
+  const scopeParam = boardScope === "mine" ? "scope=mine" : "scope=all"
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [dateFrom, setDateFrom] = useState("")
@@ -226,7 +228,7 @@ export default function SprintsWorkspace() {
 
   const load = useCallback(async () => {
     try {
-      const res = await fetch("/api/sprints")
+      const res = await fetch(`/api/sprints?${scopeParam}`)
       const json = await res.json()
       if (!json.success) throw new Error(json.message ?? "Failed to load sprints")
       const list: Sprint[] = json.data
@@ -244,7 +246,7 @@ export default function SprintsWorkspace() {
       toast({ variant: "destructive", title: "Sprints", description: (err as Error).message })
       return null
     }
-  }, [toast])
+  }, [toast, scopeParam])
 
   useEffect(() => {
     void (async () => {
@@ -258,7 +260,7 @@ export default function SprintsWorkspace() {
   // else started or closed without disturbing the panel the viewer is reading.
   const reloadQuiet = useCallback(async () => {
     try {
-      const res = await fetch("/api/sprints")
+      const res = await fetch(`/api/sprints?${scopeParam}`)
       const json = await res.json()
       if (!json.success) return
       const list: Sprint[] = json.data
@@ -268,7 +270,7 @@ export default function SprintsWorkspace() {
     } catch {
       /* keep the list already on screen */
     }
-  }, [])
+  }, [scopeParam])
 
   useLiveRefresh(reloadQuiet, { intervalMs: LIVE_REFRESH_MS })
 
@@ -574,6 +576,24 @@ export default function SprintsWorkspace() {
   const filterBar = (
     <Card>
       <CardContent className="flex flex-wrap items-center gap-2 py-3">
+        <div className="flex items-center gap-1 rounded-md border p-0.5" role="group" aria-label="Sprint scope">
+          <Button
+            size="sm"
+            variant={boardScope === "mine" ? "secondary" : "ghost"}
+            className="h-7 px-2 text-xs"
+            onClick={() => setBoardScope("mine")}
+          >
+            My sprints
+          </Button>
+          <Button
+            size="sm"
+            variant={boardScope === "workspace" ? "secondary" : "ghost"}
+            className="h-7 px-2 text-xs"
+            onClick={() => setBoardScope("workspace")}
+          >
+            Workspace
+          </Button>
+        </div>
         <div className="relative min-w-40 flex-1">
           <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input

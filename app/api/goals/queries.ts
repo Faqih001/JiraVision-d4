@@ -117,10 +117,22 @@ export function serializeGoalRow(row: GoalRawRow): GoalDto {
   }
 }
 
-export async function fetchGoals(): Promise<GoalDto[]> {
+/**
+ * `mine` is the read a member-facing page uses: goals you own or drafted. A
+ * brand-new account then opens on an empty OKR workspace instead of the rows
+ * someone else created. `team` is the deliberate aggregate view.
+ */
+export type GoalScope = "mine" | "team"
+
+export function goalVisibility(userId: number, scope: GoalScope) {
+  return scope === "team" ? sql`` : sql`WHERE (g.owner_id = ${userId} OR g.created_by = ${userId})`
+}
+
+export async function fetchGoals(userId: number, scope: GoalScope = "mine"): Promise<GoalDto[]> {
   const rows = (await db.execute(sql`
     SELECT ${GOAL_PROJECTION}
     ${GOAL_FROM}
+    ${goalVisibility(userId, scope)}
     ORDER BY g.updated_at DESC
   `)) as unknown as GoalRawRow[]
   return rows.map(serializeGoalRow)
@@ -168,12 +180,22 @@ export function serializeCheckin(row: CheckinRawRow): CheckinDto {
   }
 }
 
-export async function fetchCheckins(limit = 1000): Promise<CheckinDto[]> {
+/**
+ * The feed reads the same visibility as the list — `goalVisibility` only names
+ * the `g` alias, which both queries join — so a member's activity rail can only
+ * ever mention goals they can already see.
+ */
+export async function fetchCheckins(
+  userId: number,
+  scope: GoalScope = "mine",
+  limit = 1000,
+): Promise<CheckinDto[]> {
   const rows = (await db.execute(sql`
     SELECT ${CHECKIN_PROJECTION}
     FROM goal_checkins k
     JOIN users a ON a.id = k.author_id
     JOIN goals g ON g.id = k.goal_id
+    ${goalVisibility(userId, scope)}
     ORDER BY k.created_at ASC, k.id ASC
     LIMIT ${limit}
   `)) as unknown as CheckinRawRow[]
