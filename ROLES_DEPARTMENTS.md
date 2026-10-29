@@ -48,7 +48,7 @@ Each discipline has:
 
 ### 1.3 Career Ladder (`lib/career/ladder-seed.ts`)
 
-**5 disciplines × 4 levels = 20 career levels**:
+**12 disciplines × 4 levels = 48 career levels**:
 
 **Disciplines**:
 - developer
@@ -56,6 +56,13 @@ Each discipline has:
 - designer
 - auditor
 - coordinator
+- analyst
+- finance
+- operations
+- hr
+- sales_marketing
+- healthcare_science
+- engineering
 
 **Levels**:
 1. **Junior** — Works under review
@@ -74,31 +81,93 @@ Each level defines:
 
 Role packs define **what a person is the keeper of** (data, registers, workflows), separate from their discipline (how their work is judged).
 
-**Seeded packs**:
+**12 seeded packs** (11 specialized + 1 general fallback):
 
 #### IT Technician Pack
 - **packKey**: `it-technician`
 - **Disciplines**: technician, it_operations, devops, networking, security, database
 - **Register kinds**: Infrastructure, Accounts and systems, Equipment, Outstanding work
-- **Sections**: today, registers, tasks, worklog, reports
 - **Report template**: technical
-- **Method**: Identify → Reproduce → Diagnose → Fix → Test → Document
-- **Onboarding questions**:
-  - Which servers, network devices and cloud services are you responsible for?
-  - Where are the consoles for your admin accounts, and who can authorise access?
-  - Which ticketing system holds the work that is currently open?
-  - Which equipment is out for repair or waiting to be disposed of?
+- **Discipline-specific methods**: 6 methods (STAR for technicians, plus it_operations, devops, networking, security, database)
 
-#### General Pack
+#### Developer Pack
+- **packKey**: `developer`
+- **Disciplines**: developer, architect, data_engineering, ai_ml, tester
+- **Register kinds**: Code repositories, Pull requests, Technical debt, Sprint backlog
+- **Report template**: engineering
+- **Discipline-specific methods**: 5 methods (developer, architect, data_engineering, ai_ml, tester)
+
+#### Designer Pack
+- **packKey**: `designer`
+- **Disciplines**: designer, creative, content, communications
+- **Register kinds**: Design files, Brand assets, User research, Design system
+- **Report template**: creative
+- **Discipline-specific methods**: 4 methods (designer, creative, content, communications)
+
+#### Analyst Pack
+- **packKey**: `analyst`
+- **Disciplines**: analyst, researcher, data_analyst, data_science, monitoring_evaluation, information_management
+- **Register kinds**: Data sources, Analysis reports, Dashboards, Methodology
+- **Report template**: assurance
+- **Discipline-specific methods**: 6 methods (analyst, researcher, data_analyst, data_science, monitoring_evaluation, information_management)
+
+#### Finance Pack
+- **packKey**: `finance`
+- **Disciplines**: finance, auditor, tax, treasury, procurement, commercial, cost_control, risk_management
+- **Register kinds**: Accounts, Audits, Compliance, Financial reports
+- **Report template**: assurance
+- **Discipline-specific methods**: 8 methods (finance, auditor, tax, treasury, procurement, commercial, cost_control, risk_management)
+
+#### Operations Pack
+- **packKey**: `operations`
+- **Disciplines**: operations, supply_chain, logistics, inventory, facilities, maintenance, quality_management, production
+- **Register kinds**: Processes, Inventory, Logistics, Quality control
+- **Report template**: technical
+- **Discipline-specific methods**: 8 methods (operations, supply_chain, logistics, inventory, facilities, maintenance, quality_management, production)
+
+#### HR Pack
+- **packKey**: `hr`
+- **Disciplines**: human_resources, learning_development, administration, legal, compliance, ethics
+- **Register kinds**: Employee records, Policies, Training, Compliance
+- **Report template**: general
+- **Discipline-specific methods**: 6 methods (human_resources, learning_development, administration, legal, compliance, ethics)
+
+#### Sales & Marketing Pack
+- **packKey**: `sales-marketing`
+- **Disciplines**: sales, marketing, customer_success, customer_support, digital_marketing, partnerships
+- **Register kinds**: Leads, Campaigns, Customers, Metrics
+- **Report template**: creative
+- **Discipline-specific methods**: 6 methods (sales, marketing, customer_success, customer_support, digital_marketing, partnerships)
+
+#### Healthcare & Science Pack
+- **packKey**: `healthcare-science`
+- **Disciplines**: healthcare, public_health, laboratory, pharmaceutical, agriculture, education
+- **Register kinds**: Patients, Clinical protocols, Research, Compliance
+- **Report template**: technical
+- **Discipline-specific methods**: 6 methods (healthcare, public_health, laboratory, pharmaceutical, agriculture, education)
+
+#### Engineering Pack
+- **packKey**: `engineering`
+- **Disciplines**: civil_engineering, construction, electrical_engineering, mechanical_engineering, surveying, environmental, health_safety
+- **Register kinds**: Projects, Specifications, Inspections, Compliance
+- **Report template**: engineering
+- **Discipline-specific methods**: 7 methods (civil_engineering, construction, electrical_engineering, mechanical_engineering, surveying, environmental, health_safety)
+
+#### Management Pack
+- **packKey**: `management`
+- **Disciplines**: executive, manager, product, program, portfolio, coordinator, team_lead, change_management
+- **Register kinds**: Initiatives, Stakeholders, Risks, Reports
+- **Report template**: general
+- **Discipline-specific methods**: 8 methods (executive, manager, product, program, portfolio, coordinator, team_lead, change_management)
+
+#### General Pack (Fallback)
 - **packKey**: `general`
-- **Disciplines**: All 69 disciplines not in the IT technician pack
+- **Disciplines**: All disciplines not covered by the 11 specialized packs
 - **Register kinds**: Responsibilities, Records and documents, Assets and equipment, Outstanding work
-- **Sections**: today, registers, tasks, worklog, reports, career
 - **Report template**: general
 - **Method**: Plan → Do → Check → Act
-- **Onboarding questions**:
-  - What are you the keeper of in your role?
-  - Which records must stay current for someone else to take over your work?
+
+**Total**: 71 discipline-specific methods across 12 packs, covering all 75 work disciplines.
 
 ---
 
@@ -652,15 +721,18 @@ The `getMethodForDiscipline(pack, discipline)` helper function returns the disci
 11. ~~Update `GENERAL_PACK` to exclude all new pack disciplines~~ ✅
 12. ~~Update `lib/auto-populate.ts` to map to new packs~~ ✅
 13. ~~Update `lib/departments.ts` to map departments to new packs~~ ✅
-14. Run seed script to populate database (requires migration)
-15. Update admin UI to show all packs (already supports dynamic packs)
+14. ~~Run seed script to populate database (requires migration)~~ ✅
+15. ~~Update admin UI to show all packs (already supports dynamic packs)~~ ✅
+16. ~~Add discipline-specific methods to all 12 packs~~ ✅
 
 **Files modified**:
-- `lib/packs/seed.ts` — added 10 new packs (11 total including IT technician)
-- `lib/auto-populate.ts` — updated DISCIPLINE_TO_PACK mapping for all 75 disciplines
+- `lib/packs/seed.ts` — added 10 new packs (12 total including IT technician and general), added discipline-specific methods
+- `lib/packs/types.ts` — added optional `methods` field and `getMethodForDiscipline` helper
+- `lib/auto-populate.ts` — updated DISCIPLINE_TO_PACK mapping for all 75 disciplines, returns method in result
 - `lib/departments.ts` — updated defaultPack for all 11 departments
+- Database seeded with 12 role packs (2026-10-29)
 
-**Status**: All 11 specialized packs plus general fallback are now defined and mapped. Database seeding requires running the migration script.
+**Status**: All 12 packs defined with 71 discipline-specific methods, mapped, and seeded to production database.
 
 ### Phase 4: Career Ladder Expansion (High effort, medium impact) — ✅ COMPLETE
 
@@ -675,14 +747,15 @@ The `getMethodForDiscipline(pack, discipline)` helper function returns the disci
 6. ~~Define Healthcare ladder~~ ✅
 7. ~~Define Engineering ladder~~ ✅
 8. ~~Update `lib/auto-populate.ts` to map to new ladders~~ ✅
-9. Run seed script to populate database (requires migration)
-10. Update career board to show all ladders
+9. ~~Run seed script to populate database (requires migration)~~ ✅
+10. ~~Update career board to show all ladders~~ ✅
 
 **Files modified**:
 - `lib/career/ladder-seed.ts` — added 7 new ladders (12 total including original 5)
 - `lib/auto-populate.ts` — updated DISCIPLINE_TO_LADDER mapping for all 75 disciplines
+- Database seeded with 48 career levels (2026-10-29)
 
-**Status**: All 12 career ladder disciplines are now defined and mapped. Database seeding requires running the migration script.
+**Status**: All 12 career ladder disciplines are now defined, mapped, and seeded to production database.
 
 ### Phase 5: Department-to-Pack Mapping (Medium effort, high impact) — ✅ COMPLETE
 
@@ -844,7 +917,7 @@ The `getMethodForDiscipline(pack, discipline)` helper function returns the disci
 
 ---
 
-**Document version**: 1.0  
+**Document version**: 2.0  
 **Last updated**: 2026-10-29  
 **Author**: JiraVision design team  
-**Status**: Draft for review
+**Status**: All 5 phases implemented and seeded to production (2026-10-29)
