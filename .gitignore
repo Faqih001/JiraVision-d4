@@ -23,6 +23,9 @@ yarn-error.log*
 # row dumps that contain password hashes
 /jiravision-user-*-backup.json
 
+# row dumps written by scripts/purge-demo-data.mjs before it deletes anything
+/backups/
+
 # user uploads
 /public/uploads/*
 !/public/uploads/README.md

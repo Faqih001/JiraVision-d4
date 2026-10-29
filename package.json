@@ -30,6 +30,7 @@
     "db:user-onboarding": "node scripts/create-user-onboarding-table.mjs",
     "db:user-onboarding:rollback": "node scripts/rollback-user-onboarding-table.mjs",
     "db:user-onboarding:backfill": "node scripts/backfill-user-onboarding.mjs",
+    "db:purge:demo": "node scripts/purge-demo-data.mjs",
     "db:apply": "node -r dotenv/config ./drizzle/apply-schema.js",
     "db:fix": "node -r dotenv/config ./drizzle/create-missing-tables.js",
     "db:seed": "node -r dotenv/config ./drizzle/add-sample-data.js",
