@@ -146,6 +146,8 @@ export const tasks = pgTable("tasks", {
   startDate: date("start_date"),
   discipline: varchar("discipline", { length: 40 }),
   sourcePlanId: integer("source_plan_id"),
+  // Ops engine metadata: pack-specific fields (category, support_type, site, asset_ref, resolved_at, sla_target)
+  metadata: jsonb("metadata").default("{}"),
 })
 
 // Wellbeing metrics table
@@ -519,6 +521,7 @@ export const workReports = pgTable(
     submittedAt: timestamp("submitted_at", { withTimezone: true }),
     acknowledgedAt: timestamp("acknowledged_at", { withTimezone: true }),
     returnedNote: text("returned_note"),
+    kpiBindings: jsonb("kpi_bindings").default("{}"),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
@@ -722,6 +725,7 @@ export const rolePacks = pgTable(
     ladderDiscipline: varchar("ladder_discipline", { length: 40 }),
     onboarding: jsonb("onboarding").notNull().default("[]"),
     method: jsonb("method").notNull().default("[]"),
+    opsConfig: jsonb("ops_config"),
     isActive: boolean("is_active").notNull().default(true),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
@@ -756,6 +760,32 @@ export const registerItems = pgTable(
     index("register_items_pack_kind_idx").on(table.packKey, table.kind),
     index("register_items_owner_idx").on(table.ownerId),
     index("register_items_status_idx").on(table.status),
+  ],
+)
+
+// Ops log entries: generic time-series log for all packs. Each row is one event
+// (backup, incident, maintenance, etc.) with pack-specific fields stored as JSONB.
+// The fields are validated against the pack's opsConfig at write time.
+export const opsLogEntries = pgTable(
+  "ops_log_entries",
+  {
+    id: serial("id").primaryKey(),
+    packKey: varchar("pack_key", { length: 60 }).notNull(),
+    entityKey: varchar("entity_key", { length: 40 }).notNull(),
+    ownerId: integer("owner_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull(),
+    status: varchar("status", { length: 30 }),
+    fields: jsonb("fields").notNull().default("{}"),
+    source: varchar("source", { length: 30 }).notNull().default("manual"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("ops_log_entries_owner_idx").on(table.ownerId),
+    index("ops_log_entries_pack_idx").on(table.packKey),
+    index("ops_log_entries_entity_idx").on(table.entityKey),
+    index("ops_log_entries_occurred_idx").on(table.occurredAt),
   ],
 )
 
