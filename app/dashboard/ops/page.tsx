@@ -18,6 +18,7 @@ import {
   TrendingUp,
   TrendingDown,
   Minus,
+  Upload,
 } from "lucide-react"
 import Link from "next/link"
 
@@ -212,6 +213,12 @@ export default function OperationsOverviewPage() {
             <Link href="/dashboard/ops/kpis">
               <TrendingUp className="mr-2 h-4 w-4" />
               KPIs
+            </Link>
+          </Button>
+          <Button variant="outline" size="sm" asChild>
+            <Link href="/dashboard/ops/import">
+              <Upload className="mr-2 h-4 w-4" />
+              Import
             </Link>
           </Button>
         </div>

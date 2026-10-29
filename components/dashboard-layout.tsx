@@ -59,6 +59,7 @@ import {
   Sun,
   Target,
   TrendingUp,
+  Upload,
   Users,
   X,
 } from "lucide-react"
@@ -377,6 +378,12 @@ export default function DashboardLayout({
                 icon: <TrendingUp className="h-5 w-5" />,
                 href: "/dashboard/ops/kpis",
                 active: pathname === "/dashboard/ops/kpis",
+              },
+              {
+                title: "Import document",
+                icon: <Upload className="h-5 w-5" />,
+                href: "/dashboard/ops/import",
+                active: pathname === "/dashboard/ops/import",
               },
             ],
           } satisfies NavCategory,
