@@ -14,8 +14,7 @@ export type AutoPopulateResult = {
 }
 
 // Map work disciplines to career ladder disciplines
-// The career ladder only has 5 disciplines: developer, technician, designer, auditor, coordinator
-// Other disciplines map to the closest match or null (no ladder yet)
+// Now we have 12 career ladder disciplines covering all major discipline categories
 const DISCIPLINE_TO_LADDER: Partial<Record<WorkDiscipline, string>> = {
   // Technology → developer ladder
   developer: "developer",
@@ -38,15 +37,66 @@ const DISCIPLINE_TO_LADDER: Partial<Record<WorkDiscipline, string>> = {
   content: "designer",
   communications: "designer",
   
-  // Finance → auditor ladder
-  finance: "auditor",
-  auditor: "auditor",
-  tax: "auditor",
-  treasury: "auditor",
-  procurement: "auditor",
-  commercial: "auditor",
-  cost_control: "auditor",
-  risk_management: "auditor",
+  // Analyst ladder
+  analyst: "analyst",
+  researcher: "analyst",
+  data_analyst: "analyst",
+  data_science: "analyst",
+  monitoring_evaluation: "analyst",
+  information_management: "analyst",
+  
+  // Finance ladder
+  finance: "finance",
+  auditor: "finance",
+  tax: "finance",
+  treasury: "finance",
+  procurement: "finance",
+  commercial: "finance",
+  cost_control: "finance",
+  risk_management: "finance",
+  
+  // Operations ladder
+  operations: "operations",
+  supply_chain: "operations",
+  logistics: "operations",
+  inventory: "operations",
+  facilities: "operations",
+  maintenance: "operations",
+  quality_management: "operations",
+  production: "operations",
+  
+  // HR ladder
+  human_resources: "hr",
+  learning_development: "hr",
+  administration: "hr",
+  legal: "hr",
+  compliance: "hr",
+  ethics: "hr",
+  
+  // Sales & Marketing ladder
+  sales: "sales_marketing",
+  marketing: "sales_marketing",
+  customer_success: "sales_marketing",
+  customer_support: "sales_marketing",
+  digital_marketing: "sales_marketing",
+  partnerships: "sales_marketing",
+  
+  // Healthcare & Science ladder
+  healthcare: "healthcare_science",
+  public_health: "healthcare_science",
+  laboratory: "healthcare_science",
+  pharmaceutical: "healthcare_science",
+  agriculture: "healthcare_science",
+  education: "healthcare_science",
+  
+  // Engineering ladder
+  civil_engineering: "engineering",
+  construction: "engineering",
+  electrical_engineering: "engineering",
+  mechanical_engineering: "engineering",
+  surveying: "engineering",
+  environmental: "engineering",
+  health_safety: "engineering",
   
   // Management → coordinator ladder
   executive: "coordinator",

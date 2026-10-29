@@ -15,6 +15,13 @@ export const LADDER_DISCIPLINES = [
   "designer",
   "auditor",
   "coordinator",
+  "analyst",
+  "finance",
+  "operations",
+  "hr",
+  "sales_marketing",
+  "healthcare_science",
+  "engineering",
 ] as const
 
 export type LadderDiscipline = (typeof LADDER_DISCIPLINES)[number]
@@ -40,6 +47,13 @@ const DISCIPLINE_NAME: Record<LadderDiscipline, string> = {
   designer: "Designer",
   auditor: "Auditor",
   coordinator: "Coordinator",
+  analyst: "Analyst",
+  finance: "Finance",
+  operations: "Operations",
+  hr: "Human Resources",
+  sales_marketing: "Sales & Marketing",
+  healthcare_science: "Healthcare & Science",
+  engineering: "Engineering",
 }
 
 const LEVELS = [
@@ -289,6 +303,160 @@ const DISCIPLINE_CHECKLIST: Record<LadderDiscipline, Record<1 | 2 | 3 | 4, Item>
       key: "run-a-cross-team-plan",
       label: "Run a plan with dependencies across teams",
       hint: "Dates, owners and blockers tracked to completion.",
+    },
+  },
+  analyst: {
+    1: {
+      key: "document-a-data-source",
+      label: "Document a data source with its schema and owner",
+      hint: "Field definitions, refresh cadence and the person who answers for it.",
+    },
+    2: {
+      key: "produce-a-repeatable-report",
+      label: "Produce a report that ran three cycles without rework",
+      hint: "Same structure, same data, no manual fixes between runs.",
+    },
+    3: {
+      key: "own-an-analytical-method",
+      label: "Own an analytical method used by another team",
+      hint: "They cited your method and did not have to ask you how to run it.",
+    },
+    4: {
+      key: "set-the-analytical-standard",
+      label: "Set the analytical standard for the discipline",
+      hint: "A methodology guide in active use by other analysts.",
+    },
+  },
+  finance: {
+    1: {
+      key: "reconcile-a-ledger",
+      label: "Reconcile a ledger within its reporting period",
+      hint: "Every variance explained and signed off by a reviewer.",
+    },
+    2: {
+      key: "close-a-period-unassisted",
+      label: "Close a financial period unassisted",
+      hint: "From journal entries to final report with no reviewer rework.",
+    },
+    3: {
+      key: "own-a-financial-control",
+      label: "Own a financial control end to end",
+      hint: "The control is documented, tested and relied on by the next audit.",
+    },
+    4: {
+      key: "set-a-financial-policy",
+      label: "Set a financial policy adopted by the organisation",
+      hint: "Approved, published and followed by other teams.",
+    },
+  },
+  operations: {
+    1: {
+      key: "follow-a-standard-procedure",
+      label: "Follow a standard operating procedure without deviation",
+      hint: "Every step completed and signed off in the log.",
+    },
+    2: {
+      key: "own-a-process",
+      label: "Own a process and keep its documentation current",
+      hint: "Verified within its interval, with the verification logged.",
+    },
+    3: {
+      key: "improve-a-process",
+      label: "Improve a process and measure the outcome",
+      hint: "Before and after metrics recorded and acknowledged.",
+    },
+    4: {
+      key: "own-the-operational-method",
+      label: "Own the operational method for the discipline",
+      hint: "Documented, applied by other people, and defensible on review.",
+    },
+  },
+  hr: {
+    1: {
+      key: "process-a-case",
+      label: "Process a case end to end under supervision",
+      hint: "Every step recorded and signed off by a reviewer.",
+    },
+    2: {
+      key: "own-a-case-load",
+      label: "Own a case load for a quarter",
+      hint: "All cases resolved within policy and within their timelines.",
+    },
+    3: {
+      key: "advise-a-manager",
+      label: "Advise a manager through a complex case",
+      hint: "The advice is recorded, followed and the outcome acknowledged.",
+    },
+    4: {
+      key: "set-a-policy",
+      label: "Set a policy adopted across the organisation",
+      hint: "Approved, published and followed by other teams.",
+    },
+  },
+  sales_marketing: {
+    1: {
+      key: "log-a-pipeline-entry",
+      label: "Log a pipeline entry with its next action",
+      hint: "Stage, value, next step and date recorded.",
+    },
+    2: {
+      key: "close-a-deal-cycle",
+      label: "Close a deal cycle from lead to won",
+      hint: "Every stage documented and the handover to delivery recorded.",
+    },
+    3: {
+      key: "own-a-segment",
+      label: "Own a market segment or product line",
+      hint: "The plan is yours, the results are tracked, and the forecast is accurate.",
+    },
+    4: {
+      key: "set-the-go-to-market",
+      label: "Set the go-to-market approach for a product or segment",
+      hint: "Documented, adopted, and still in use after a quarter.",
+    },
+  },
+  healthcare_science: {
+    1: {
+      key: "follow-a-protocol",
+      label: "Follow a clinical or laboratory protocol without deviation",
+      hint: "Every step recorded and signed off by a supervisor.",
+    },
+    2: {
+      key: "run-a-test-cycle",
+      label: "Run a test or assessment cycle unassisted",
+      hint: "From sample to report with no rework requested.",
+    },
+    3: {
+      key: "own-a-method",
+      label: "Own a method or protocol used by others",
+      hint: "Documented, validated and relied on by other practitioners.",
+    },
+    4: {
+      key: "set-the-standard",
+      label: "Set the standard for the discipline",
+      hint: "A guideline in active use and defensible on peer review.",
+    },
+  },
+  engineering: {
+    1: {
+      key: "produce-a-reviewed-drawing",
+      label: "Produce a drawing or specification that passed review",
+      hint: "Reviewed by a senior and approved with no rework.",
+    },
+    2: {
+      key: "own-a-design-package",
+      label: "Own a design package from concept to issue",
+      hint: "Every revision tracked and the final issue approved.",
+    },
+    3: {
+      key: "lead-a-design-coordination",
+      label: "Lead a design coordination across disciplines",
+      hint: "Clashes resolved, comments addressed and a coordination note written.",
+    },
+    4: {
+      key: "set-a-design-standard",
+      label: "Set a design standard adopted by the discipline",
+      hint: "A template, specification or method in use by other engineers.",
     },
   },
 }
