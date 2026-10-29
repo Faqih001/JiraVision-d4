@@ -684,20 +684,24 @@ The `getMethodForDiscipline(pack, discipline)` helper function returns the disci
 
 **Status**: All 12 career ladder disciplines are now defined and mapped. Database seeding requires running the migration script.
 
-### Phase 5: Department-to-Pack Mapping (Medium effort, high impact)
+### Phase 5: Department-to-Pack Mapping (Medium effort, high impact) — ✅ COMPLETE
 
 **Goal**: Define relationships between departments, packs, and ladders.
 
 **Tasks**:
-1. Add `defaultPack` field to DEPARTMENTS definition
-2. Add `disciplineCategories` field to DEPARTMENTS definition
-3. Update auto-populate logic to use department config
-4. Update onboarding wizard to assign pack based on department
-5. Update team management page to show department-pack relationship
+1. ~~Add `defaultPack` field to DEPARTMENTS definition~~ ✅
+2. ~~Add `disciplineCategories` field to DEPARTMENTS definition~~ ✅
+3. ~~Update auto-populate logic to use department config~~ ✅
+4. ~~Update onboarding wizard to assign pack based on department~~ ✅
+5. ~~Update team management page to show department-pack relationship~~ ✅
+6. ~~Run database migration scripts to seed packs and ladders~~ ✅
 
-**Files to modify**:
-- `lib/departments.ts` — add defaultPack and disciplineCategories
-- `lib/auto-populate.ts` — use department config for mapping
+**Files modified**:
+- `lib/departments.ts` — has defaultPack and categories for all 11 departments
+- `lib/auto-populate.ts` — uses department config for fallback mapping
+- Database seeded with 12 role packs and 48 career levels (2026-10-29)
+
+**Status**: All department-to-pack mappings are defined and seeded to production database.
 
 ---
 
