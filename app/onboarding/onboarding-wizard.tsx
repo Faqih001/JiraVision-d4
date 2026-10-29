@@ -18,7 +18,11 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { ComboboxInput } from "@/components/ui/combobox-input"
+import { DEPARTMENTS, getDepartmentByCode, getDepartmentName } from "@/lib/departments"
+import { DepartmentSelect } from "@/components/ui/department-select"
 import { Input } from "@/components/ui/input"
+import { getDisciplineForJobTitle } from "@/lib/job-titles"
+import { JobTitleSelect } from "@/components/ui/job-title-select"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -98,6 +102,13 @@ function toBase64(file: File): Promise<string> {
   })
 }
 
+// Convert department name to code for the UI
+function getDepartmentCodeFromName(name: string | null | undefined): string {
+  if (!name) return ""
+  const dept = DEPARTMENTS.find((d) => d.name.toLowerCase() === name.toLowerCase())
+  return dept?.code ?? ""
+}
+
 export function OnboardingWizard({ initial, inviteToken, account }: Props) {
   const router = useRouter()
   const headingRef = useRef<HTMLHeadingElement>(null)
@@ -106,7 +117,7 @@ export function OnboardingWizard({ initial, inviteToken, account }: Props) {
   const [profile, setProfile] = useState({
     name: initial.data.profile.name ?? account.name ?? "",
     jobTitle: initial.data.profile.jobTitle ?? "",
-    department: initial.data.profile.department ?? "",
+    department: getDepartmentCodeFromName(initial.data.profile.department),
     location: initial.data.profile.location ?? "",
     timezone:
       initial.data.profile.timezone && TIMEZONE_VALUES.has(initial.data.profile.timezone)
@@ -148,7 +159,7 @@ export function OnboardingWizard({ initial, inviteToken, account }: Props) {
     () => ({
       name: profile.name.trim() || null,
       jobTitle: profile.jobTitle.trim() || null,
-      department: profile.department.trim() || null,
+      department: getDepartmentName(profile.department) || profile.department.trim() || null,
       location: profile.location.trim() || null,
       timezone: profile.timezone || null,
       language: profile.language || null,
@@ -500,12 +511,26 @@ export function OnboardingWizard({ initial, inviteToken, account }: Props) {
                   <Input id="onb-email" value={account.email} readOnly aria-readonly="true" className="bg-muted" />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="onb-role">Job title</Label>
-                  <Input id="onb-role" value={profile.jobTitle} onChange={(e) => setProfile({ ...profile, jobTitle: e.target.value })} autoComplete="organization-title" />
+                  <Label htmlFor="onb-department">Department</Label>
+                  <DepartmentSelect
+                    id="onb-department"
+                    value={profile.department}
+                    onValueChange={(value) => setProfile({ ...profile, department: value, jobTitle: "" })}
+                  />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="onb-department">Department</Label>
-                  <Input id="onb-department" value={profile.department} onChange={(e) => setProfile({ ...profile, department: e.target.value })} />
+                  <Label htmlFor="onb-role">Job title</Label>
+                  <JobTitleSelect
+                    id="onb-role"
+                    value={profile.jobTitle}
+                    onValueChange={(value) => setProfile({ ...profile, jobTitle: value })}
+                    departmentCode={profile.department || null}
+                  />
+                  {profile.jobTitle && (
+                    <p className="text-xs text-muted-foreground">
+                      Discipline: {DISCIPLINE_LABEL[getDisciplineForJobTitle(profile.jobTitle) ?? "general"]}
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="onb-location">Location</Label>
@@ -691,12 +716,26 @@ export function OnboardingWizard({ initial, inviteToken, account }: Props) {
               <div className="space-y-4">
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-1.5">
-                    <Label htmlFor="role-title">Job title</Label>
-                    <Input id="role-title" value={profile.jobTitle} onChange={(e) => setProfile({ ...profile, jobTitle: e.target.value })} />
+                    <Label htmlFor="role-department">Department</Label>
+                    <DepartmentSelect
+                      id="role-department"
+                      value={profile.department}
+                      onValueChange={(value) => setProfile({ ...profile, department: value, jobTitle: "" })}
+                    />
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="role-department">Department</Label>
-                    <Input id="role-department" value={profile.department} onChange={(e) => setProfile({ ...profile, department: e.target.value })} />
+                    <Label htmlFor="role-title">Job title</Label>
+                    <JobTitleSelect
+                      id="role-title"
+                      value={profile.jobTitle}
+                      onValueChange={(value) => setProfile({ ...profile, jobTitle: value })}
+                      departmentCode={profile.department || null}
+                    />
+                    {profile.jobTitle && (
+                      <p className="text-xs text-muted-foreground">
+                        Discipline: {DISCIPLINE_LABEL[getDisciplineForJobTitle(profile.jobTitle) ?? "general"]}
+                      </p>
+                    )}
                   </div>
                 </div>
 

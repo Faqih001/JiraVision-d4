@@ -44,8 +44,10 @@ import {
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { DepartmentSelect } from "@/components/ui/department-select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Input } from "@/components/ui/input"
+import { JobTitleSelect } from "@/components/ui/job-title-select"
 import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
 import { Separator } from "@/components/ui/separator"
@@ -66,6 +68,9 @@ import {
 } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
 import { LIVE_REFRESH_MS, useLiveRefresh } from "@/hooks/use-live-refresh"
+import { DEPARTMENTS, getDepartmentByCode, getDepartmentName } from "@/lib/departments"
+import { getDisciplineForJobTitle } from "@/lib/job-titles"
+import { DISCIPLINE_LABEL, type WorkDiscipline } from "@/lib/roles"
 import { cn } from "@/lib/utils"
 import type { DashboardOverview } from "@/lib/dashboard-data"
 import {
@@ -205,6 +210,13 @@ const STATUS_TONE: Record<string, string> = {
 
 function emptyDraft(): MemberDraft {
   return { id: null, name: "", email: "", role: "", department: "", location: "", status: "offline", avatar: "" }
+}
+
+// Convert department name to code for the UI
+function getDepartmentCodeFromName(name: string | null | undefined): string {
+  if (!name) return ""
+  const dept = DEPARTMENTS.find((d) => d.name.toLowerCase() === name.toLowerCase())
+  return dept?.code ?? ""
 }
 
 /* --------------------------------------------------------------- the page */
@@ -456,7 +468,7 @@ export default function TeamWorkspace() {
       name: m.name,
       email: m.email,
       role: m.role,
-      department: m.department ?? "",
+      department: getDepartmentCodeFromName(m.department),
       location: m.location ?? "",
       status: m.status || "offline",
       avatar: m.avatar ?? "",
@@ -479,7 +491,7 @@ export default function TeamWorkspace() {
       const payload: Record<string, unknown> = {
         name: draft.name.trim(),
         role: draft.role.trim() || "Team Member",
-        department: draft.department.trim(),
+        department: getDepartmentName(draft.department) || draft.department.trim(),
         location: draft.location.trim(),
         status: draft.status,
         avatar: draft.avatar.trim(),
@@ -1211,22 +1223,26 @@ export default function TeamWorkspace() {
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-1">
-                  <Label htmlFor="member-role">Role</Label>
-                  <Input
-                    id="member-role"
-                    value={draft.role}
-                    onChange={(e) => setDraft({ ...draft, role: e.target.value })}
-                    placeholder="Frontend Developer"
+                  <Label htmlFor="member-department">Department</Label>
+                  <DepartmentSelect
+                    id="member-department"
+                    value={draft.department}
+                    onValueChange={(value) => setDraft({ ...draft, department: value, role: "" })}
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label htmlFor="member-department">Department</Label>
-                  <Input
-                    id="member-department"
-                    value={draft.department}
-                    onChange={(e) => setDraft({ ...draft, department: e.target.value })}
-                    placeholder="Engineering"
+                  <Label htmlFor="member-role">Job title</Label>
+                  <JobTitleSelect
+                    id="member-role"
+                    value={draft.role}
+                    onValueChange={(value) => setDraft({ ...draft, role: value })}
+                    departmentCode={draft.department || null}
                   />
+                  {draft.role && (
+                    <p className="text-xs text-muted-foreground">
+                      Discipline: {DISCIPLINE_LABEL[getDisciplineForJobTitle(draft.role) ?? "general"]}
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-1">
                   <Label htmlFor="member-location">Location</Label>
