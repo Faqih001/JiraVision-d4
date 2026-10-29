@@ -5,12 +5,15 @@
 import { getDepartmentByCode, type Department } from "./departments"
 import { getDisciplineForJobTitle } from "./job-titles"
 import type { WorkDiscipline } from "./roles"
+import { SEED_PACKS } from "./packs/seed"
+import { getMethodForDiscipline } from "./packs/types"
 
 export type AutoPopulateResult = {
   discipline: WorkDiscipline | null
   rolePack: string | null
   careerLadder: string | null
   reportTemplate: string | null
+  method: string[] | null
 }
 
 // Map work disciplines to career ladder disciplines
@@ -237,7 +240,7 @@ function getTemplateForDiscipline(discipline: WorkDiscipline): string {
 
 /**
  * Auto-populate fields based on job title and department.
- * Returns the derived discipline, role pack, career ladder, and report template.
+ * Returns the derived discipline, role pack, career ladder, report template, and method.
  */
 export function autoPopulateFromJobTitle(
   jobTitle: string | null | undefined,
@@ -248,19 +251,26 @@ export function autoPopulateFromJobTitle(
   if (!discipline) {
     // No discipline found — return defaults
     const dept = getDepartmentByCode(departmentCode)
+    const defaultPackKey = dept?.defaultPack ?? "general"
+    const defaultPack = SEED_PACKS.find((p) => p.packKey === defaultPackKey) ?? SEED_PACKS.find((p) => p.packKey === "general")!
     return {
       discipline: null,
-      rolePack: dept?.defaultPack ?? "general",
+      rolePack: defaultPackKey,
       careerLadder: null,
       reportTemplate: "general",
+      method: defaultPack.method,
     }
   }
   
+  const packKey = DISCIPLINE_TO_PACK[discipline] ?? "general"
+  const pack = SEED_PACKS.find((p) => p.packKey === packKey) ?? SEED_PACKS.find((p) => p.packKey === "general")!
+  
   return {
     discipline,
-    rolePack: DISCIPLINE_TO_PACK[discipline] ?? "general",
+    rolePack: packKey,
     careerLadder: DISCIPLINE_TO_LADDER[discipline] ?? null,
     reportTemplate: getTemplateForDiscipline(discipline),
+    method: getMethodForDiscipline(pack, discipline),
   }
 }
 

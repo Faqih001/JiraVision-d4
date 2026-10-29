@@ -163,6 +163,14 @@ export const IT_TECHNICIAN_PACK: RolePack = {
     "Which equipment is out for repair or waiting to be disposed of?",
   ],
   method: ["Identify", "Reproduce", "Diagnose", "Fix", "Test", "Document"],
+  methods: {
+    technician: ["Identify", "Reproduce", "Diagnose", "Fix", "Test", "Document"],
+    it_operations: ["Monitor", "Alert", "Triage", "Resolve", "Document", "Review"],
+    devops: ["Plan", "Automate", "Deploy", "Monitor", "Optimize", "Document"],
+    networking: ["Design", "Configure", "Test", "Monitor", "Troubleshoot", "Document"],
+    security: ["Assess", "Detect", "Contain", "Eradicate", "Recover", "Review"],
+    database: ["Backup", "Monitor", "Optimize", "Restore", "Test", "Document"],
+  },
   isActive: true,
 }
 
@@ -186,6 +194,13 @@ export const DEVELOPER_PACK: RolePack = {
     "What development tools and environments do you use?",
   ],
   method: ["Plan", "Code", "Review", "Test", "Deploy", "Monitor"],
+  methods: {
+    developer: ["Plan", "Code", "Review", "Test", "Deploy", "Monitor"],
+    architect: ["Design", "Review", "Approve", "Document", "Govern", "Mentor"],
+    data_engineering: ["Extract", "Transform", "Load", "Validate", "Optimize", "Monitor"],
+    ai_ml: ["Research", "Collect", "Train", "Validate", "Deploy", "Monitor"],
+    tester: ["Plan", "Design", "Execute", "Report", "Verify", "Close"],
+  },
   isActive: true,
 }
 
@@ -209,6 +224,12 @@ export const DESIGNER_PACK: RolePack = {
     "What design systems or component libraries do you maintain?",
   ],
   method: ["Research", "Ideate", "Prototype", "Test", "Iterate", "Document"],
+  methods: {
+    designer: ["Research", "Ideate", "Prototype", "Test", "Iterate", "Document"],
+    creative: ["Brief", "Concept", "Create", "Review", "Refine", "Deliver"],
+    content: ["Research", "Write", "Edit", "Review", "Publish", "Measure"],
+    communications: ["Plan", "Create", "Distribute", "Monitor", "Engage", "Report"],
+  },
   isActive: true,
 }
 
@@ -232,6 +253,14 @@ export const ANALYST_PACK: RolePack = {
     "What methodology frameworks do you follow?",
   ],
   method: ["Define question", "Collect data", "Analyze", "Validate", "Report", "Archive"],
+  methods: {
+    analyst: ["Define question", "Collect data", "Analyze", "Validate", "Report", "Archive"],
+    researcher: ["Literature review", "Design study", "Collect data", "Analyze", "Publish", "Peer review"],
+    data_analyst: ["Extract", "Clean", "Analyze", "Visualize", "Report", "Archive"],
+    data_science: ["Hypothesize", "Collect", "Model", "Validate", "Deploy", "Monitor"],
+    monitoring_evaluation: ["Framework", "Indicators", "Data collection", "Analysis", "Reporting", "Learning"],
+    information_management: ["Assess", "Catalog", "Store", "Retrieve", "Preserve", "Dispose"],
+  },
   isActive: true,
 }
 
@@ -255,6 +284,16 @@ export const FINANCE_PACK: RolePack = {
     "What financial reports are you responsible for?",
   ],
   method: ["Record", "Reconcile", "Audit", "Report", "Comply", "Archive"],
+  methods: {
+    finance: ["Record", "Reconcile", "Report", "Analyze", "Forecast", "Archive"],
+    auditor: ["Plan", "Test", "Document", "Report", "Follow-up", "Close"],
+    tax: ["Collect", "Calculate", "File", "Review", "Audit", "Archive"],
+    treasury: ["Forecast", "Cash manage", "Invest", "Hedge", "Report", "Reconcile"],
+    procurement: ["Source", "Evaluate", "Contract", "Purchase", "Receive", "Pay"],
+    commercial: ["Analyze", "Price", "Negotiate", "Contract", "Monitor", "Report"],
+    cost_control: ["Budget", "Track", "Analyze", "Variance", "Report", "Forecast"],
+    risk_management: ["Identify", "Assess", "Mitigate", "Monitor", "Report", "Review"],
+  },
   isActive: true,
 }
 
@@ -278,6 +317,16 @@ export const OPERATIONS_PACK: RolePack = {
     "What quality metrics do you monitor?",
   ],
   method: ["Plan", "Execute", "Monitor", "Control", "Improve", "Document"],
+  methods: {
+    operations: ["Plan", "Execute", "Monitor", "Control", "Improve", "Document"],
+    supply_chain: ["Source", "Procure", "Receive", "Store", "Distribute", "Track"],
+    logistics: ["Plan", "Route", "Load", "Transport", "Deliver", "Confirm"],
+    inventory: ["Forecast", "Order", "Receive", "Store", "Issue", "Count"],
+    facilities: ["Inspect", "Maintain", "Repair", "Upgrade", "Document", "Review"],
+    maintenance: ["Schedule", "Inspect", "Service", "Repair", "Test", "Document"],
+    quality_management: ["Plan", "Control", "Assure", "Improve", "Audit", "Certify"],
+    production: ["Plan", "Setup", "Produce", "Inspect", "Package", "Deliver"],
+  },
   isActive: true,
 }
 
@@ -301,6 +350,14 @@ export const HR_PACK: RolePack = {
     "What compliance requirements must you track?",
   ],
   method: ["Recruit", "Onboard", "Develop", "Retain", "Comply", "Document"],
+  methods: {
+    human_resources: ["Recruit", "Onboard", "Develop", "Retain", "Comply", "Document"],
+    learning_development: ["Assess", "Design", "Deliver", "Evaluate", "Improve", "Certify"],
+    administration: ["Process", "File", "Track", "Respond", "Archive", "Report"],
+    legal: ["Research", "Draft", "Review", "Negotiate", "Execute", "Comply"],
+    compliance: ["Monitor", "Assess", "Report", "Remediate", "Audit", "Certify"],
+    ethics: ["Investigate", "Advise", "Train", "Report", "Resolve", "Document"],
+  },
   isActive: true,
 }
 
@@ -324,6 +381,14 @@ export const SALES_MARKETING_PACK: RolePack = {
     "What sales or marketing metrics do you monitor?",
   ],
   method: ["Prospect", "Qualify", "Pitch", "Close", "Retain", "Analyze"],
+  methods: {
+    sales: ["Prospect", "Qualify", "Pitch", "Close", "Retain", "Analyze"],
+    marketing: ["Research", "Plan", "Create", "Launch", "Monitor", "Optimize"],
+    customer_success: ["Onboard", "Train", "Support", "Retain", "Expand", "Advocate"],
+    customer_support: ["Receive", "Triage", "Resolve", "Follow-up", "Close", "Learn"],
+    digital_marketing: ["Target", "Create", "Publish", "Monitor", "Optimize", "Report"],
+    partnerships: ["Identify", "Pitch", "Negotiate", "Contract", "Manage", "Review"],
+  },
   isActive: true,
 }
 
@@ -347,6 +412,14 @@ export const HEALTHCARE_SCIENCE_PACK: RolePack = {
     "What compliance requirements apply to your work?",
   ],
   method: ["Assess", "Plan", "Implement", "Evaluate", "Document", "Review"],
+  methods: {
+    healthcare: ["Assess", "Plan", "Implement", "Evaluate", "Document", "Review"],
+    public_health: ["Surveillance", "Prevent", "Educate", "Policy", "Evaluate", "Report"],
+    laboratory: ["Sample", "Test", "Analyze", "Validate", "Report", "Archive"],
+    pharmaceutical: ["Research", "Develop", "Test", "Approve", "Manufacture", "Monitor"],
+    agriculture: ["Plan", "Plant", "Monitor", "Harvest", "Test", "Market"],
+    education: ["Plan", "Teach", "Assess", "Review", "Improve", "Certify"],
+  },
   isActive: true,
 }
 
@@ -370,6 +443,15 @@ export const ENGINEERING_PACK: RolePack = {
     "What safety or environmental compliance applies?",
   ],
   method: ["Design", "Plan", "Build", "Inspect", "Test", "Document"],
+  methods: {
+    civil_engineering: ["Survey", "Design", "Plan", "Build", "Inspect", "Certify"],
+    construction: ["Plan", "Mobilize", "Build", "Inspect", "Test", "Handover"],
+    electrical_engineering: ["Design", "Specify", "Install", "Test", "Commission", "Maintain"],
+    mechanical_engineering: ["Design", "Fabricate", "Assemble", "Test", "Commission", "Maintain"],
+    surveying: ["Recon", "Measure", "Map", "Report", "Verify", "Certify"],
+    environmental: ["Assess", "Plan", "Monitor", "Report", "Remediate", "Certify"],
+    health_safety: ["Identify", "Assess", "Control", "Monitor", "Review", "Certify"],
+  },
   isActive: true,
 }
 
@@ -393,6 +475,16 @@ export const MANAGEMENT_PACK: RolePack = {
     "Which reports must you deliver?",
   ],
   method: ["Initiate", "Plan", "Execute", "Monitor", "Control", "Close"],
+  methods: {
+    executive: ["Strategize", "Align", "Decide", "Communicate", "Review", "Adapt"],
+    manager: ["Plan", "Organize", "Lead", "Control", "Report", "Improve"],
+    product: ["Discover", "Define", "Design", "Develop", "Launch", "Iterate"],
+    program: ["Initiate", "Plan", "Execute", "Monitor", "Control", "Close"],
+    portfolio: ["Select", "Prioritize", "Balance", "Monitor", "Review", "Optimize"],
+    coordinator: ["Schedule", "Communicate", "Track", "Resolve", "Report", "Close"],
+    team_lead: ["Plan", "Assign", "Coach", "Review", "Report", "Improve"],
+    change_management: ["Assess", "Plan", "Communicate", "Implement", "Reinforce", "Review"],
+  },
   isActive: true,
 }
 

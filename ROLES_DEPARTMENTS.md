@@ -490,6 +490,61 @@ Auto-populated:
 9. Engineering pack (construction/infrastructure)
 10. Keep General pack as fallback
 
+### 4.7 Discipline-Specific Methods
+
+**Status**: ✅ **IMPLEMENTED**
+
+Each role pack now supports discipline-specific methods. While a pack groups related disciplines, each discipline within the pack has its own tailored workflow method.
+
+**Example — IT Technician Pack**:
+```typescript
+{
+  packKey: "it-technician",
+  method: ["Identify", "Reproduce", "Diagnose", "Fix", "Test", "Document"], // default
+  methods: {
+    technician: ["Identify", "Reproduce", "Diagnose", "Fix", "Test", "Document"], // STAR method
+    it_operations: ["Monitor", "Alert", "Triage", "Resolve", "Document", "Review"],
+    devops: ["Plan", "Automate", "Deploy", "Monitor", "Optimize", "Document"],
+    networking: ["Design", "Configure", "Test", "Monitor", "Troubleshoot", "Document"],
+    security: ["Assess", "Detect", "Contain", "Eradicate", "Recover", "Review"],
+    database: ["Backup", "Monitor", "Optimize", "Restore", "Test", "Document"],
+  }
+}
+```
+
+**Example — Developer Pack**:
+```typescript
+{
+  packKey: "developer",
+  method: ["Plan", "Code", "Review", "Test", "Deploy", "Monitor"], // default
+  methods: {
+    developer: ["Plan", "Code", "Review", "Test", "Deploy", "Monitor"],
+    architect: ["Design", "Review", "Approve", "Document", "Govern", "Mentor"],
+    data_engineering: ["Extract", "Transform", "Load", "Validate", "Optimize", "Monitor"],
+    ai_ml: ["Research", "Collect", "Train", "Validate", "Deploy", "Monitor"],
+    tester: ["Plan", "Design", "Execute", "Report", "Verify", "Close"],
+  }
+}
+```
+
+**All 12 packs now have discipline-specific methods**:
+- **IT Technician** — 6 methods (STAR for technicians, plus it_operations, devops, networking, security, database)
+- **Developer** — 5 methods (developer, architect, data_engineering, ai_ml, tester)
+- **Designer** — 4 methods (designer, creative, content, communications)
+- **Analyst** — 6 methods (analyst, researcher, data_analyst, data_science, monitoring_evaluation, information_management)
+- **Finance** — 8 methods (finance, auditor, tax, treasury, procurement, commercial, cost_control, risk_management)
+- **Operations** — 8 methods (operations, supply_chain, logistics, inventory, facilities, maintenance, quality_management, production)
+- **HR** — 6 methods (human_resources, learning_development, administration, legal, compliance, ethics)
+- **Sales & Marketing** — 6 methods (sales, marketing, customer_success, customer_support, digital_marketing, partnerships)
+- **Healthcare & Science** — 6 methods (healthcare, public_health, laboratory, pharmaceutical, agriculture, education)
+- **Engineering** — 7 methods (civil_engineering, construction, electrical_engineering, mechanical_engineering, surveying, environmental, health_safety)
+- **Management** — 8 methods (executive, manager, product, program, portfolio, coordinator, team_lead, change_management)
+- **General** — 1 method (fallback for all other disciplines)
+
+**Total**: 71 discipline-specific methods across 12 packs, covering all 75 work disciplines.
+
+The `getMethodForDiscipline(pack, discipline)` helper function returns the discipline-specific method if defined, otherwise falls back to the pack's default method.
+
 ### 4.6 Career Ladder Expansion
 
 **Recommendation**: Create career ladders for each discipline category:

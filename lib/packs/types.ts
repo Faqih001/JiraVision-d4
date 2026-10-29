@@ -16,6 +16,7 @@ export type RolePack = {
   ladderDiscipline: WorkDiscipline | null
   onboarding: string[]
   method: string[]
+  methods?: Partial<Record<WorkDiscipline, string[]>>
   isActive: boolean
 }
 
@@ -36,4 +37,15 @@ export const SECTION_LABEL: Record<string, string> = Object.fromEntries(
 
 export function sectionLabel(key: string): string {
   return SECTION_LABEL[key] ?? key
+}
+
+/**
+ * Get the method for a specific discipline from a role pack.
+ * Falls back to the pack's default method if no discipline-specific method is defined.
+ */
+export function getMethodForDiscipline(pack: RolePack, discipline: WorkDiscipline | null): string[] {
+  if (discipline && pack.methods && pack.methods[discipline]) {
+    return pack.methods[discipline]!
+  }
+  return pack.method
 }
