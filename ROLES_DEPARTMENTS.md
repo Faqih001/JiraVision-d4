@@ -190,17 +190,18 @@ Four demo team members with inconsistent patterns:
 ### 3.5 Role Pack Coverage
 
 **Problem**: Only 2 role packs are seeded (IT technician, General), but the system supports many more. Missing packs for:
-- **Developer pack** — disciplines: developer, architect, devops, ai_ml, data_engineering, database, tester
-- **Designer pack** — disciplines: designer, creative, content, communications
-- **Analyst pack** — disciplines: analyst, data_analyst, data_science, researcher, monitoring_evaluation
-- **Finance pack** — disciplines: finance, auditor, tax, treasury, procurement, commercial, cost_control, risk_management
-- **Operations pack** — disciplines: operations, supply_chain, logistics, inventory, facilities, maintenance, quality_management, production
-- **HR pack** — disciplines: human_resources, learning_development, administration, legal, compliance, ethics
-- **Sales/Marketing pack** — disciplines: sales, marketing, customer_success, customer_support, digital_marketing, partnerships
-- **Healthcare pack** — disciplines: healthcare, public_health, laboratory, pharmaceutical, agriculture, education
-- **Engineering pack** — disciplines: civil_engineering, construction, electrical_engineering, mechanical_engineering, surveying, environmental, health_safety
+- ~~**Developer pack** — disciplines: developer, architect, devops, ai_ml, data_engineering, database, tester~~ ✅ **IMPLEMENTED**
+- ~~**Designer pack** — disciplines: designer, creative, content, communications~~ ✅ **IMPLEMENTED**
+- ~~**Analyst pack** — disciplines: analyst, data_analyst, data_science, researcher, monitoring_evaluation~~ ✅ **IMPLEMENTED**
+- ~~**Finance pack** — disciplines: finance, auditor, tax, treasury, procurement, commercial, cost_control, risk_management~~ ✅ **IMPLEMENTED**
+- ~~**Operations pack** — disciplines: operations, supply_chain, logistics, inventory, facilities, maintenance, quality_management, production~~ ✅ **IMPLEMENTED**
+- ~~**HR pack** — disciplines: human_resources, learning_development, administration, legal, compliance, ethics~~ ✅ **IMPLEMENTED**
+- ~~**Sales/Marketing pack** — disciplines: sales, marketing, customer_success, customer_support, digital_marketing, partnerships~~ ✅ **IMPLEMENTED**
+- ~~**Healthcare pack** — disciplines: healthcare, public_health, laboratory, pharmaceutical, agriculture, education~~ ✅ **IMPLEMENTED**
+- ~~**Engineering pack** — disciplines: civil_engineering, construction, electrical_engineering, mechanical_engineering, surveying, environmental, health_safety~~ ✅ **IMPLEMENTED**
+- ~~**Management pack** — disciplines: executive, manager, product, program, portfolio, coordinator, team_lead, change_management~~ ✅ **IMPLEMENTED**
 
-**Real-world impact**: Everyone except IT technicians gets the "General" pack, which has generic register kinds (Responsibilities, Records, Assets, Outstanding work) and a Plan-Do-Check-Act method. A software developer's work doesn't fit that shape — they need registers for "Code repositories", "Pull requests", "Technical debt", "Sprint backlog".
+**Status**: All 11 specialized packs plus general fallback are now implemented (Phase 3 complete).
 
 ### 3.6 Career Ladder Coverage
 
@@ -576,28 +577,33 @@ Auto-populated:
 - `app/onboarding/onboarding-wizard.tsx` — add auto-populate logic
 - `app/dashboard/team/page.tsx` — show auto-populated fields
 
-### Phase 3: Role Pack Expansion (High effort, medium impact)
+### Phase 3: Role Pack Expansion (High effort, medium impact) — ✅ COMPLETE
 
 **Goal**: Create role packs for each major discipline category.
 
 **Tasks**:
-1. Define Developer pack in `lib/packs/seed.ts`
-2. Define Designer pack
-3. Define Analyst pack
-4. Define Finance pack
-5. Define Operations pack
-6. Define HR pack
-7. Define Sales/Marketing pack
-8. Define Healthcare pack
-9. Define Engineering pack
-10. Update `GENERAL_PACK` to exclude all new pack disciplines
-11. Run seed script to populate database
-12. Update admin UI to show all packs
+1. ~~Define Developer pack in `lib/packs/seed.ts`~~ ✅
+2. ~~Define Designer pack~~ ✅
+3. ~~Define Analyst pack~~ ✅
+4. ~~Define Finance pack~~ ✅
+5. ~~Define Operations pack~~ ✅
+6. ~~Define HR pack~~ ✅
+7. ~~Define Sales/Marketing pack~~ ✅
+8. ~~Define Healthcare pack~~ ✅
+9. ~~Define Engineering pack~~ ✅
+10. ~~Define Management pack~~ ✅
+11. ~~Update `GENERAL_PACK` to exclude all new pack disciplines~~ ✅
+12. ~~Update `lib/auto-populate.ts` to map to new packs~~ ✅
+13. ~~Update `lib/departments.ts` to map departments to new packs~~ ✅
+14. Run seed script to populate database (requires migration)
+15. Update admin UI to show all packs (already supports dynamic packs)
 
-**Files to modify**:
-- `lib/packs/seed.ts` — add 9 new packs
-- `lib/packs/types.ts` — update DASHBOARD_SECTIONS if needed
-- `scripts/create-registers-tables.mjs` — ensure new packs are seeded
+**Files modified**:
+- `lib/packs/seed.ts` — added 10 new packs (11 total including IT technician)
+- `lib/auto-populate.ts` — updated DISCIPLINE_TO_PACK mapping for all 75 disciplines
+- `lib/departments.ts` — updated defaultPack for all 11 departments
+
+**Status**: All 11 specialized packs plus general fallback are now defined and mapped. Database seeding requires running the migration script.
 
 ### Phase 4: Career Ladder Expansion (High effort, medium impact)
 

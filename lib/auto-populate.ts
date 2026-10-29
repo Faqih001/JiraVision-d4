@@ -60,8 +60,7 @@ const DISCIPLINE_TO_LADDER: Partial<Record<WorkDiscipline, string>> = {
 }
 
 // Map work disciplines to role packs
-// Currently only IT technician and general packs exist
-// This will expand as more packs are created
+// Now we have 11 specialized packs plus the general fallback
 const DISCIPLINE_TO_PACK: Partial<Record<WorkDiscipline, string>> = {
   // IT technician pack disciplines
   technician: "it-technician",
@@ -70,6 +69,90 @@ const DISCIPLINE_TO_PACK: Partial<Record<WorkDiscipline, string>> = {
   networking: "it-technician",
   security: "it-technician",
   database: "it-technician",
+  
+  // Developer pack disciplines
+  developer: "developer",
+  architect: "developer",
+  data_engineering: "developer",
+  ai_ml: "developer",
+  tester: "developer",
+  
+  // Designer pack disciplines
+  designer: "designer",
+  creative: "designer",
+  content: "designer",
+  communications: "designer",
+  
+  // Analyst pack disciplines
+  analyst: "analyst",
+  researcher: "analyst",
+  data_analyst: "analyst",
+  data_science: "analyst",
+  monitoring_evaluation: "analyst",
+  information_management: "analyst",
+  
+  // Finance pack disciplines
+  finance: "finance",
+  auditor: "finance",
+  tax: "finance",
+  treasury: "finance",
+  procurement: "finance",
+  commercial: "finance",
+  cost_control: "finance",
+  risk_management: "finance",
+  
+  // Operations pack disciplines
+  operations: "operations",
+  supply_chain: "operations",
+  logistics: "operations",
+  inventory: "operations",
+  facilities: "operations",
+  maintenance: "operations",
+  quality_management: "operations",
+  production: "operations",
+  
+  // HR pack disciplines
+  human_resources: "hr",
+  learning_development: "hr",
+  administration: "hr",
+  legal: "hr",
+  compliance: "hr",
+  ethics: "hr",
+  
+  // Sales & Marketing pack disciplines
+  sales: "sales-marketing",
+  marketing: "sales-marketing",
+  customer_success: "sales-marketing",
+  customer_support: "sales-marketing",
+  digital_marketing: "sales-marketing",
+  partnerships: "sales-marketing",
+  
+  // Healthcare & Science pack disciplines
+  healthcare: "healthcare-science",
+  public_health: "healthcare-science",
+  laboratory: "healthcare-science",
+  pharmaceutical: "healthcare-science",
+  agriculture: "healthcare-science",
+  education: "healthcare-science",
+  
+  // Engineering pack disciplines
+  civil_engineering: "engineering",
+  construction: "engineering",
+  electrical_engineering: "engineering",
+  mechanical_engineering: "engineering",
+  surveying: "engineering",
+  environmental: "engineering",
+  health_safety: "engineering",
+  
+  // Management pack disciplines
+  executive: "management",
+  manager: "management",
+  product: "management",
+  program: "management",
+  portfolio: "management",
+  coordinator: "management",
+  team_lead: "management",
+  change_management: "management",
 }
 
 // Map work disciplines to report templates
