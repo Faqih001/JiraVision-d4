@@ -6,6 +6,7 @@ import {
   ArrowLeft,
   ArrowRight,
   Check,
+  ChevronDown,
   CircleDot,
   FileUp,
   Loader2,
@@ -17,6 +18,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { ComboboxInput } from "@/components/ui/combobox-input"
 import { DEPARTMENTS, getDepartmentByCode, getDepartmentName } from "@/lib/departments"
 import { DepartmentSelect } from "@/components/ui/department-select"
@@ -45,6 +47,7 @@ import {
   type OnboardingStatus,
   type OnboardingStepKey,
 } from "@/lib/onboarding/state"
+import { sampleForDiscipline } from "@/lib/onboarding/sample-project"
 
 type WizardView = {
   status: OnboardingStatus
@@ -161,6 +164,10 @@ export function OnboardingWizard({ initial, inviteToken, account }: Props) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
   const [notice, setNotice] = useState("")
+  const [samplePreviewOpen, setSamplePreviewOpen] = useState(false)
+  // The sample the member will actually get, derived from the role step's mapped discipline —
+  // the same module the server uses, so the preview cannot drift from what is written.
+  const sampleDraft = useMemo(() => sampleForDiscipline(autoPopulated.discipline), [autoPopulated.discipline])
 
   const current = ONBOARDING_STEPS[step]
   const identity: OnboardingData["profile"] = useMemo(
@@ -306,12 +313,12 @@ export function OnboardingWizard({ initial, inviteToken, account }: Props) {
           const res = await fetch("/api/onboarding/project", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(projectMode === "sample" ? { sample: true } : projectForm),
+            body: JSON.stringify(projectMode === "sample" ? { sample: true, discipline: autoPopulated.discipline } : projectForm),
           })
           const json = await res.json().catch(() => null)
           if (!res.ok || !json?.success) throw new Error(json?.error ?? "Could not create the project.")
           planId = typeof json.data?.planId === "number" ? json.data.planId : null
-          title = projectMode === "sample" ? "Sample project — one week of IT support" : projectForm.title.trim() || null
+          title = projectMode === "sample" ? sampleDraft.title : projectForm.title.trim() || null
           setNotice(json.data?.created ? "Draft project created in the planner." : "That project already exists.")
           mode = projectMode
         }
@@ -893,10 +900,44 @@ export function OnboardingWizard({ initial, inviteToken, account }: Props) {
                         <Label htmlFor="proj-sample">Use the sample project</Label>
                         <Badge variant="outline">Sample</Badge>
                       </div>
-                      <p className="text-xs text-muted-foreground">A labelled draft with three starter items. Never tasks.</p>
+                      <p className="text-xs text-muted-foreground">
+                        A first-week draft tailored to {sampleDraft.discipline ? DISCIPLINE_LABEL[sampleDraft.discipline].toLowerCase() : "a general role"}. A labelled draft with three starter items. Never tasks.
+                      </p>
                     </div>
                   </div>
                 </RadioGroup>
+
+                {projectMode === "sample" ? (
+                  <Collapsible open={samplePreviewOpen} onOpenChange={setSamplePreviewOpen} className="rounded-md border bg-muted/30">
+                    <CollapsibleTrigger className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm font-medium hover:bg-muted/50">
+                      <span className="flex items-center gap-2">
+                        <Sparkles className="h-3.5 w-3.5 text-muted-foreground" />
+                        See what you&apos;ll get
+                      </span>
+                      <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${samplePreviewOpen ? "rotate-180" : ""}`} />
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="space-y-3 px-3 pb-3">
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium">{sampleDraft.title}</p>
+                        <p className="text-xs text-muted-foreground">{sampleDraft.summary}</p>
+                      </div>
+                      <ul className="space-y-2">
+                        {sampleDraft.items.map((item) => (
+                          <li key={item.title} className="flex gap-2 rounded-md border bg-background p-2.5">
+                            <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+                            <div className="space-y-0.5">
+                              <p className="text-sm font-medium">{item.title}</p>
+                              <p className="text-xs text-muted-foreground">{item.description}</p>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                      <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                        It stays a draft you can rename or delete. Want your own scope? Choose &ldquo;Import a scope document&rdquo; instead.
+                      </p>
+                    </CollapsibleContent>
+                  </Collapsible>
+                ) : null}
 
                 {projectMode === "created" ? (
                   <div className="grid gap-3 sm:grid-cols-2">
@@ -975,7 +1016,7 @@ export function OnboardingWizard({ initial, inviteToken, account }: Props) {
                       ? projectForm.title || "Unnamed draft"
                       : projectMode === "import"
                         ? importFile?.name ?? "No document chosen"
-                        : "Sample project (labelled draft)"}
+                        : sampleDraft.title}
                 </ReviewRow>
                 {initial.pack ? (
                   <p className="flex items-center gap-2 rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">

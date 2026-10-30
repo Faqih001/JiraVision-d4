@@ -6,8 +6,10 @@ import { and, eq, isNull } from "drizzle-orm"
 import { db } from "@/lib/db"
 import { agentPlans, planItems, userOnboarding, users, workspaceInvitations } from "@/drizzle/schema"
 import { createNotification, notifyMany } from "@/lib/notifications"
+import { normaliseDiscipline, type WorkDiscipline } from "@/lib/roles"
 import { isInvitationRole, invitationProblem, invitationTokenHash, type InvitationRole } from "./invitation"
 import { listWorkspaceAdmins, readInvitationByToken } from "./read"
+import { sampleForDiscipline } from "./sample-project"
 import type { OnboardingState } from "./state"
 
 export type AcceptResult = { ok: true; role: InvitationRole } | { ok: false; status: number; error: string }
@@ -65,6 +67,7 @@ export type ProjectInput = {
   startDate: string | null
   targetDate: string | null
   sample: boolean
+  discipline: WorkDiscipline | null
 }
 
 const DAY = /^\d{4}-\d{2}-\d{2}$/
@@ -72,20 +75,22 @@ const DAY = /^\d{4}-\d{2}-\d{2}$/
 export function readProjectInput(value: unknown): { ok: true; value: ProjectInput } | { ok: false; error: string } {
   const source = value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {}
   const sample = source.sample === true
-  const title = sample ? "Sample project — one week of IT support" : typeof source.title === "string" ? source.title.trim() : ""
+  if (sample) {
+    // The sample's title, summary and starter items all come from the member's discipline, so
+    // the write and the wizard preview read the same generated content. An unknown discipline
+    // falls back to the general pack rather than the old hard-coded IT-support project.
+    const discipline = normaliseDiscipline(source.discipline)
+    const draft = sampleForDiscipline(discipline)
+    return { ok: true, value: { title: draft.title, description: draft.summary, startDate: null, targetDate: null, sample, discipline } }
+  }
+  const title = typeof source.title === "string" ? source.title.trim() : ""
   if (!title) return { ok: false, error: "A project name is required" }
   if (title.length > 200) return { ok: false, error: "Keep the project name under 200 characters" }
   const description = typeof source.description === "string" && source.description.trim() ? source.description.trim().slice(0, 2000) : null
   const startDate = typeof source.startDate === "string" && DAY.test(source.startDate) ? source.startDate : null
   const targetDate = typeof source.targetDate === "string" && DAY.test(source.targetDate) ? source.targetDate : null
-  return { ok: true, value: { title, description, startDate, targetDate, sample } }
+  return { ok: true, value: { title, description, startDate, targetDate, sample, discipline: null } }
 }
-
-const SAMPLE_ITEMS = [
-  { title: "Log today's work", description: "Open the work log and record what you did." },
-  { title: "Check one register item", description: "Verify a device you are responsible for." },
-  { title: "Write a short handover note", description: "One paragraph a colleague could act on." },
-]
 
 export async function createOnboardingProject(args: { userId: number; input: ProjectInput }) {
   const { userId, input } = args
@@ -101,6 +106,8 @@ export async function createOnboardingProject(args: { userId: number; input: Pro
     .limit(1)
   if (existing) return { planId: existing.id, created: false }
 
+  const items = input.sample ? sampleForDiscipline(input.discipline).items : []
+
   const plan = await db.transaction(async (tx) => {
     const [created] = await tx
       .insert(agentPlans)
@@ -115,13 +122,13 @@ export async function createOnboardingProject(args: { userId: number; input: Pro
         createdBy: userId,
       })
       .returning({ id: agentPlans.id })
-    if (input.sample) {
+    if (items.length > 0) {
       await tx.insert(planItems).values(
-        SAMPLE_ITEMS.map((item, index) => ({
+        items.map((item, index) => ({
           planId: created.id,
           title: item.title,
           description: item.description,
-          discipline: "technician",
+          discipline: input.discipline,
           estimatePoints: 2,
           sortOrder: index,
         })),
