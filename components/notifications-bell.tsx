@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { format, formatDistanceToNow, isToday, isYesterday } from "date-fns"
@@ -374,17 +374,45 @@ function LiveBell({ sealed, onRetry }: { sealed: SealedLiveQuery<LiveNotificatio
   const router = useRouter()
   const [signedOut, setSignedOut] = useState(false)
 
+  // The realtime hook calls refreshQuery on every reconnect attempt. When the socket flaps — a
+  // waking compute, or a dev box with no realtime service — that becomes a fetch per second, and
+  // each one is a session read plus a user read. Coalesce them: hand back the last sealed
+  // capability without re-fetching inside the window, and grow the window as failures stack so a
+  // stuck connection settles at ~30s instead of hammering the route.
+  const lastSealed = useRef(sealed)
+  const lastFetch = useRef(0)
+  const backoffMs = useRef(5_000)
+
   const refreshQuery = useCallback(async () => {
-    const res = await fetch("/api/notifications/live")
-    // A signed-out browser cannot be fixed by reconnecting, so this is terminal: hand the decision
-    // back to the server-side gate. Everything else stays retryable.
-    if (res.status === 401) {
-      setSignedOut(true)
-      router.refresh()
+    const now = Date.now()
+    if (now - lastFetch.current < backoffMs.current) {
+      return lastSealed.current
     }
-    if (!res.ok) throw new Error("Could not refresh the live notification query")
-    const json = (await res.json()) as { sealed: SealedLiveQuery<LiveNotificationRow> }
-    return json.sealed
+    lastFetch.current = now
+    try {
+      const res = await fetch("/api/notifications/live")
+      // A signed-out browser cannot be fixed by reconnecting, so this is terminal: hand the decision
+      // back to the server-side gate. Everything else stays retryable.
+      if (res.status === 401) {
+        setSignedOut(true)
+        router.refresh()
+        throw new Error("This browser is signed out.")
+      }
+      // 503 is the database waking, not a dead session: keep the current capability and lengthen the
+      // wait rather than treating it like a fresh subscription that needs immediate re-sealing.
+      if (res.status === 503) {
+        backoffMs.current = Math.min(30_000, backoffMs.current * 2)
+        return lastSealed.current
+      }
+      if (!res.ok) throw new Error("Could not refresh the live notification query")
+      const json = (await res.json()) as { sealed: SealedLiveQuery<LiveNotificationRow> }
+      lastSealed.current = json.sealed
+      backoffMs.current = 5_000
+      return json.sealed
+    } catch (error) {
+      backoffMs.current = Math.min(30_000, backoffMs.current * 2)
+      throw error
+    }
   }, [router])
 
   const { data, status, error } = useLiveQuery(sealed, { refreshQuery })

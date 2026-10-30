@@ -37,7 +37,7 @@ describe("ops overview integration", () => {
 
   it("gates the sidebar group on hasOpsConfig", () => {
     const layout = src("components/dashboard-layout.tsx")
-    expect(layout).toMatch(/hasOpsConfig.*My Operations/s)
+    expect(layout).toMatch(/hasOpsConfig[\s\S]*My Operations/u)
   })
 
   it("overview page handles missing opsConfig gracefully", () => {

@@ -75,7 +75,9 @@ describe("role packs", () => {
   it("resolves a named discipline to its own pack, not the fallback", () => {
     expect(resolvePack(SEED_PACKS, "technician")?.packKey).toBe("it-technician")
     expect(resolvePack(SEED_PACKS, "networking")?.packKey).toBe("it-technician")
-    expect(resolvePack(SEED_PACKS, "finance")?.packKey).toBe("general")
+    expect(resolvePack(SEED_PACKS, "finance")?.packKey).toBe("finance")
+    // A discipline no pack claims still lands on the general fallback.
+    expect(resolvePack(SEED_PACKS, "nurse")?.packKey).toBe("general")
     expect(packForDiscipline(SEED_PACKS, "nurse")?.packKey ?? null).toBeNull()
   })
 
@@ -143,8 +145,11 @@ describe("pack authoring", () => {
     if (!result.ok) expect(result.error).toMatch(/method/)
   })
 
-  it("keeps the two seeded packs addressable by key", () => {
-    expect(SEED_PACKS.map((pack) => pack.packKey)).toEqual(["it-technician", "general"])
+  it("keeps every seeded pack addressable by key", () => {
+    expect(SEED_PACKS.map((pack) => pack.packKey)).toEqual([
+      "it-technician", "developer", "designer", "analyst", "finance", "operations",
+      "hr", "sales-marketing", "healthcare-science", "engineering", "management", "general",
+    ])
     expect(GENERAL_PACK.disciplines).not.toContain("technician")
     expect(IT_TECHNICIAN_PACK.disciplines).toContain("technician")
   })

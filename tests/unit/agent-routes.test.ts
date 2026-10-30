@@ -68,10 +68,12 @@ describe("the handover routes", () => {
     expect(route).toMatch(/existing/)
   })
 
-  it("keeps extraction under the wait: thinking off, one retry inside the same budget", () => {
+  it("keeps extraction under the wait: thinking off, retries bounded to one budget", () => {
     const route = codeOnly(src("app/api/agent/handover/route.ts"))
     expect(route).toMatch(/thinkingBudget: 0/)
-    expect(route).toMatch(/retries: 1/)
+    // Pasted text gets one retry inside the 120s budget; a PDF gets none, so a cold
+    // compute cannot spend two full handshakes against the same wall.
+    expect(route).toMatch(/retries: pdf \? 0 : 1/)
     expect(route).toMatch(/timeoutMs: 120_000/)
   })
 

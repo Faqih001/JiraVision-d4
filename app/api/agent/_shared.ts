@@ -53,5 +53,10 @@ const PROVIDER_MESSAGE: Record<GeminiErrorKind, string> = {
 
 export function geminiFailure(error: unknown): NextResponse | null {
   if (!(error instanceof GeminiError)) return null
+  // A truncation is actionable in a way a generic badjson is not: the answer had the right shape but
+  // ran out of output room, so the member needs a shorter brief or to split it, not a retry.
+  if (error.tag === "truncated") {
+    return bad("The handover was too long for one pass; shorten the text or split it across a few documents.", 502)
+  }
   return bad(PROVIDER_MESSAGE[error.kind], PROVIDER_STATUS[error.kind])
 }

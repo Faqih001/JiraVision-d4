@@ -8,6 +8,7 @@
 // signed in, which is what the two cookies this replaced did.
 
 import { cookies } from "next/headers"
+import { cache } from "react"
 import { getUserById, type User } from "@/lib/db"
 import { cookieExpiryForNewSession } from "@/lib/auth/expiry"
 import { readSession, revokeSession, createSession as insertSessionRow } from "@/lib/auth/sessions"
@@ -35,8 +36,12 @@ function isProduction(): boolean {
  * The whole auth decision for one request. The four states are not interchangeable:
  * `anonymous` is a visitor, `invalid` is a dead session (and says why), `unreachable` is the
  * database not answering — which is neither of those things and never a sign-out.
+ *
+ * Wrapped in React `cache`, so a page that asks who is signed in half a dozen times — the layout,
+ * each server component, every route handler through getSession — runs the two reads (session row,
+ * user row) once per request instead of once per call, and renews the idle window once too.
  */
-export async function resolveSession(): Promise<SessionResult> {
+export const resolveSession = cache(async (): Promise<SessionResult> => {
   const token = (await cookies()).get(SESSION_COOKIE)?.value
   if (!token) return { state: "anonymous" }
 
@@ -53,7 +58,7 @@ export async function resolveSession(): Promise<SessionResult> {
 
   const { passwordHash: _passwordHash, ...sessionUser } = user
   return { state: "active", user: sessionUser, expiresAtMs: lookup.expiresAtMs }
-}
+})
 
 /**
  * The signed-in person, or null when nobody is. Throws when the database did not answer, so a

@@ -74,11 +74,17 @@ describe("the owner's seventeen onboarding checks", () => {
     expect(state).toContain("discipline must be a known work discipline")
   })
 
-  it("12. new users default to all work disciplines", () => {
+  it("12. the role step seeds the mapped discipline, not all 75", () => {
     const read = codeOnly(src("lib/registers/read.ts"))
     expect(read).toMatch(/workDisciplines/)
     const wizard = codeOnly(src("app/onboarding/onboarding-wizard.tsx"))
-    expect(wizard).toMatch(/disciplinesTouched \? disciplines : WORK_DISCIPLINES/)
+    // An untouched selection starts from the job title's discipline, not the full set.
+    expect(wizard).toContain("[autoPopulated.discipline]")
+    expect(wizard).toContain("defaultDisciplinesFor(next.discipline)")
+    // Changing the role re-seeds only while the user has not curated the list.
+    expect(wizard).toMatch(/if \(!disciplinesTouched\) setDisciplines\(defaultDisciplinesFor\(next\.discipline\)\)/)
+    // The saved value is the user's own list; the old forced-all fallback is gone.
+    expect(wizard).not.toMatch(/disciplinesTouched \? disciplines : WORK_DISCIPLINES/)
   })
 
   it("13. existing preferences remain intact", () => {

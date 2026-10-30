@@ -8,9 +8,9 @@ import {
 } from "@/lib/career/ladder-seed"
 
 describe("career ladder seed", () => {
-  it("seeds five disciplines x four rungs", () => {
-    expect(LADDER_DISCIPLINES).toHaveLength(5)
-    expect(CAREER_LADDER).toHaveLength(20)
+  it("seeds twelve disciplines x four rungs", () => {
+    expect(LADDER_DISCIPLINES).toHaveLength(12)
+    expect(CAREER_LADDER).toHaveLength(48)
   })
 
   it("gives every discipline contiguous levels 1 to 4", () => {

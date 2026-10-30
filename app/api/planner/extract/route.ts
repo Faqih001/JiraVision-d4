@@ -85,7 +85,12 @@ export async function POST(req: Request) {
         system: SYSTEM_PROMPT,
         contents,
         responseSchema: planJsonSchema(),
-        maxOutputTokens: 8192,
+        // Thinking counts against maxOutputTokens on the 2.5 models. Without a bound the model
+        // could spend the whole 8192-token budget reasoning and stop before the JSON was closed,
+        // which is exactly the "failed to convert response to JSON" the dev log reported. Cap the
+        // thinking, and widen the ceiling so a thirty-item plan still has room to finish.
+        thinkingBudget: 1024,
+        maxOutputTokens: 16384,
         temperature: 0.2,
         timeoutMs: 120_000,
       },
@@ -95,6 +100,19 @@ export async function POST(req: Request) {
     modelUsed = process.env.GEMINI_MODEL ?? null
   } catch (error) {
     if (error instanceof GeminiError) {
+      // A truncation is not a malformed answer: the model had the right shape but ran out of room.
+      // The only fix the member can apply is a shorter or split brief, so say that rather than
+      // surfacing the generic provider message.
+      if (error.tag === "truncated") {
+        return NextResponse.json(
+          {
+            success: false,
+            message: "The brief was too long for one pass; shorten it or split it.",
+            kind: error.kind,
+          },
+          { status: 502 },
+        )
+      }
       return NextResponse.json(
         { success: false, message: error.message, kind: error.kind },
         { status: error.kind === "auth" ? 500 : error.kind === "quota" ? 429 : 502 },

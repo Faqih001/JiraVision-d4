@@ -42,7 +42,17 @@ export async function POST(request: Request) {
   if (pdf) {
     if (pdf.mimeType !== "application/pdf") return bad("The attachment must be a PDF.")
     const bytes = Math.ceil((pdf.data.length * 3) / 4)
-    if (bytes > MAX_PDF_BYTES) return bad("The PDF is larger than 15 MB.")
+    if (bytes > MAX_PDF_BYTES) {
+      return bad(
+        "The PDF is larger than 15 MB. Paste the text of the handover instead, or split it across a few smaller documents.",
+      )
+    }
+    // Diagnostic only, server-side: PDF latency tracks page count, so recording the decoded size and
+    // a rough page tally (a latin1 scan of page objects, which misses pages hidden in compressed
+    // object streams) tells us whether a 504 was a genuinely huge document or a provider stall.
+    const buffer = Buffer.from(pdf.data, "base64")
+    const approxPages = (buffer.toString("latin1").match(/\/Type\s*\/Page\b(?!s)/g) ?? []).length
+    console.info(`[handover] pdf bytes=${bytes} approxPages=${approxPages} name=${String(body.sourceName ?? "")}`)
   }
 
   try {
@@ -72,10 +82,13 @@ export async function POST(request: Request) {
         contents,
         responseSchema: HANDOVER_SCHEMA,
         temperature: 0.1,
-        // Thinking costs ~9k tokens on a handover PDF: 68s measured on, 24–36s off. Off, with
-        // one retry inside the same 120s so Google's occasional stall doesn't become a 504.
+        // Thinking costs ~9k tokens on a handover PDF: 68s measured on, 24–36s off. Off.
         thinkingBudget: 0,
-        retries: 1,
+        // A PDF is the slow input. Splitting the 120s window across one retry gave 60s per attempt,
+        // which truncated calls that would have finished inside a single full window. Give a PDF the
+        // whole budget in one try; the retry stays for the fast text paste, where a Google stall is
+        // worth asking about once more. The provider logs each attempt's real duration.
+        retries: pdf ? 0 : 1,
         timeoutMs: 120_000,
       },
       (raw) => readHandover(raw, handoverPack),

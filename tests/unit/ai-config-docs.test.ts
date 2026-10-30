@@ -36,7 +36,11 @@ describe("AI configuration is documented", () => {
       for (const match of src(file).matchAll(/process\.env\.([A-Z0-9_]+)/gu)) used.add(match[1])
     }
     expect(used.size).toBeGreaterThan(0)
-    const undocumented = [...used].filter((name) => !new RegExp(`^${name}=`, "mu").test(example))
+    // NODE_ENV is set by the runtime, not the operator, so it is never an .env.example knob.
+    const frameworkVars = new Set(["NODE_ENV"])
+    const undocumented = [...used].filter(
+      (name) => !frameworkVars.has(name) && !new RegExp(`^${name}=`, "mu").test(example),
+    )
     expect(undocumented).toEqual([])
   })
 

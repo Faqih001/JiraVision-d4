@@ -49,9 +49,6 @@ function toSkills(value: unknown): string[] | null {
 // Use Neon connection string from .env
 const connectionString = process.env.DATABASE_URL!;
 
-// Debug flag
-const DEBUG = process.env.NODE_ENV === 'development';
-
 if (!connectionString) {
   throw new Error('DATABASE_URL environment variable is required. Please set it in your .env file.');
 }
@@ -87,10 +84,27 @@ export const queryClient =
 
 globalForDb.jiravisionQueryClient = queryClient;
 
+// Query logging is off by default. Drizzle's built-in logger printed every statement with its
+// bound parameters, and the auth writes bind a bcrypt hash and a session-token hash — so the dev
+// log was leaking secret material on every sign-in. Opt in with DATABASE_LOG_SQL to see the
+// statement text (parameters still withheld); DATABASE_LOG_PARAMS additionally, for a deliberate
+// local debug session, prints the values too. Neither is on in production.
+const logSql = process.env.DATABASE_LOG_SQL === "1";
+const logParams = logSql && process.env.DATABASE_LOG_PARAMS === "1";
+
+const dbLogger = logSql
+  ? {
+      logQuery(query: string, params: unknown[]) {
+        if (logParams) console.log("[db]", query, params);
+        else console.log("[db]", query, `(${params.length} params redacted)`);
+      },
+    }
+  : false;
+
 // Initialize and export a singleton Drizzle instance
 export const db = drizzle(queryClient, {
   schema,
-  logger: DEBUG,
+  logger: dbLogger,
 });
 
 // Create a separate connection for one-off operations that is immediately closed

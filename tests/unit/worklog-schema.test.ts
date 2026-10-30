@@ -67,7 +67,7 @@ describe("worklog schema", () => {
     for (const column of expected) expect(names).toContain(column)
   })
 
-  it("adds exactly three nullable columns to tasks, in snake_case", () => {
+  it("adds exactly four nullable columns to tasks, in snake_case", () => {
     const names = columnNames(schema.tasks)
     expect(names).toContain("start_date")
     expect(names).toContain("discipline")
@@ -79,7 +79,7 @@ describe("worklog schema", () => {
     expect(columnNames(schema.tasks)).toEqual([
       "id", "title", "description", "status", "priority", "story_points", "assignee_id",
       "sprint_id", "due_date", "tags", "created_at", "updated_at",
-      "start_date", "discipline", "source_plan_id",
+      "start_date", "discipline", "source_plan_id", "metadata",
     ])
   })
 

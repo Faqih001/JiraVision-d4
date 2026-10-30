@@ -140,7 +140,11 @@ export function OnboardingWizard({ initial, inviteToken, account }: Props) {
   })
   const [secondaryDraft, setSecondaryDraft] = useState("")
   const [disciplines, setDisciplines] = useState<WorkDiscipline[]>(
-    initial.data.role.disciplines.length > 0 ? initial.data.role.disciplines : [...WORK_DISCIPLINES],
+    initial.data.role.disciplines.length > 0
+      ? initial.data.role.disciplines
+      : autoPopulated.discipline
+        ? [autoPopulated.discipline]
+        : [...WORK_DISCIPLINES],
   )
   const [disciplinesTouched, setDisciplinesTouched] = useState(false)
   const [prefs, setPrefs] = useState(initial.data.preferences)
@@ -279,11 +283,11 @@ export function OnboardingWizard({ initial, inviteToken, account }: Props) {
               role: {
                 jobTitle: identity.jobTitle,
                 department: identity.department,
-                disciplines: disciplinesTouched ? disciplines : WORK_DISCIPLINES,
+                disciplines,
               },
             },
           },
-          disciplinesTouched ? { workDisciplines: disciplines } : {},
+          { workDisciplines: disciplines },
         )
         goTo(5)
         return
@@ -403,6 +407,13 @@ export function OnboardingWizard({ initial, inviteToken, account }: Props) {
     setDisciplines((list) => (checked ? [...list, id] : list.filter((entry) => entry !== id)))
   }
 
+  // The mapped discipline is the default filter until the member says otherwise. When the job title
+  // changes and they have not touched the checkboxes, follow it; once they have, leave their choice
+  // alone. Saving all 75 for someone whose role maps to one discipline filtered them to nothing.
+  function defaultDisciplinesFor(discipline: WorkDiscipline | null | undefined): WorkDiscipline[] {
+    return discipline ? [discipline] : [...WORK_DISCIPLINES]
+  }
+
   function addSecondary() {
     const value = secondaryDraft.trim()
     if (!value) return
@@ -520,8 +531,10 @@ export function OnboardingWizard({ initial, inviteToken, account }: Props) {
                     id="onb-department"
                     value={profile.department}
                     onValueChange={(value) => {
+                      const next = autoPopulateFromJobTitle("", value)
                       setProfile({ ...profile, department: value, jobTitle: "" })
-                      setAutoPopulated(autoPopulateFromJobTitle("", value))
+                      setAutoPopulated(next)
+                      if (!disciplinesTouched) setDisciplines(defaultDisciplinesFor(next.discipline))
                     }}
                   />
                 </div>
@@ -531,8 +544,10 @@ export function OnboardingWizard({ initial, inviteToken, account }: Props) {
                     id="onb-role"
                     value={profile.jobTitle}
                     onValueChange={(value) => {
+                      const next = autoPopulateFromJobTitle(value, profile.department)
                       setProfile({ ...profile, jobTitle: value })
-                      setAutoPopulated(autoPopulateFromJobTitle(value, profile.department))
+                      setAutoPopulated(next)
+                      if (!disciplinesTouched) setDisciplines(defaultDisciplinesFor(next.discipline))
                     }}
                     departmentCode={profile.department || null}
                   />
@@ -734,8 +749,10 @@ export function OnboardingWizard({ initial, inviteToken, account }: Props) {
                       id="role-department"
                       value={profile.department}
                       onValueChange={(value) => {
+                        const next = autoPopulateFromJobTitle("", value)
                         setProfile({ ...profile, department: value, jobTitle: "" })
-                        setAutoPopulated(autoPopulateFromJobTitle("", value))
+                        setAutoPopulated(next)
+                        if (!disciplinesTouched) setDisciplines(defaultDisciplinesFor(next.discipline))
                       }}
                     />
                   </div>
@@ -745,8 +762,10 @@ export function OnboardingWizard({ initial, inviteToken, account }: Props) {
                       id="role-title"
                       value={profile.jobTitle}
                       onValueChange={(value) => {
+                        const next = autoPopulateFromJobTitle(value, profile.department)
                         setProfile({ ...profile, jobTitle: value })
-                        setAutoPopulated(autoPopulateFromJobTitle(value, profile.department))
+                        setAutoPopulated(next)
+                        if (!disciplinesTouched) setDisciplines(defaultDisciplinesFor(next.discipline))
                       }}
                       departmentCode={profile.department || null}
                     />
@@ -764,7 +783,7 @@ export function OnboardingWizard({ initial, inviteToken, account }: Props) {
 
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className="text-xs text-muted-foreground">
-                    This is a display filter, not a permission. Leave it untouched to see everything.
+                    This is a display filter, not a permission. We start with your role&rsquo;s discipline &mdash; add others only if your work spans them.
                   </p>
                   <div className="flex gap-2">
                     <Button type="button" size="sm" variant="outline" onClick={() => { setDisciplinesTouched(true); setDisciplines([...WORK_DISCIPLINES]) }}>
@@ -942,9 +961,9 @@ export function OnboardingWizard({ initial, inviteToken, account }: Props) {
                       : "Skipped"}
                 </ReviewRow>
                 <ReviewRow title="Disciplines" onEdit={() => goTo(4)}>
-                  {disciplinesTouched
-                    ? `${disciplines.length} selected${disciplines.length === WORK_DISCIPLINES.length ? " (all)" : ""}`
-                    : "All work disciplines (nothing filtered)"}
+                  {disciplines.length === WORK_DISCIPLINES.length
+                    ? "All work disciplines (nothing filtered)"
+                    : `${disciplines.length} selected${disciplinesTouched ? "" : " (matched to your role)"}`}
                 </ReviewRow>
                 <ReviewRow title="Project management" onEdit={() => goTo(5)}>
                   {prefs.sprintView} view · email {prefs.notifyEmail ? "on" : "off"} · in-app {prefs.notifyRealtime ? "on" : "off"} · push {prefs.notifyPush ? "on" : "off"}
