@@ -7,9 +7,10 @@
 // thing: every log entity and its fields, every KPI and whether it carries a target, the report
 // templates, playbook seeds, automation templates, recommendation rules and AI policy.
 //
-// It is read-only and says so. Where a section is empty it does not pad the gap: the empty states
-// name the real reason (a derived pack has no rules nobody authored for it), which is the difference
-// between this page being useful and being decoration.
+// It is a read view: this component fetches the config and renders it, and the only write on the page
+// lives in ./config-propose, which is mounted for admins alone. Where a section is empty it does not pad
+// the gap: the empty states name the real reason (a derived pack has no rules nobody authored for it),
+// which is the difference between this page being useful and being decoration.
 
 import { useCallback, useEffect, useMemo, useState } from "react"
 import Link from "next/link"
@@ -29,6 +30,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { SectionCard, EmptyNote, PriorityPill } from "@/components/dashboard-kit"
+import ConfigPropose from "./config-propose"
 
 type FieldDef = {
   type: string
@@ -108,6 +110,7 @@ type ConfigResponse = {
   packKey: string | null
   discipline: string | null
   config: ConfigDef | null
+  admin?: boolean
   message?: string
 }
 
@@ -508,7 +511,7 @@ export default function OpsConfigClient() {
           <p className="text-sm text-muted-foreground">
             {data.discipline} &middot; pack{" "}
             <span className="font-mono text-xs">{data.packKey}</span> &middot; the rules the operations
-            engine runs on for this discipline, read-only.
+            engine runs on for this discipline.
           </p>
         </div>
         <Button size="sm" variant="outline" onClick={() => void load()}>
@@ -516,6 +519,14 @@ export default function OpsConfigClient() {
           Reload
         </Button>
       </header>
+
+      {data.admin && (
+        <ConfigPropose
+          packKey={data.packKey}
+          discipline={data.discipline}
+          onApplied={() => void load()}
+        />
+      )}
 
       <CountStrip config={config} />
 

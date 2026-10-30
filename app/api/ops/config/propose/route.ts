@@ -3,6 +3,9 @@
 // POST → { fileName, mimeType, base64 } and nothing is stored. The output is a proposal diffed against
 // the pack's current config, so the reviewer sees what each item would do to the rules already in force.
 // The apply route is the only door that writes, and it re-normalises whatever it is given.
+//
+// Admin-only, for two reasons: only an admin can apply the result, and every call spends the owner's
+// Gemini quota — a proposal a member cannot act on is a quota spent for nothing.
 
 import { NextRequest, NextResponse } from "next/server"
 import { getSession } from "@/lib/auth-actions"
@@ -11,7 +14,7 @@ import { loadOpsConfigForDiscipline } from "@/lib/ops/config-reader"
 import { isGeminiAuthError, isGeminiQuotaError } from "@/lib/ops/import/extract"
 import { diffConfig } from "@/lib/ops/config/diff"
 import { proposeConfigFromDocument } from "@/lib/ops/config/proposal"
-import { badRequest, serverError, unauthorized } from "../../_shared"
+import { badRequest, forbidden, serverError, unauthorized } from "../../_shared"
 
 export const dynamic = "force-dynamic"
 
@@ -30,6 +33,9 @@ const ALLOWED_MIMES = new Set([
 export async function POST(request: NextRequest) {
   const session = await getSession()
   if (!session || typeof session.id !== "number") return unauthorized()
+  if (session.role !== "admin" && session.role !== "super_admin") {
+    return forbidden("Only an admin can propose changes to a pack's operations rules.")
+  }
 
   try {
     const body = await request.json().catch(() => null)

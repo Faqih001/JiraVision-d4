@@ -1,12 +1,14 @@
 // /api/ops/config — the signed-in member's pack operations config, in full.
-// GET → { packKey, discipline, config } where config is the whole validated OpsConfig: log entities
-//       and their fields, KPI definitions (including the ones with no target), report templates,
-//       playbook seeds, automation templates, recommendation rules and the AI policy.
+// GET → { packKey, discipline, config, admin } where config is the whole validated OpsConfig: log
+//       entities and their fields, KPI definitions (including the ones with no target), report
+//       templates, playbook seeds, automation templates, recommendation rules and the AI policy.
 //
 // This is the only route that hands out the config itself. /api/ops/pack gives the nav and forms
 // just the slices they render; this one exists so a member can see what the engine actually knows
 // about their discipline instead of inferring it from which tabs appear. Read-only: it writes
 // nothing and never exposes another pack's config — the discipline comes from the caller's session.
+// `admin` is the caller's own can-apply flag, so the page can show the approval door to the people
+// who can use it instead of letting them fill a form that would be refused.
 
 import { NextResponse } from "next/server"
 import { getSession } from "@/lib/auth-actions"
@@ -16,14 +18,20 @@ import { serverError, unauthorized } from "../_shared"
 
 export const dynamic = "force-dynamic"
 
+function isAdmin(role: string | null | undefined): boolean {
+  return role === "admin" || role === "super_admin"
+}
+
 export async function GET() {
   const session = await getSession()
   if (!session || typeof session.id !== "number") return unauthorized()
 
+  const admin = isAdmin(session.role)
+
   try {
     const discipline = defaultDisciplineOf(session)
     if (!discipline) {
-      return NextResponse.json({ success: true, data: { packKey: null, discipline: null, config: null } })
+      return NextResponse.json({ success: true, data: { packKey: null, discipline: null, config: null, admin } })
     }
 
     const ctx = await loadOpsConfigForDiscipline(discipline)
@@ -34,12 +42,16 @@ export async function GET() {
           packKey: null,
           discipline,
           config: null,
+          admin,
           message: `No operations pack is configured for ${discipline} yet.`,
         },
       })
     }
 
-    return NextResponse.json({ success: true, data: { packKey: ctx.packKey, discipline, config: ctx.config } })
+    return NextResponse.json({
+      success: true,
+      data: { packKey: ctx.packKey, discipline, config: ctx.config, admin },
+    })
   } catch (error) {
     return serverError(error, "load ops config")
   }
