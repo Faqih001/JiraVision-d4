@@ -30,9 +30,32 @@ describe("ops overview integration", () => {
     const layout = src("components/dashboard-layout.tsx")
     expect(layout).toContain("My Operations")
     expect(layout).toContain("/dashboard/ops")
-    expect(layout).toContain("/dashboard/ops/logs")
-    expect(layout).toContain("/dashboard/ops/kpis")
+    expect(layout).toContain("/dashboard/ops/import")
     expect(layout).toContain("hasOpsConfig")
+  })
+
+  it("does not advertise not-yet-built ops pages in the sidebar", () => {
+    const layout = src("components/dashboard-layout.tsx")
+    expect(layout).not.toContain("/dashboard/ops/logs")
+    expect(layout).not.toContain("/dashboard/ops/kpis")
+  })
+
+  it("does not link the overview top bar to not-yet-built ops pages", () => {
+    const page = src("app/dashboard/ops/page.tsx")
+    expect(page).not.toContain("/dashboard/ops/logs")
+    expect(page).not.toContain("/dashboard/ops/kpis")
+  })
+
+  it("points recommendation hrefs at routes that exist", () => {
+    const recommend = src("lib/ops/recommend.ts")
+    expect(recommend).not.toContain("/dashboard/operations")
+    expect(recommend).toContain('"/dashboard/ops"')
+    expect(recommend).toContain('"/dashboard/registers"')
+  })
+
+  it("renders recommendation actions as clickable links", () => {
+    const page = src("app/dashboard/ops/page.tsx")
+    expect(page).toContain("rec.href")
   })
 
   it("gates the sidebar group on hasOpsConfig", () => {

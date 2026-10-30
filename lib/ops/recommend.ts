@@ -45,16 +45,13 @@ const PRIORITY_ORDER: Record<string, number> = {
   Low: 3,
 }
 
+// Every log entity lands on the operations overview (the dedicated per-entity logs page is a
+// later build); register_items land on the registers page. No href may point at an unmapped route.
 const ENTITY_HREF: Record<string, string> = {
-  tickets: "/dashboard/operations?entity=tickets",
-  backups: "/dashboard/operations?entity=backups",
-  restore_tests: "/dashboard/operations?entity=restore_tests",
-  maintenance: "/dashboard/operations?entity=maintenance",
-  incidents: "/dashboard/operations?entity=incidents",
-  daily_checklist: "/dashboard/operations?entity=daily_checklist",
-  weekly_checklist: "/dashboard/operations?entity=weekly_checklist",
   register_items: "/dashboard/registers",
 }
+
+const OPS_OVERVIEW_HREF = "/dashboard/ops"
 
 /**
  * Evaluate all recommend rules from the opsConfig against the member's data.
@@ -79,7 +76,7 @@ export function buildOpsRecommendations(
         action: rule.action,
         entityKey: rule.entity,
         entryId: match.entryId,
-        href: ENTITY_HREF[rule.entity] ?? "/dashboard/operations",
+        href: ENTITY_HREF[rule.entity] ?? OPS_OVERVIEW_HREF,
       })
     }
   }

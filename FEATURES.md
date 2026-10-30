@@ -681,3 +681,26 @@ step persists that config from code for every discipline, not just IT.
   exposes its register-kind labels and no invented rules.
 - **Not yet run against production.** The seed is wired and tested; applying it to live Neon is a
   separate, owner-approved action.
+
+## 26. Operations surfaces reachable without dead links (2026-10-30)
+
+Persisting the config (step 25) flips `hasOpsConfig` true for every discipline, which makes the
+"My Operations" nav group and the overview page render for the first time. Before that group ever
+appeared, several of its links pointed at routes that do not exist yet. This step clears them so no
+reachable link 404s, while leaving the not-yet-built pages for their own steps.
+
+- **Recommendation links land somewhere real.** `lib/ops/recommend.ts` previously mapped every log
+  entity to `/dashboard/operations` (never built) with a dead fallback. It now sends register
+  recommendations to `/dashboard/registers` and every other entity to `/dashboard/ops`, the overview
+  that actually renders KPIs, recommendations and today's checklist. The dedicated per-entity logs
+  page remains a later build and can reclaim those hrefs when it ships.
+- **Overview actions are clickable.** Each recommendation's `action` on `/dashboard/ops` is now a real
+  link to its `href`, not inert coloured text.
+- **Unbuilt pages stay unlinked.** The sidebar group and the overview top bar no longer advertise
+  `/dashboard/ops/logs` (step 25's logs page) or `/dashboard/ops/kpis` (the KPI detail page); they
+  keep "Operations overview" and "Import document", which exist. The static ops-pack authoring corpus
+  under `public/files/jiravision-ops-seeds/` still names those future surfaces by design and is
+  untouched.
+- **Guards hold the line.** The ops overview integration test now asserts the recommendation hrefs
+  omit `/dashboard/operations`, the sidebar and top bar omit the two unbuilt routes, and the overview
+  renders `rec.href` as a link.

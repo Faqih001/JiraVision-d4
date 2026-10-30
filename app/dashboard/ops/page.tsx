@@ -12,7 +12,6 @@ import {
   CheckCircle2,
   ClipboardCheck,
   Clock,
-  FileText,
   RefreshCw,
   ShieldAlert,
   TrendingUp,
@@ -204,18 +203,6 @@ export default function OperationsOverviewPage() {
             Refresh
           </Button>
           <Button variant="outline" size="sm" asChild>
-            <Link href="/dashboard/ops/logs">
-              <FileText className="mr-2 h-4 w-4" />
-              Activity logs
-            </Link>
-          </Button>
-          <Button variant="outline" size="sm" asChild>
-            <Link href="/dashboard/ops/kpis">
-              <TrendingUp className="mr-2 h-4 w-4" />
-              KPIs
-            </Link>
-          </Button>
-          <Button variant="outline" size="sm" asChild>
             <Link href="/dashboard/ops/import">
               <Upload className="mr-2 h-4 w-4" />
               Import
@@ -266,7 +253,12 @@ export default function OperationsOverviewPage() {
                   </div>
                   <p className="mt-2 text-sm">{rec.observation}</p>
                   <p className="mt-1 text-xs text-muted-foreground">{rec.risk}</p>
-                  <p className="mt-2 text-xs font-medium text-primary">{rec.action}</p>
+                  <Link
+                    href={rec.href}
+                    className="mt-2 inline-flex text-xs font-medium text-primary hover:underline"
+                  >
+                    {rec.action}
+                  </Link>
                 </div>
               ))}
               {recommendations.length > 5 && (
