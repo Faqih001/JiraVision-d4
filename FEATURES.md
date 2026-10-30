@@ -830,3 +830,37 @@ the agent's "Import" tab — and nothing in either page explained the difference
   whether or not the pack has an ops config.
 - **Guards.** A new `ops import D6` block in `tests/integration/ops-import.test.ts` asserts each page links
   to the other with the right anchor text and that neither page issues PATCH/DELETE.
+
+## 32. The runbooks your pack declares, previewed where you work (2026-10-30)
+
+Every pack's `opsConfig` carries `playbookSeeds` — the daily/weekly/monthly runbooks that discipline is
+meant to work, with a method and the steps inside each phase. Nothing read them: the field was written into
+`role_packs.ops_config` and never surfaced, while the playbook runner itself (`/dashboard/playbooks/[id]/run`)
+had shipped and working some time earlier. This PR closes the actual gap — a read path from the ops
+surfaces to those declarations — and invents nothing.
+
+- **The pack route serves the seeds.** `GET /api/ops/pack` now returns `playbookSeeds` alongside `logs` and
+  `reportTemplates` (`ctx?.config.playbookSeeds ?? null`, and `null` in the no-discipline branch), so the
+  operations pages read one endpoint for everything the pack declares.
+- **`/dashboard/ops/playbooks` — read-only previews.** One card per seed: its frequency, phase and step
+  counts as badges, the method as an ordered list of badges, then every phase as a numbered block with each
+  step listed under it. A phase that declares no steps says so instead of being hidden.
+- **Honest about what a seed is.** The page states plainly that these are declarations from the role pack,
+  not saved SOPs, and that nothing here is written to the library. Seeds carry plain step strings; the rich
+  `PlaybookStep` fields (checks, precautions, PPE, stop conditions, evidence) belong to a playbook someone
+  has written, so this page does not fabricate them.
+- **A working handoff.** Each card links to `/dashboard/playbooks?q=<seed label>`; the library honors `?q=`,
+  so "Open in playbook library" lands on a filtered list rather than a dead route. The header also links to
+  the unfiltered library, and the footer to the overview, activity logs and report previews.
+- **Navigation.** "Playbook previews" joins the My Operations sidebar group between Report previews and
+  Import document (still gated on `hasOpsConfig`), and the operations overview top bar gains a Playbooks
+  button next to Reports.
+- **Graceful states.** Loading shows a skeleton; a failed pack fetch shows a destructive alert with Try
+  again; no ops config renders "No operations configured" with a link back; a pack that declares no seeds
+  renders "No playbook seeds" instead of an empty grid.
+- **Guards.** `tests/integration/ops-playbooks.test.ts` asserts the pack route serves `playbookSeeds`, that
+  the page renders method phases and their steps, uses position-derived React keys rather than step text,
+  deep-links with `?q=` from the seed label, carries the "not saved SOPs" disclosure, issues no
+  POST/PATCH/DELETE, and degrades on both empty states; and that the sidebar and overview link to it with
+  `BookOpenCheck` actually imported. `tests/integration/ops-overview.test.ts` now expects the playbooks
+  route in the sidebar link set and the overview top bar.

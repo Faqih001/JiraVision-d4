@@ -9,6 +9,7 @@ import { SectionCard, EmptyNote } from "@/components/dashboard-kit"
 import {
   Activity,
   AlertTriangle,
+  BookOpenCheck,
   CheckCircle2,
   ClipboardCheck,
   Clock,
@@ -220,6 +221,12 @@ export default function OperationsOverviewPage() {
             <Link href="/dashboard/ops/reports">
               <FileBarChart2 className="mr-2 h-4 w-4" />
               Reports
+            </Link>
+          </Button>
+          <Button variant="outline" size="sm" asChild>
+            <Link href="/dashboard/ops/playbooks">
+              <BookOpenCheck className="mr-2 h-4 w-4" />
+              Playbooks
             </Link>
           </Button>
           <Button variant="outline" size="sm" asChild>

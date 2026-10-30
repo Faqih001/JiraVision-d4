@@ -387,6 +387,12 @@ export default function DashboardLayout({
                 active: pathname === "/dashboard/ops/reports",
               },
               {
+                title: "Playbook previews",
+                icon: <BookOpenCheck className="h-5 w-5" />,
+                href: "/dashboard/ops/playbooks",
+                active: pathname === "/dashboard/ops/playbooks",
+              },
+              {
                 title: "Import document",
                 icon: <Upload className="h-5 w-5" />,
                 href: "/dashboard/ops/import",

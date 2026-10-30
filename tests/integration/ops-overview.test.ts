@@ -39,13 +39,15 @@ describe("ops overview integration", () => {
     expect(layout).toContain("/dashboard/ops/logs")
     expect(layout).toContain("/dashboard/ops/kpis")
     expect(layout).toContain("/dashboard/ops/reports")
+    expect(layout).toContain("/dashboard/ops/playbooks")
   })
 
-  it("links the overview top bar to the logs, KPIs and reports pages", () => {
+  it("links the overview top bar to the logs, KPIs, reports and playbooks pages", () => {
     const page = src("app/dashboard/ops/page.tsx")
     expect(page).toContain("/dashboard/ops/logs")
     expect(page).toContain("/dashboard/ops/kpis")
     expect(page).toContain("/dashboard/ops/reports")
+    expect(page).toContain("/dashboard/ops/playbooks")
   })
 
   it("points recommendation hrefs at routes that exist", () => {
