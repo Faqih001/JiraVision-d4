@@ -210,11 +210,14 @@ offers *request access* instead, which notifies the workspace admins and changes
 
 ## Agent entry
 
-`/dashboard/agent` is the one door for machine help, in two tabs kept in the URL. **Handover** reads a
-pasted brief or one PDF (15 MB) against a role pack and shows register rows and playbook drafts as a
-**preview** — nothing is written until the member ticks rows and commits. The preview route stores
+`/dashboard/agent` is the one door for machine help, in two tabs kept in the URL. **Import**
+(`?tab=handover`) reads a
+pasted brief or one PDF (15 MB) against a role pack and shows register rows and playbook drafts as cards
+that mirror the destination pages — a **preview** the member can edit, add to, or remove from before
+ticking rows and committing; nothing is written until then. The preview route stores
 neither the text nor the PDF and logs neither; the commit route re-validates every row through the manual
-validators, dedupes by pack/kind/title, and stamps `source: "gemini"` with playbooks as drafts. Credential
+validators (the same rules the in-browser editor mirrors), dedupes by pack/kind/title, and stamps
+`source: "gemini"` with playbooks as drafts. Credential
 values are refused at both doors, at any depth, and the refusal names the field path instead of repeating
 the value. **What next** loads six rules computed server-side from the member's own rows
 (`stale_register`, `overdue_renewal`, `deliverable_stuck`, `career_gap`, `report_missing`, `missing_log`);

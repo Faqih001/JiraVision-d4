@@ -240,22 +240,22 @@ Method library: a role-pack-scoped, versioned, publishable procedure.
 
 ### `/dashboard/agent` — Agent
 
-The agent's single door: a preview-then-commit handover, plus "what next" recommendations.
+The agent's single door: a preview-edit-commit import, plus "what next" recommendations.
 
 | Section | What it does |
 | --- | --- |
 | Role pack | Chooses the pack whose fields, playbook shapes and vocabulary the run uses |
-| The handover | Upload/paste a handover, preview the extracted register rows and playbook drafts |
-| Register rows / Playbook drafts | Tickable previews; nothing is stored until commit |
+| Import (`?tab=handover`) | Upload/paste a handover, preview the extracted register rows and playbook drafts as cards that mirror the destination pages |
+| Register rows / Playbook drafts | Editable preview cards — edit a row, add a new one, or remove it; nothing is stored until commit |
 | Refusal panel | Names the exact field paths the server would not accept |
 | What next | Rule-first recommendations with a separate AI twin button |
-| Commit | Writes only the ticked rows |
+| Commit | Writes only the ticked rows, after the server re-validates every one |
 
 | CRUD | Endpoint(s) | Changes |
 | --- | --- | --- |
 | R | `/api/registers` | existing rows so duplicates are shown as updates |
 | C | `/api/agent/handover` (POST, preview), `/api/agent/handover/commit` (POST), `/api/agent/recommendations` (POST) | extraction preview, committed rows/drafts, recommendations |
-| U / D | — | commit only creates; it never mutates or deletes an existing row |
+| U / D | — (client-side only) | preview cards are edited, added and removed in the browser; commit only creates — it never mutates or deletes an existing row, and the server re-validates every row before writing |
 
 ### `/dashboard/backlog` — Backlog
 

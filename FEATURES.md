@@ -559,11 +559,16 @@ already working. The phase adds one table, five routes and no `users` column; a 
 
 ## 23. Agent entry (phase 18, 2026-10-27)
 
-- **One page, two jobs.** `/dashboard/agent` keeps `?tab=handover` (default) and `?tab=recommendations`
-  in the URL, so a link opens the same list.
-- **Handover is preview → commit.** `POST /api/agent/handover` reads a pasted brief or one PDF against a
-  chosen role pack and returns normalised register rows, playbook drafts and a refusal list. It writes
-  nothing, stores neither the text nor the PDF, and never logs them.
+- **One page, two jobs.** `/dashboard/agent` keeps `?tab=handover` (default; the visible tab reads
+  **Import**) and `?tab=recommendations` in the URL, so a link opens the same list.
+- **Import is preview → edit → commit.** `POST /api/agent/handover` reads a pasted brief or one PDF
+  against a chosen role pack and returns normalised register rows, playbook drafts and a refusal list.
+  The cards on the preview mirror the destination pages (kind label, custody, "In service"/"Draft"
+  status, pack title, model-draft badge, step count, tags), and each row is editable, removable or
+  addable before commit. `lib/agent/handover-edit.ts` mirrors the commit validators client-side
+  (title, kind ∈ pack kinds, no credential-shaped field, method-keyed steps with an action, a
+  discipline that is null or a known work discipline) so the common rejections can't be silently
+  submitted. It writes nothing, stores neither the text nor the PDF, and never logs them.
 - **The second door is the same validator.** `POST /api/agent/handover/commit` re-runs
   `stripCredentialValues`, `readRegisterFields`, `isRegisterCustody` and `readPlaybookInput` on everything
   the browser sends back, dedupes registers by `(packKey, kind, title)` and playbooks by `(packKey, title)`,
