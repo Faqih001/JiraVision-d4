@@ -34,23 +34,23 @@ describe("ops overview integration", () => {
     expect(layout).toContain("hasOpsConfig")
   })
 
-  it("does not advertise not-yet-built ops pages in the sidebar", () => {
+  it("does not advertise the not-yet-built KPIs page in the sidebar", () => {
     const layout = src("components/dashboard-layout.tsx")
-    expect(layout).not.toContain("/dashboard/ops/logs")
+    expect(layout).toContain("/dashboard/ops/logs")
     expect(layout).not.toContain("/dashboard/ops/kpis")
   })
 
-  it("does not link the overview top bar to not-yet-built ops pages", () => {
+  it("links the overview top bar to the logs page but not the unbuilt KPIs page", () => {
     const page = src("app/dashboard/ops/page.tsx")
-    expect(page).not.toContain("/dashboard/ops/logs")
+    expect(page).toContain("/dashboard/ops/logs")
     expect(page).not.toContain("/dashboard/ops/kpis")
   })
 
   it("points recommendation hrefs at routes that exist", () => {
     const recommend = src("lib/ops/recommend.ts")
     expect(recommend).not.toContain("/dashboard/operations")
-    expect(recommend).toContain('"/dashboard/ops"')
-    expect(recommend).toContain('"/dashboard/registers"')
+    expect(recommend).toContain("/dashboard/ops/logs")
+    expect(recommend).toContain("/dashboard/registers")
   })
 
   it("renders recommendation actions as clickable links", () => {

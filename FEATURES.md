@@ -704,3 +704,28 @@ reachable link 404s, while leaving the not-yet-built pages for their own steps.
 - **Guards hold the line.** The ops overview integration test now asserts the recommendation hrefs
   omit `/dashboard/operations`, the sidebar and top bar omit the two unbuilt routes, and the overview
   renders `rec.href` as a link.
+
+## 27. Activity logs page, driven by the pack config (2026-10-30)
+
+The overview surfaces read the config, but the member had nowhere to actually record activity. This
+step adds `/dashboard/ops/logs` — the write surface the operations engine was built around — and
+reconnects the links that step 26 had pulled.
+
+- **The form is the schema.** `/api/ops/pack` now returns the pack's validated `logs` definition
+  (entity key → label + each field's name, type, required flag and enum values). The page renders one
+  tab per log entity and generates the entry form from the selected entity's declared fields — a text
+  area for `text`, a dropdown for `enum`, a date/datetime picker for `date`/`datetime`, a number box
+  for `number`, a single-line box for `string`. No field name or type is hardcoded per discipline, so
+  the IT Technician workbook and every derived pack both drive the same screen.
+- **Full CRUD against the existing routes.** Add posts to `/api/ops/entries`; edit PATCHes
+  `/api/ops/entries/[id]`; delete removes it. The server (`validateFields`) is still the authority, so
+  the client only ever sends the fields the pack declared and a required field left blank is rejected
+  with the server's message in a toast rather than written.
+- **Entity deep-links work.** `recommend.ts` now points log-entity recommendations at
+  `/dashboard/ops/logs?entity=<key>` (registers stay at `/dashboard/registers`), and the page reads
+  `?entity=` to open the matching tab and keeps the URL in sync. The sidebar "Activity logs" item and
+  the overview top-bar button are back, now landing on a real page.
+- **Guards.** A new integration test proves the pack route serves `logs`, the client builds its form
+  from each field type, wires POST/PATCH/DELETE, and degrades to a "no operations configured" state;
+  the overview test confirms the logs link returned while the KPI detail page (a later step) stays
+  unlinked.

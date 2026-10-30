@@ -12,6 +12,7 @@ import {
   CheckCircle2,
   ClipboardCheck,
   Clock,
+  FileText,
   RefreshCw,
   ShieldAlert,
   TrendingUp,
@@ -201,6 +202,12 @@ export default function OperationsOverviewPage() {
           <Button variant="outline" size="sm" onClick={() => void loadData()}>
             <RefreshCw className="mr-2 h-4 w-4" />
             Refresh
+          </Button>
+          <Button variant="outline" size="sm" asChild>
+            <Link href="/dashboard/ops/logs">
+              <FileText className="mr-2 h-4 w-4" />
+              Activity logs
+            </Link>
           </Button>
           <Button variant="outline" size="sm" asChild>
             <Link href="/dashboard/ops/import">

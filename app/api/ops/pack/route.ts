@@ -1,6 +1,7 @@
 // /api/ops/pack — resolve the signed-in member's ops pack.
-// GET → returns { packKey, hasOpsConfig, discipline } so the sidebar and overview page
-//       know whether to show the Operations nav group and which pack to query.
+// GET → returns { packKey, hasOpsConfig, discipline, logs } so the sidebar and operations pages
+//       know whether to show the Operations nav group, which pack to query, and — from `logs` —
+//       the entity tabs and per-field schema the activity logs form renders against.
 
 import { NextResponse } from "next/server"
 import { getSession } from "@/lib/auth-actions"
@@ -19,7 +20,7 @@ export async function GET() {
     if (!discipline) {
       return NextResponse.json({
         success: true,
-        data: { packKey: null, hasOpsConfig: false, discipline: null },
+        data: { packKey: null, hasOpsConfig: false, discipline: null, logs: null },
       })
     }
 
@@ -30,6 +31,7 @@ export async function GET() {
         packKey: ctx?.packKey ?? null,
         hasOpsConfig: ctx !== null,
         discipline,
+        logs: ctx?.config.logs ?? null,
       },
     })
   } catch (error) {
