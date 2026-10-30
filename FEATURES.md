@@ -813,3 +813,20 @@ and validated by the same rules the server uses.
   surfaces register refusals inline, that commit gates registers through `readRegisterFields` and clamps
   task status/priority, that the prompt is discipline-named with no IT residue, and that the page issues
   no PATCH.
+
+## 31. The two document doors say which one you want (2026-10-30)
+
+A member holding a file had two import routes in the sidebar — "Import document" under My Operations and
+the agent's "Import" tab — and nothing in either page explained the difference. Each now names the other.
+
+- **Ops import points outward.** Under its existing privacy disclosure, `/dashboard/ops/import` states that
+  this door fills your own operations and links (Bot icon) to the agent handover import, which writes the
+  register and playbook library for whichever pack you choose.
+- **The agent points back.** On its handover tab, `/dashboard/agent` states that this door reads one
+  handover into the register and the playbook library and links (FileText icon) to Import document for
+  activity logs, records and tasks in your own operations.
+- **Links only.** No behavior changed, no route added, no new write: both pages keep their own extract →
+  preview → commit flow. The handoff text is static and sits outside the extraction result, so it shows
+  whether or not the pack has an ops config.
+- **Guards.** A new `ops import D6` block in `tests/integration/ops-import.test.ts` asserts each page links
+  to the other with the right anchor text and that neither page issues PATCH/DELETE.

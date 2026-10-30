@@ -456,6 +456,19 @@ export default function AgentClient() {
 
       {tab === "handover" ? (
         <>
+          <p className="text-xs text-muted-foreground">
+            This door reads one handover into the register and the playbook library. To import
+            activity logs, records or tasks from a document for your own operations, use{" "}
+            <Link
+              href="/dashboard/ops/import"
+              className="inline-flex items-center gap-1 underline underline-offset-2"
+            >
+              <FileText className="h-3.5 w-3.5" aria-hidden />
+              Import document
+            </Link>
+            .
+          </p>
+
           <SectionCard title="The handover" icon={<Upload className="h-4 w-4" />}>
             <div className="space-y-3">
               <div className="grid gap-2 sm:max-w-sm">

@@ -35,6 +35,7 @@ import {
   ArrowUp,
   ArrowDown,
   ShieldAlert,
+  Bot,
 } from "lucide-react"
 import Link from "next/link"
 import type {
@@ -307,6 +308,18 @@ export default function ImportPage() {
         The pasted text or PDF is sent to Google for processing and is not stored. Credential values
         are refused; record where each one is kept instead. AI output is a draft &mdash; review and edit
         each row before importing.
+      </p>
+
+      <p className="text-xs text-muted-foreground">
+        This door fills your own operations. Bringing someone else&apos;s shift handover in? Use the{" "}
+        <Link
+          href="/dashboard/agent"
+          className="inline-flex items-center gap-1 underline underline-offset-2"
+        >
+          <Bot className="h-3.5 w-3.5" aria-hidden />
+          agent handover import
+        </Link>
+        , which writes the register and playbook library for the pack you choose.
       </p>
 
       {error && (

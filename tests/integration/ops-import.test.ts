@@ -126,3 +126,24 @@ describe("ops import D5: faithful + editable preview", () => {
     expect(content).not.toMatch(/method:\s*"PATCH"/)
   })
 })
+
+describe("ops import D6: the two document doors point at each other", () => {
+  it("the ops import page hands off to the agent handover", () => {
+    const content = src("app/dashboard/ops/import/page.tsx")
+    expect(content).toContain("/dashboard/agent")
+    expect(content).toMatch(/href="\/dashboard\/agent"[\s\S]{0,200}agent handover import/)
+  })
+
+  it("the agent page hands off to ops import", () => {
+    const content = src("app/dashboard/agent/agent-client.tsx")
+    expect(content).toContain("/dashboard/ops/import")
+    expect(content).toMatch(/href="\/dashboard\/ops\/import"[\s\S]{0,200}Import document/)
+  })
+
+  it("both handoffs stay links, not new writes", () => {
+    const ops = src("app/dashboard/ops/import/page.tsx")
+    const agent = src("app/dashboard/agent/agent-client.tsx")
+    expect(ops).not.toMatch(/method:\s*"(PATCH|DELETE)"/)
+    expect(agent).not.toMatch(/method:\s*"(PATCH|DELETE)"/)
+  })
+})
