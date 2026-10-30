@@ -1,0 +1,297 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "general",
+    "label": "General",
+    "category": "services",
+    "categoryLabel": "Creative, service & industry work",
+    "focus": "Activities and outstanding items"
+  },
+  "pack": {
+    "key": "general",
+    "reportTemplate": "general",
+    "registerKinds": [
+      "Responsibilities",
+      "Records and documents",
+      "Assets and equipment",
+      "Outstanding work"
+    ],
+    "ladderDiscipline": {
+      "proposed": null,
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced general practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use."
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "activities_logged",
+          "label": "Activities logged",
+          "source": "activity_log",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "items_open",
+          "label": "Items open",
+          "source": "outstanding_items",
+          "sourceType": "log",
+          "aggregation": "open_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "items_done",
+          "label": "Items done",
+          "source": "outstanding_items",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "responsibilities_listed",
+          "label": "Responsibilities listed",
+          "source": "responsibilities",
+          "sourceType": "register",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "item_overdue",
+          "when": "item overdue",
+          "suggest": "update",
+          "deterministic": true
+        },
+        {
+          "id": "no_activity_logged_this_week",
+          "when": "no activity logged this week",
+          "suggest": "log",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "activity_log",
+          "label": "Activity log",
+          "fields": [
+            {
+              "key": "activity_date",
+              "type": "date"
+            },
+            {
+              "key": "activity",
+              "type": "text"
+            },
+            {
+              "key": "outcome",
+              "type": "text"
+            }
+          ]
+        },
+        {
+          "key": "outstanding_items",
+          "label": "Outstanding items",
+          "fields": [
+            {
+              "key": "raised_date",
+              "type": "date"
+            },
+            {
+              "key": "item",
+              "type": "text"
+            },
+            {
+              "key": "due_date",
+              "type": "date"
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "open",
+                "done"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Responsibilities",
+          "track": [
+            "role duties"
+          ]
+        },
+        {
+          "kind": "Records and documents",
+          "track": [
+            "records"
+          ]
+        },
+        {
+          "kind": "Assets and equipment",
+          "track": [
+            "equipment"
+          ]
+        },
+        {
+          "kind": "Outstanding work",
+          "track": [
+            "open items"
+          ]
+        }
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "daily_plan",
+          "title": "Daily plan",
+          "frequency": "daily",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "weekly_review",
+          "title": "Weekly review",
+          "frequency": "weekly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "monthly_summary",
+          "title": "Monthly summary",
+          "frequency": "monthly",
+          "phasesFrom": "method"
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Daily plan",
+          "frequency": "daily",
+          "playbookKey": "daily_plan"
+        },
+        {
+          "title": "Weekly review",
+          "frequency": "weekly",
+          "playbookKey": "weekly_review"
+        },
+        {
+          "title": "Monthly summary",
+          "frequency": "monthly",
+          "playbookKey": "monthly_summary"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "general",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Activities logged",
+        "Items open",
+        "Items done",
+        "Responsibilities listed",
+        "Risks and recommendations",
+        "Plan for next period"
+      ]
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "standard",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for General from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: activity_log, outstanding_items"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the General method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and playbook titles are proposals: confirm against local practice."
+  ]
+}

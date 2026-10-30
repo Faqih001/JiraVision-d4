@@ -1,0 +1,311 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "tax",
+    "label": "Tax",
+    "category": "finance",
+    "categoryLabel": "Finance, audit & commercial",
+    "focus": "Filings, deadlines and tax queries"
+  },
+  "pack": {
+    "key": "finance",
+    "reportTemplate": "assurance",
+    "registerKinds": [
+      "Accounts",
+      "Audits",
+      "Compliance",
+      "Financial reports"
+    ],
+    "ladderDiscipline": {
+      "proposed": "finance",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "licensed tax practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use."
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "filings_on_time",
+          "label": "Filings on time",
+          "source": "tax_filings",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "filings_late",
+          "label": "Filings late",
+          "source": "tax_filings",
+          "sourceType": "log",
+          "aggregation": "overdue_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "queries_open",
+          "label": "Queries open",
+          "source": "tax_queries",
+          "sourceType": "log",
+          "aggregation": "open_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "compliance_items",
+          "label": "Compliance items",
+          "source": "compliance",
+          "sourceType": "register",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "filing_due_in_14_days",
+          "when": "filing due in 14 days",
+          "suggest": "start preparation",
+          "deterministic": true
+        },
+        {
+          "id": "authority_query_response_due_in_3_days",
+          "when": "authority query response due in 3 days",
+          "suggest": "respond",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "tax_filings",
+          "label": "Tax filings",
+          "fields": [
+            {
+              "key": "tax_type",
+              "type": "text"
+            },
+            {
+              "key": "period",
+              "type": "text"
+            },
+            {
+              "key": "due_date",
+              "type": "date"
+            },
+            {
+              "key": "filed_date",
+              "type": "date"
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "due",
+                "filed",
+                "late"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "tax_queries",
+          "label": "Tax queries",
+          "fields": [
+            {
+              "key": "received_date",
+              "type": "date"
+            },
+            {
+              "key": "authority",
+              "type": "text"
+            },
+            {
+              "key": "subject",
+              "type": "text"
+            },
+            {
+              "key": "response_due",
+              "type": "text"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Accounts",
+          "track": [
+            "tax accounts"
+          ]
+        },
+        {
+          "kind": "Compliance",
+          "track": [
+            "filing calendar"
+          ]
+        },
+        {
+          "kind": "Financial reports",
+          "track": [
+            "tax computations"
+          ]
+        },
+        {
+          "kind": "Audits",
+          "track": [
+            "tax reviews"
+          ]
+        }
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "monthly_filing_check",
+          "title": "Monthly filing check",
+          "frequency": "monthly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "quarterly_estimate_review",
+          "title": "Quarterly estimate review",
+          "frequency": "quarterly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "annual_return_preparation",
+          "title": "Annual return preparation",
+          "frequency": "quarterly",
+          "phasesFrom": "method"
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Monthly filing check",
+          "frequency": "monthly",
+          "playbookKey": "monthly_filing_check"
+        },
+        {
+          "title": "Quarterly estimate review",
+          "frequency": "quarterly",
+          "playbookKey": "quarterly_estimate_review"
+        },
+        {
+          "title": "Annual return preparation",
+          "frequency": "quarterly",
+          "playbookKey": "annual_return_preparation"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "assurance",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Filings on time",
+        "Filings late",
+        "Queries open",
+        "Compliance items",
+        "Risks and recommendations",
+        "Plan for next period"
+      ]
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "restricted",
+      "neverSendRegisterKinds": [
+        "Accounts"
+      ],
+      "neverSendEntities": [
+        "tax_queries"
+      ],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers",
+        "amounts and balances"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Tax from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: tax_filings"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Tax method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and playbook titles are proposals: confirm against local practice."
+  ]
+}

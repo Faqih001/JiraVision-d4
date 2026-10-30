@@ -1,0 +1,314 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "data_science",
+    "label": "Data scientist",
+    "category": "information",
+    "categoryLabel": "Analysis, research & information",
+    "focus": "Experiments, models and monitoring"
+  },
+  "pack": {
+    "key": "analyst",
+    "reportTemplate": "assurance",
+    "registerKinds": [
+      "Data sources",
+      "Analysis reports",
+      "Dashboards",
+      "Methodology"
+    ],
+    "ladderDiscipline": {
+      "proposed": "analyst",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced data scientist practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use."
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "experiments_run",
+          "label": "Experiments run",
+          "source": "model_experiments",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "models_with_drift",
+          "label": "Models with drift",
+          "source": "model_reviews",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "models_reviewed",
+          "label": "Models reviewed",
+          "source": "model_reviews",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "datasets_documented",
+          "label": "Datasets documented",
+          "source": "data_sources",
+          "sourceType": "register",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "drift_detected",
+          "when": "drift detected",
+          "suggest": "schedule retraining review",
+          "deterministic": true
+        },
+        {
+          "id": "dataset_without_documentation",
+          "when": "dataset without documentation",
+          "suggest": "document",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "model_experiments",
+          "label": "Model experiments",
+          "fields": [
+            {
+              "key": "run_date",
+              "type": "date"
+            },
+            {
+              "key": "model",
+              "type": "text"
+            },
+            {
+              "key": "metric",
+              "type": "text"
+            },
+            {
+              "key": "value",
+              "type": "number"
+            },
+            {
+              "key": "decision",
+              "type": "enum",
+              "values": [
+                "keep",
+                "discard"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "model_reviews",
+          "label": "Model reviews",
+          "fields": [
+            {
+              "key": "review_date",
+              "type": "date"
+            },
+            {
+              "key": "model",
+              "type": "text"
+            },
+            {
+              "key": "drift_detected",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no"
+              ]
+            },
+            {
+              "key": "action",
+              "type": "text"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Data sources",
+          "track": [
+            "training datasets"
+          ]
+        },
+        {
+          "kind": "Analysis reports",
+          "track": [
+            "model reports"
+          ]
+        },
+        {
+          "kind": "Methodology",
+          "track": [
+            "modelling approaches"
+          ]
+        }
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "weekly_experiment_review",
+          "title": "Weekly experiment review",
+          "frequency": "weekly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "model_monitoring",
+          "title": "Model monitoring",
+          "frequency": "weekly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "drift_and_bias_review",
+          "title": "Drift and bias review",
+          "frequency": "monthly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "retraining_decision",
+          "title": "Retraining decision",
+          "frequency": "quarterly",
+          "phasesFrom": "method"
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Weekly experiment review",
+          "frequency": "weekly",
+          "playbookKey": "weekly_experiment_review"
+        },
+        {
+          "title": "Model monitoring",
+          "frequency": "weekly",
+          "playbookKey": "model_monitoring"
+        },
+        {
+          "title": "Drift and bias review",
+          "frequency": "monthly",
+          "playbookKey": "drift_and_bias_review"
+        },
+        {
+          "title": "Retraining decision",
+          "frequency": "quarterly",
+          "playbookKey": "retraining_decision"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "assurance",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Experiments run",
+        "Models with drift",
+        "Models reviewed",
+        "Datasets documented",
+        "Risks and recommendations",
+        "Plan for next period"
+      ]
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "standard",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Data scientist from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: model_experiments, model_reviews"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Data scientist method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and playbook titles are proposals: confirm against local practice."
+  ]
+}

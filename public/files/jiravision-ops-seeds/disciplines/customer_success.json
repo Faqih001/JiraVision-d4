@@ -1,0 +1,304 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "customer_success",
+    "label": "Customer success",
+    "category": "market",
+    "categoryLabel": "Sales, marketing & customer",
+    "focus": "Health checks, renewals and adoption"
+  },
+  "pack": {
+    "key": "sales-marketing",
+    "reportTemplate": "creative",
+    "registerKinds": [
+      "Leads",
+      "Campaigns",
+      "Customers",
+      "Metrics"
+    ],
+    "ladderDiscipline": {
+      "proposed": "sales_marketing",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced customer success practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use."
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "accounts_amber_or_red",
+          "label": "Accounts amber or red",
+          "source": "customer_health_checks",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "renewals_at_risk",
+          "label": "Renewals at risk",
+          "source": "renewals",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "renewals_completed",
+          "label": "Renewals completed",
+          "source": "renewals",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "health_checks_done",
+          "label": "Health checks done",
+          "source": "customer_health_checks",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "account_red",
+          "when": "account red",
+          "suggest": "action plan",
+          "deterministic": true
+        },
+        {
+          "id": "renewal_within_60_days_with_no_contact",
+          "when": "renewal within 60 days with no contact",
+          "suggest": "reach out",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "customer_health_checks",
+          "label": "Customer health checks",
+          "fields": [
+            {
+              "key": "check_date",
+              "type": "date"
+            },
+            {
+              "key": "customer_ref",
+              "type": "text"
+            },
+            {
+              "key": "health",
+              "type": "enum",
+              "values": [
+                "green",
+                "amber",
+                "red"
+              ]
+            },
+            {
+              "key": "action",
+              "type": "text"
+            }
+          ]
+        },
+        {
+          "key": "renewals",
+          "label": "Renewals",
+          "fields": [
+            {
+              "key": "customer_ref",
+              "type": "text"
+            },
+            {
+              "key": "renewal_date",
+              "type": "date"
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "upcoming",
+                "renewed",
+                "at_risk",
+                "churned"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Leads",
+          "track": [
+            "expansion opportunities"
+          ]
+        },
+        {
+          "kind": "Campaigns",
+          "track": [
+            "adoption campaigns"
+          ]
+        },
+        {
+          "kind": "Customers",
+          "track": [
+            "accounts"
+          ]
+        },
+        {
+          "kind": "Metrics",
+          "track": [
+            "retention metrics"
+          ]
+        }
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "weekly_health_review",
+          "title": "Weekly health review",
+          "frequency": "weekly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "monthly_renewal_forecast",
+          "title": "Monthly renewal forecast",
+          "frequency": "monthly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "quarterly_business_review",
+          "title": "Quarterly business review",
+          "frequency": "quarterly",
+          "phasesFrom": "method"
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Weekly health review",
+          "frequency": "weekly",
+          "playbookKey": "weekly_health_review"
+        },
+        {
+          "title": "Monthly renewal forecast",
+          "frequency": "monthly",
+          "playbookKey": "monthly_renewal_forecast"
+        },
+        {
+          "title": "Quarterly business review",
+          "frequency": "quarterly",
+          "playbookKey": "quarterly_business_review"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "creative",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Accounts amber or red",
+        "Renewals at risk",
+        "Renewals completed",
+        "Health checks done",
+        "Risks and recommendations",
+        "Plan for next period"
+      ]
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "standard",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Customer success from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: customer_health_checks, renewals"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Customer success method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and playbook titles are proposals: confirm against local practice."
+  ]
+}

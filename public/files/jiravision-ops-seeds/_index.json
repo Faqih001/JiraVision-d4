@@ -1,0 +1,602 @@
+[
+  {
+    "key": "executive",
+    "label": "Executive",
+    "category": "delivery",
+    "pack": "management",
+    "provenance": "proposed-seed",
+    "file": "disciplines/executive.json"
+  },
+  {
+    "key": "manager",
+    "label": "Manager",
+    "category": "delivery",
+    "pack": "management",
+    "provenance": "proposed-seed",
+    "file": "disciplines/manager.json"
+  },
+  {
+    "key": "product",
+    "label": "Product",
+    "category": "delivery",
+    "pack": "management",
+    "provenance": "proposed-seed",
+    "file": "disciplines/product.json"
+  },
+  {
+    "key": "program",
+    "label": "Programme",
+    "category": "delivery",
+    "pack": "management",
+    "provenance": "proposed-seed",
+    "file": "disciplines/program.json"
+  },
+  {
+    "key": "portfolio",
+    "label": "Portfolio",
+    "category": "delivery",
+    "pack": "management",
+    "provenance": "proposed-seed",
+    "file": "disciplines/portfolio.json"
+  },
+  {
+    "key": "coordinator",
+    "label": "Coordinator",
+    "category": "delivery",
+    "pack": "management",
+    "provenance": "proposed-seed",
+    "file": "disciplines/coordinator.json"
+  },
+  {
+    "key": "team_lead",
+    "label": "Team lead",
+    "category": "delivery",
+    "pack": "management",
+    "provenance": "proposed-seed",
+    "file": "disciplines/team_lead.json"
+  },
+  {
+    "key": "change_management",
+    "label": "Change management",
+    "category": "delivery",
+    "pack": "management",
+    "provenance": "proposed-seed",
+    "file": "disciplines/change_management.json"
+  },
+  {
+    "key": "developer",
+    "label": "Developer",
+    "category": "technology",
+    "pack": "developer",
+    "provenance": "proposed-seed",
+    "file": "disciplines/developer.json"
+  },
+  {
+    "key": "architect",
+    "label": "Architect",
+    "category": "technology",
+    "pack": "developer",
+    "provenance": "proposed-seed",
+    "file": "disciplines/architect.json"
+  },
+  {
+    "key": "designer",
+    "label": "Designer",
+    "category": "technology",
+    "pack": "designer",
+    "provenance": "proposed-seed",
+    "file": "disciplines/designer.json"
+  },
+  {
+    "key": "technician",
+    "label": "IT technician",
+    "category": "technology",
+    "pack": "it-technician",
+    "provenance": "derived-from-handover",
+    "file": "disciplines/technician.json"
+  },
+  {
+    "key": "it_operations",
+    "label": "IT operations",
+    "category": "technology",
+    "pack": "it-technician",
+    "provenance": "proposed-seed",
+    "file": "disciplines/it_operations.json"
+  },
+  {
+    "key": "devops",
+    "label": "DevOps",
+    "category": "technology",
+    "pack": "it-technician",
+    "provenance": "proposed-seed",
+    "file": "disciplines/devops.json"
+  },
+  {
+    "key": "networking",
+    "label": "Networking",
+    "category": "technology",
+    "pack": "it-technician",
+    "provenance": "proposed-seed",
+    "file": "disciplines/networking.json"
+  },
+  {
+    "key": "security",
+    "label": "Security",
+    "category": "technology",
+    "pack": "it-technician",
+    "provenance": "proposed-seed",
+    "file": "disciplines/security.json"
+  },
+  {
+    "key": "data_engineering",
+    "label": "Data engineer",
+    "category": "technology",
+    "pack": "developer",
+    "provenance": "proposed-seed",
+    "file": "disciplines/data_engineering.json"
+  },
+  {
+    "key": "ai_ml",
+    "label": "AI and ML engineer",
+    "category": "technology",
+    "pack": "developer",
+    "provenance": "proposed-seed",
+    "file": "disciplines/ai_ml.json"
+  },
+  {
+    "key": "database",
+    "label": "Database",
+    "category": "technology",
+    "pack": "it-technician",
+    "provenance": "proposed-seed",
+    "file": "disciplines/database.json"
+  },
+  {
+    "key": "tester",
+    "label": "Tester",
+    "category": "technology",
+    "pack": "developer",
+    "provenance": "proposed-seed",
+    "file": "disciplines/tester.json"
+  },
+  {
+    "key": "analyst",
+    "label": "Analyst",
+    "category": "information",
+    "pack": "analyst",
+    "provenance": "proposed-seed",
+    "file": "disciplines/analyst.json"
+  },
+  {
+    "key": "researcher",
+    "label": "Researcher",
+    "category": "information",
+    "pack": "analyst",
+    "provenance": "proposed-seed",
+    "file": "disciplines/researcher.json"
+  },
+  {
+    "key": "data_analyst",
+    "label": "Data analyst",
+    "category": "information",
+    "pack": "analyst",
+    "provenance": "proposed-seed",
+    "file": "disciplines/data_analyst.json"
+  },
+  {
+    "key": "data_science",
+    "label": "Data scientist",
+    "category": "information",
+    "pack": "analyst",
+    "provenance": "proposed-seed",
+    "file": "disciplines/data_science.json"
+  },
+  {
+    "key": "monitoring_evaluation",
+    "label": "Monitoring and evaluation",
+    "category": "information",
+    "pack": "analyst",
+    "provenance": "proposed-seed",
+    "file": "disciplines/monitoring_evaluation.json"
+  },
+  {
+    "key": "information_management",
+    "label": "Information management",
+    "category": "information",
+    "pack": "analyst",
+    "provenance": "proposed-seed",
+    "file": "disciplines/information_management.json"
+  },
+  {
+    "key": "content",
+    "label": "Content",
+    "category": "information",
+    "pack": "designer",
+    "provenance": "proposed-seed",
+    "file": "disciplines/content.json"
+  },
+  {
+    "key": "communications",
+    "label": "Communications",
+    "category": "information",
+    "pack": "designer",
+    "provenance": "proposed-seed",
+    "file": "disciplines/communications.json"
+  },
+  {
+    "key": "finance",
+    "label": "Finance",
+    "category": "finance",
+    "pack": "finance",
+    "provenance": "proposed-seed",
+    "file": "disciplines/finance.json"
+  },
+  {
+    "key": "auditor",
+    "label": "Auditor",
+    "category": "finance",
+    "pack": "finance",
+    "provenance": "proposed-seed",
+    "file": "disciplines/auditor.json"
+  },
+  {
+    "key": "tax",
+    "label": "Tax",
+    "category": "finance",
+    "pack": "finance",
+    "provenance": "proposed-seed",
+    "file": "disciplines/tax.json"
+  },
+  {
+    "key": "treasury",
+    "label": "Treasury",
+    "category": "finance",
+    "pack": "finance",
+    "provenance": "proposed-seed",
+    "file": "disciplines/treasury.json"
+  },
+  {
+    "key": "procurement",
+    "label": "Procurement",
+    "category": "finance",
+    "pack": "finance",
+    "provenance": "proposed-seed",
+    "file": "disciplines/procurement.json"
+  },
+  {
+    "key": "commercial",
+    "label": "Commercial",
+    "category": "finance",
+    "pack": "finance",
+    "provenance": "proposed-seed",
+    "file": "disciplines/commercial.json"
+  },
+  {
+    "key": "cost_control",
+    "label": "Cost control",
+    "category": "finance",
+    "pack": "finance",
+    "provenance": "proposed-seed",
+    "file": "disciplines/cost_control.json"
+  },
+  {
+    "key": "risk_management",
+    "label": "Risk management",
+    "category": "finance",
+    "pack": "finance",
+    "provenance": "proposed-seed",
+    "file": "disciplines/risk_management.json"
+  },
+  {
+    "key": "operations",
+    "label": "Operations",
+    "category": "operations",
+    "pack": "operations",
+    "provenance": "proposed-seed",
+    "file": "disciplines/operations.json"
+  },
+  {
+    "key": "supply_chain",
+    "label": "Supply chain",
+    "category": "operations",
+    "pack": "operations",
+    "provenance": "proposed-seed",
+    "file": "disciplines/supply_chain.json"
+  },
+  {
+    "key": "logistics",
+    "label": "Logistics",
+    "category": "operations",
+    "pack": "operations",
+    "provenance": "proposed-seed",
+    "file": "disciplines/logistics.json"
+  },
+  {
+    "key": "inventory",
+    "label": "Inventory",
+    "category": "operations",
+    "pack": "operations",
+    "provenance": "proposed-seed",
+    "file": "disciplines/inventory.json"
+  },
+  {
+    "key": "facilities",
+    "label": "Facilities",
+    "category": "operations",
+    "pack": "operations",
+    "provenance": "proposed-seed",
+    "file": "disciplines/facilities.json"
+  },
+  {
+    "key": "maintenance",
+    "label": "Maintenance",
+    "category": "operations",
+    "pack": "operations",
+    "provenance": "proposed-seed",
+    "file": "disciplines/maintenance.json"
+  },
+  {
+    "key": "quality_management",
+    "label": "Quality management",
+    "category": "operations",
+    "pack": "operations",
+    "provenance": "proposed-seed",
+    "file": "disciplines/quality_management.json"
+  },
+  {
+    "key": "production",
+    "label": "Production",
+    "category": "operations",
+    "pack": "operations",
+    "provenance": "proposed-seed",
+    "file": "disciplines/production.json"
+  },
+  {
+    "key": "civil_engineering",
+    "label": "Civil engineer",
+    "category": "engineering",
+    "pack": "engineering",
+    "provenance": "proposed-seed",
+    "file": "disciplines/civil_engineering.json"
+  },
+  {
+    "key": "construction",
+    "label": "Construction",
+    "category": "engineering",
+    "pack": "engineering",
+    "provenance": "proposed-seed",
+    "file": "disciplines/construction.json"
+  },
+  {
+    "key": "electrical_engineering",
+    "label": "Electrical engineer",
+    "category": "engineering",
+    "pack": "engineering",
+    "provenance": "proposed-seed",
+    "file": "disciplines/electrical_engineering.json"
+  },
+  {
+    "key": "mechanical_engineering",
+    "label": "Mechanical engineer",
+    "category": "engineering",
+    "pack": "engineering",
+    "provenance": "proposed-seed",
+    "file": "disciplines/mechanical_engineering.json"
+  },
+  {
+    "key": "surveying",
+    "label": "Surveyor",
+    "category": "engineering",
+    "pack": "engineering",
+    "provenance": "proposed-seed",
+    "file": "disciplines/surveying.json"
+  },
+  {
+    "key": "environmental",
+    "label": "Environmental",
+    "category": "engineering",
+    "pack": "engineering",
+    "provenance": "proposed-seed",
+    "file": "disciplines/environmental.json"
+  },
+  {
+    "key": "health_safety",
+    "label": "Health and safety",
+    "category": "engineering",
+    "pack": "engineering",
+    "provenance": "proposed-seed",
+    "file": "disciplines/health_safety.json"
+  },
+  {
+    "key": "sales",
+    "label": "Sales",
+    "category": "market",
+    "pack": "sales-marketing",
+    "provenance": "proposed-seed",
+    "file": "disciplines/sales.json"
+  },
+  {
+    "key": "marketing",
+    "label": "Marketing",
+    "category": "market",
+    "pack": "sales-marketing",
+    "provenance": "proposed-seed",
+    "file": "disciplines/marketing.json"
+  },
+  {
+    "key": "customer_success",
+    "label": "Customer success",
+    "category": "market",
+    "pack": "sales-marketing",
+    "provenance": "proposed-seed",
+    "file": "disciplines/customer_success.json"
+  },
+  {
+    "key": "customer_support",
+    "label": "Customer support",
+    "category": "market",
+    "pack": "sales-marketing",
+    "provenance": "proposed-seed",
+    "file": "disciplines/customer_support.json"
+  },
+  {
+    "key": "digital_marketing",
+    "label": "Digital marketing",
+    "category": "market",
+    "pack": "sales-marketing",
+    "provenance": "proposed-seed",
+    "file": "disciplines/digital_marketing.json"
+  },
+  {
+    "key": "partnerships",
+    "label": "Partnerships",
+    "category": "market",
+    "pack": "sales-marketing",
+    "provenance": "proposed-seed",
+    "file": "disciplines/partnerships.json"
+  },
+  {
+    "key": "human_resources",
+    "label": "Human resources",
+    "category": "people",
+    "pack": "hr",
+    "provenance": "proposed-seed",
+    "file": "disciplines/human_resources.json"
+  },
+  {
+    "key": "learning_development",
+    "label": "Learning and development",
+    "category": "people",
+    "pack": "hr",
+    "provenance": "proposed-seed",
+    "file": "disciplines/learning_development.json"
+  },
+  {
+    "key": "administration",
+    "label": "Administration",
+    "category": "people",
+    "pack": "hr",
+    "provenance": "proposed-seed",
+    "file": "disciplines/administration.json"
+  },
+  {
+    "key": "legal",
+    "label": "Legal",
+    "category": "people",
+    "pack": "hr",
+    "provenance": "proposed-seed",
+    "file": "disciplines/legal.json"
+  },
+  {
+    "key": "compliance",
+    "label": "Compliance",
+    "category": "people",
+    "pack": "hr",
+    "provenance": "proposed-seed",
+    "file": "disciplines/compliance.json"
+  },
+  {
+    "key": "ethics",
+    "label": "Ethics",
+    "category": "people",
+    "pack": "hr",
+    "provenance": "proposed-seed",
+    "file": "disciplines/ethics.json"
+  },
+  {
+    "key": "healthcare",
+    "label": "Healthcare",
+    "category": "science",
+    "pack": "healthcare-science",
+    "provenance": "proposed-seed",
+    "file": "disciplines/healthcare.json"
+  },
+  {
+    "key": "public_health",
+    "label": "Public health",
+    "category": "science",
+    "pack": "healthcare-science",
+    "provenance": "proposed-seed",
+    "file": "disciplines/public_health.json"
+  },
+  {
+    "key": "laboratory",
+    "label": "Laboratory",
+    "category": "science",
+    "pack": "healthcare-science",
+    "provenance": "proposed-seed",
+    "file": "disciplines/laboratory.json"
+  },
+  {
+    "key": "pharmaceutical",
+    "label": "Pharmaceutical",
+    "category": "science",
+    "pack": "healthcare-science",
+    "provenance": "proposed-seed",
+    "file": "disciplines/pharmaceutical.json"
+  },
+  {
+    "key": "agriculture",
+    "label": "Agriculture",
+    "category": "science",
+    "pack": "healthcare-science",
+    "provenance": "proposed-seed",
+    "file": "disciplines/agriculture.json"
+  },
+  {
+    "key": "education",
+    "label": "Education",
+    "category": "science",
+    "pack": "healthcare-science",
+    "provenance": "proposed-seed",
+    "file": "disciplines/education.json"
+  },
+  {
+    "key": "creative",
+    "label": "Creative",
+    "category": "services",
+    "pack": "designer",
+    "provenance": "proposed-seed",
+    "file": "disciplines/creative.json"
+  },
+  {
+    "key": "hospitality",
+    "label": "Hospitality",
+    "category": "services",
+    "pack": "general",
+    "provenance": "proposed-seed",
+    "file": "disciplines/hospitality.json"
+  },
+  {
+    "key": "retail",
+    "label": "Retail",
+    "category": "services",
+    "pack": "general",
+    "provenance": "proposed-seed",
+    "file": "disciplines/retail.json"
+  },
+  {
+    "key": "energy",
+    "label": "Energy",
+    "category": "services",
+    "pack": "general",
+    "provenance": "proposed-seed",
+    "file": "disciplines/energy.json"
+  },
+  {
+    "key": "community_development",
+    "label": "Community development",
+    "category": "services",
+    "pack": "general",
+    "provenance": "proposed-seed",
+    "file": "disciplines/community_development.json"
+  },
+  {
+    "key": "general",
+    "label": "General",
+    "category": "services",
+    "pack": "general",
+    "provenance": "proposed-seed",
+    "file": "disciplines/general.json"
+  }
+]

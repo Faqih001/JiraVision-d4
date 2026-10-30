@@ -1,0 +1,316 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "program",
+    "label": "Programme",
+    "category": "delivery",
+    "categoryLabel": "Management & project delivery",
+    "focus": "Cross-project programme governance"
+  },
+  "pack": {
+    "key": "management",
+    "reportTemplate": "general",
+    "registerKinds": [
+      "Initiatives",
+      "Stakeholders",
+      "Risks",
+      "Reports"
+    ],
+    "ladderDiscipline": {
+      "proposed": "coordinator",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced programme practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use."
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "milestones_hit",
+          "label": "Milestones hit",
+          "source": "milestones",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "blocked_dependencies",
+          "label": "Blocked dependencies",
+          "source": "dependencies",
+          "sourceType": "log",
+          "aggregation": "open_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "programme_risks_rated_high",
+          "label": "Programme risks rated high",
+          "source": "risks",
+          "sourceType": "register",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "status_reports_delivered",
+          "label": "Status reports delivered",
+          "source": "reports",
+          "sourceType": "register",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "dependency_blocked_over_5_days",
+          "when": "dependency blocked over 5 days",
+          "suggest": "escalate",
+          "deterministic": true
+        },
+        {
+          "id": "milestone_missed",
+          "when": "milestone missed",
+          "suggest": "replan",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "dependencies",
+          "label": "Dependencies",
+          "fields": [
+            {
+              "key": "raised_date",
+              "type": "date"
+            },
+            {
+              "key": "from_project",
+              "type": "text"
+            },
+            {
+              "key": "to_project",
+              "type": "text"
+            },
+            {
+              "key": "needed_by",
+              "type": "text"
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "open",
+                "met",
+                "blocked"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "milestones",
+          "label": "Milestones",
+          "fields": [
+            {
+              "key": "milestone",
+              "type": "text"
+            },
+            {
+              "key": "planned_date",
+              "type": "date"
+            },
+            {
+              "key": "actual_date",
+              "type": "date"
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "planned",
+                "hit",
+                "missed"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Initiatives",
+          "track": [
+            "projects in the programme"
+          ]
+        },
+        {
+          "kind": "Risks",
+          "track": [
+            "programme risks and dependencies"
+          ]
+        },
+        {
+          "kind": "Reports",
+          "track": [
+            "status reports"
+          ]
+        }
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "programme_status_review",
+          "title": "Programme status review",
+          "frequency": "weekly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "dependency_review",
+          "title": "Dependency review",
+          "frequency": "weekly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "benefits_review",
+          "title": "Benefits review",
+          "frequency": "monthly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "stage_gate",
+          "title": "Stage gate",
+          "frequency": "quarterly",
+          "phasesFrom": "method"
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Programme status review",
+          "frequency": "weekly",
+          "playbookKey": "programme_status_review"
+        },
+        {
+          "title": "Dependency review",
+          "frequency": "weekly",
+          "playbookKey": "dependency_review"
+        },
+        {
+          "title": "Benefits review",
+          "frequency": "monthly",
+          "playbookKey": "benefits_review"
+        },
+        {
+          "title": "Stage gate",
+          "frequency": "quarterly",
+          "playbookKey": "stage_gate"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "general",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Milestones hit",
+        "Blocked dependencies",
+        "Programme risks rated high",
+        "Status reports delivered",
+        "Risks and recommendations",
+        "Plan for next period"
+      ]
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "standard",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Programme from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: dependencies, milestones"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Programme method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and playbook titles are proposals: confirm against local practice."
+  ]
+}

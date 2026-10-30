@@ -1,0 +1,325 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "quality_management",
+    "label": "Quality management",
+    "category": "operations",
+    "categoryLabel": "Operations & supply chain",
+    "focus": "QC checks, nonconformances and corrective action"
+  },
+  "pack": {
+    "key": "operations",
+    "reportTemplate": "technical",
+    "registerKinds": [
+      "Processes",
+      "Inventory",
+      "Logistics",
+      "Quality control"
+    ],
+    "ladderDiscipline": {
+      "proposed": "operations",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced quality management practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use."
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "qc_checks_passed",
+          "label": "QC checks passed",
+          "source": "qc_checks",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "qc_checks_failed",
+          "label": "QC checks failed",
+          "source": "qc_checks",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "open_nonconformances",
+          "label": "Open nonconformances",
+          "source": "nonconformances",
+          "sourceType": "log",
+          "aggregation": "open_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "corrective_actions_overdue",
+          "label": "Corrective actions overdue",
+          "source": "nonconformances",
+          "sourceType": "log",
+          "aggregation": "overdue_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "corrective_action_overdue",
+          "when": "corrective action overdue",
+          "suggest": "escalate",
+          "deterministic": true
+        },
+        {
+          "id": "repeat_defect_type",
+          "when": "repeat defect type",
+          "suggest": "root-cause analysis",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "qc_checks",
+          "label": "Qc checks",
+          "fields": [
+            {
+              "key": "check_date",
+              "type": "date"
+            },
+            {
+              "key": "batch_ref",
+              "type": "text"
+            },
+            {
+              "key": "result",
+              "type": "enum",
+              "values": [
+                "pass",
+                "fail"
+              ]
+            },
+            {
+              "key": "defect_type",
+              "type": "text"
+            }
+          ]
+        },
+        {
+          "key": "nonconformances",
+          "label": "Nonconformances",
+          "fields": [
+            {
+              "key": "raised_date",
+              "type": "date"
+            },
+            {
+              "key": "ref",
+              "type": "text"
+            },
+            {
+              "key": "severity",
+              "type": "enum",
+              "values": [
+                "low",
+                "medium",
+                "high"
+              ]
+            },
+            {
+              "key": "corrective_action_due",
+              "type": "text"
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "open",
+                "closed"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Processes",
+          "track": [
+            "quality procedures"
+          ]
+        },
+        {
+          "kind": "Inventory",
+          "track": [
+            "samples"
+          ]
+        },
+        {
+          "kind": "Logistics",
+          "track": [
+            "quarantine"
+          ]
+        },
+        {
+          "kind": "Quality control",
+          "track": [
+            "control plans"
+          ]
+        }
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "daily_qc_checks",
+          "title": "Daily QC checks",
+          "frequency": "daily",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "weekly_nonconformance_review",
+          "title": "Weekly nonconformance review",
+          "frequency": "weekly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "monthly_quality_review",
+          "title": "Monthly quality review",
+          "frequency": "monthly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "quarterly_internal_audit",
+          "title": "Quarterly internal audit",
+          "frequency": "quarterly",
+          "phasesFrom": "method"
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Daily QC checks",
+          "frequency": "daily",
+          "playbookKey": "daily_qc_checks"
+        },
+        {
+          "title": "Weekly nonconformance review",
+          "frequency": "weekly",
+          "playbookKey": "weekly_nonconformance_review"
+        },
+        {
+          "title": "Monthly quality review",
+          "frequency": "monthly",
+          "playbookKey": "monthly_quality_review"
+        },
+        {
+          "title": "Quarterly internal audit",
+          "frequency": "quarterly",
+          "playbookKey": "quarterly_internal_audit"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "technical",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "QC checks passed",
+        "QC checks failed",
+        "Open nonconformances",
+        "Corrective actions overdue",
+        "Risks and recommendations",
+        "Plan for next period"
+      ]
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "standard",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Quality management from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: qc_checks, nonconformances"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Quality management method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and playbook titles are proposals: confirm against local practice."
+  ]
+}

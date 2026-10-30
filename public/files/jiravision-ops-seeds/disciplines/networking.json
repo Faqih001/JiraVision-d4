@@ -1,0 +1,330 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "networking",
+    "label": "Networking",
+    "category": "technology",
+    "categoryLabel": "Software, IT & digital",
+    "focus": "Network design, changes and link health"
+  },
+  "pack": {
+    "key": "it-technician",
+    "reportTemplate": "technical",
+    "registerKinds": [
+      "Infrastructure",
+      "Accounts and systems",
+      "Equipment",
+      "Outstanding work"
+    ],
+    "ladderDiscipline": {
+      "proposed": "technician",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced networking practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use."
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": [
+      "Design",
+      "Configure",
+      "Test",
+      "Monitor",
+      "Troubleshoot",
+      "Document"
+    ],
+    "documentedIn": "roles doc section 4.7 (verify in code)"
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "changes_successful",
+          "label": "Changes successful",
+          "source": "network_changes",
+          "sourceType": "log",
+          "aggregation": "rate",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "links_degraded_or_down",
+          "label": "Links degraded or down",
+          "source": "link_checks",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "link_checks_done",
+          "label": "Link checks done",
+          "source": "link_checks",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "devices_tracked",
+          "label": "Devices tracked",
+          "source": "equipment",
+          "sourceType": "register",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "link_down_over_15_minutes",
+          "when": "link down over 15 minutes",
+          "suggest": "escalate",
+          "deterministic": true
+        },
+        {
+          "id": "device_firmware_behind",
+          "when": "device firmware behind",
+          "suggest": "schedule update",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "network_changes",
+          "label": "Network changes",
+          "fields": [
+            {
+              "key": "change_date",
+              "type": "date"
+            },
+            {
+              "key": "device",
+              "type": "text"
+            },
+            {
+              "key": "change",
+              "type": "text"
+            },
+            {
+              "key": "result",
+              "type": "enum",
+              "values": [
+                "success",
+                "failed"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "link_checks",
+          "label": "Link checks",
+          "fields": [
+            {
+              "key": "check_date",
+              "type": "date"
+            },
+            {
+              "key": "link",
+              "type": "text"
+            },
+            {
+              "key": "latency_status",
+              "type": "enum",
+              "values": [
+                "normal",
+                "high"
+              ]
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "ok",
+                "degraded",
+                "down"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Infrastructure",
+          "track": [
+            "network topology and links"
+          ]
+        },
+        {
+          "kind": "Accounts and systems",
+          "track": [
+            "network management tools (references only)"
+          ]
+        },
+        {
+          "kind": "Equipment",
+          "track": [
+            "switches",
+            "routers and access points"
+          ]
+        },
+        {
+          "kind": "Outstanding work",
+          "track": [
+            "network changes"
+          ]
+        }
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "daily_link_health_check",
+          "title": "Daily link health check",
+          "frequency": "daily",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "weekly_configuration_backup",
+          "title": "Weekly configuration backup",
+          "frequency": "weekly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "monthly_firmware_review",
+          "title": "Monthly firmware review",
+          "frequency": "monthly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "quarterly_topology_review",
+          "title": "Quarterly topology review",
+          "frequency": "quarterly",
+          "phasesFrom": "method"
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Daily link health check",
+          "frequency": "daily",
+          "playbookKey": "daily_link_health_check"
+        },
+        {
+          "title": "Weekly configuration backup",
+          "frequency": "weekly",
+          "playbookKey": "weekly_configuration_backup"
+        },
+        {
+          "title": "Monthly firmware review",
+          "frequency": "monthly",
+          "playbookKey": "monthly_firmware_review"
+        },
+        {
+          "title": "Quarterly topology review",
+          "frequency": "quarterly",
+          "playbookKey": "quarterly_topology_review"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "technical",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Changes successful",
+        "Links degraded or down",
+        "Link checks done",
+        "Devices tracked",
+        "Risks and recommendations",
+        "Plan for next period"
+      ]
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "standard",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Networking from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: network_changes, link_checks"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Networking method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and playbook titles are proposals: confirm against local practice.",
+    "Entities technician defines (tickets, backups, restore_tests, incidents, maintenance_log) may be reused rather than duplicated."
+  ]
+}

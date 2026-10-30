@@ -1,0 +1,301 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "production",
+    "label": "Production",
+    "category": "operations",
+    "categoryLabel": "Operations & supply chain",
+    "focus": "Production runs, output and scrap"
+  },
+  "pack": {
+    "key": "operations",
+    "reportTemplate": "technical",
+    "registerKinds": [
+      "Processes",
+      "Inventory",
+      "Logistics",
+      "Quality control"
+    ],
+    "ladderDiscipline": {
+      "proposed": "operations",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced production practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use."
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "runs_completed",
+          "label": "Runs completed",
+          "source": "production_runs",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "downtime_minutes",
+          "label": "Downtime minutes",
+          "source": "production_runs",
+          "sourceType": "log",
+          "aggregation": "sum",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "scrap_units",
+          "label": "Scrap units",
+          "source": "scrap_records",
+          "sourceType": "log",
+          "aggregation": "sum",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "processes_documented",
+          "label": "Processes documented",
+          "source": "processes",
+          "sourceType": "register",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "actual_output_below_plan_twice",
+          "when": "actual output below plan twice",
+          "suggest": "review line",
+          "deterministic": true
+        },
+        {
+          "id": "scrap_rising",
+          "when": "scrap rising",
+          "suggest": "investigate cause",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "production_runs",
+          "label": "Production runs",
+          "fields": [
+            {
+              "key": "run_date",
+              "type": "date"
+            },
+            {
+              "key": "line",
+              "type": "text"
+            },
+            {
+              "key": "planned_units",
+              "type": "number"
+            },
+            {
+              "key": "actual_units",
+              "type": "number"
+            },
+            {
+              "key": "downtime_minutes",
+              "type": "number"
+            }
+          ]
+        },
+        {
+          "key": "scrap_records",
+          "label": "Scrap records",
+          "fields": [
+            {
+              "key": "record_date",
+              "type": "date"
+            },
+            {
+              "key": "line",
+              "type": "text"
+            },
+            {
+              "key": "reason",
+              "type": "text"
+            },
+            {
+              "key": "scrap_units",
+              "type": "number"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Processes",
+          "track": [
+            "production processes"
+          ]
+        },
+        {
+          "kind": "Inventory",
+          "track": [
+            "materials"
+          ]
+        },
+        {
+          "kind": "Logistics",
+          "track": [
+            "line supply"
+          ]
+        },
+        {
+          "kind": "Quality control",
+          "track": [
+            "line checks"
+          ]
+        }
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "daily_production_plan",
+          "title": "Daily production plan",
+          "frequency": "daily",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "weekly_line_review",
+          "title": "Weekly line review",
+          "frequency": "weekly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "monthly_output_review",
+          "title": "Monthly output review",
+          "frequency": "monthly",
+          "phasesFrom": "method"
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Daily production plan",
+          "frequency": "daily",
+          "playbookKey": "daily_production_plan"
+        },
+        {
+          "title": "Weekly line review",
+          "frequency": "weekly",
+          "playbookKey": "weekly_line_review"
+        },
+        {
+          "title": "Monthly output review",
+          "frequency": "monthly",
+          "playbookKey": "monthly_output_review"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "technical",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Runs completed",
+        "Downtime minutes",
+        "Scrap units",
+        "Processes documented",
+        "Risks and recommendations",
+        "Plan for next period"
+      ]
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "standard",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Production from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: production_runs, scrap_records"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Production method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and playbook titles are proposals: confirm against local practice."
+  ]
+}

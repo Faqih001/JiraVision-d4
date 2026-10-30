@@ -1,0 +1,298 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "content",
+    "label": "Content",
+    "category": "information",
+    "categoryLabel": "Analysis, research & information",
+    "focus": "Content planning, production and publishing"
+  },
+  "pack": {
+    "key": "designer",
+    "reportTemplate": "creative",
+    "registerKinds": [
+      "Design files",
+      "Brand assets",
+      "User research",
+      "Design system"
+    ],
+    "ladderDiscipline": {
+      "proposed": "designer",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced content practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use."
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "pieces_published",
+          "label": "Pieces published",
+          "source": "content_calendar",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "pieces_overdue",
+          "label": "Pieces overdue",
+          "source": "content_calendar",
+          "sourceType": "log",
+          "aggregation": "overdue_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "audit_actions_completed",
+          "label": "Audit actions completed",
+          "source": "content_audits",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "style_guides",
+          "label": "Style guides",
+          "source": "brand_assets",
+          "sourceType": "register",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "piece_in_review_over_5_days",
+          "when": "piece in review over 5 days",
+          "suggest": "chase",
+          "deterministic": true
+        },
+        {
+          "id": "section_not_audited_in_6_months",
+          "when": "section not audited in 6 months",
+          "suggest": "audit",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "content_calendar",
+          "label": "Content calendar",
+          "fields": [
+            {
+              "key": "publish_date",
+              "type": "date"
+            },
+            {
+              "key": "piece",
+              "type": "text"
+            },
+            {
+              "key": "channel",
+              "type": "text"
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "draft",
+                "review",
+                "scheduled",
+                "published"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "content_audits",
+          "label": "Content audits",
+          "fields": [
+            {
+              "key": "audit_date",
+              "type": "date"
+            },
+            {
+              "key": "section",
+              "type": "text"
+            },
+            {
+              "key": "action",
+              "type": "enum",
+              "values": [
+                "keep",
+                "update",
+                "retire"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Design files",
+          "track": [
+            "content drafts"
+          ]
+        },
+        {
+          "kind": "Brand assets",
+          "track": [
+            "style and tone guides"
+          ]
+        },
+        {
+          "kind": "User research",
+          "track": [
+            "audience research"
+          ]
+        }
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "weekly_editorial_meeting",
+          "title": "Weekly editorial meeting",
+          "frequency": "weekly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "publishing_checklist",
+          "title": "Publishing checklist",
+          "frequency": "weekly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "monthly_content_audit",
+          "title": "Monthly content audit",
+          "frequency": "monthly",
+          "phasesFrom": "method"
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Weekly editorial meeting",
+          "frequency": "weekly",
+          "playbookKey": "weekly_editorial_meeting"
+        },
+        {
+          "title": "Publishing checklist",
+          "frequency": "weekly",
+          "playbookKey": "publishing_checklist"
+        },
+        {
+          "title": "Monthly content audit",
+          "frequency": "monthly",
+          "playbookKey": "monthly_content_audit"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "creative",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Pieces published",
+        "Pieces overdue",
+        "Audit actions completed",
+        "Style guides",
+        "Risks and recommendations",
+        "Plan for next period"
+      ]
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "standard",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Content from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: content_calendar, content_audits"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Content method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and playbook titles are proposals: confirm against local practice."
+  ]
+}

@@ -1,0 +1,312 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "ethics",
+    "label": "Ethics",
+    "category": "people",
+    "categoryLabel": "People, administration & governance",
+    "focus": "Concerns, cases and ethics training (confidential: restricted)"
+  },
+  "pack": {
+    "key": "hr",
+    "reportTemplate": "general",
+    "registerKinds": [
+      "Employee records",
+      "Policies",
+      "Training",
+      "Compliance"
+    ],
+    "ladderDiscipline": {
+      "proposed": "hr",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced ethics practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use."
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "cases_closed",
+          "label": "Cases closed",
+          "source": "ethics_cases",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "cases_open",
+          "label": "Cases open",
+          "source": "ethics_cases",
+          "sourceType": "log",
+          "aggregation": "open_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "training_sessions",
+          "label": "Training sessions",
+          "source": "ethics_training",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "policies_reviewed",
+          "label": "Policies reviewed",
+          "source": "policies",
+          "sourceType": "register",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "case_open_over_30_days",
+          "when": "case open over 30 days",
+          "suggest": "review progress",
+          "deterministic": true
+        },
+        {
+          "id": "training_not_delivered_this_year",
+          "when": "training not delivered this year",
+          "suggest": "schedule",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "ethics_cases",
+          "label": "Ethics cases",
+          "fields": [
+            {
+              "key": "received_date",
+              "type": "date"
+            },
+            {
+              "key": "category",
+              "type": "text"
+            },
+            {
+              "key": "severity",
+              "type": "enum",
+              "values": [
+                "low",
+                "medium",
+                "high"
+              ]
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "open",
+                "investigating",
+                "closed"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "ethics_training",
+          "label": "Ethics training",
+          "fields": [
+            {
+              "key": "training_date",
+              "type": "date"
+            },
+            {
+              "key": "group",
+              "type": "text"
+            },
+            {
+              "key": "completion_status",
+              "type": "enum",
+              "values": [
+                "complete",
+                "partial"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Employee records",
+          "track": [
+            "none held in JiraVision"
+          ]
+        },
+        {
+          "kind": "Policies",
+          "track": [
+            "code of conduct"
+          ]
+        },
+        {
+          "kind": "Training",
+          "track": [
+            "ethics training"
+          ]
+        },
+        {
+          "kind": "Compliance",
+          "track": [
+            "ethics obligations"
+          ]
+        }
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "weekly_case_review",
+          "title": "Weekly case review",
+          "frequency": "weekly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "monthly_ethics_report",
+          "title": "Monthly ethics report",
+          "frequency": "monthly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "annual_code_review",
+          "title": "Annual code review",
+          "frequency": "quarterly",
+          "phasesFrom": "method"
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Weekly case review",
+          "frequency": "weekly",
+          "playbookKey": "weekly_case_review"
+        },
+        {
+          "title": "Monthly ethics report",
+          "frequency": "monthly",
+          "playbookKey": "monthly_ethics_report"
+        },
+        {
+          "title": "Annual code review",
+          "frequency": "quarterly",
+          "playbookKey": "annual_code_review"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "general",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Cases closed",
+        "Cases open",
+        "Training sessions",
+        "Policies reviewed",
+        "Risks and recommendations",
+        "Plan for next period"
+      ]
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "restricted",
+      "neverSendRegisterKinds": [
+        "Employee records"
+      ],
+      "neverSendEntities": [
+        "ethics_cases"
+      ],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers",
+        "amounts and balances"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Ethics from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: ethics_training"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Ethics method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and playbook titles are proposals: confirm against local practice."
+  ]
+}

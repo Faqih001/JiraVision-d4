@@ -1,0 +1,288 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "creative",
+    "label": "Creative",
+    "category": "services",
+    "categoryLabel": "Creative, service & industry work",
+    "focus": "Creative briefs, production and approvals"
+  },
+  "pack": {
+    "key": "designer",
+    "reportTemplate": "creative",
+    "registerKinds": [
+      "Design files",
+      "Brand assets",
+      "User research",
+      "Design system"
+    ],
+    "ladderDiscipline": {
+      "proposed": "designer",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced creative practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use."
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "briefs_delivered",
+          "label": "Briefs delivered",
+          "source": "creative_briefs",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "revision_rounds",
+          "label": "Revision rounds",
+          "source": "revision_rounds",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "briefs_past_due",
+          "label": "Briefs past due",
+          "source": "creative_briefs",
+          "sourceType": "log",
+          "aggregation": "overdue_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "brand_assets",
+          "label": "Brand assets",
+          "source": "brand_assets",
+          "sourceType": "register",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "brief_past_due",
+          "when": "brief past due",
+          "suggest": "replan",
+          "deterministic": true
+        },
+        {
+          "id": "more_than_3_revision_rounds",
+          "when": "more than 3 revision rounds",
+          "suggest": "clarify brief",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "creative_briefs",
+          "label": "Creative briefs",
+          "fields": [
+            {
+              "key": "received_date",
+              "type": "date"
+            },
+            {
+              "key": "brief",
+              "type": "text"
+            },
+            {
+              "key": "due_date",
+              "type": "date"
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "briefed",
+                "in_progress",
+                "delivered",
+                "approved"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "revision_rounds",
+          "label": "Revision rounds",
+          "fields": [
+            {
+              "key": "deliverable",
+              "type": "text"
+            },
+            {
+              "key": "round",
+              "type": "number"
+            },
+            {
+              "key": "feedback_date",
+              "type": "date"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Design files",
+          "track": [
+            "creative assets"
+          ]
+        },
+        {
+          "kind": "Brand assets",
+          "track": [
+            "brand library"
+          ]
+        },
+        {
+          "kind": "User research",
+          "track": [
+            "audience insight"
+          ]
+        }
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "brief_intake",
+          "title": "Brief intake",
+          "frequency": "as_needed",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "weekly_creative_review",
+          "title": "Weekly creative review",
+          "frequency": "weekly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "asset_library_tidy",
+          "title": "Asset library tidy",
+          "frequency": "monthly",
+          "phasesFrom": "method"
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Weekly creative review",
+          "frequency": "weekly",
+          "playbookKey": "weekly_creative_review"
+        },
+        {
+          "title": "Asset library tidy",
+          "frequency": "monthly",
+          "playbookKey": "asset_library_tidy"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "creative",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Briefs delivered",
+        "Revision rounds",
+        "Briefs past due",
+        "Brand assets",
+        "Risks and recommendations",
+        "Plan for next period"
+      ]
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "standard",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Creative from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: creative_briefs, revision_rounds"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Creative method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and playbook titles are proposals: confirm against local practice."
+  ]
+}

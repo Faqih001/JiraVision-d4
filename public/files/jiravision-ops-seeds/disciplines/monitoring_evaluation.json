@@ -1,0 +1,297 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "monitoring_evaluation",
+    "label": "Monitoring and evaluation",
+    "category": "information",
+    "categoryLabel": "Analysis, research & information",
+    "focus": "Indicators, data collection rounds and evaluation reporting"
+  },
+  "pack": {
+    "key": "analyst",
+    "reportTemplate": "assurance",
+    "registerKinds": [
+      "Data sources",
+      "Analysis reports",
+      "Dashboards",
+      "Methodology"
+    ],
+    "ladderDiscipline": {
+      "proposed": "analyst",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced monitoring and evaluation practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use."
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "indicators_updated",
+          "label": "Indicators updated",
+          "source": "indicator_updates",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "rounds_completed",
+          "label": "Rounds completed",
+          "source": "data_collection_rounds",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "indicators_missing_an_update",
+          "label": "Indicators missing an update",
+          "source": "indicator_updates",
+          "sourceType": "log",
+          "aggregation": "overdue_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "dashboards",
+          "label": "Dashboards",
+          "source": "dashboards",
+          "sourceType": "register",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "indicator_not_updated_this_period",
+          "when": "indicator not updated this period",
+          "suggest": "update",
+          "deterministic": true
+        },
+        {
+          "id": "forms_collected_but_not_validated",
+          "when": "forms collected but not validated",
+          "suggest": "validate",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "indicator_updates",
+          "label": "Indicator updates",
+          "fields": [
+            {
+              "key": "period",
+              "type": "text"
+            },
+            {
+              "key": "indicator",
+              "type": "text"
+            },
+            {
+              "key": "target",
+              "type": "number"
+            },
+            {
+              "key": "actual",
+              "type": "number"
+            }
+          ]
+        },
+        {
+          "key": "data_collection_rounds",
+          "label": "Data collection rounds",
+          "fields": [
+            {
+              "key": "round_date",
+              "type": "date"
+            },
+            {
+              "key": "site",
+              "type": "text"
+            },
+            {
+              "key": "forms_collected_count",
+              "type": "number"
+            },
+            {
+              "key": "forms_validated_count",
+              "type": "number"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Data sources",
+          "track": [
+            "data collection tools"
+          ]
+        },
+        {
+          "kind": "Analysis reports",
+          "track": [
+            "evaluation reports"
+          ]
+        },
+        {
+          "kind": "Dashboards",
+          "track": [
+            "indicator dashboards"
+          ]
+        },
+        {
+          "kind": "Methodology",
+          "track": [
+            "M&E framework"
+          ]
+        }
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "monthly_indicator_update",
+          "title": "Monthly indicator update",
+          "frequency": "monthly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "data_quality_assessment",
+          "title": "Data quality assessment",
+          "frequency": "quarterly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "evaluation_report",
+          "title": "Evaluation report",
+          "frequency": "quarterly",
+          "phasesFrom": "method"
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Monthly indicator update",
+          "frequency": "monthly",
+          "playbookKey": "monthly_indicator_update"
+        },
+        {
+          "title": "Data quality assessment",
+          "frequency": "quarterly",
+          "playbookKey": "data_quality_assessment"
+        },
+        {
+          "title": "Evaluation report",
+          "frequency": "quarterly",
+          "playbookKey": "evaluation_report"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "assurance",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Indicators updated",
+        "Rounds completed",
+        "Indicators missing an update",
+        "Dashboards",
+        "Risks and recommendations",
+        "Plan for next period"
+      ]
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "standard",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Monitoring and evaluation from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: indicator_updates, data_collection_rounds"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Monitoring and evaluation method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and playbook titles are proposals: confirm against local practice."
+  ]
+}

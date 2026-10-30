@@ -1,0 +1,317 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "architect",
+    "label": "Architect",
+    "category": "technology",
+    "categoryLabel": "Software, IT & digital",
+    "focus": "Architecture decisions, design reviews and standards"
+  },
+  "pack": {
+    "key": "developer",
+    "reportTemplate": "engineering",
+    "registerKinds": [
+      "Code repositories",
+      "Pull requests",
+      "Technical debt",
+      "Sprint backlog"
+    ],
+    "ladderDiscipline": {
+      "proposed": "developer",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced architect practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use."
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": [
+      "Design",
+      "Review",
+      "Approve",
+      "Document",
+      "Govern",
+      "Mentor"
+    ],
+    "documentedIn": "roles doc section 4.7 (verify in code)"
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "decisions_recorded",
+          "label": "Decisions recorded",
+          "source": "design_decisions",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "reviews_open",
+          "label": "Reviews open",
+          "source": "design_reviews",
+          "sourceType": "log",
+          "aggregation": "open_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "debt_items",
+          "label": "Debt items",
+          "source": "technical_debt",
+          "sourceType": "register",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "reviews_completed",
+          "label": "Reviews completed",
+          "source": "design_reviews",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "decision_without_an_adr",
+          "when": "decision without an ADR",
+          "suggest": "write one",
+          "deterministic": true
+        },
+        {
+          "id": "review_open_over_14_days",
+          "when": "review open over 14 days",
+          "suggest": "close or escalate",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "design_decisions",
+          "label": "Design decisions",
+          "fields": [
+            {
+              "key": "decision_date",
+              "type": "date"
+            },
+            {
+              "key": "area",
+              "type": "text"
+            },
+            {
+              "key": "options_considered",
+              "type": "text"
+            },
+            {
+              "key": "decision",
+              "type": "text"
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "proposed",
+                "accepted",
+                "superseded"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "design_reviews",
+          "label": "Design reviews",
+          "fields": [
+            {
+              "key": "review_date",
+              "type": "date"
+            },
+            {
+              "key": "component",
+              "type": "text"
+            },
+            {
+              "key": "findings",
+              "type": "text"
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "open",
+                "closed"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Code repositories",
+          "track": [
+            "architecture decision records"
+          ]
+        },
+        {
+          "kind": "Technical debt",
+          "track": [
+            "architectural debt"
+          ]
+        },
+        {
+          "kind": "Pull requests",
+          "track": [
+            "design reviews"
+          ]
+        }
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "design_review",
+          "title": "Design review",
+          "frequency": "weekly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "architecture_decision_record",
+          "title": "Architecture decision record",
+          "frequency": "as_needed",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "technology_radar_review",
+          "title": "Technology radar review",
+          "frequency": "quarterly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "architectural_debt_assessment",
+          "title": "Architectural debt assessment",
+          "frequency": "quarterly",
+          "phasesFrom": "method"
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Design review",
+          "frequency": "weekly",
+          "playbookKey": "design_review"
+        },
+        {
+          "title": "Technology radar review",
+          "frequency": "quarterly",
+          "playbookKey": "technology_radar_review"
+        },
+        {
+          "title": "Architectural debt assessment",
+          "frequency": "quarterly",
+          "playbookKey": "architectural_debt_assessment"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "engineering",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Decisions recorded",
+        "Reviews open",
+        "Debt items",
+        "Reviews completed",
+        "Risks and recommendations",
+        "Plan for next period"
+      ]
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "standard",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Architect from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: design_decisions, design_reviews"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Architect method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and playbook titles are proposals: confirm against local practice."
+  ]
+}

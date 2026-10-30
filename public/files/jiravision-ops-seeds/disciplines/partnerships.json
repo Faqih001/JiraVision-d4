@@ -1,0 +1,302 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "partnerships",
+    "label": "Partnerships",
+    "category": "market",
+    "categoryLabel": "Sales, marketing & customer",
+    "focus": "Partners, agreements and joint activities"
+  },
+  "pack": {
+    "key": "sales-marketing",
+    "reportTemplate": "creative",
+    "registerKinds": [
+      "Leads",
+      "Campaigns",
+      "Customers",
+      "Metrics"
+    ],
+    "ladderDiscipline": {
+      "proposed": "sales_marketing",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced partnerships practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use."
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "meetings_held",
+          "label": "Meetings held",
+          "source": "partner_meetings",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "agreements_renewing",
+          "label": "Agreements renewing",
+          "source": "partner_agreements",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "follow_ups_overdue",
+          "label": "Follow-ups overdue",
+          "source": "partner_meetings",
+          "sourceType": "log",
+          "aggregation": "overdue_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "active_agreements",
+          "label": "Active agreements",
+          "source": "partner_agreements",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "agreement_renewing_in_60_days",
+          "when": "agreement renewing in 60 days",
+          "suggest": "plan renewal",
+          "deterministic": true
+        },
+        {
+          "id": "meeting_without_next_step",
+          "when": "meeting without next step",
+          "suggest": "set one",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "partner_meetings",
+          "label": "Partner meetings",
+          "fields": [
+            {
+              "key": "meeting_date",
+              "type": "date"
+            },
+            {
+              "key": "partner",
+              "type": "text"
+            },
+            {
+              "key": "outcome",
+              "type": "text"
+            },
+            {
+              "key": "next_step_date",
+              "type": "date"
+            }
+          ]
+        },
+        {
+          "key": "partner_agreements",
+          "label": "Partner agreements",
+          "fields": [
+            {
+              "key": "partner",
+              "type": "text"
+            },
+            {
+              "key": "start_date",
+              "type": "date"
+            },
+            {
+              "key": "renewal_date",
+              "type": "date"
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "active",
+                "renewing",
+                "ended"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Leads",
+          "track": [
+            "partner prospects"
+          ]
+        },
+        {
+          "kind": "Campaigns",
+          "track": [
+            "joint campaigns"
+          ]
+        },
+        {
+          "kind": "Customers",
+          "track": [
+            "partner accounts"
+          ]
+        },
+        {
+          "kind": "Metrics",
+          "track": [
+            "partnership metrics"
+          ]
+        }
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "weekly_partner_follow_up",
+          "title": "Weekly partner follow-up",
+          "frequency": "weekly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "monthly_partner_review",
+          "title": "Monthly partner review",
+          "frequency": "monthly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "quarterly_agreement_review",
+          "title": "Quarterly agreement review",
+          "frequency": "quarterly",
+          "phasesFrom": "method"
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Weekly partner follow-up",
+          "frequency": "weekly",
+          "playbookKey": "weekly_partner_follow_up"
+        },
+        {
+          "title": "Monthly partner review",
+          "frequency": "monthly",
+          "playbookKey": "monthly_partner_review"
+        },
+        {
+          "title": "Quarterly agreement review",
+          "frequency": "quarterly",
+          "playbookKey": "quarterly_agreement_review"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "creative",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Meetings held",
+        "Agreements renewing",
+        "Follow-ups overdue",
+        "Active agreements",
+        "Risks and recommendations",
+        "Plan for next period"
+      ]
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "standard",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Partnerships from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: partner_meetings, partner_agreements"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Partnerships method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and playbook titles are proposals: confirm against local practice."
+  ]
+}

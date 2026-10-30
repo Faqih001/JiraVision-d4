@@ -1,0 +1,299 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "hospitality",
+    "label": "Hospitality",
+    "category": "services",
+    "categoryLabel": "Creative, service & industry work",
+    "focus": "Service checks and guest feedback"
+  },
+  "pack": {
+    "key": "general",
+    "reportTemplate": "general",
+    "registerKinds": [
+      "Responsibilities",
+      "Records and documents",
+      "Assets and equipment",
+      "Outstanding work"
+    ],
+    "ladderDiscipline": {
+      "proposed": null,
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced hospitality practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use."
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "service_checks_ok",
+          "label": "Service checks ok",
+          "source": "service_checks",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "checks_needing_action",
+          "label": "Checks needing action",
+          "source": "service_checks",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "feedback_logged",
+          "label": "Feedback logged",
+          "source": "guest_feedback",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "open_tasks",
+          "label": "Open tasks",
+          "source": "outstanding_work",
+          "sourceType": "register",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "area_needing_action_2_days_running",
+          "when": "area needing action 2 days running",
+          "suggest": "fix",
+          "deterministic": true
+        },
+        {
+          "id": "low_rating",
+          "when": "low rating",
+          "suggest": "follow up",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "service_checks",
+          "label": "Service checks",
+          "fields": [
+            {
+              "key": "check_date",
+              "type": "date"
+            },
+            {
+              "key": "area",
+              "type": "text"
+            },
+            {
+              "key": "result",
+              "type": "enum",
+              "values": [
+                "ok",
+                "action"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "guest_feedback",
+          "label": "Guest feedback",
+          "fields": [
+            {
+              "key": "feedback_date",
+              "type": "date"
+            },
+            {
+              "key": "channel",
+              "type": "text"
+            },
+            {
+              "key": "rating",
+              "type": "number"
+            },
+            {
+              "key": "action",
+              "type": "text"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Responsibilities",
+          "track": [
+            "service duties"
+          ]
+        },
+        {
+          "kind": "Records and documents",
+          "track": [
+            "standard procedures"
+          ]
+        },
+        {
+          "kind": "Assets and equipment",
+          "track": [
+            "equipment"
+          ]
+        },
+        {
+          "kind": "Outstanding work",
+          "track": [
+            "open tasks"
+          ]
+        }
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "daily_opening_checklist",
+          "title": "Daily opening checklist",
+          "frequency": "daily",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "weekly_service_review",
+          "title": "Weekly service review",
+          "frequency": "weekly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "monthly_feedback_review",
+          "title": "Monthly feedback review",
+          "frequency": "monthly",
+          "phasesFrom": "method"
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Daily opening checklist",
+          "frequency": "daily",
+          "playbookKey": "daily_opening_checklist"
+        },
+        {
+          "title": "Weekly service review",
+          "frequency": "weekly",
+          "playbookKey": "weekly_service_review"
+        },
+        {
+          "title": "Monthly feedback review",
+          "frequency": "monthly",
+          "playbookKey": "monthly_feedback_review"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "general",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Service checks ok",
+        "Checks needing action",
+        "Feedback logged",
+        "Open tasks",
+        "Risks and recommendations",
+        "Plan for next period"
+      ]
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "restricted",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [
+        "guest_feedback"
+      ],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Hospitality from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: service_checks"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Hospitality method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and playbook titles are proposals: confirm against local practice."
+  ]
+}

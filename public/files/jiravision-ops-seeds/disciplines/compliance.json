@@ -1,0 +1,304 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "compliance",
+    "label": "Compliance",
+    "category": "people",
+    "categoryLabel": "People, administration & governance",
+    "focus": "Requirements, checks and attestations"
+  },
+  "pack": {
+    "key": "hr",
+    "reportTemplate": "general",
+    "registerKinds": [
+      "Employee records",
+      "Policies",
+      "Training",
+      "Compliance"
+    ],
+    "ladderDiscipline": {
+      "proposed": "hr",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced compliance practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use."
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "checks_compliant",
+          "label": "Checks compliant",
+          "source": "compliance_checks",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "gaps_open",
+          "label": "Gaps open",
+          "source": "compliance_checks",
+          "sourceType": "log",
+          "aggregation": "open_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "attestations_complete",
+          "label": "Attestations complete",
+          "source": "policy_attestations",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "actions_overdue",
+          "label": "Actions overdue",
+          "source": "compliance_checks",
+          "sourceType": "log",
+          "aggregation": "overdue_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "gap_without_action_date",
+          "when": "gap without action date",
+          "suggest": "set date",
+          "deterministic": true
+        },
+        {
+          "id": "attestation_incomplete_after_deadline",
+          "when": "attestation incomplete after deadline",
+          "suggest": "chase",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "compliance_checks",
+          "label": "Compliance checks",
+          "fields": [
+            {
+              "key": "check_date",
+              "type": "date"
+            },
+            {
+              "key": "requirement",
+              "type": "text"
+            },
+            {
+              "key": "result",
+              "type": "enum",
+              "values": [
+                "compliant",
+                "gap"
+              ]
+            },
+            {
+              "key": "action_due",
+              "type": "text"
+            }
+          ]
+        },
+        {
+          "key": "policy_attestations",
+          "label": "Policy attestations",
+          "fields": [
+            {
+              "key": "policy",
+              "type": "text"
+            },
+            {
+              "key": "period",
+              "type": "text"
+            },
+            {
+              "key": "completion_status",
+              "type": "enum",
+              "values": [
+                "complete",
+                "partial"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Employee records",
+          "track": [
+            "attestation records (codes only)"
+          ]
+        },
+        {
+          "kind": "Policies",
+          "track": [
+            "compliance policies"
+          ]
+        },
+        {
+          "kind": "Training",
+          "track": [
+            "compliance training"
+          ]
+        },
+        {
+          "kind": "Compliance",
+          "track": [
+            "requirements register"
+          ]
+        }
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "weekly_check_schedule",
+          "title": "Weekly check schedule",
+          "frequency": "weekly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "monthly_compliance_report",
+          "title": "Monthly compliance report",
+          "frequency": "monthly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "quarterly_attestation_round",
+          "title": "Quarterly attestation round",
+          "frequency": "quarterly",
+          "phasesFrom": "method"
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Weekly check schedule",
+          "frequency": "weekly",
+          "playbookKey": "weekly_check_schedule"
+        },
+        {
+          "title": "Monthly compliance report",
+          "frequency": "monthly",
+          "playbookKey": "monthly_compliance_report"
+        },
+        {
+          "title": "Quarterly attestation round",
+          "frequency": "quarterly",
+          "playbookKey": "quarterly_attestation_round"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "general",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Checks compliant",
+        "Gaps open",
+        "Attestations complete",
+        "Actions overdue",
+        "Risks and recommendations",
+        "Plan for next period"
+      ]
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "restricted",
+      "neverSendRegisterKinds": [
+        "Employee records"
+      ],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers",
+        "amounts and balances"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Compliance from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: compliance_checks, policy_attestations"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Compliance method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and playbook titles are proposals: confirm against local practice."
+  ]
+}

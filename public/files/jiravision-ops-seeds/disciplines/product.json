@@ -1,0 +1,321 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "product",
+    "label": "Product",
+    "category": "delivery",
+    "categoryLabel": "Management & project delivery",
+    "focus": "Roadmap, requirements and releases"
+  },
+  "pack": {
+    "key": "management",
+    "reportTemplate": "general",
+    "registerKinds": [
+      "Initiatives",
+      "Stakeholders",
+      "Risks",
+      "Reports"
+    ],
+    "ladderDiscipline": {
+      "proposed": "coordinator",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced product practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use."
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "requests_triaged",
+          "label": "Requests triaged",
+          "source": "feature_requests",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "roadmap_items_delivered",
+          "label": "Roadmap items delivered",
+          "source": "initiatives",
+          "sourceType": "register",
+          "aggregation": "rate",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "open_high_priority_requests",
+          "label": "Open high-priority requests",
+          "source": "feature_requests",
+          "sourceType": "log",
+          "aggregation": "open_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "go_no_go_decisions_logged",
+          "label": "Go/no-go decisions logged",
+          "source": "release_decisions",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "high_priority_request_untriaged_for_7_days",
+          "when": "high-priority request untriaged for 7 days",
+          "suggest": "triage it",
+          "deterministic": true
+        },
+        {
+          "id": "release_without_go_no_go_record",
+          "when": "release without go/no-go record",
+          "suggest": "record decision",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "feature_requests",
+          "label": "Feature requests",
+          "fields": [
+            {
+              "key": "received_date",
+              "type": "date"
+            },
+            {
+              "key": "source",
+              "type": "text"
+            },
+            {
+              "key": "request",
+              "type": "text"
+            },
+            {
+              "key": "priority",
+              "type": "enum",
+              "values": [
+                "low",
+                "medium",
+                "high"
+              ]
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "new",
+                "planned",
+                "shipped",
+                "declined"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "release_decisions",
+          "label": "Release decisions",
+          "fields": [
+            {
+              "key": "decision_date",
+              "type": "date"
+            },
+            {
+              "key": "release",
+              "type": "text"
+            },
+            {
+              "key": "go_no_go",
+              "type": "enum",
+              "values": [
+                "go",
+                "no_go"
+              ]
+            },
+            {
+              "key": "reason",
+              "type": "text"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Initiatives",
+          "track": [
+            "roadmap items"
+          ]
+        },
+        {
+          "kind": "Stakeholders",
+          "track": [
+            "customers and sponsors"
+          ]
+        },
+        {
+          "kind": "Risks",
+          "track": [
+            "product risks"
+          ]
+        }
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "backlog_grooming",
+          "title": "Backlog grooming",
+          "frequency": "weekly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "release_readiness_check",
+          "title": "Release readiness check",
+          "frequency": "weekly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "roadmap_review",
+          "title": "Roadmap review",
+          "frequency": "monthly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "customer_feedback_review",
+          "title": "Customer feedback review",
+          "frequency": "monthly",
+          "phasesFrom": "method"
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Backlog grooming",
+          "frequency": "weekly",
+          "playbookKey": "backlog_grooming"
+        },
+        {
+          "title": "Release readiness check",
+          "frequency": "weekly",
+          "playbookKey": "release_readiness_check"
+        },
+        {
+          "title": "Roadmap review",
+          "frequency": "monthly",
+          "playbookKey": "roadmap_review"
+        },
+        {
+          "title": "Customer feedback review",
+          "frequency": "monthly",
+          "playbookKey": "customer_feedback_review"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "general",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Requests triaged",
+        "Roadmap items delivered",
+        "Open high-priority requests",
+        "Go/no-go decisions logged",
+        "Risks and recommendations",
+        "Plan for next period"
+      ]
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "standard",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Product from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: feature_requests, release_decisions"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Product method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and playbook titles are proposals: confirm against local practice."
+  ]
+}

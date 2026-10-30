@@ -1,0 +1,335 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "ai_ml",
+    "label": "AI and ML engineer",
+    "category": "technology",
+    "categoryLabel": "Software, IT & digital",
+    "focus": "Experiments, deployments and responsible-AI review"
+  },
+  "pack": {
+    "key": "developer",
+    "reportTemplate": "engineering",
+    "registerKinds": [
+      "Code repositories",
+      "Pull requests",
+      "Technical debt",
+      "Sprint backlog"
+    ],
+    "ladderDiscipline": {
+      "proposed": "developer",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced ai and ml engineer practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use."
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": [
+      "Research",
+      "Collect",
+      "Train",
+      "Validate",
+      "Deploy",
+      "Monitor"
+    ],
+    "documentedIn": "roles doc section 4.7 (verify in code)"
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "experiments_run",
+          "label": "Experiments run",
+          "source": "experiments",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "deployments_successful",
+          "label": "Deployments successful",
+          "source": "model_deployments",
+          "sourceType": "log",
+          "aggregation": "rate",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "rollbacks",
+          "label": "Rollbacks",
+          "source": "model_deployments",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "debt_items",
+          "label": "Debt items",
+          "source": "technical_debt",
+          "sourceType": "register",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "model_in_production_not_reviewed_in_30_days",
+          "when": "model in production not reviewed in 30 days",
+          "suggest": "review drift",
+          "deterministic": true
+        },
+        {
+          "id": "deployment_rolled_back",
+          "when": "deployment rolled back",
+          "suggest": "post-mortem",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "experiments",
+          "label": "Experiments",
+          "fields": [
+            {
+              "key": "run_date",
+              "type": "date"
+            },
+            {
+              "key": "model",
+              "type": "text"
+            },
+            {
+              "key": "dataset_version",
+              "type": "text"
+            },
+            {
+              "key": "metric",
+              "type": "text"
+            },
+            {
+              "key": "value",
+              "type": "number"
+            },
+            {
+              "key": "decision",
+              "type": "enum",
+              "values": [
+                "keep",
+                "discard"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "model_deployments",
+          "label": "Model deployments",
+          "fields": [
+            {
+              "key": "deploy_date",
+              "type": "date"
+            },
+            {
+              "key": "model_version",
+              "type": "text"
+            },
+            {
+              "key": "environment",
+              "type": "enum",
+              "values": [
+                "staging",
+                "production"
+              ]
+            },
+            {
+              "key": "result",
+              "type": "enum",
+              "values": [
+                "success",
+                "rolled_back"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Code repositories",
+          "track": [
+            "model code"
+          ]
+        },
+        {
+          "kind": "Technical debt",
+          "track": [
+            "model and data debt"
+          ]
+        },
+        {
+          "kind": "Pull requests",
+          "track": [
+            "model changes"
+          ]
+        },
+        {
+          "kind": "Sprint backlog",
+          "track": [
+            "ML work"
+          ]
+        }
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "weekly_experiment_review",
+          "title": "Weekly experiment review",
+          "frequency": "weekly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "model_monitoring",
+          "title": "Model monitoring",
+          "frequency": "weekly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "drift_and_bias_review",
+          "title": "Drift and bias review",
+          "frequency": "monthly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "retraining_decision",
+          "title": "Retraining decision",
+          "frequency": "quarterly",
+          "phasesFrom": "method"
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Weekly experiment review",
+          "frequency": "weekly",
+          "playbookKey": "weekly_experiment_review"
+        },
+        {
+          "title": "Model monitoring",
+          "frequency": "weekly",
+          "playbookKey": "model_monitoring"
+        },
+        {
+          "title": "Drift and bias review",
+          "frequency": "monthly",
+          "playbookKey": "drift_and_bias_review"
+        },
+        {
+          "title": "Retraining decision",
+          "frequency": "quarterly",
+          "playbookKey": "retraining_decision"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "engineering",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Experiments run",
+        "Deployments successful",
+        "Rollbacks",
+        "Debt items",
+        "Risks and recommendations",
+        "Plan for next period"
+      ]
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "standard",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for AI and ML engineer from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: experiments, model_deployments"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the AI and ML engineer method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and playbook titles are proposals: confirm against local practice."
+  ]
+}

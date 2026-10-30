@@ -1,0 +1,333 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "security",
+    "label": "Security",
+    "category": "technology",
+    "categoryLabel": "Software, IT & digital",
+    "focus": "Detection, response and access review"
+  },
+  "pack": {
+    "key": "it-technician",
+    "reportTemplate": "technical",
+    "registerKinds": [
+      "Infrastructure",
+      "Accounts and systems",
+      "Equipment",
+      "Outstanding work"
+    ],
+    "ladderDiscipline": {
+      "proposed": "technician",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced security practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use."
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": [
+      "Assess",
+      "Detect",
+      "Contain",
+      "Eradicate",
+      "Recover",
+      "Review"
+    ],
+    "documentedIn": "roles doc section 4.7 (verify in code)"
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "events_closed",
+          "label": "Events closed",
+          "source": "security_events",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "critical_events_open",
+          "label": "Critical events open",
+          "source": "security_events",
+          "sourceType": "log",
+          "aggregation": "open_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "access_reviews_done",
+          "label": "Access reviews done",
+          "source": "access_reviews",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "reviews_needing_changes",
+          "label": "Reviews needing changes",
+          "source": "access_reviews",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "critical_event_uncontained_over_4_hours",
+          "when": "critical event uncontained over 4 hours",
+          "suggest": "escalate",
+          "deterministic": true
+        },
+        {
+          "id": "system_not_access_reviewed_in_90_days",
+          "when": "system not access-reviewed in 90 days",
+          "suggest": "review",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "security_events",
+          "label": "Security events",
+          "fields": [
+            {
+              "key": "event_date",
+              "type": "date"
+            },
+            {
+              "key": "type",
+              "type": "text"
+            },
+            {
+              "key": "severity",
+              "type": "enum",
+              "values": [
+                "low",
+                "medium",
+                "high",
+                "critical"
+              ]
+            },
+            {
+              "key": "contained_date",
+              "type": "date"
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "open",
+                "contained",
+                "closed"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "access_reviews",
+          "label": "Access reviews",
+          "fields": [
+            {
+              "key": "review_date",
+              "type": "date"
+            },
+            {
+              "key": "system",
+              "type": "text"
+            },
+            {
+              "key": "result",
+              "type": "enum",
+              "values": [
+                "ok",
+                "changes_needed"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Infrastructure",
+          "track": [
+            "protected systems"
+          ]
+        },
+        {
+          "kind": "Accounts and systems",
+          "track": [
+            "security tools (references only; never credentials)"
+          ]
+        },
+        {
+          "kind": "Equipment",
+          "track": [
+            "security hardware"
+          ]
+        },
+        {
+          "kind": "Outstanding work",
+          "track": [
+            "open remediation"
+          ]
+        }
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "daily_alert_review",
+          "title": "Daily alert review",
+          "frequency": "daily",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "weekly_vulnerability_review",
+          "title": "Weekly vulnerability review",
+          "frequency": "weekly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "monthly_access_review",
+          "title": "Monthly access review",
+          "frequency": "monthly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "quarterly_incident_exercise",
+          "title": "Quarterly incident exercise",
+          "frequency": "quarterly",
+          "phasesFrom": "method"
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Daily alert review",
+          "frequency": "daily",
+          "playbookKey": "daily_alert_review"
+        },
+        {
+          "title": "Weekly vulnerability review",
+          "frequency": "weekly",
+          "playbookKey": "weekly_vulnerability_review"
+        },
+        {
+          "title": "Monthly access review",
+          "frequency": "monthly",
+          "playbookKey": "monthly_access_review"
+        },
+        {
+          "title": "Quarterly incident exercise",
+          "frequency": "quarterly",
+          "playbookKey": "quarterly_incident_exercise"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "technical",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Events closed",
+        "Critical events open",
+        "Access reviews done",
+        "Reviews needing changes",
+        "Risks and recommendations",
+        "Plan for next period"
+      ]
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "restricted",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [
+        "security_events"
+      ],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Security from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: access_reviews"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Security method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and playbook titles are proposals: confirm against local practice.",
+    "Entities technician defines (tickets, backups, restore_tests, incidents, maintenance_log) may be reused rather than duplicated."
+  ]
+}

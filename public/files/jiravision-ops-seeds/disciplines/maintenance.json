@@ -1,0 +1,321 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "maintenance",
+    "label": "Maintenance",
+    "category": "operations",
+    "categoryLabel": "Operations & supply chain",
+    "focus": "Work orders, downtime and asset care"
+  },
+  "pack": {
+    "key": "operations",
+    "reportTemplate": "technical",
+    "registerKinds": [
+      "Processes",
+      "Inventory",
+      "Logistics",
+      "Quality control"
+    ],
+    "ladderDiscipline": {
+      "proposed": "operations",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced maintenance practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use."
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "preventive_work_orders_done",
+          "label": "Preventive work orders done",
+          "source": "work_orders",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "open_work_orders",
+          "label": "Open work orders",
+          "source": "work_orders",
+          "sourceType": "log",
+          "aggregation": "open_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "downtime_events",
+          "label": "Downtime events",
+          "source": "downtime_events",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "spares_tracked",
+          "label": "Spares tracked",
+          "source": "inventory",
+          "sourceType": "register",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "preventive_work_overdue",
+          "when": "preventive work overdue",
+          "suggest": "schedule",
+          "deterministic": true
+        },
+        {
+          "id": "asset_with_repeated_downtime",
+          "when": "asset with repeated downtime",
+          "suggest": "root-cause review",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "work_orders",
+          "label": "Work orders",
+          "fields": [
+            {
+              "key": "raised_date",
+              "type": "date"
+            },
+            {
+              "key": "asset_ref",
+              "type": "text"
+            },
+            {
+              "key": "type",
+              "type": "enum",
+              "values": [
+                "preventive",
+                "corrective"
+              ]
+            },
+            {
+              "key": "completed_date",
+              "type": "date"
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "open",
+                "in_progress",
+                "done"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "downtime_events",
+          "label": "Downtime events",
+          "fields": [
+            {
+              "key": "event_date",
+              "type": "date"
+            },
+            {
+              "key": "asset_ref",
+              "type": "text"
+            },
+            {
+              "key": "minutes",
+              "type": "number"
+            },
+            {
+              "key": "cause",
+              "type": "text"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Processes",
+          "track": [
+            "maintenance procedures"
+          ]
+        },
+        {
+          "kind": "Inventory",
+          "track": [
+            "spares"
+          ]
+        },
+        {
+          "kind": "Logistics",
+          "track": [
+            "parts supply"
+          ]
+        },
+        {
+          "kind": "Quality control",
+          "track": [
+            "post-repair checks"
+          ]
+        }
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "daily_asset_checks",
+          "title": "Daily asset checks",
+          "frequency": "daily",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "weekly_preventive_maintenance",
+          "title": "Weekly preventive maintenance",
+          "frequency": "weekly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "monthly_downtime_review",
+          "title": "Monthly downtime review",
+          "frequency": "monthly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "quarterly_asset_condition_review",
+          "title": "Quarterly asset condition review",
+          "frequency": "quarterly",
+          "phasesFrom": "method"
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Daily asset checks",
+          "frequency": "daily",
+          "playbookKey": "daily_asset_checks"
+        },
+        {
+          "title": "Weekly preventive maintenance",
+          "frequency": "weekly",
+          "playbookKey": "weekly_preventive_maintenance"
+        },
+        {
+          "title": "Monthly downtime review",
+          "frequency": "monthly",
+          "playbookKey": "monthly_downtime_review"
+        },
+        {
+          "title": "Quarterly asset condition review",
+          "frequency": "quarterly",
+          "playbookKey": "quarterly_asset_condition_review"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "technical",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Preventive work orders done",
+        "Open work orders",
+        "Downtime events",
+        "Spares tracked",
+        "Risks and recommendations",
+        "Plan for next period"
+      ]
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "standard",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Maintenance from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: work_orders, downtime_events"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Maintenance method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and playbook titles are proposals: confirm against local practice."
+  ]
+}

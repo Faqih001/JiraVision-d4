@@ -1,0 +1,309 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "learning_development",
+    "label": "Learning and development",
+    "category": "people",
+    "categoryLabel": "People, administration & governance",
+    "focus": "Courses, needs and completion"
+  },
+  "pack": {
+    "key": "hr",
+    "reportTemplate": "general",
+    "registerKinds": [
+      "Employee records",
+      "Policies",
+      "Training",
+      "Compliance"
+    ],
+    "ladderDiscipline": {
+      "proposed": "hr",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced learning and development practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use."
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "sessions_delivered",
+          "label": "Sessions delivered",
+          "source": "training_sessions",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "needs_open",
+          "label": "Needs open",
+          "source": "training_needs",
+          "sourceType": "log",
+          "aggregation": "open_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "needs_met",
+          "label": "Needs met",
+          "source": "training_needs",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "courses_listed",
+          "label": "Courses listed",
+          "source": "training",
+          "sourceType": "register",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "mandatory_training_overdue",
+          "when": "mandatory training overdue",
+          "suggest": "remind",
+          "deterministic": true
+        },
+        {
+          "id": "need_open_over_90_days",
+          "when": "need open over 90 days",
+          "suggest": "plan",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "training_sessions",
+          "label": "Training sessions",
+          "fields": [
+            {
+              "key": "session_date",
+              "type": "date"
+            },
+            {
+              "key": "course",
+              "type": "text"
+            },
+            {
+              "key": "attendee_count",
+              "type": "number"
+            },
+            {
+              "key": "completion_status",
+              "type": "enum",
+              "values": [
+                "complete",
+                "partial"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "training_needs",
+          "label": "Training needs",
+          "fields": [
+            {
+              "key": "raised_date",
+              "type": "date"
+            },
+            {
+              "key": "team",
+              "type": "text"
+            },
+            {
+              "key": "need",
+              "type": "text"
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "open",
+                "planned",
+                "done"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Employee records",
+          "track": [
+            "learning records (codes only)"
+          ]
+        },
+        {
+          "kind": "Policies",
+          "track": [
+            "learning policy"
+          ]
+        },
+        {
+          "kind": "Training",
+          "track": [
+            "course catalogue"
+          ]
+        },
+        {
+          "kind": "Compliance",
+          "track": [
+            "mandatory training"
+          ]
+        }
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "weekly_session_planning",
+          "title": "Weekly session planning",
+          "frequency": "weekly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "monthly_completion_report",
+          "title": "Monthly completion report",
+          "frequency": "monthly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "quarterly_needs_analysis",
+          "title": "Quarterly needs analysis",
+          "frequency": "quarterly",
+          "phasesFrom": "method"
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Weekly session planning",
+          "frequency": "weekly",
+          "playbookKey": "weekly_session_planning"
+        },
+        {
+          "title": "Monthly completion report",
+          "frequency": "monthly",
+          "playbookKey": "monthly_completion_report"
+        },
+        {
+          "title": "Quarterly needs analysis",
+          "frequency": "quarterly",
+          "playbookKey": "quarterly_needs_analysis"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "general",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Sessions delivered",
+        "Needs open",
+        "Needs met",
+        "Courses listed",
+        "Risks and recommendations",
+        "Plan for next period"
+      ]
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "restricted",
+      "neverSendRegisterKinds": [
+        "Employee records"
+      ],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers",
+        "amounts and balances"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Learning and development from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: training_sessions, training_needs"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Learning and development method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and playbook titles are proposals: confirm against local practice."
+  ]
+}

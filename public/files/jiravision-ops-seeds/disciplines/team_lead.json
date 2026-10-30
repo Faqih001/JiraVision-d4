@@ -1,0 +1,303 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "team_lead",
+    "label": "Team lead",
+    "category": "delivery",
+    "categoryLabel": "Management & project delivery",
+    "focus": "Day-to-day direction, unblocking and team health"
+  },
+  "pack": {
+    "key": "management",
+    "reportTemplate": "general",
+    "registerKinds": [
+      "Initiatives",
+      "Stakeholders",
+      "Risks",
+      "Reports"
+    ],
+    "ladderDiscipline": {
+      "proposed": "coordinator",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced team lead practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use."
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "blockers_cleared",
+          "label": "Blockers cleared",
+          "source": "blockers",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "open_blockers",
+          "label": "Open blockers",
+          "source": "blockers",
+          "sourceType": "log",
+          "aggregation": "open_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "stand_ups_held",
+          "label": "Stand-ups held",
+          "source": "standups",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "goals_on_track",
+          "label": "Goals on track",
+          "source": "initiatives",
+          "sourceType": "register",
+          "aggregation": "rate",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "blocker_open_over_2_days",
+          "when": "blocker open over 2 days",
+          "suggest": "escalate",
+          "deterministic": true
+        },
+        {
+          "id": "no_stand_up_logged_this_week",
+          "when": "no stand-up logged this week",
+          "suggest": "log one",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "blockers",
+          "label": "Blockers",
+          "fields": [
+            {
+              "key": "raised_date",
+              "type": "date"
+            },
+            {
+              "key": "blocker",
+              "type": "text"
+            },
+            {
+              "key": "owner_ref",
+              "type": "text"
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "open",
+                "escalated",
+                "cleared"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "standups",
+          "label": "Standups",
+          "fields": [
+            {
+              "key": "standup_date",
+              "type": "date"
+            },
+            {
+              "key": "attendee_count",
+              "type": "number"
+            },
+            {
+              "key": "notes",
+              "type": "text"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Initiatives",
+          "track": [
+            "sprint or team goals"
+          ]
+        },
+        {
+          "kind": "Stakeholders",
+          "track": [
+            "team and partner contacts"
+          ]
+        },
+        {
+          "kind": "Risks",
+          "track": [
+            "blockers"
+          ]
+        }
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "daily_stand_up",
+          "title": "Daily stand-up",
+          "frequency": "daily",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "weekly_planning",
+          "title": "Weekly planning",
+          "frequency": "weekly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "retrospective",
+          "title": "Retrospective",
+          "frequency": "weekly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "monthly_team_health_check",
+          "title": "Monthly team health check",
+          "frequency": "monthly",
+          "phasesFrom": "method"
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Daily stand-up",
+          "frequency": "daily",
+          "playbookKey": "daily_stand_up"
+        },
+        {
+          "title": "Weekly planning",
+          "frequency": "weekly",
+          "playbookKey": "weekly_planning"
+        },
+        {
+          "title": "Retrospective",
+          "frequency": "weekly",
+          "playbookKey": "retrospective"
+        },
+        {
+          "title": "Monthly team health check",
+          "frequency": "monthly",
+          "playbookKey": "monthly_team_health_check"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "general",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Blockers cleared",
+        "Open blockers",
+        "Stand-ups held",
+        "Goals on track",
+        "Risks and recommendations",
+        "Plan for next period"
+      ]
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "standard",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Team lead from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: blockers, standups"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Team lead method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and playbook titles are proposals: confirm against local practice."
+  ]
+}

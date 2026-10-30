@@ -1,0 +1,302 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "retail",
+    "label": "Retail",
+    "category": "services",
+    "categoryLabel": "Creative, service & industry work",
+    "focus": "Daily sales checks and replenishment"
+  },
+  "pack": {
+    "key": "general",
+    "reportTemplate": "general",
+    "registerKinds": [
+      "Responsibilities",
+      "Records and documents",
+      "Assets and equipment",
+      "Outstanding work"
+    ],
+    "ladderDiscipline": {
+      "proposed": null,
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced retail practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use."
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "tills_reconciled",
+          "label": "Tills reconciled",
+          "source": "daily_sales_checks",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "major_variances",
+          "label": "Major variances",
+          "source": "daily_sales_checks",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "replenishments_pending",
+          "label": "Replenishments pending",
+          "source": "stock_replenishment",
+          "sourceType": "log",
+          "aggregation": "open_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "open_tasks",
+          "label": "Open tasks",
+          "source": "outstanding_work",
+          "sourceType": "register",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "till_not_reconciled",
+          "when": "till not reconciled",
+          "suggest": "reconcile",
+          "deterministic": true
+        },
+        {
+          "id": "replenishment_pending_over_3_days",
+          "when": "replenishment pending over 3 days",
+          "suggest": "chase",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "daily_sales_checks",
+          "label": "Daily sales checks",
+          "fields": [
+            {
+              "key": "check_date",
+              "type": "date"
+            },
+            {
+              "key": "till_reconciled",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no"
+              ]
+            },
+            {
+              "key": "variance",
+              "type": "enum",
+              "values": [
+                "none",
+                "minor",
+                "major"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "stock_replenishment",
+          "label": "Stock replenishment",
+          "fields": [
+            {
+              "key": "request_date",
+              "type": "date"
+            },
+            {
+              "key": "item",
+              "type": "text"
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "requested",
+                "done"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Responsibilities",
+          "track": [
+            "store duties"
+          ]
+        },
+        {
+          "kind": "Records and documents",
+          "track": [
+            "procedures and receipts"
+          ]
+        },
+        {
+          "kind": "Assets and equipment",
+          "track": [
+            "fixtures and tills"
+          ]
+        },
+        {
+          "kind": "Outstanding work",
+          "track": [
+            "open tasks"
+          ]
+        }
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "daily_till_reconciliation",
+          "title": "Daily till reconciliation",
+          "frequency": "daily",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "weekly_stock_replenishment",
+          "title": "Weekly stock replenishment",
+          "frequency": "weekly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "monthly_stock_take",
+          "title": "Monthly stock take",
+          "frequency": "monthly",
+          "phasesFrom": "method"
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Daily till reconciliation",
+          "frequency": "daily",
+          "playbookKey": "daily_till_reconciliation"
+        },
+        {
+          "title": "Weekly stock replenishment",
+          "frequency": "weekly",
+          "playbookKey": "weekly_stock_replenishment"
+        },
+        {
+          "title": "Monthly stock take",
+          "frequency": "monthly",
+          "playbookKey": "monthly_stock_take"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "general",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Tills reconciled",
+        "Major variances",
+        "Replenishments pending",
+        "Open tasks",
+        "Risks and recommendations",
+        "Plan for next period"
+      ]
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "standard",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Retail from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: daily_sales_checks, stock_replenishment"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Retail method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and playbook titles are proposals: confirm against local practice."
+  ]
+}

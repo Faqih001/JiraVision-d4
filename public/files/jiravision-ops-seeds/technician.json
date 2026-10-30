@@ -1,0 +1,1313 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "technician",
+    "label": "IT technician",
+    "category": "technology",
+    "categoryLabel": "Software, IT & digital",
+    "focus": "Day-to-day IT support, server and cloud backups, hardware/software maintenance and Wi-Fi"
+  },
+  "pack": {
+    "key": "it-technician",
+    "reportTemplate": "technical",
+    "registerKinds": [
+      "Infrastructure",
+      "Accounts and systems",
+      "Equipment",
+      "Outstanding work"
+    ],
+    "ladderDiscipline": {
+      "proposed": "technician",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "derived-from-handover",
+    "sourceDocument": "IT Technician Handover (previous technician)",
+    "reviewRequired": true,
+    "reviewerRole": "IT Technician and Admin",
+    "sourceMap": [
+      {
+        "section": "2 Role overview",
+        "surface": "/dashboard/ops",
+        "data": "role description, 5 responsibility areas"
+      },
+      {
+        "section": "3-4 User support",
+        "surface": "/dashboard/ops/logs:tickets",
+        "data": "in-person and remote procedures; priorities Critical/High/Medium/Low"
+      },
+      {
+        "section": "5 Wi-Fi",
+        "surface": "/dashboard/registers",
+        "data": "corporate WPA3-Enterprise SSID; guest isolated VLAN, captive portal, client isolation, rate-limiting; controller dashboard"
+      },
+      {
+        "section": "6-8 Backups",
+        "surface": "/dashboard/ops/logs:backups,restore_tests",
+        "data": "3 servers; weekly/monthly server backups; cloud nightly incremental, monthly full; cloud retention 30 days/3 months/1 year"
+      },
+      {
+        "section": "9-17 Hardware, software, maintenance",
+        "surface": "/dashboard/registers",
+        "data": "device categories, procedures"
+      },
+      {
+        "section": "18 Security",
+        "surface": "/dashboard/ops/logs:incidents",
+        "data": "monitoring list, security rules"
+      },
+      {
+        "section": "19 Escalation",
+        "surface": "/dashboard/ops/logs:incidents",
+        "data": "9 triggers; 10 record fields"
+      },
+      {
+        "section": "20 Maintenance schedule",
+        "surface": "/dashboard/tasks",
+        "data": "daily 6, weekly 8, monthly 8, quarterly 7 recurring items"
+      },
+      {
+        "section": "21 Documentation",
+        "surface": "/dashboard/registers",
+        "data": "14 record categories"
+      },
+      {
+        "section": "22 Daily checklist",
+        "surface": "/dashboard/ops/logs:daily_checklist",
+        "data": "17 items (7 system, 5 user support, 5 documentation)"
+      },
+      {
+        "section": "23 Weekly checklist",
+        "surface": "/dashboard/ops/logs:weekly_checklist",
+        "data": "13 items"
+      },
+      {
+        "section": "24 Monthly report",
+        "surface": "/dashboard/reports-work",
+        "data": "6 sections: support, backups, hardware, software, maintenance, risks/recommendations"
+      },
+      {
+        "section": "25-27 Troubleshooting and handover",
+        "surface": "/dashboard/playbooks",
+        "data": "6-step method; handover checklists"
+      }
+    ]
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": [
+      "Identify",
+      "Reproduce",
+      "Diagnose",
+      "Fix",
+      "Test",
+      "Document"
+    ],
+    "documentedIn": "roles doc section 4.7 (verify in code)"
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "tickets_logged",
+          "label": "Tickets logged",
+          "source": "tickets",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "tickets_resolved",
+          "label": "Tickets resolved",
+          "source": "tickets",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "backup_success_rate",
+          "label": "Backup success rate",
+          "source": "backups",
+          "sourceType": "log",
+          "aggregation": "rate",
+          "defaultTarget": 0.98,
+          "computedBy": "code",
+          "targetNote": "proposal from the workbook; agree with Admin"
+        },
+        {
+          "id": "backup_failures",
+          "label": "Backup failures",
+          "source": "backups",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "restore_tests_passed",
+          "label": "Restore tests passed",
+          "source": "restore_tests",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "preventive_maintenance_completed",
+          "label": "Preventive maintenance completed",
+          "source": "maintenance_log",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "no_backup_result_for_a_server_in_7_days",
+          "when": "no backup result for a server in 7 days",
+          "suggest": "investigate and log",
+          "deterministic": true
+        },
+        {
+          "id": "backup_failed_or_warning_unresolved",
+          "when": "backup failed or warning unresolved",
+          "suggest": "open a critical ticket",
+          "deterministic": true
+        },
+        {
+          "id": "no_restore_test_in_30_days",
+          "when": "no restore test in 30 days",
+          "suggest": "schedule one",
+          "deterministic": true
+        },
+        {
+          "id": "free_storage_below_20",
+          "when": "free storage below 20%",
+          "suggest": "raise capacity recommendation",
+          "deterministic": true
+        },
+        {
+          "id": "ticket_past_priority_target",
+          "when": "ticket past priority target",
+          "suggest": "escalate",
+          "deterministic": true
+        },
+        {
+          "id": "licence_expiring_in_30_days",
+          "when": "licence expiring in 30 days",
+          "suggest": "plan renewal",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "tickets",
+          "label": "Support tickets",
+          "fields": [
+            {
+              "key": "date_logged",
+              "type": "date"
+            },
+            {
+              "key": "requested_by",
+              "type": "text"
+            },
+            {
+              "key": "site",
+              "type": "text"
+            },
+            {
+              "key": "asset_ref",
+              "type": "text"
+            },
+            {
+              "key": "category",
+              "type": "enum",
+              "values": [
+                "hardware",
+                "software",
+                "network",
+                "printer",
+                "email",
+                "account_access",
+                "backup",
+                "security",
+                "other"
+              ]
+            },
+            {
+              "key": "description",
+              "type": "text"
+            },
+            {
+              "key": "priority",
+              "type": "enum",
+              "values": [
+                "critical",
+                "high",
+                "medium",
+                "low"
+              ]
+            },
+            {
+              "key": "support_type",
+              "type": "enum",
+              "values": [
+                "in_person",
+                "remote"
+              ]
+            },
+            {
+              "key": "date_resolved",
+              "type": "date"
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "open",
+                "in_progress",
+                "resolved",
+                "closed"
+              ]
+            },
+            {
+              "key": "escalated",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no"
+              ]
+            },
+            {
+              "key": "resolution",
+              "type": "text"
+            }
+          ]
+        },
+        {
+          "key": "backups",
+          "label": "Backup log",
+          "fields": [
+            {
+              "key": "date",
+              "type": "date"
+            },
+            {
+              "key": "system",
+              "type": "enum",
+              "values": [
+                "aac_kenya_server",
+                "mcs_server",
+                "advocates_insurance_server",
+                "cloud_backup"
+              ]
+            },
+            {
+              "key": "backup_type",
+              "type": "enum",
+              "values": [
+                "weekly_server",
+                "monthly_server",
+                "cloud_incremental",
+                "cloud_full"
+              ]
+            },
+            {
+              "key": "result",
+              "type": "enum",
+              "values": [
+                "success",
+                "warning",
+                "failed"
+              ]
+            },
+            {
+              "key": "size_gb",
+              "type": "number"
+            },
+            {
+              "key": "destination",
+              "type": "text"
+            },
+            {
+              "key": "free_storage_gb",
+              "type": "number"
+            },
+            {
+              "key": "errors_or_warnings",
+              "type": "text"
+            },
+            {
+              "key": "action_taken",
+              "type": "text"
+            }
+          ]
+        },
+        {
+          "key": "restore_tests",
+          "label": "Restore tests",
+          "fields": [
+            {
+              "key": "test_date",
+              "type": "date"
+            },
+            {
+              "key": "server",
+              "type": "enum",
+              "values": [
+                "aac_kenya_server",
+                "mcs_server",
+                "advocates_insurance_server"
+              ]
+            },
+            {
+              "key": "backup_date_restored",
+              "type": "date"
+            },
+            {
+              "key": "test_file",
+              "type": "text"
+            },
+            {
+              "key": "restore_location",
+              "type": "text"
+            },
+            {
+              "key": "readable",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no"
+              ]
+            },
+            {
+              "key": "matches_original",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no"
+              ]
+            },
+            {
+              "key": "minutes_taken",
+              "type": "number"
+            },
+            {
+              "key": "result",
+              "type": "enum",
+              "values": [
+                "pass",
+                "fail"
+              ]
+            },
+            {
+              "key": "notes",
+              "type": "text"
+            }
+          ]
+        },
+        {
+          "key": "incidents",
+          "label": "Incidents and escalations",
+          "fields": [
+            {
+              "key": "incident_date_time",
+              "type": "text"
+            },
+            {
+              "key": "affected_system",
+              "type": "text"
+            },
+            {
+              "key": "affected_users",
+              "type": "text"
+            },
+            {
+              "key": "description",
+              "type": "text"
+            },
+            {
+              "key": "troubleshooting_performed",
+              "type": "text"
+            },
+            {
+              "key": "error_messages",
+              "type": "text"
+            },
+            {
+              "key": "screenshots_or_logs",
+              "type": "text"
+            },
+            {
+              "key": "business_impact",
+              "type": "text"
+            },
+            {
+              "key": "person_or_vendor_contacted",
+              "type": "text"
+            },
+            {
+              "key": "current_status",
+              "type": "enum",
+              "values": [
+                "open",
+                "in_progress",
+                "resolved",
+                "closed"
+              ]
+            },
+            {
+              "key": "root_cause",
+              "type": "text"
+            },
+            {
+              "key": "corrective_action",
+              "type": "text"
+            }
+          ]
+        },
+        {
+          "key": "maintenance_log",
+          "label": "Maintenance log",
+          "fields": [
+            {
+              "key": "planned_date",
+              "type": "date"
+            },
+            {
+              "key": "asset_ref",
+              "type": "text"
+            },
+            {
+              "key": "task",
+              "type": "text"
+            },
+            {
+              "key": "type",
+              "type": "enum",
+              "values": [
+                "preventive",
+                "corrective"
+              ]
+            },
+            {
+              "key": "completed_date",
+              "type": "date"
+            },
+            {
+              "key": "findings",
+              "type": "text"
+            },
+            {
+              "key": "action_taken",
+              "type": "text"
+            }
+          ]
+        },
+        {
+          "key": "daily_checklist",
+          "label": "Daily checklist",
+          "fields": [
+            {
+              "key": "date",
+              "type": "date"
+            },
+            {
+              "key": "servers_operational",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ]
+            },
+            {
+              "key": "network_operational",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ]
+            },
+            {
+              "key": "internet_operational",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ]
+            },
+            {
+              "key": "critical_apps_operational",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ]
+            },
+            {
+              "key": "security_endpoint_protection_operational",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ]
+            },
+            {
+              "key": "backup_status_checked",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ]
+            },
+            {
+              "key": "storage_capacity_checked",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ]
+            },
+            {
+              "key": "new_support_requests_reviewed",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ]
+            },
+            {
+              "key": "critical_tickets_addressed",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ]
+            },
+            {
+              "key": "outstanding_tickets_followed_up",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ]
+            },
+            {
+              "key": "remote_support_requests_completed",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ]
+            },
+            {
+              "key": "in_person_requests_completed",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ]
+            },
+            {
+              "key": "tickets_updated",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ]
+            },
+            {
+              "key": "maintenance_activities_recorded",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ]
+            },
+            {
+              "key": "hardware_changes_recorded",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ]
+            },
+            {
+              "key": "backup_results_recorded",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ]
+            },
+            {
+              "key": "escalated_issues_documented",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "weekly_checklist",
+          "label": "Weekly checklist",
+          "fields": [
+            {
+              "key": "week_starting",
+              "type": "date"
+            },
+            {
+              "key": "weekly_server_backups_completed",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ]
+            },
+            {
+              "key": "backup_results_verified",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ]
+            },
+            {
+              "key": "backup_storage_checked",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ]
+            },
+            {
+              "key": "backup_errors_investigated",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ]
+            },
+            {
+              "key": "restore_test_performed_where_scheduled",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ]
+            },
+            {
+              "key": "server_health_reviewed",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ]
+            },
+            {
+              "key": "office_computers_checked",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ]
+            },
+            {
+              "key": "security_updates_reviewed",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ]
+            },
+            {
+              "key": "critical_software_updates_reviewed",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ]
+            },
+            {
+              "key": "hardware_issues_reviewed",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ]
+            },
+            {
+              "key": "asset_register_updated",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ]
+            },
+            {
+              "key": "recurring_problems_identified",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ]
+            },
+            {
+              "key": "outstanding_vendor_issues_followed_up",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Infrastructure",
+          "track": [
+            "servers",
+            "network equipment",
+            "Wi-Fi"
+          ]
+        },
+        {
+          "kind": "Accounts and systems",
+          "track": [
+            "consoles and portals (references only)"
+          ]
+        },
+        {
+          "kind": "Equipment",
+          "track": [
+            "devices"
+          ]
+        },
+        {
+          "kind": "Outstanding work",
+          "track": [
+            "open tickets",
+            "repairs",
+            "renewals"
+          ]
+        }
+      ],
+      "seedRows": [
+        {
+          "kind": "Infrastructure",
+          "title": "AAC Kenya Server",
+          "fields": {
+            "location": "IT Room",
+            "type": "server"
+          }
+        },
+        {
+          "kind": "Infrastructure",
+          "title": "MCS Server",
+          "fields": {
+            "location": "MCS office",
+            "type": "server"
+          }
+        },
+        {
+          "kind": "Infrastructure",
+          "title": "Advocates/Insurance Server",
+          "fields": {
+            "location": "Advocates office",
+            "type": "server",
+            "sensitivity": "client-confidential"
+          }
+        },
+        {
+          "kind": "Infrastructure",
+          "title": "Corporate/Staff Wi-Fi",
+          "fields": {
+            "type": "ssid",
+            "security": "WPA3-Enterprise"
+          }
+        },
+        {
+          "kind": "Infrastructure",
+          "title": "Guest Wi-Fi",
+          "fields": {
+            "type": "ssid",
+            "vlan": "isolated",
+            "captive_portal": "yes",
+            "client_isolation": "yes",
+            "rate_limiting": "yes"
+          }
+        }
+      ],
+      "equipmentCategories": [
+        "desktops",
+        "laptops",
+        "monitors",
+        "keyboards",
+        "mice",
+        "printers",
+        "scanners",
+        "UPS units",
+        "network equipment",
+        "external storage",
+        "docking stations",
+        "cables and adapters",
+        "other peripherals"
+      ],
+      "accountsAndSystemsReferences": [
+        "IT administration accounts",
+        "Backup administration",
+        "Endpoint-security console",
+        "Helpdesk/ticketing system",
+        "Software licensing portals",
+        "Vendor portals",
+        "Remote-support system"
+      ],
+      "documentationCategories": [
+        "IT asset register",
+        "Hardware maintenance records",
+        "Software inventory",
+        "Software/licence records",
+        "Backup logs",
+        "Backup restoration test records",
+        "User support tickets",
+        "Incident reports",
+        "Server maintenance records",
+        "Vendor/service records",
+        "Equipment repair history",
+        "Equipment disposal records",
+        "Network/infrastructure documentation",
+        "IT procedures and checklists"
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "troubleshooting",
+          "title": "Troubleshooting",
+          "frequency": "as_needed",
+          "phasesFrom": "method",
+          "documentedPhases": [
+            "Identify",
+            "Reproduce",
+            "Diagnose",
+            "Fix",
+            "Test",
+            "Document"
+          ],
+          "source": "handover s25"
+        },
+        {
+          "key": "backup_procedure",
+          "title": "Backup procedure and test restoration",
+          "frequency": "weekly",
+          "phasesFrom": "custom",
+          "source": "handover s6-8",
+          "phases": [
+            {
+              "name": "Before backup",
+              "steps": [
+                "Confirm backup system is operational",
+                "Check available storage",
+                "Review previous backup status",
+                "Check unresolved warnings",
+                "Confirm critical servers/services are available",
+                "Confirm correct backup job is scheduled"
+              ]
+            },
+            {
+              "name": "During backup",
+              "steps": [
+                "Monitor progress",
+                "Monitor error messages",
+                "Monitor storage utilisation",
+                "Monitor network connectivity",
+                "Avoid unnecessary server changes"
+              ]
+            },
+            {
+              "name": "After backup",
+              "steps": [
+                "Verify completed successfully",
+                "Confirm no critical errors",
+                "Confirm backup files are accessible",
+                "Compare size with previous backups",
+                "Confirm destination is available",
+                "Confirm retention requirements",
+                "Record result in backup log"
+              ]
+            },
+            {
+              "name": "Test restoration",
+              "steps": [
+                "Select a non-critical test file or approved dataset",
+                "Restore to a test location",
+                "Confirm restored data opens",
+                "Compare with original where appropriate",
+                "Record the result",
+                "Report any failure immediately"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "new_computer_setup",
+          "title": "New computer setup",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "source": "handover s16",
+          "phases": [
+            {
+              "name": "Setup",
+              "steps": [
+                "Record asset information",
+                "Install approved OS if necessary",
+                "Apply OS updates",
+                "Install required drivers",
+                "Install approved applications",
+                "Configure security/endpoint protection",
+                "Configure network access",
+                "Configure email/productivity applications",
+                "Apply organisational settings",
+                "Test internet/network access",
+                "Test required applications",
+                "Test printing where applicable",
+                "Assign device in asset register",
+                "Record the handover"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "user_offboarding",
+          "title": "User offboarding",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "source": "handover s17",
+          "phases": [
+            {
+              "name": "Offboarding",
+              "steps": [
+                "Collect company IT equipment",
+                "Record returned assets",
+                "Secure the computer",
+                "Coordinate account deactivation with the appropriate administrator",
+                "Preserve required business data per policy",
+                "Remove device from user's assignment",
+                "Prepare device for reassignment or secure disposal"
+              ],
+              "rules": [
+                "Do not delete organisational data or disable accounts without authorisation"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "incident_escalation",
+          "title": "Incident escalation",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "source": "handover s19",
+          "triggers": [
+            "Server unavailable",
+            "Multiple departments affected",
+            "Data may have been lost",
+            "Backup failed repeatedly",
+            "Suspected cybersecurity incident",
+            "Hardware requires specialist repair",
+            "Network/core infrastructure problem suspected",
+            "Vendor intervention required",
+            "Issue exceeds technician's authorisation or expertise"
+          ],
+          "recordFields": [
+            "date_time",
+            "affected_system",
+            "affected_users",
+            "description",
+            "troubleshooting_performed",
+            "error_messages",
+            "screenshots_or_logs",
+            "business_impact",
+            "person_or_vendor_contacted",
+            "current_status"
+          ]
+        },
+        {
+          "key": "preventive_maintenance",
+          "title": "Preventive maintenance",
+          "frequency": "weekly",
+          "phasesFrom": "custom",
+          "source": "handover s13-14",
+          "phases": [
+            {
+              "name": "Inspect and clean",
+              "steps": [
+                "Shut down equipment before cleaning where appropriate",
+                "Inspect and clean cases, vents, fans, keyboards, mice, monitors, printers, UPS, workstation areas",
+                "Check disk space, CPU, RAM, startup apps, updates, malware alerts, temp files, hardware health",
+                "Record in device maintenance record"
+              ],
+              "precautions": [
+                "Disconnect power before opening equipment",
+                "Avoid moisture",
+                "Do not open equipment under warranty unless authorised",
+                "Follow manufacturer instructions"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Check critical systems",
+          "frequency": "daily"
+        },
+        {
+          "title": "Review backup status",
+          "frequency": "daily"
+        },
+        {
+          "title": "Review support tickets",
+          "frequency": "daily"
+        },
+        {
+          "title": "Respond to urgent user issues",
+          "frequency": "daily"
+        },
+        {
+          "title": "Check major security alerts",
+          "frequency": "daily"
+        },
+        {
+          "title": "Confirm servers and essential services are operational",
+          "frequency": "daily"
+        },
+        {
+          "title": "Verify scheduled backups",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Review backup logs",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Check server/storage capacity",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Review unresolved support tickets",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Check important computers for update/security issues",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Perform scheduled preventive maintenance",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Update IT asset/support records",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Prepare IT maintenance report",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Perform/verify monthly backups",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Test selected backup restoration",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Review hardware inventory",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Review software inventory/licences",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Review recurring IT problems",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Check equipment requiring maintenance or replacement",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Review server/storage utilisation",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Prepare IT maintenance report",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Review backup and recovery procedures",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Broader hardware inspections",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Review aging equipment",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Review software licensing",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Review IT security controls",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Review recurring incidents",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Review disaster-recovery readiness",
+          "frequency": "quarterly"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "technical",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "IT support",
+        "Backups",
+        "Hardware",
+        "Software",
+        "Maintenance",
+        "Risks and recommendations"
+      ]
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "standard",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for IT technician from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: tickets, backups, restore_tests, incidents, maintenance_log, daily_checklist, weekly_checklist"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the IT technician method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "Handover says full backups run 'typically 1 month or 2 months': confirm the real interval.",
+    "Cloud retention (30 days daily, 3 months weekly, 1 year monthly) is stated for cloud only; server retention is 'according to policy': ask Admin for it.",
+    "Section counts differ from the earlier summary table: daily checklist has 17 items (7+5+5, not 15); daily schedule has 6 items (not 7); monthly report has 6 sections including risks and recommendations (not 5).",
+    "KPI targets are proposals from the workbook (backup success 98%, resolved within target 85%, restore tests 100%, preventive maintenance 90%): agree with Admin.",
+    "Advocates/Insurance server holds client-confidential data: keep it out of AI prompts unless Admin approves."
+  ]
+}

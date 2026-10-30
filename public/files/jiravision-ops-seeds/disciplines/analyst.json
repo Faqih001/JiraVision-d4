@@ -1,0 +1,321 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "analyst",
+    "label": "Analyst",
+    "category": "information",
+    "categoryLabel": "Analysis, research & information",
+    "focus": "Analysis requests, reports and methodology"
+  },
+  "pack": {
+    "key": "analyst",
+    "reportTemplate": "assurance",
+    "registerKinds": [
+      "Data sources",
+      "Analysis reports",
+      "Dashboards",
+      "Methodology"
+    ],
+    "ladderDiscipline": {
+      "proposed": "analyst",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced analyst practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use."
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "requests_delivered",
+          "label": "Requests delivered",
+          "source": "analysis_requests",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "requests_overdue",
+          "label": "Requests overdue",
+          "source": "analysis_requests",
+          "sourceType": "log",
+          "aggregation": "overdue_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "reports_approved_first_time",
+          "label": "Reports approved first time",
+          "source": "report_reviews",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "data_sources_documented",
+          "label": "Data sources documented",
+          "source": "data_sources",
+          "sourceType": "register",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "request_past_due",
+          "when": "request past due",
+          "suggest": "update requester",
+          "deterministic": true
+        },
+        {
+          "id": "source_not_reviewed_in_90_days",
+          "when": "source not reviewed in 90 days",
+          "suggest": "verify",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "analysis_requests",
+          "label": "Analysis requests",
+          "fields": [
+            {
+              "key": "received_date",
+              "type": "date"
+            },
+            {
+              "key": "requester",
+              "type": "text"
+            },
+            {
+              "key": "question",
+              "type": "text"
+            },
+            {
+              "key": "due_date",
+              "type": "date"
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "requested",
+                "in_progress",
+                "delivered"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "report_reviews",
+          "label": "Report reviews",
+          "fields": [
+            {
+              "key": "review_date",
+              "type": "date"
+            },
+            {
+              "key": "report",
+              "type": "text"
+            },
+            {
+              "key": "reviewer_ref",
+              "type": "text"
+            },
+            {
+              "key": "outcome",
+              "type": "enum",
+              "values": [
+                "approved",
+                "changes"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Data sources",
+          "track": [
+            "sources and owners"
+          ]
+        },
+        {
+          "kind": "Analysis reports",
+          "track": [
+            "delivered analyses"
+          ]
+        },
+        {
+          "kind": "Dashboards",
+          "track": [
+            "dashboards maintained"
+          ]
+        },
+        {
+          "kind": "Methodology",
+          "track": [
+            "approaches used"
+          ]
+        }
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "daily_request_triage",
+          "title": "Daily request triage",
+          "frequency": "daily",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "weekly_report_review",
+          "title": "Weekly report review",
+          "frequency": "weekly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "monthly_data_source_review",
+          "title": "Monthly data source review",
+          "frequency": "monthly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "quarterly_methodology_review",
+          "title": "Quarterly methodology review",
+          "frequency": "quarterly",
+          "phasesFrom": "method"
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Daily request triage",
+          "frequency": "daily",
+          "playbookKey": "daily_request_triage"
+        },
+        {
+          "title": "Weekly report review",
+          "frequency": "weekly",
+          "playbookKey": "weekly_report_review"
+        },
+        {
+          "title": "Monthly data source review",
+          "frequency": "monthly",
+          "playbookKey": "monthly_data_source_review"
+        },
+        {
+          "title": "Quarterly methodology review",
+          "frequency": "quarterly",
+          "playbookKey": "quarterly_methodology_review"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "assurance",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Requests delivered",
+        "Requests overdue",
+        "Reports approved first time",
+        "Data sources documented",
+        "Risks and recommendations",
+        "Plan for next period"
+      ]
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "standard",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Analyst from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: analysis_requests, report_reviews"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Analyst method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and playbook titles are proposals: confirm against local practice."
+  ]
+}

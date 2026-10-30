@@ -1,0 +1,313 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "auditor",
+    "label": "Auditor",
+    "category": "finance",
+    "categoryLabel": "Finance, audit & commercial",
+    "focus": "Engagements, findings and follow-up"
+  },
+  "pack": {
+    "key": "finance",
+    "reportTemplate": "assurance",
+    "registerKinds": [
+      "Accounts",
+      "Audits",
+      "Compliance",
+      "Financial reports"
+    ],
+    "ladderDiscipline": {
+      "proposed": "finance",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "qualified auditor",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use."
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "engagements_closed",
+          "label": "Engagements closed",
+          "source": "audit_engagements",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "open_findings",
+          "label": "Open findings",
+          "source": "audit_findings",
+          "sourceType": "log",
+          "aggregation": "open_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "high_risk_findings_open",
+          "label": "High-risk findings open",
+          "source": "audit_findings",
+          "sourceType": "log",
+          "aggregation": "open_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "responses_overdue",
+          "label": "Responses overdue",
+          "source": "audit_findings",
+          "sourceType": "log",
+          "aggregation": "overdue_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "management_response_overdue",
+          "when": "management response overdue",
+          "suggest": "chase",
+          "deterministic": true
+        },
+        {
+          "id": "high_risk_finding_unresolved_30_days",
+          "when": "high-risk finding unresolved 30 days",
+          "suggest": "escalate",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "audit_engagements",
+          "label": "Audit engagements",
+          "fields": [
+            {
+              "key": "engagement",
+              "type": "text"
+            },
+            {
+              "key": "start_date",
+              "type": "date"
+            },
+            {
+              "key": "end_date",
+              "type": "date"
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "planned",
+                "fieldwork",
+                "reporting",
+                "closed"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "audit_findings",
+          "label": "Audit findings",
+          "fields": [
+            {
+              "key": "raised_date",
+              "type": "date"
+            },
+            {
+              "key": "finding_ref",
+              "type": "text"
+            },
+            {
+              "key": "risk_rating",
+              "type": "enum",
+              "values": [
+                "low",
+                "medium",
+                "high"
+              ]
+            },
+            {
+              "key": "response_due",
+              "type": "text"
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "open",
+                "closed"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Audits",
+          "track": [
+            "engagements"
+          ]
+        },
+        {
+          "kind": "Compliance",
+          "track": [
+            "standards applied"
+          ]
+        },
+        {
+          "kind": "Financial reports",
+          "track": [
+            "reports under review"
+          ]
+        }
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "weekly_fieldwork_review",
+          "title": "Weekly fieldwork review",
+          "frequency": "weekly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "monthly_findings_follow_up",
+          "title": "Monthly findings follow-up",
+          "frequency": "monthly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "quarterly_audit_plan_review",
+          "title": "Quarterly audit plan review",
+          "frequency": "quarterly",
+          "phasesFrom": "method"
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Weekly fieldwork review",
+          "frequency": "weekly",
+          "playbookKey": "weekly_fieldwork_review"
+        },
+        {
+          "title": "Monthly findings follow-up",
+          "frequency": "monthly",
+          "playbookKey": "monthly_findings_follow_up"
+        },
+        {
+          "title": "Quarterly audit plan review",
+          "frequency": "quarterly",
+          "playbookKey": "quarterly_audit_plan_review"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "assurance",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Engagements closed",
+        "Open findings",
+        "High-risk findings open",
+        "Responses overdue",
+        "Risks and recommendations",
+        "Plan for next period"
+      ]
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "restricted",
+      "neverSendRegisterKinds": [
+        "Accounts"
+      ],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers",
+        "amounts and balances"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Auditor from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: audit_engagements, audit_findings"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Auditor method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and playbook titles are proposals: confirm against local practice."
+  ]
+}

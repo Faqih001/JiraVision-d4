@@ -1,0 +1,316 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "healthcare",
+    "label": "Healthcare",
+    "category": "science",
+    "categoryLabel": "Health, science & specialist services",
+    "focus": "Protocols, clinical audits and compliance (no patient-level data)"
+  },
+  "pack": {
+    "key": "healthcare-science",
+    "reportTemplate": "technical",
+    "registerKinds": [
+      "Patients",
+      "Clinical protocols",
+      "Research",
+      "Compliance"
+    ],
+    "ladderDiscipline": {
+      "proposed": "healthcare_science",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "licensed clinician",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use."
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "protocol_reviews_done",
+          "label": "Protocol reviews done",
+          "source": "protocol_reviews",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "audits_not_met",
+          "label": "Audits not met",
+          "source": "clinical_audits",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "audit_actions_overdue",
+          "label": "Audit actions overdue",
+          "source": "clinical_audits",
+          "sourceType": "log",
+          "aggregation": "overdue_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "protocols_listed",
+          "label": "Protocols listed",
+          "source": "clinical_protocols",
+          "sourceType": "register",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "protocol_review_overdue",
+          "when": "protocol review overdue",
+          "suggest": "schedule",
+          "deterministic": true
+        },
+        {
+          "id": "audit_area_not_met",
+          "when": "audit area not met",
+          "suggest": "action plan",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "protocol_reviews",
+          "label": "Protocol reviews",
+          "fields": [
+            {
+              "key": "review_date",
+              "type": "date"
+            },
+            {
+              "key": "protocol",
+              "type": "text"
+            },
+            {
+              "key": "outcome",
+              "type": "text"
+            },
+            {
+              "key": "next_review",
+              "type": "text"
+            }
+          ]
+        },
+        {
+          "key": "clinical_audits",
+          "label": "Clinical audits",
+          "fields": [
+            {
+              "key": "audit_date",
+              "type": "date"
+            },
+            {
+              "key": "area",
+              "type": "text"
+            },
+            {
+              "key": "compliance_status",
+              "type": "enum",
+              "values": [
+                "met",
+                "partly",
+                "not_met"
+              ]
+            },
+            {
+              "key": "actions_due",
+              "type": "text"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Patients",
+          "track": [
+            "none: de-identified aggregates only"
+          ]
+        },
+        {
+          "kind": "Clinical protocols",
+          "track": [
+            "protocols in use"
+          ]
+        },
+        {
+          "kind": "Research",
+          "track": [
+            "clinical research"
+          ]
+        },
+        {
+          "kind": "Compliance",
+          "track": [
+            "standards and licences"
+          ]
+        }
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "daily_ward_or_clinic_handover_checklist",
+          "title": "Daily ward or clinic handover checklist",
+          "frequency": "daily",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "weekly_protocol_review",
+          "title": "Weekly protocol review",
+          "frequency": "weekly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "monthly_clinical_audit",
+          "title": "Monthly clinical audit",
+          "frequency": "monthly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "quarterly_compliance_review",
+          "title": "Quarterly compliance review",
+          "frequency": "quarterly",
+          "phasesFrom": "method"
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Daily ward or clinic handover checklist",
+          "frequency": "daily",
+          "playbookKey": "daily_ward_or_clinic_handover_checklist"
+        },
+        {
+          "title": "Weekly protocol review",
+          "frequency": "weekly",
+          "playbookKey": "weekly_protocol_review"
+        },
+        {
+          "title": "Monthly clinical audit",
+          "frequency": "monthly",
+          "playbookKey": "monthly_clinical_audit"
+        },
+        {
+          "title": "Quarterly compliance review",
+          "frequency": "quarterly",
+          "playbookKey": "quarterly_compliance_review"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "technical",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Protocol reviews done",
+        "Audits not met",
+        "Audit actions overdue",
+        "Protocols listed",
+        "Risks and recommendations",
+        "Plan for next period"
+      ]
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "restricted",
+      "neverSendRegisterKinds": [
+        "Patients"
+      ],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers",
+        "amounts and balances"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Healthcare from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: protocol_reviews, clinical_audits"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Healthcare method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and playbook titles are proposals: confirm against local practice."
+  ]
+}

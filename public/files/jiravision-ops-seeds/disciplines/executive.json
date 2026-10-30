@@ -1,0 +1,315 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "executive",
+    "label": "Executive",
+    "category": "delivery",
+    "categoryLabel": "Management & project delivery",
+    "focus": "Strategic oversight, decisions and board reporting"
+  },
+  "pack": {
+    "key": "management",
+    "reportTemplate": "general",
+    "registerKinds": [
+      "Initiatives",
+      "Stakeholders",
+      "Risks",
+      "Reports"
+    ],
+    "ladderDiscipline": {
+      "proposed": "coordinator",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced executive practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use."
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "decisions_past_review_date",
+          "label": "Decisions past review date",
+          "source": "decisions",
+          "sourceType": "log",
+          "aggregation": "overdue_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "initiatives_on_track",
+          "label": "Initiatives on track",
+          "source": "initiatives",
+          "sourceType": "register",
+          "aggregation": "rate",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "enterprise_risks_rated_high",
+          "label": "Enterprise risks rated high",
+          "source": "risks",
+          "sourceType": "register",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "stakeholder_follow_ups_overdue",
+          "label": "Stakeholder follow-ups overdue",
+          "source": "stakeholder_meetings",
+          "sourceType": "log",
+          "aggregation": "overdue_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "decision_past_its_review_date",
+          "when": "decision past its review date",
+          "suggest": "schedule a review",
+          "deterministic": true
+        },
+        {
+          "id": "high_risk_without_mitigation_owner",
+          "when": "high risk without mitigation owner",
+          "suggest": "assign an owner",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "decisions",
+          "label": "Decisions",
+          "fields": [
+            {
+              "key": "decision_date",
+              "type": "date"
+            },
+            {
+              "key": "topic",
+              "type": "text"
+            },
+            {
+              "key": "owner",
+              "type": "text"
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "proposed",
+                "approved",
+                "deferred",
+                "rejected"
+              ]
+            },
+            {
+              "key": "review_date",
+              "type": "date"
+            }
+          ]
+        },
+        {
+          "key": "stakeholder_meetings",
+          "label": "Stakeholder meetings",
+          "fields": [
+            {
+              "key": "meeting_date",
+              "type": "date"
+            },
+            {
+              "key": "stakeholder",
+              "type": "text"
+            },
+            {
+              "key": "outcome",
+              "type": "text"
+            },
+            {
+              "key": "follow_up_due",
+              "type": "text"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Initiatives",
+          "track": [
+            "strategic priorities",
+            "owners"
+          ]
+        },
+        {
+          "kind": "Risks",
+          "track": [
+            "enterprise risks",
+            "mitigations"
+          ]
+        },
+        {
+          "kind": "Reports",
+          "track": [
+            "board packs",
+            "decision papers"
+          ]
+        }
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "weekly_leadership_review",
+          "title": "Weekly leadership review",
+          "frequency": "weekly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "monthly_board_pack",
+          "title": "Monthly board pack",
+          "frequency": "monthly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "quarterly_strategy_review",
+          "title": "Quarterly strategy review",
+          "frequency": "quarterly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "risk_appetite_review",
+          "title": "Risk appetite review",
+          "frequency": "quarterly",
+          "phasesFrom": "method"
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Weekly leadership review",
+          "frequency": "weekly",
+          "playbookKey": "weekly_leadership_review"
+        },
+        {
+          "title": "Monthly board pack",
+          "frequency": "monthly",
+          "playbookKey": "monthly_board_pack"
+        },
+        {
+          "title": "Quarterly strategy review",
+          "frequency": "quarterly",
+          "playbookKey": "quarterly_strategy_review"
+        },
+        {
+          "title": "Risk appetite review",
+          "frequency": "quarterly",
+          "playbookKey": "risk_appetite_review"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "general",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Decisions past review date",
+        "Initiatives on track",
+        "Enterprise risks rated high",
+        "Stakeholder follow-ups overdue",
+        "Risks and recommendations",
+        "Plan for next period"
+      ]
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "standard",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Executive from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: decisions, stakeholder_meetings"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Executive method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and playbook titles are proposals: confirm against local practice."
+  ]
+}

@@ -1,0 +1,305 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "procurement",
+    "label": "Procurement",
+    "category": "finance",
+    "categoryLabel": "Finance, audit & commercial",
+    "focus": "Requests, orders and supplier performance"
+  },
+  "pack": {
+    "key": "finance",
+    "reportTemplate": "assurance",
+    "registerKinds": [
+      "Accounts",
+      "Audits",
+      "Compliance",
+      "Financial reports"
+    ],
+    "ladderDiscipline": {
+      "proposed": "finance",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced procurement practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use."
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "requests_approved",
+          "label": "Requests approved",
+          "source": "purchase_requests",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "orders_received",
+          "label": "Orders received",
+          "source": "purchase_requests",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "requests_awaiting_approval",
+          "label": "Requests awaiting approval",
+          "source": "purchase_requests",
+          "sourceType": "log",
+          "aggregation": "open_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "suppliers_rated_low",
+          "label": "Suppliers rated low",
+          "source": "supplier_reviews",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "request_pending_approval_over_3_days",
+          "when": "request pending approval over 3 days",
+          "suggest": "chase",
+          "deterministic": true
+        },
+        {
+          "id": "supplier_rated_low_twice",
+          "when": "supplier rated low twice",
+          "suggest": "review contract",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "purchase_requests",
+          "label": "Purchase requests",
+          "fields": [
+            {
+              "key": "request_date",
+              "type": "date"
+            },
+            {
+              "key": "item",
+              "type": "text"
+            },
+            {
+              "key": "approver",
+              "type": "text"
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "requested",
+                "approved",
+                "ordered",
+                "received"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "supplier_reviews",
+          "label": "Supplier reviews",
+          "fields": [
+            {
+              "key": "review_date",
+              "type": "date"
+            },
+            {
+              "key": "supplier",
+              "type": "text"
+            },
+            {
+              "key": "rating",
+              "type": "enum",
+              "values": [
+                "low",
+                "medium",
+                "high"
+              ]
+            },
+            {
+              "key": "action",
+              "type": "text"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Accounts",
+          "track": [
+            "vendor accounts"
+          ]
+        },
+        {
+          "kind": "Compliance",
+          "track": [
+            "procurement rules"
+          ]
+        },
+        {
+          "kind": "Audits",
+          "track": [
+            "procurement reviews"
+          ]
+        }
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "daily_request_approvals",
+          "title": "Daily request approvals",
+          "frequency": "daily",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "weekly_order_follow_up",
+          "title": "Weekly order follow-up",
+          "frequency": "weekly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "quarterly_supplier_review",
+          "title": "Quarterly supplier review",
+          "frequency": "quarterly",
+          "phasesFrom": "method"
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Daily request approvals",
+          "frequency": "daily",
+          "playbookKey": "daily_request_approvals"
+        },
+        {
+          "title": "Weekly order follow-up",
+          "frequency": "weekly",
+          "playbookKey": "weekly_order_follow_up"
+        },
+        {
+          "title": "Quarterly supplier review",
+          "frequency": "quarterly",
+          "playbookKey": "quarterly_supplier_review"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "assurance",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Requests approved",
+        "Orders received",
+        "Requests awaiting approval",
+        "Suppliers rated low",
+        "Risks and recommendations",
+        "Plan for next period"
+      ]
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "restricted",
+      "neverSendRegisterKinds": [
+        "Accounts"
+      ],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers",
+        "amounts and balances"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Procurement from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: purchase_requests, supplier_reviews"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Procurement method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and playbook titles are proposals: confirm against local practice."
+  ]
+}

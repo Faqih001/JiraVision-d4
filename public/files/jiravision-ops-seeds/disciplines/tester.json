@@ -1,0 +1,334 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "tester",
+    "label": "Tester",
+    "category": "technology",
+    "categoryLabel": "Software, IT & digital",
+    "focus": "Test runs, defects and release sign-off"
+  },
+  "pack": {
+    "key": "developer",
+    "reportTemplate": "engineering",
+    "registerKinds": [
+      "Code repositories",
+      "Pull requests",
+      "Technical debt",
+      "Sprint backlog"
+    ],
+    "ladderDiscipline": {
+      "proposed": "developer",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced tester practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use."
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": [
+      "Plan",
+      "Design",
+      "Execute",
+      "Report",
+      "Verify",
+      "Close"
+    ],
+    "documentedIn": "roles doc section 4.7 (verify in code)"
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "test_runs_completed",
+          "label": "Test runs completed",
+          "source": "test_runs",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "defects_open",
+          "label": "Defects open",
+          "source": "defect_reports",
+          "sourceType": "log",
+          "aggregation": "open_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "defects_reopened",
+          "label": "Defects reopened",
+          "source": "defect_reports",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "test_debt_items",
+          "label": "Test debt items",
+          "source": "technical_debt",
+          "sourceType": "register",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "critical_defect_open_over_1_day",
+          "when": "critical defect open over 1 day",
+          "suggest": "escalate",
+          "deterministic": true
+        },
+        {
+          "id": "suite_failing_3_runs",
+          "when": "suite failing 3 runs",
+          "suggest": "investigate",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "test_runs",
+          "label": "Test runs",
+          "fields": [
+            {
+              "key": "run_date",
+              "type": "date"
+            },
+            {
+              "key": "suite",
+              "type": "text"
+            },
+            {
+              "key": "passed_count",
+              "type": "number"
+            },
+            {
+              "key": "failed_count",
+              "type": "number"
+            },
+            {
+              "key": "blocked_count",
+              "type": "number"
+            }
+          ]
+        },
+        {
+          "key": "defect_reports",
+          "label": "Defect reports",
+          "fields": [
+            {
+              "key": "found_date",
+              "type": "date"
+            },
+            {
+              "key": "severity",
+              "type": "enum",
+              "values": [
+                "low",
+                "medium",
+                "high",
+                "critical"
+              ]
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "open",
+                "verified",
+                "closed"
+              ]
+            },
+            {
+              "key": "reopened",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Code repositories",
+          "track": [
+            "test suites"
+          ]
+        },
+        {
+          "kind": "Technical debt",
+          "track": [
+            "test debt"
+          ]
+        },
+        {
+          "kind": "Pull requests",
+          "track": [
+            "changes under test"
+          ]
+        },
+        {
+          "kind": "Sprint backlog",
+          "track": [
+            "test work"
+          ]
+        }
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "daily_regression_run",
+          "title": "Daily regression run",
+          "frequency": "daily",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "weekly_test_plan_review",
+          "title": "Weekly test plan review",
+          "frequency": "weekly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "release_sign_off",
+          "title": "Release sign-off",
+          "frequency": "weekly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "monthly_test_debt_review",
+          "title": "Monthly test debt review",
+          "frequency": "monthly",
+          "phasesFrom": "method"
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Daily regression run",
+          "frequency": "daily",
+          "playbookKey": "daily_regression_run"
+        },
+        {
+          "title": "Weekly test plan review",
+          "frequency": "weekly",
+          "playbookKey": "weekly_test_plan_review"
+        },
+        {
+          "title": "Release sign-off",
+          "frequency": "weekly",
+          "playbookKey": "release_sign_off"
+        },
+        {
+          "title": "Monthly test debt review",
+          "frequency": "monthly",
+          "playbookKey": "monthly_test_debt_review"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "engineering",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Test runs completed",
+        "Defects open",
+        "Defects reopened",
+        "Test debt items",
+        "Risks and recommendations",
+        "Plan for next period"
+      ]
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "standard",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Tester from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: test_runs, defect_reports"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Tester method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and playbook titles are proposals: confirm against local practice."
+  ]
+}

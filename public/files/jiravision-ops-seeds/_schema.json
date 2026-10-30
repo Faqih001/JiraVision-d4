@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "JiraVision discipline ops seed",
+  "type": "object",
+  "required": ["schemaVersion","discipline","pack","provenance","method","surfaces","ai","needsConfirmation"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "discipline": {"type":"object","required":["key","label","category","categoryLabel","focus"]},
+    "pack": {"type":"object","required":["key","reportTemplate","registerKinds","ladderDiscipline"]},
+    "provenance": {"type":"object","required":["type","reviewRequired"],
+      "properties":{"type":{"enum":["derived-from-handover","proposed-seed"]}}},
+    "method": {"type":"object","required":["resolveAtRuntime","documentedSequence"]},
+    "surfaces": {"type":"object","required":["overview","logs","registers","playbooks","tasks","reports"],
+      "properties":{
+        "overview":{"type":"object","required":["kpis","recommendRules"]},
+        "logs":{"type":"object","required":["entities"],"properties":{"entities":{"type":"array","minItems":1,
+          "items":{"type":"object","required":["key","fields"],"properties":{"fields":{"type":"array","minItems":1,
+            "items":{"type":"object","required":["key","type"],"properties":{"type":{"enum":["text","date","number","enum"]}}}}}}}}},
+        "registers":{"type":"object","required":["items"]},
+        "playbooks":{"type":"object","required":["seeds"]},
+        "tasks":{"type":"object","required":["recurringTemplates"]},
+        "reports":{"type":"object","required":["template","cadences","sections"]}}},
+    "ai": {"type":"object","required":["policy","agents"]},
+    "needsConfirmation": {"type":"array"}
+  }
+}

@@ -1,0 +1,298 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "surveying",
+    "label": "Surveyor",
+    "category": "engineering",
+    "categoryLabel": "Engineering & built works",
+    "focus": "Survey jobs and control checks"
+  },
+  "pack": {
+    "key": "engineering",
+    "reportTemplate": "engineering",
+    "registerKinds": [
+      "Projects",
+      "Specifications",
+      "Inspections",
+      "Compliance"
+    ],
+    "ladderDiscipline": {
+      "proposed": "engineering",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "licensed surveyor",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use."
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "jobs_delivered",
+          "label": "Jobs delivered",
+          "source": "survey_jobs",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "jobs_in_progress",
+          "label": "Jobs in progress",
+          "source": "survey_jobs",
+          "sourceType": "log",
+          "aggregation": "open_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "closures_outside_tolerance",
+          "label": "Closures outside tolerance",
+          "source": "control_checks",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "projects",
+          "label": "Projects",
+          "source": "projects",
+          "sourceType": "register",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "closure_outside_tolerance",
+          "when": "closure outside tolerance",
+          "suggest": "resurvey",
+          "deterministic": true
+        },
+        {
+          "id": "equipment_calibration_due",
+          "when": "equipment calibration due",
+          "suggest": "calibrate",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "survey_jobs",
+          "label": "Survey jobs",
+          "fields": [
+            {
+              "key": "job_ref",
+              "type": "text"
+            },
+            {
+              "key": "site",
+              "type": "text"
+            },
+            {
+              "key": "survey_date",
+              "type": "date"
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "planned",
+                "fielded",
+                "processed",
+                "delivered"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "control_checks",
+          "label": "Control checks",
+          "fields": [
+            {
+              "key": "check_date",
+              "type": "date"
+            },
+            {
+              "key": "benchmark_ref",
+              "type": "text"
+            },
+            {
+              "key": "closure",
+              "type": "enum",
+              "values": [
+                "within",
+                "outside"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Projects",
+          "track": [
+            "survey projects"
+          ]
+        },
+        {
+          "kind": "Specifications",
+          "track": [
+            "survey specifications"
+          ]
+        },
+        {
+          "kind": "Inspections",
+          "track": [
+            "control and accuracy checks"
+          ]
+        },
+        {
+          "kind": "Compliance",
+          "track": [
+            "survey regulations"
+          ]
+        }
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "pre_field_checklist",
+          "title": "Pre-field checklist",
+          "frequency": "as_needed",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "weekly_processing_review",
+          "title": "Weekly processing review",
+          "frequency": "weekly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "monthly_equipment_calibration_check",
+          "title": "Monthly equipment calibration check",
+          "frequency": "monthly",
+          "phasesFrom": "method"
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Weekly processing review",
+          "frequency": "weekly",
+          "playbookKey": "weekly_processing_review"
+        },
+        {
+          "title": "Monthly equipment calibration check",
+          "frequency": "monthly",
+          "playbookKey": "monthly_equipment_calibration_check"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "engineering",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Jobs delivered",
+        "Jobs in progress",
+        "Closures outside tolerance",
+        "Projects",
+        "Risks and recommendations",
+        "Plan for next period"
+      ]
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "standard",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Surveyor from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: survey_jobs, control_checks"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Surveyor method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and playbook titles are proposals: confirm against local practice."
+  ]
+}

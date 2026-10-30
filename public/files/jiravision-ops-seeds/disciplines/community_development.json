@@ -1,0 +1,299 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "community_development",
+    "label": "Community development",
+    "category": "services",
+    "categoryLabel": "Creative, service & industry work",
+    "focus": "Outreach, participants and follow-up (beneficiary data: restricted)"
+  },
+  "pack": {
+    "key": "general",
+    "reportTemplate": "general",
+    "registerKinds": [
+      "Responsibilities",
+      "Records and documents",
+      "Assets and equipment",
+      "Outstanding work"
+    ],
+    "ladderDiscipline": {
+      "proposed": null,
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced community development practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use."
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "sessions_held",
+          "label": "Sessions held",
+          "source": "outreach_sessions",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "participants_reached",
+          "label": "Participants reached",
+          "source": "outreach_sessions",
+          "sourceType": "log",
+          "aggregation": "sum",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "follow_ups_open",
+          "label": "Follow-ups open",
+          "source": "beneficiary_followups",
+          "sourceType": "log",
+          "aggregation": "open_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "open_actions",
+          "label": "Open actions",
+          "source": "outstanding_work",
+          "sourceType": "register",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "follow_up_open_over_14_days",
+          "when": "follow-up open over 14 days",
+          "suggest": "contact",
+          "deterministic": true
+        },
+        {
+          "id": "session_without_attendance_recorded",
+          "when": "session without attendance recorded",
+          "suggest": "record",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "outreach_sessions",
+          "label": "Outreach sessions",
+          "fields": [
+            {
+              "key": "session_date",
+              "type": "date"
+            },
+            {
+              "key": "community",
+              "type": "text"
+            },
+            {
+              "key": "topic",
+              "type": "text"
+            },
+            {
+              "key": "participant_count",
+              "type": "number"
+            }
+          ]
+        },
+        {
+          "key": "beneficiary_followups",
+          "label": "Beneficiary followups",
+          "fields": [
+            {
+              "key": "followup_date",
+              "type": "date"
+            },
+            {
+              "key": "case_ref",
+              "type": "text"
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "open",
+                "done"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Responsibilities",
+          "track": [
+            "programme duties"
+          ]
+        },
+        {
+          "kind": "Records and documents",
+          "track": [
+            "programme records"
+          ]
+        },
+        {
+          "kind": "Assets and equipment",
+          "track": [
+            "programme equipment"
+          ]
+        },
+        {
+          "kind": "Outstanding work",
+          "track": [
+            "open actions"
+          ]
+        }
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "weekly_outreach_plan",
+          "title": "Weekly outreach plan",
+          "frequency": "weekly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "monthly_participant_follow_up",
+          "title": "Monthly participant follow-up",
+          "frequency": "monthly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "quarterly_programme_review",
+          "title": "Quarterly programme review",
+          "frequency": "quarterly",
+          "phasesFrom": "method"
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Weekly outreach plan",
+          "frequency": "weekly",
+          "playbookKey": "weekly_outreach_plan"
+        },
+        {
+          "title": "Monthly participant follow-up",
+          "frequency": "monthly",
+          "playbookKey": "monthly_participant_follow_up"
+        },
+        {
+          "title": "Quarterly programme review",
+          "frequency": "quarterly",
+          "playbookKey": "quarterly_programme_review"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "general",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Sessions held",
+        "Participants reached",
+        "Follow-ups open",
+        "Open actions",
+        "Risks and recommendations",
+        "Plan for next period"
+      ]
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "restricted",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [
+        "beneficiary_followups"
+      ],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Community development from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: outreach_sessions"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Community development method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and playbook titles are proposals: confirm against local practice."
+  ]
+}

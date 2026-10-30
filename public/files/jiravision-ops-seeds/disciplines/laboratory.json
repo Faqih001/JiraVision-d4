@@ -1,0 +1,315 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "laboratory",
+    "label": "Laboratory",
+    "category": "science",
+    "categoryLabel": "Health, science & specialist services",
+    "focus": "Calibration, quality control and records"
+  },
+  "pack": {
+    "key": "healthcare-science",
+    "reportTemplate": "technical",
+    "registerKinds": [
+      "Patients",
+      "Clinical protocols",
+      "Research",
+      "Compliance"
+    ],
+    "ladderDiscipline": {
+      "proposed": "healthcare_science",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "laboratory supervisor",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use."
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "calibrations_passed",
+          "label": "Calibrations passed",
+          "source": "equipment_calibrations",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "calibrations_overdue",
+          "label": "Calibrations overdue",
+          "source": "equipment_calibrations",
+          "sourceType": "log",
+          "aggregation": "overdue_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "qc_runs_within_range",
+          "label": "QC runs within range",
+          "source": "qc_runs",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "qc_runs_outside_range",
+          "label": "QC runs outside range",
+          "source": "qc_runs",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "calibration_past_due",
+          "when": "calibration past due",
+          "suggest": "calibrate",
+          "deterministic": true
+        },
+        {
+          "id": "qc_outside_range",
+          "when": "QC outside range",
+          "suggest": "stop and investigate",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "equipment_calibrations",
+          "label": "Equipment calibrations",
+          "fields": [
+            {
+              "key": "calibration_date",
+              "type": "date"
+            },
+            {
+              "key": "equipment_ref",
+              "type": "text"
+            },
+            {
+              "key": "result",
+              "type": "enum",
+              "values": [
+                "pass",
+                "fail"
+              ]
+            },
+            {
+              "key": "next_due",
+              "type": "text"
+            }
+          ]
+        },
+        {
+          "key": "qc_runs",
+          "label": "Qc runs",
+          "fields": [
+            {
+              "key": "run_date",
+              "type": "date"
+            },
+            {
+              "key": "assay",
+              "type": "text"
+            },
+            {
+              "key": "result",
+              "type": "enum",
+              "values": [
+                "within_range",
+                "outside_range"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Patients",
+          "track": [
+            "none: sample codes only"
+          ]
+        },
+        {
+          "kind": "Clinical protocols",
+          "track": [
+            "standard operating procedures"
+          ]
+        },
+        {
+          "kind": "Research",
+          "track": [
+            "experiments and methods"
+          ]
+        },
+        {
+          "kind": "Compliance",
+          "track": [
+            "accreditation and safety"
+          ]
+        }
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "daily_qc_run",
+          "title": "Daily QC run",
+          "frequency": "daily",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "weekly_equipment_checks",
+          "title": "Weekly equipment checks",
+          "frequency": "weekly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "monthly_calibration_schedule",
+          "title": "Monthly calibration schedule",
+          "frequency": "monthly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "quarterly_sop_review",
+          "title": "Quarterly SOP review",
+          "frequency": "quarterly",
+          "phasesFrom": "method"
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Daily QC run",
+          "frequency": "daily",
+          "playbookKey": "daily_qc_run"
+        },
+        {
+          "title": "Weekly equipment checks",
+          "frequency": "weekly",
+          "playbookKey": "weekly_equipment_checks"
+        },
+        {
+          "title": "Monthly calibration schedule",
+          "frequency": "monthly",
+          "playbookKey": "monthly_calibration_schedule"
+        },
+        {
+          "title": "Quarterly SOP review",
+          "frequency": "quarterly",
+          "playbookKey": "quarterly_sop_review"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "technical",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Calibrations passed",
+        "Calibrations overdue",
+        "QC runs within range",
+        "QC runs outside range",
+        "Risks and recommendations",
+        "Plan for next period"
+      ]
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "restricted",
+      "neverSendRegisterKinds": [
+        "Patients"
+      ],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers",
+        "amounts and balances"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Laboratory from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: equipment_calibrations, qc_runs"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Laboratory method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and playbook titles are proposals: confirm against local practice."
+  ]
+}

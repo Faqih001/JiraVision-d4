@@ -1,0 +1,307 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "pharmaceutical",
+    "label": "Pharmaceutical",
+    "category": "science",
+    "categoryLabel": "Health, science & specialist services",
+    "focus": "Stock, expiry and cold chain"
+  },
+  "pack": {
+    "key": "healthcare-science",
+    "reportTemplate": "technical",
+    "registerKinds": [
+      "Patients",
+      "Clinical protocols",
+      "Research",
+      "Compliance"
+    ],
+    "ladderDiscipline": {
+      "proposed": "healthcare_science",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "registered pharmacist",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use."
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "cold_chain_records_in_range",
+          "label": "Cold chain records in range",
+          "source": "cold_chain_records",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "cold_chain_excursions",
+          "label": "Cold chain excursions",
+          "source": "cold_chain_records",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "near_expiry_items",
+          "label": "Near-expiry items",
+          "source": "stock_expiry_checks",
+          "sourceType": "log",
+          "aggregation": "sum",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "checks_done",
+          "label": "Checks done",
+          "source": "stock_expiry_checks",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "cold_chain_out_of_range",
+          "when": "cold chain out of range",
+          "suggest": "quarantine and report",
+          "deterministic": true
+        },
+        {
+          "id": "items_near_expiry",
+          "when": "items near expiry",
+          "suggest": "use or return",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "stock_expiry_checks",
+          "label": "Stock expiry checks",
+          "fields": [
+            {
+              "key": "check_date",
+              "type": "date"
+            },
+            {
+              "key": "location",
+              "type": "text"
+            },
+            {
+              "key": "near_expiry_count",
+              "type": "number"
+            }
+          ]
+        },
+        {
+          "key": "cold_chain_records",
+          "label": "Cold chain records",
+          "fields": [
+            {
+              "key": "record_date",
+              "type": "date"
+            },
+            {
+              "key": "unit",
+              "type": "text"
+            },
+            {
+              "key": "in_range",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Patients",
+          "track": [
+            "none: no patient data held"
+          ]
+        },
+        {
+          "kind": "Clinical protocols",
+          "track": [
+            "dispensing and storage procedures"
+          ]
+        },
+        {
+          "kind": "Research",
+          "track": [
+            "studies and trials"
+          ]
+        },
+        {
+          "kind": "Compliance",
+          "track": [
+            "licences and regulations"
+          ]
+        }
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "daily_cold_chain_check",
+          "title": "Daily cold chain check",
+          "frequency": "daily",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "weekly_expiry_check",
+          "title": "Weekly expiry check",
+          "frequency": "weekly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "monthly_stock_reconciliation",
+          "title": "Monthly stock reconciliation",
+          "frequency": "monthly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "quarterly_licence_review",
+          "title": "Quarterly licence review",
+          "frequency": "quarterly",
+          "phasesFrom": "method"
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Daily cold chain check",
+          "frequency": "daily",
+          "playbookKey": "daily_cold_chain_check"
+        },
+        {
+          "title": "Weekly expiry check",
+          "frequency": "weekly",
+          "playbookKey": "weekly_expiry_check"
+        },
+        {
+          "title": "Monthly stock reconciliation",
+          "frequency": "monthly",
+          "playbookKey": "monthly_stock_reconciliation"
+        },
+        {
+          "title": "Quarterly licence review",
+          "frequency": "quarterly",
+          "playbookKey": "quarterly_licence_review"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "technical",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Cold chain records in range",
+        "Cold chain excursions",
+        "Near-expiry items",
+        "Checks done",
+        "Risks and recommendations",
+        "Plan for next period"
+      ]
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "restricted",
+      "neverSendRegisterKinds": [
+        "Patients"
+      ],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers",
+        "amounts and balances"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Pharmaceutical from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: stock_expiry_checks, cold_chain_records"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Pharmaceutical method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and playbook titles are proposals: confirm against local practice."
+  ]
+}

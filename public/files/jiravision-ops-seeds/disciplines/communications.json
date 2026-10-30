@@ -1,0 +1,300 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "communications",
+    "label": "Communications",
+    "category": "information",
+    "categoryLabel": "Analysis, research & information",
+    "focus": "Internal and external communications and media"
+  },
+  "pack": {
+    "key": "designer",
+    "reportTemplate": "creative",
+    "registerKinds": [
+      "Design files",
+      "Brand assets",
+      "User research",
+      "Design system"
+    ],
+    "ladderDiscipline": {
+      "proposed": "designer",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced communications practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use."
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "requests_sent",
+          "label": "Requests sent",
+          "source": "comms_requests",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "media_enquiries_answered",
+          "label": "Media enquiries answered",
+          "source": "media_enquiries",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "enquiries_past_due",
+          "label": "Enquiries past due",
+          "source": "media_enquiries",
+          "sourceType": "log",
+          "aggregation": "overdue_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "approved_messages",
+          "label": "Approved messages",
+          "source": "brand_assets",
+          "sourceType": "register",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "media_enquiry_past_due",
+          "when": "media enquiry past due",
+          "suggest": "respond",
+          "deterministic": true
+        },
+        {
+          "id": "draft_not_approved_after_3_days",
+          "when": "draft not approved after 3 days",
+          "suggest": "chase approver",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "comms_requests",
+          "label": "Comms requests",
+          "fields": [
+            {
+              "key": "received_date",
+              "type": "date"
+            },
+            {
+              "key": "audience",
+              "type": "text"
+            },
+            {
+              "key": "message",
+              "type": "text"
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "draft",
+                "approved",
+                "sent"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "media_enquiries",
+          "label": "Media enquiries",
+          "fields": [
+            {
+              "key": "received_date",
+              "type": "date"
+            },
+            {
+              "key": "outlet",
+              "type": "text"
+            },
+            {
+              "key": "response_due",
+              "type": "text"
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "open",
+                "answered"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Design files",
+          "track": [
+            "communication materials"
+          ]
+        },
+        {
+          "kind": "Brand assets",
+          "track": [
+            "approved messaging"
+          ]
+        },
+        {
+          "kind": "User research",
+          "track": [
+            "audience feedback"
+          ]
+        }
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "daily_media_and_inbox_check",
+          "title": "Daily media and inbox check",
+          "frequency": "daily",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "weekly_comms_plan",
+          "title": "Weekly comms plan",
+          "frequency": "weekly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "monthly_message_review",
+          "title": "Monthly message review",
+          "frequency": "monthly",
+          "phasesFrom": "method"
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Daily media and inbox check",
+          "frequency": "daily",
+          "playbookKey": "daily_media_and_inbox_check"
+        },
+        {
+          "title": "Weekly comms plan",
+          "frequency": "weekly",
+          "playbookKey": "weekly_comms_plan"
+        },
+        {
+          "title": "Monthly message review",
+          "frequency": "monthly",
+          "playbookKey": "monthly_message_review"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "creative",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Requests sent",
+        "Media enquiries answered",
+        "Enquiries past due",
+        "Approved messages",
+        "Risks and recommendations",
+        "Plan for next period"
+      ]
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "standard",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Communications from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: comms_requests, media_enquiries"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Communications method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and playbook titles are proposals: confirm against local practice."
+  ]
+}

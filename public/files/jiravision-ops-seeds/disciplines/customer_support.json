@@ -1,0 +1,314 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "customer_support",
+    "label": "Customer support",
+    "category": "market",
+    "categoryLabel": "Sales, marketing & customer",
+    "focus": "Tickets, response times and satisfaction"
+  },
+  "pack": {
+    "key": "sales-marketing",
+    "reportTemplate": "creative",
+    "registerKinds": [
+      "Leads",
+      "Campaigns",
+      "Customers",
+      "Metrics"
+    ],
+    "ladderDiscipline": {
+      "proposed": "sales_marketing",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced customer support practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use."
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "tickets_resolved",
+          "label": "Tickets resolved",
+          "source": "support_tickets",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "open_tickets",
+          "label": "Open tickets",
+          "source": "support_tickets",
+          "sourceType": "log",
+          "aggregation": "open_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "average_satisfaction",
+          "label": "Average satisfaction",
+          "source": "csat_responses",
+          "sourceType": "log",
+          "aggregation": "avg",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "tickets_past_response_target",
+          "label": "Tickets past response target",
+          "source": "support_tickets",
+          "sourceType": "log",
+          "aggregation": "overdue_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "urgent_ticket_unanswered_1_hour",
+          "when": "urgent ticket unanswered 1 hour",
+          "suggest": "escalate",
+          "deterministic": true
+        },
+        {
+          "id": "repeat_issue_from_same_customer",
+          "when": "repeat issue from same customer",
+          "suggest": "root cause",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "support_tickets",
+          "label": "Support tickets",
+          "fields": [
+            {
+              "key": "received_date",
+              "type": "date"
+            },
+            {
+              "key": "customer_ref",
+              "type": "text"
+            },
+            {
+              "key": "channel",
+              "type": "text"
+            },
+            {
+              "key": "priority",
+              "type": "enum",
+              "values": [
+                "low",
+                "medium",
+                "high",
+                "urgent"
+              ]
+            },
+            {
+              "key": "resolved_date",
+              "type": "date"
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "open",
+                "pending",
+                "resolved"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "csat_responses",
+          "label": "Csat responses",
+          "fields": [
+            {
+              "key": "response_date",
+              "type": "date"
+            },
+            {
+              "key": "ticket_ref",
+              "type": "text"
+            },
+            {
+              "key": "score",
+              "type": "number"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Leads",
+          "track": [
+            "escalations"
+          ]
+        },
+        {
+          "kind": "Campaigns",
+          "track": [
+            "support campaigns"
+          ]
+        },
+        {
+          "kind": "Customers",
+          "track": [
+            "accounts"
+          ]
+        },
+        {
+          "kind": "Metrics",
+          "track": [
+            "support metrics"
+          ]
+        }
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "daily_queue_review",
+          "title": "Daily queue review",
+          "frequency": "daily",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "weekly_quality_review",
+          "title": "Weekly quality review",
+          "frequency": "weekly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "monthly_trend_report",
+          "title": "Monthly trend report",
+          "frequency": "monthly",
+          "phasesFrom": "method"
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Daily queue review",
+          "frequency": "daily",
+          "playbookKey": "daily_queue_review"
+        },
+        {
+          "title": "Weekly quality review",
+          "frequency": "weekly",
+          "playbookKey": "weekly_quality_review"
+        },
+        {
+          "title": "Monthly trend report",
+          "frequency": "monthly",
+          "playbookKey": "monthly_trend_report"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "creative",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Tickets resolved",
+        "Open tickets",
+        "Average satisfaction",
+        "Tickets past response target",
+        "Risks and recommendations",
+        "Plan for next period"
+      ]
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "restricted",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [
+        "support_tickets"
+      ],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Customer support from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: csat_responses"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Customer support method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and playbook titles are proposals: confirm against local practice."
+  ]
+}

@@ -1,0 +1,349 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "health_safety",
+    "label": "Health and safety",
+    "category": "engineering",
+    "categoryLabel": "Engineering & built works",
+    "focus": "Incidents, inspections and toolbox talks"
+  },
+  "pack": {
+    "key": "engineering",
+    "reportTemplate": "engineering",
+    "registerKinds": [
+      "Projects",
+      "Specifications",
+      "Inspections",
+      "Compliance"
+    ],
+    "ladderDiscipline": {
+      "proposed": "engineering",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "qualified safety officer",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use."
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "incidents_open",
+          "label": "Incidents open",
+          "source": "incident_reports",
+          "sourceType": "log",
+          "aggregation": "open_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "near_misses_logged",
+          "label": "Near misses logged",
+          "source": "incident_reports",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "inspections_with_actions",
+          "label": "Inspections with actions",
+          "source": "safety_inspections",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "toolbox_talks_held",
+          "label": "Toolbox talks held",
+          "source": "toolbox_talks",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "incident_open_over_7_days",
+          "when": "incident open over 7 days",
+          "suggest": "investigate",
+          "deterministic": true
+        },
+        {
+          "id": "inspection_action_overdue",
+          "when": "inspection action overdue",
+          "suggest": "escalate",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "incident_reports",
+          "label": "Incident reports",
+          "fields": [
+            {
+              "key": "incident_date",
+              "type": "date"
+            },
+            {
+              "key": "site",
+              "type": "text"
+            },
+            {
+              "key": "type",
+              "type": "enum",
+              "values": [
+                "near_miss",
+                "injury",
+                "damage"
+              ]
+            },
+            {
+              "key": "severity",
+              "type": "enum",
+              "values": [
+                "low",
+                "medium",
+                "high"
+              ]
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "open",
+                "investigating",
+                "closed"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "safety_inspections",
+          "label": "Safety inspections",
+          "fields": [
+            {
+              "key": "inspection_date",
+              "type": "date"
+            },
+            {
+              "key": "area",
+              "type": "text"
+            },
+            {
+              "key": "result",
+              "type": "enum",
+              "values": [
+                "ok",
+                "action_needed"
+              ]
+            },
+            {
+              "key": "actions_due",
+              "type": "text"
+            }
+          ]
+        },
+        {
+          "key": "toolbox_talks",
+          "label": "Toolbox talks",
+          "fields": [
+            {
+              "key": "talk_date",
+              "type": "date"
+            },
+            {
+              "key": "topic",
+              "type": "text"
+            },
+            {
+              "key": "attendee_count",
+              "type": "number"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Projects",
+          "track": [
+            "safety programmes"
+          ]
+        },
+        {
+          "kind": "Specifications",
+          "track": [
+            "safety standards"
+          ]
+        },
+        {
+          "kind": "Inspections",
+          "track": [
+            "safety inspections"
+          ]
+        },
+        {
+          "kind": "Compliance",
+          "track": [
+            "legal and policy requirements"
+          ]
+        }
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "daily_site_walk",
+          "title": "Daily site walk",
+          "frequency": "daily",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "weekly_toolbox_talk",
+          "title": "Weekly toolbox talk",
+          "frequency": "weekly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "monthly_safety_inspection",
+          "title": "Monthly safety inspection",
+          "frequency": "monthly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "quarterly_safety_review",
+          "title": "Quarterly safety review",
+          "frequency": "quarterly",
+          "phasesFrom": "method"
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Daily site walk",
+          "frequency": "daily",
+          "playbookKey": "daily_site_walk"
+        },
+        {
+          "title": "Weekly toolbox talk",
+          "frequency": "weekly",
+          "playbookKey": "weekly_toolbox_talk"
+        },
+        {
+          "title": "Monthly safety inspection",
+          "frequency": "monthly",
+          "playbookKey": "monthly_safety_inspection"
+        },
+        {
+          "title": "Quarterly safety review",
+          "frequency": "quarterly",
+          "playbookKey": "quarterly_safety_review"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "engineering",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Incidents open",
+        "Near misses logged",
+        "Inspections with actions",
+        "Toolbox talks held",
+        "Risks and recommendations",
+        "Plan for next period"
+      ]
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "standard",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Health and safety from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: incident_reports, safety_inspections, toolbox_talks"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Health and safety method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and playbook titles are proposals: confirm against local practice."
+  ]
+}

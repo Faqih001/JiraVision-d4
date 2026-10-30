@@ -1,0 +1,306 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "environmental",
+    "label": "Environmental",
+    "category": "engineering",
+    "categoryLabel": "Engineering & built works",
+    "focus": "Monitoring, permits and compliance"
+  },
+  "pack": {
+    "key": "engineering",
+    "reportTemplate": "engineering",
+    "registerKinds": [
+      "Projects",
+      "Specifications",
+      "Inspections",
+      "Compliance"
+    ],
+    "ladderDiscipline": {
+      "proposed": "engineering",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "environmental professional",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use."
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "readings_within_limits",
+          "label": "Readings within limits",
+          "source": "monitoring_readings",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "readings_exceeding_limits",
+          "label": "Readings exceeding limits",
+          "source": "monitoring_readings",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "permit_conditions_overdue",
+          "label": "Permit conditions overdue",
+          "source": "permit_conditions",
+          "sourceType": "log",
+          "aggregation": "overdue_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "inspections",
+          "label": "Inspections",
+          "source": "inspections",
+          "sourceType": "register",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "reading_exceeds_limit",
+          "when": "reading exceeds limit",
+          "suggest": "notify and investigate",
+          "deterministic": true
+        },
+        {
+          "id": "permit_condition_due_in_14_days",
+          "when": "permit condition due in 14 days",
+          "suggest": "prepare",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "monitoring_readings",
+          "label": "Monitoring readings",
+          "fields": [
+            {
+              "key": "reading_date",
+              "type": "date"
+            },
+            {
+              "key": "site",
+              "type": "text"
+            },
+            {
+              "key": "parameter",
+              "type": "text"
+            },
+            {
+              "key": "limit_status",
+              "type": "enum",
+              "values": [
+                "within",
+                "exceeds"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "permit_conditions",
+          "label": "Permit conditions",
+          "fields": [
+            {
+              "key": "permit_ref",
+              "type": "text"
+            },
+            {
+              "key": "condition",
+              "type": "text"
+            },
+            {
+              "key": "due_date",
+              "type": "date"
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "open",
+                "met",
+                "overdue"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Projects",
+          "track": [
+            "environmental projects"
+          ]
+        },
+        {
+          "kind": "Specifications",
+          "track": [
+            "environmental standards"
+          ]
+        },
+        {
+          "kind": "Inspections",
+          "track": [
+            "site and monitoring inspections"
+          ]
+        },
+        {
+          "kind": "Compliance",
+          "track": [
+            "permits and conditions"
+          ]
+        }
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "weekly_monitoring_round",
+          "title": "Weekly monitoring round",
+          "frequency": "weekly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "monthly_permit_review",
+          "title": "Monthly permit review",
+          "frequency": "monthly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "quarterly_environmental_report",
+          "title": "Quarterly environmental report",
+          "frequency": "quarterly",
+          "phasesFrom": "method"
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Weekly monitoring round",
+          "frequency": "weekly",
+          "playbookKey": "weekly_monitoring_round"
+        },
+        {
+          "title": "Monthly permit review",
+          "frequency": "monthly",
+          "playbookKey": "monthly_permit_review"
+        },
+        {
+          "title": "Quarterly environmental report",
+          "frequency": "quarterly",
+          "playbookKey": "quarterly_environmental_report"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "engineering",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Readings within limits",
+        "Readings exceeding limits",
+        "Permit conditions overdue",
+        "Inspections",
+        "Risks and recommendations",
+        "Plan for next period"
+      ]
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "standard",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Environmental from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: monitoring_readings, permit_conditions"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Environmental method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and playbook titles are proposals: confirm against local practice."
+  ]
+}

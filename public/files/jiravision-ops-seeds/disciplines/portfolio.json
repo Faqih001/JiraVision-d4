@@ -1,0 +1,297 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "portfolio",
+    "label": "Portfolio",
+    "category": "delivery",
+    "categoryLabel": "Management & project delivery",
+    "focus": "Portfolio prioritisation and investment tracking"
+  },
+  "pack": {
+    "key": "management",
+    "reportTemplate": "general",
+    "registerKinds": [
+      "Initiatives",
+      "Stakeholders",
+      "Risks",
+      "Reports"
+    ],
+    "ladderDiscipline": {
+      "proposed": "coordinator",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced portfolio practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use."
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "items_reviewed",
+          "label": "Items reviewed",
+          "source": "prioritisation_reviews",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "capacity_checks_over_demand",
+          "label": "Capacity checks over demand",
+          "source": "capacity_checks",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "items_paused_or_stopped",
+          "label": "Items paused or stopped",
+          "source": "prioritisation_reviews",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "portfolio_risks_rated_high",
+          "label": "Portfolio risks rated high",
+          "source": "risks",
+          "sourceType": "register",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "demand_hours_exceed_available_hours",
+          "when": "demand hours exceed available hours",
+          "suggest": "rebalance",
+          "deterministic": true
+        },
+        {
+          "id": "item_not_reviewed_in_90_days",
+          "when": "item not reviewed in 90 days",
+          "suggest": "review",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "prioritisation_reviews",
+          "label": "Prioritisation reviews",
+          "fields": [
+            {
+              "key": "review_date",
+              "type": "date"
+            },
+            {
+              "key": "item",
+              "type": "text"
+            },
+            {
+              "key": "decision",
+              "type": "enum",
+              "values": [
+                "continue",
+                "pause",
+                "stop",
+                "start"
+              ]
+            },
+            {
+              "key": "rationale",
+              "type": "text"
+            }
+          ]
+        },
+        {
+          "key": "capacity_checks",
+          "label": "Capacity checks",
+          "fields": [
+            {
+              "key": "check_date",
+              "type": "date"
+            },
+            {
+              "key": "team",
+              "type": "text"
+            },
+            {
+              "key": "demand_hours",
+              "type": "number"
+            },
+            {
+              "key": "available_hours",
+              "type": "number"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Initiatives",
+          "track": [
+            "portfolio items"
+          ]
+        },
+        {
+          "kind": "Risks",
+          "track": [
+            "portfolio risks"
+          ]
+        },
+        {
+          "kind": "Reports",
+          "track": [
+            "portfolio reports"
+          ]
+        }
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "monthly_portfolio_review",
+          "title": "Monthly portfolio review",
+          "frequency": "monthly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "quarterly_reprioritisation",
+          "title": "Quarterly reprioritisation",
+          "frequency": "quarterly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "capacity_check",
+          "title": "Capacity check",
+          "frequency": "monthly",
+          "phasesFrom": "method"
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Monthly portfolio review",
+          "frequency": "monthly",
+          "playbookKey": "monthly_portfolio_review"
+        },
+        {
+          "title": "Quarterly reprioritisation",
+          "frequency": "quarterly",
+          "playbookKey": "quarterly_reprioritisation"
+        },
+        {
+          "title": "Capacity check",
+          "frequency": "monthly",
+          "playbookKey": "capacity_check"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "general",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Items reviewed",
+        "Capacity checks over demand",
+        "Items paused or stopped",
+        "Portfolio risks rated high",
+        "Risks and recommendations",
+        "Plan for next period"
+      ]
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "standard",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Portfolio from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: prioritisation_reviews, capacity_checks"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Portfolio method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and playbook titles are proposals: confirm against local practice."
+  ]
+}

@@ -1,0 +1,317 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "change_management",
+    "label": "Change management",
+    "category": "delivery",
+    "categoryLabel": "Management & project delivery",
+    "focus": "Change requests, impact assessment and adoption"
+  },
+  "pack": {
+    "key": "management",
+    "reportTemplate": "general",
+    "registerKinds": [
+      "Initiatives",
+      "Stakeholders",
+      "Risks",
+      "Reports"
+    ],
+    "ladderDiscipline": {
+      "proposed": "coordinator",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced change management practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use."
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "changes_implemented",
+          "label": "Changes implemented",
+          "source": "change_requests",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "approvals_pending",
+          "label": "Approvals pending",
+          "source": "change_requests",
+          "sourceType": "log",
+          "aggregation": "open_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "groups_with_low_adoption",
+          "label": "Groups with low adoption",
+          "source": "adoption_checks",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "change_requests_logged",
+          "label": "Change requests logged",
+          "source": "change_requests",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "approval_pending_over_5_days",
+          "when": "approval pending over 5 days",
+          "suggest": "chase approver",
+          "deterministic": true
+        },
+        {
+          "id": "low_adoption_twice_in_a_row",
+          "when": "low adoption twice in a row",
+          "suggest": "plan intervention",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "change_requests",
+          "label": "Change requests",
+          "fields": [
+            {
+              "key": "received_date",
+              "type": "date"
+            },
+            {
+              "key": "change",
+              "type": "text"
+            },
+            {
+              "key": "impact",
+              "type": "enum",
+              "values": [
+                "low",
+                "medium",
+                "high"
+              ]
+            },
+            {
+              "key": "approver",
+              "type": "text"
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "submitted",
+                "approved",
+                "implemented",
+                "rejected"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "adoption_checks",
+          "label": "Adoption checks",
+          "fields": [
+            {
+              "key": "check_date",
+              "type": "date"
+            },
+            {
+              "key": "group",
+              "type": "text"
+            },
+            {
+              "key": "adoption_level",
+              "type": "enum",
+              "values": [
+                "low",
+                "medium",
+                "high"
+              ]
+            },
+            {
+              "key": "action",
+              "type": "text"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Initiatives",
+          "track": [
+            "change initiatives"
+          ]
+        },
+        {
+          "kind": "Stakeholders",
+          "track": [
+            "impacted groups"
+          ]
+        },
+        {
+          "kind": "Risks",
+          "track": [
+            "change risks"
+          ]
+        }
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "change_advisory_review",
+          "title": "Change advisory review",
+          "frequency": "weekly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "impact_assessment",
+          "title": "Impact assessment",
+          "frequency": "as_needed",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "post_implementation_review",
+          "title": "Post-implementation review",
+          "frequency": "monthly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "stakeholder_readiness_check",
+          "title": "Stakeholder readiness check",
+          "frequency": "quarterly",
+          "phasesFrom": "method"
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Change advisory review",
+          "frequency": "weekly",
+          "playbookKey": "change_advisory_review"
+        },
+        {
+          "title": "Post-implementation review",
+          "frequency": "monthly",
+          "playbookKey": "post_implementation_review"
+        },
+        {
+          "title": "Stakeholder readiness check",
+          "frequency": "quarterly",
+          "playbookKey": "stakeholder_readiness_check"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "general",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Changes implemented",
+        "Approvals pending",
+        "Groups with low adoption",
+        "Change requests logged",
+        "Risks and recommendations",
+        "Plan for next period"
+      ]
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "standard",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Change management from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: change_requests, adoption_checks"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Change management method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and playbook titles are proposals: confirm against local practice."
+  ]
+}

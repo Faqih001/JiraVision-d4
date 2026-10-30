@@ -1,0 +1,300 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "sales",
+    "label": "Sales",
+    "category": "market",
+    "categoryLabel": "Sales, marketing & customer",
+    "focus": "Pipeline, calls and follow-ups"
+  },
+  "pack": {
+    "key": "sales-marketing",
+    "reportTemplate": "creative",
+    "registerKinds": [
+      "Leads",
+      "Campaigns",
+      "Customers",
+      "Metrics"
+    ],
+    "ladderDiscipline": {
+      "proposed": "sales_marketing",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced sales practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use."
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "deals_won",
+          "label": "Deals won",
+          "source": "pipeline_updates",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "leads_in_pipeline",
+          "label": "Leads in pipeline",
+          "source": "pipeline_updates",
+          "sourceType": "log",
+          "aggregation": "open_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "calls_logged",
+          "label": "Calls logged",
+          "source": "sales_calls",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "follow_ups_overdue",
+          "label": "Follow-ups overdue",
+          "source": "pipeline_updates",
+          "sourceType": "log",
+          "aggregation": "overdue_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "lead_with_no_next_step",
+          "when": "lead with no next step",
+          "suggest": "set one",
+          "deterministic": true
+        },
+        {
+          "id": "proposal_open_over_14_days",
+          "when": "proposal open over 14 days",
+          "suggest": "follow up",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "pipeline_updates",
+          "label": "Pipeline updates",
+          "fields": [
+            {
+              "key": "update_date",
+              "type": "date"
+            },
+            {
+              "key": "lead_ref",
+              "type": "text"
+            },
+            {
+              "key": "stage",
+              "type": "enum",
+              "values": [
+                "new",
+                "qualified",
+                "proposal",
+                "won",
+                "lost"
+              ]
+            },
+            {
+              "key": "next_step_date",
+              "type": "date"
+            }
+          ]
+        },
+        {
+          "key": "sales_calls",
+          "label": "Sales calls",
+          "fields": [
+            {
+              "key": "call_date",
+              "type": "date"
+            },
+            {
+              "key": "customer_ref",
+              "type": "text"
+            },
+            {
+              "key": "outcome",
+              "type": "text"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Leads",
+          "track": [
+            "prospects"
+          ]
+        },
+        {
+          "kind": "Campaigns",
+          "track": [
+            "sales campaigns"
+          ]
+        },
+        {
+          "kind": "Customers",
+          "track": [
+            "accounts"
+          ]
+        },
+        {
+          "kind": "Metrics",
+          "track": [
+            "sales metrics"
+          ]
+        }
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "daily_pipeline_update",
+          "title": "Daily pipeline update",
+          "frequency": "daily",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "weekly_forecast_review",
+          "title": "Weekly forecast review",
+          "frequency": "weekly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "monthly_pipeline_clean_up",
+          "title": "Monthly pipeline clean-up",
+          "frequency": "monthly",
+          "phasesFrom": "method"
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Daily pipeline update",
+          "frequency": "daily",
+          "playbookKey": "daily_pipeline_update"
+        },
+        {
+          "title": "Weekly forecast review",
+          "frequency": "weekly",
+          "playbookKey": "weekly_forecast_review"
+        },
+        {
+          "title": "Monthly pipeline clean-up",
+          "frequency": "monthly",
+          "playbookKey": "monthly_pipeline_clean_up"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "creative",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Deals won",
+        "Leads in pipeline",
+        "Calls logged",
+        "Follow-ups overdue",
+        "Risks and recommendations",
+        "Plan for next period"
+      ]
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "standard",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Sales from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: pipeline_updates, sales_calls"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Sales method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and playbook titles are proposals: confirm against local practice."
+  ]
+}

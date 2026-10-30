@@ -1,0 +1,309 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "logistics",
+    "label": "Logistics",
+    "category": "operations",
+    "categoryLabel": "Operations & supply chain",
+    "focus": "Shipments, routes and delivery exceptions"
+  },
+  "pack": {
+    "key": "operations",
+    "reportTemplate": "technical",
+    "registerKinds": [
+      "Processes",
+      "Inventory",
+      "Logistics",
+      "Quality control"
+    ],
+    "ladderDiscipline": {
+      "proposed": "operations",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced logistics practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use."
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "shipments_delivered_on_time",
+          "label": "Shipments delivered on time",
+          "source": "shipments",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "shipments_late",
+          "label": "Shipments late",
+          "source": "shipments",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "open_exceptions",
+          "label": "Open exceptions",
+          "source": "delivery_exceptions",
+          "sourceType": "log",
+          "aggregation": "open_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "routes_documented",
+          "label": "Routes documented",
+          "source": "logistics",
+          "sourceType": "register",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "shipment_undelivered_past_due_date",
+          "when": "shipment undelivered past due date",
+          "suggest": "trace",
+          "deterministic": true
+        },
+        {
+          "id": "exception_open_over_2_days",
+          "when": "exception open over 2 days",
+          "suggest": "escalate",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "shipments",
+          "label": "Shipments",
+          "fields": [
+            {
+              "key": "dispatch_date",
+              "type": "date"
+            },
+            {
+              "key": "reference",
+              "type": "text"
+            },
+            {
+              "key": "destination",
+              "type": "text"
+            },
+            {
+              "key": "delivered_date",
+              "type": "date"
+            },
+            {
+              "key": "on_time",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "delivery_exceptions",
+          "label": "Delivery exceptions",
+          "fields": [
+            {
+              "key": "exception_date",
+              "type": "date"
+            },
+            {
+              "key": "shipment_ref",
+              "type": "text"
+            },
+            {
+              "key": "cause",
+              "type": "text"
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "open",
+                "resolved"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Processes",
+          "track": [
+            "dispatch processes"
+          ]
+        },
+        {
+          "kind": "Inventory",
+          "track": [
+            "goods in transit"
+          ]
+        },
+        {
+          "kind": "Logistics",
+          "track": [
+            "routes and carriers"
+          ]
+        },
+        {
+          "kind": "Quality control",
+          "track": [
+            "delivery checks"
+          ]
+        }
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "daily_dispatch_check",
+          "title": "Daily dispatch check",
+          "frequency": "daily",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "weekly_carrier_review",
+          "title": "Weekly carrier review",
+          "frequency": "weekly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "monthly_route_review",
+          "title": "Monthly route review",
+          "frequency": "monthly",
+          "phasesFrom": "method"
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Daily dispatch check",
+          "frequency": "daily",
+          "playbookKey": "daily_dispatch_check"
+        },
+        {
+          "title": "Weekly carrier review",
+          "frequency": "weekly",
+          "playbookKey": "weekly_carrier_review"
+        },
+        {
+          "title": "Monthly route review",
+          "frequency": "monthly",
+          "playbookKey": "monthly_route_review"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "technical",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Shipments delivered on time",
+        "Shipments late",
+        "Open exceptions",
+        "Routes documented",
+        "Risks and recommendations",
+        "Plan for next period"
+      ]
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "standard",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Logistics from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: shipments, delivery_exceptions"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Logistics method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and playbook titles are proposals: confirm against local practice."
+  ]
+}

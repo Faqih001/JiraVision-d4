@@ -1,0 +1,319 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "education",
+    "label": "Education",
+    "category": "science",
+    "categoryLabel": "Health, science & specialist services",
+    "focus": "Lesson planning, assessment and learner progress"
+  },
+  "pack": {
+    "key": "healthcare-science",
+    "reportTemplate": "technical",
+    "registerKinds": [
+      "Patients",
+      "Clinical protocols",
+      "Research",
+      "Compliance"
+    ],
+    "ladderDiscipline": {
+      "proposed": "healthcare_science",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "qualified teacher",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use."
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "lessons_taught",
+          "label": "Lessons taught",
+          "source": "lesson_plans",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "assessments_complete",
+          "label": "Assessments complete",
+          "source": "assessment_records",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "lessons_planned_not_taught",
+          "label": "Lessons planned not taught",
+          "source": "lesson_plans",
+          "sourceType": "log",
+          "aggregation": "open_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "safeguarding_items",
+          "label": "Safeguarding items",
+          "source": "compliance",
+          "sourceType": "register",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "lesson_planned_but_not_taught",
+          "when": "lesson planned but not taught",
+          "suggest": "reschedule",
+          "deterministic": true
+        },
+        {
+          "id": "assessment_partly_complete",
+          "when": "assessment partly complete",
+          "suggest": "finish",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "lesson_plans",
+          "label": "Lesson plans",
+          "fields": [
+            {
+              "key": "lesson_date",
+              "type": "date"
+            },
+            {
+              "key": "class",
+              "type": "text"
+            },
+            {
+              "key": "topic",
+              "type": "text"
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "planned",
+                "taught"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "assessment_records",
+          "label": "Assessment records",
+          "fields": [
+            {
+              "key": "assessment_date",
+              "type": "date"
+            },
+            {
+              "key": "class",
+              "type": "text"
+            },
+            {
+              "key": "assessment",
+              "type": "text"
+            },
+            {
+              "key": "completion_status",
+              "type": "enum",
+              "values": [
+                "complete",
+                "partial"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Patients",
+          "track": [
+            "none"
+          ]
+        },
+        {
+          "kind": "Clinical protocols",
+          "track": [
+            "teaching protocols"
+          ]
+        },
+        {
+          "kind": "Research",
+          "track": [
+            "pedagogy research"
+          ]
+        },
+        {
+          "kind": "Compliance",
+          "track": [
+            "curriculum and safeguarding"
+          ]
+        }
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "daily_lesson_plan",
+          "title": "Daily lesson plan",
+          "frequency": "daily",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "weekly_assessment_review",
+          "title": "Weekly assessment review",
+          "frequency": "weekly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "monthly_progress_report",
+          "title": "Monthly progress report",
+          "frequency": "monthly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "term_curriculum_review",
+          "title": "Term curriculum review",
+          "frequency": "quarterly",
+          "phasesFrom": "method"
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Daily lesson plan",
+          "frequency": "daily",
+          "playbookKey": "daily_lesson_plan"
+        },
+        {
+          "title": "Weekly assessment review",
+          "frequency": "weekly",
+          "playbookKey": "weekly_assessment_review"
+        },
+        {
+          "title": "Monthly progress report",
+          "frequency": "monthly",
+          "playbookKey": "monthly_progress_report"
+        },
+        {
+          "title": "Term curriculum review",
+          "frequency": "quarterly",
+          "playbookKey": "term_curriculum_review"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "technical",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Lessons taught",
+        "Assessments complete",
+        "Lessons planned not taught",
+        "Safeguarding items",
+        "Risks and recommendations",
+        "Plan for next period"
+      ]
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "restricted",
+      "neverSendRegisterKinds": [
+        "Patients"
+      ],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers",
+        "amounts and balances"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Education from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: lesson_plans, assessment_records"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Education method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and playbook titles are proposals: confirm against local practice."
+  ]
+}

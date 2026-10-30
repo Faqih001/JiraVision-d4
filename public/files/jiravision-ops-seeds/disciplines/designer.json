@@ -1,0 +1,313 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "designer",
+    "label": "Designer",
+    "category": "technology",
+    "categoryLabel": "Software, IT & digital",
+    "focus": "Design delivery, critique and handoff"
+  },
+  "pack": {
+    "key": "designer",
+    "reportTemplate": "creative",
+    "registerKinds": [
+      "Design files",
+      "Brand assets",
+      "User research",
+      "Design system"
+    ],
+    "ladderDiscipline": {
+      "proposed": "designer",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced designer practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use."
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "reviews_approved",
+          "label": "Reviews approved",
+          "source": "design_reviews",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "revision_rounds_per_deliverable",
+          "label": "Revision rounds per deliverable",
+          "source": "design_reviews",
+          "sourceType": "log",
+          "aggregation": "avg",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "usability_tests_run",
+          "label": "Usability tests run",
+          "source": "usability_tests",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "design_system_items",
+          "label": "Design system items",
+          "source": "design_system",
+          "sourceType": "register",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "deliverable_on_third_revision_round",
+          "when": "deliverable on third revision round",
+          "suggest": "agree scope",
+          "deterministic": true
+        },
+        {
+          "id": "handoff_without_checklist",
+          "when": "handoff without checklist",
+          "suggest": "complete it",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "design_reviews",
+          "label": "Design reviews",
+          "fields": [
+            {
+              "key": "review_date",
+              "type": "date"
+            },
+            {
+              "key": "deliverable",
+              "type": "text"
+            },
+            {
+              "key": "round",
+              "type": "number"
+            },
+            {
+              "key": "outcome",
+              "type": "enum",
+              "values": [
+                "approved",
+                "changes",
+                "rejected"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "usability_tests",
+          "label": "Usability tests",
+          "fields": [
+            {
+              "key": "test_date",
+              "type": "date"
+            },
+            {
+              "key": "prototype",
+              "type": "text"
+            },
+            {
+              "key": "participant_count",
+              "type": "number"
+            },
+            {
+              "key": "key_findings",
+              "type": "text"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Design files",
+          "track": [
+            "active files and owners"
+          ]
+        },
+        {
+          "kind": "Brand assets",
+          "track": [
+            "asset library"
+          ]
+        },
+        {
+          "kind": "User research",
+          "track": [
+            "studies and findings"
+          ]
+        },
+        {
+          "kind": "Design system",
+          "track": [
+            "components and tokens"
+          ]
+        }
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "design_critique",
+          "title": "Design critique",
+          "frequency": "weekly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "handoff_checklist",
+          "title": "Handoff checklist",
+          "frequency": "weekly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "design_system_audit",
+          "title": "Design system audit",
+          "frequency": "monthly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "research_synthesis",
+          "title": "Research synthesis",
+          "frequency": "monthly",
+          "phasesFrom": "method"
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Design critique",
+          "frequency": "weekly",
+          "playbookKey": "design_critique"
+        },
+        {
+          "title": "Handoff checklist",
+          "frequency": "weekly",
+          "playbookKey": "handoff_checklist"
+        },
+        {
+          "title": "Design system audit",
+          "frequency": "monthly",
+          "playbookKey": "design_system_audit"
+        },
+        {
+          "title": "Research synthesis",
+          "frequency": "monthly",
+          "playbookKey": "research_synthesis"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "creative",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Reviews approved",
+        "Revision rounds per deliverable",
+        "Usability tests run",
+        "Design system items",
+        "Risks and recommendations",
+        "Plan for next period"
+      ]
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "standard",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Designer from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: design_reviews, usability_tests"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Designer method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and playbook titles are proposals: confirm against local practice."
+  ]
+}

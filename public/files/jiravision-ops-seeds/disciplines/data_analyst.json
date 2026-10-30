@@ -1,0 +1,299 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "data_analyst",
+    "label": "Data analyst",
+    "category": "information",
+    "categoryLabel": "Analysis, research & information",
+    "focus": "Dashboards, refreshes and data quality"
+  },
+  "pack": {
+    "key": "analyst",
+    "reportTemplate": "assurance",
+    "registerKinds": [
+      "Data sources",
+      "Analysis reports",
+      "Dashboards",
+      "Methodology"
+    ],
+    "ladderDiscipline": {
+      "proposed": "analyst",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced data analyst practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use."
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "refresh_success_rate",
+          "label": "Refresh success rate",
+          "source": "data_refreshes",
+          "sourceType": "log",
+          "aggregation": "rate",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "open_data_quality_issues",
+          "label": "Open data quality issues",
+          "source": "data_quality_issues",
+          "sourceType": "log",
+          "aggregation": "open_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "dashboards",
+          "label": "Dashboards",
+          "source": "dashboards",
+          "sourceType": "register",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "issues_fixed",
+          "label": "Issues fixed",
+          "source": "data_quality_issues",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "refresh_failed_twice",
+          "when": "refresh failed twice",
+          "suggest": "investigate source",
+          "deterministic": true
+        },
+        {
+          "id": "issue_open_over_7_days",
+          "when": "issue open over 7 days",
+          "suggest": "assign owner",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "data_refreshes",
+          "label": "Data refreshes",
+          "fields": [
+            {
+              "key": "refresh_date",
+              "type": "date"
+            },
+            {
+              "key": "source",
+              "type": "text"
+            },
+            {
+              "key": "dashboard",
+              "type": "text"
+            },
+            {
+              "key": "result",
+              "type": "enum",
+              "values": [
+                "success",
+                "failed"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "data_quality_issues",
+          "label": "Data quality issues",
+          "fields": [
+            {
+              "key": "found_date",
+              "type": "date"
+            },
+            {
+              "key": "dataset",
+              "type": "text"
+            },
+            {
+              "key": "issue",
+              "type": "text"
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "open",
+                "fixed"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Data sources",
+          "track": [
+            "source systems"
+          ]
+        },
+        {
+          "kind": "Dashboards",
+          "track": [
+            "dashboards owned"
+          ]
+        },
+        {
+          "kind": "Analysis reports",
+          "track": [
+            "recurring reports"
+          ]
+        }
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "daily_refresh_check",
+          "title": "Daily refresh check",
+          "frequency": "daily",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "weekly_data_quality_review",
+          "title": "Weekly data quality review",
+          "frequency": "weekly",
+          "phasesFrom": "method"
+        },
+        {
+          "key": "monthly_dashboard_review",
+          "title": "Monthly dashboard review",
+          "frequency": "monthly",
+          "phasesFrom": "method"
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Daily refresh check",
+          "frequency": "daily",
+          "playbookKey": "daily_refresh_check"
+        },
+        {
+          "title": "Weekly data quality review",
+          "frequency": "weekly",
+          "playbookKey": "weekly_data_quality_review"
+        },
+        {
+          "title": "Monthly dashboard review",
+          "frequency": "monthly",
+          "playbookKey": "monthly_dashboard_review"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "assurance",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Refresh success rate",
+        "Open data quality issues",
+        "Dashboards",
+        "Issues fixed",
+        "Risks and recommendations",
+        "Plan for next period"
+      ]
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "standard",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Data analyst from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: data_refreshes, data_quality_issues"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Data analyst method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and playbook titles are proposals: confirm against local practice."
+  ]
+}
