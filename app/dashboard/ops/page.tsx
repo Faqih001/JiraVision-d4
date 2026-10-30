@@ -20,6 +20,7 @@ import {
   TrendingUp,
   TrendingDown,
   Minus,
+  Settings2,
   Upload,
 } from "lucide-react"
 import Link from "next/link"
@@ -193,14 +194,14 @@ export default function OperationsOverviewPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">Operations overview</h1>
           <p className="text-sm text-muted-foreground">
             {pack.discipline ? `${pack.discipline}` : "Your"} operations &middot; {currentMonth()}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={() => void loadData()}>
             <RefreshCw className="mr-2 h-4 w-4" />
             Refresh
@@ -233,6 +234,12 @@ export default function OperationsOverviewPage() {
             <Link href="/dashboard/ops/import">
               <Upload className="mr-2 h-4 w-4" />
               Import
+            </Link>
+          </Button>
+          <Button variant="outline" size="sm" asChild>
+            <Link href="/dashboard/ops/config">
+              <Settings2 className="mr-2 h-4 w-4" />
+              Config
             </Link>
           </Button>
         </div>
