@@ -210,6 +210,12 @@ export default function OperationsOverviewPage() {
             </Link>
           </Button>
           <Button variant="outline" size="sm" asChild>
+            <Link href="/dashboard/ops/kpis">
+              <TrendingUp className="mr-2 h-4 w-4" />
+              KPIs
+            </Link>
+          </Button>
+          <Button variant="outline" size="sm" asChild>
             <Link href="/dashboard/ops/import">
               <Upload className="mr-2 h-4 w-4" />
               Import

@@ -374,6 +374,12 @@ export default function DashboardLayout({
                 active: pathname === "/dashboard/ops/logs",
               },
               {
+                title: "KPIs",
+                icon: <TrendingUp className="h-5 w-5" />,
+                href: "/dashboard/ops/kpis",
+                active: pathname === "/dashboard/ops/kpis",
+              },
+              {
                 title: "Import document",
                 icon: <Upload className="h-5 w-5" />,
                 href: "/dashboard/ops/import",

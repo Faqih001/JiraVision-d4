@@ -729,3 +729,25 @@ reconnects the links that step 26 had pulled.
   from each field type, wires POST/PATCH/DELETE, and degrades to a "no operations configured" state;
   the overview test confirms the logs link returned while the KPI detail page (a later step) stays
   unlinked.
+
+## 28. KPI detail page, one month at a time (2026-10-30)
+
+The overview shows a compact KPI strip, but a member had nowhere to study a single month's metrics or
+see which targets they missed. This step adds `/dashboard/ops/kpis` and reconnects the "KPIs" link
+step 26 had pulled.
+
+- **Numbers stay computed, never invented.** The page fetches `/api/ops/kpis?pack=…&month=…`, which
+  runs `computeMonthlyKpis` over the member's own `ops_log_entries` and `register_items`. Every value,
+  target and met/below flag comes from the pack's `kpis` config applied to real rows; the client holds
+  no arithmetic of its own and never estimates a missing month.
+- **Month navigation.** Left/right controls shift one calendar month; the active month is mirrored to
+  `?month=` so a KPI view is shareable and survives a refresh. A non-`YYYY-MM` value falls back to the
+  current month. Ratio KPIs render as percentages; the rest carry their declared unit.
+- **Target-vs-actual read.** Each card pairs the value with its target and a status glyph — on target,
+  below target, or no target set — and a summary bar counts how many KPIs met, how many fell short,
+  and how many entries and register rows the month drew from.
+- **Guards.** A new integration test proves the page delegates computation to the API (it does not
+  import `computeKpis` itself), navigates months and syncs the URL, renders the met indicator and
+  `tabular-nums` values, states that numbers are "computed from rows you logged", and degrades to a
+  "no operations configured" state. The overview test now expects the KPIs link back in the sidebar
+  and top bar.
