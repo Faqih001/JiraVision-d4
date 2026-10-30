@@ -12,6 +12,7 @@
 import { readFileSync } from "node:fs"
 import postgres from "postgres"
 import { SEED_PACKS } from "../lib/packs/seed.ts"
+import { opsConfigForPackKey } from "../lib/packs/ops/registry.ts"
 
 const env = readFileSync(new URL("../.env.local", import.meta.url), "utf8")
 
@@ -97,9 +98,36 @@ try {
   const [{ count }] = await sql`SELECT count(*)::int AS count FROM role_packs`
   const [{ items }] = await sql`SELECT count(*)::int AS items FROM register_items`
 
+  // Carry the code-authored opsConfig onto fresh pack rows so a new install has a live
+  // operations engine without a second step. The column is added by npm run db:ops, so this
+  // no-ops when that migration has not run yet, and it only fills rows still empty — an
+  // existing pack's config survives a re-run, exactly like DO NOTHING above protects its facets.
+  const hasOpsColumn = await sql`
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'role_packs' AND column_name = 'ops_config'
+  `
+  let opsConfigured = 0
+  if (hasOpsColumn.length > 0) {
+    for (const pack of SEED_PACKS) {
+      const config = opsConfigForPackKey(pack.packKey)
+      if (!config) continue
+      const [updated] = await sql`
+        UPDATE role_packs SET ops_config = ${sql.json(config)}
+        WHERE pack_key = ${pack.packKey} AND ops_config IS NULL
+        RETURNING id
+      `
+      if (updated) opsConfigured++
+    }
+  }
+
   console.log("tables:", EXPECTED_TABLES.join(", "))
   console.log(`role_packs rows: ${count} (expected ${SEED_PACKS.length})`)
   console.log(`register_items rows: ${items} (the owner types their own inventory)`)
+  console.log(
+    hasOpsColumn.length > 0
+      ? `ops_config set on ${opsConfigured} fresh pack(s) (existing config untouched)`
+      : "ops_config column absent — run npm run db:ops to enable the operations engine, then npm run db:ops:seed",
+  )
 } catch (error) {
   console.error("Registers migration failed:", error.message ?? error)
   process.exit(1)

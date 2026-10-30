@@ -54,8 +54,11 @@ else — logging, reporting, exporting — works normally. See [AI](#ai).
 | `npm run db:worklog:rollback` | Drop those tables again |
 | `npm run db:career` | Create the career tables and seed the 20-rung ladder |
 | `npm run db:career:rollback` | Drop the career tables again |
-| `npm run db:registers` | Create the role-pack and register tables and seed the two packs |
+| `npm run db:registers` | Create the role-pack and register tables, seed the packs and backfill each pack's opsConfig |
 | `npm run db:registers:rollback` | Drop those tables again |
+| `npm run db:ops` | Create the ops log tables and the `role_packs.ops_config` column (additive) |
+| `npm run db:ops:seed` | Persist each pack's code-authored opsConfig into `role_packs.ops_config` (dry run; `-- --write` to apply) |
+| `npm run db:ops:rollback` | Drop the ops tables again |
 | `npm run db:playbooks` | Create the playbooks table and the work-log foreign key (additive) |
 | `npm run db:playbooks:rollback` | Drop that table and the constraint again |
 | `npm run db:invitations` | Create the workspace-invitation table (additive) |

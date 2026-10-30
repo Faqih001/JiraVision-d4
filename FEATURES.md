@@ -647,3 +647,37 @@ table, nine new guard files, no change to how the pages themselves are written.
 - Guards: `session-token`, `session-expiry`, `session-state`, `session-store`, `session-schema`,
   `session-read`, `session-guards`, `next-path`, `rate-limit`, `reset-token` — ten files, 131
   tests. Suite: 121 files / 1981 tests.
+
+## 25. Operations engine config persisted (2026-10-30)
+
+The deterministic operations engine (log entities, query-time KPIs, a monthly report and a
+review playbook per pack) already had its schema, CRUD routes and KPI math, but nothing had
+ever written a pack's `ops_config`, so every surface read a null config and stayed dark. This
+step persists that config from code for every discipline, not just IT.
+
+- **One registry is the single source.** `lib/packs/ops/registry.ts` maps each seeded pack key to
+  its `OpsConfig`. `it-technician` carries its hand-authored workbook config unchanged
+  (`lib/packs/ops/it-technician.ts`: 7 log entities, 15 KPIs, 8 recommendation rules). The other
+  eleven are derived by `opsConfigFromPack` (`lib/packs/ops/from-pack.ts`) from data the pack
+  already declares — one log entity per register kind (using the pack's own kind label), a
+  query-time "logged this month" and "still open" count per kind, a monthly report over those
+  counts, and a review playbook whose phases are the pack's actual `method`.
+- **Derive, never invent.** A derived config carries no `recommendRules` and no
+  `automationTemplates`, because those assert domain risk logic (backup SLAs, licence expiry) the
+  engine only has a source for on the IT pack. Nothing is fabricated to make the other disciplines
+  look richer than they are. `opsConfigFromPack` returns null for a pack with no register kinds
+  rather than emit an entity-less config that cannot validate.
+- **Persistence is additive and opt-in.** `scripts/seed-ops-config.mjs` (`npm run db:ops:seed`)
+  reads the registry, validates every config with `safeValidateOpsConfig`, and only ever runs
+  `UPDATE role_packs SET ops_config = … WHERE pack_key = …` — never an insert, delete, truncate or
+  drop. It is a dry run by default and applies nothing until `-- --write` is passed; it stops if the
+  `ops_config` column is absent and prints only a masked host, never the connection string.
+  `scripts/create-registers-tables.mjs` (`npm run db:registers`) now backfills the same value onto a
+  fresh pack row only when `ops_config IS NULL`, so a re-run and an admin edit both survive.
+- **Every discipline lights up.** Because the registry keys are exactly the twelve seeded packs and
+  `resolvePack` serves a member the config of the pack claiming their discipline, all 75
+  `WORK_DISCIPLINES` now resolve a config. A unit test proves every registry entry validates, every
+  registry key is a seeded pack, every seeded pack resolves a non-null config, and a derived pack
+  exposes its register-kind labels and no invented rules.
+- **Not yet run against production.** The seed is wired and tested; applying it to live Neon is a
+  separate, owner-approved action.
