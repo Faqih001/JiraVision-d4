@@ -5,6 +5,8 @@
 import { db } from "@/lib/db"
 import { opsLogEntries, registerItems, playbooks, tasks } from "@/drizzle/schema"
 import { validateFields } from "@/lib/ops/fields"
+import { readRegisterFields } from "@/lib/registers/fields"
+import { safeTaskStatus, safeTaskPriority } from "./preview"
 import type { OpsConfigValidated } from "@/lib/packs/ops/validator"
 import type {
   ExtractionResult,
@@ -111,12 +113,19 @@ async function commitRegisterItems(input: CommitInput, result: CommitResult) {
   const items = indices ? indices.map((i) => extraction.registerItems[i]).filter(Boolean) : extraction.registerItems
 
   for (const item of items) {
+    const read = readRegisterFields(item.fields)
+    if (!read.ok) {
+      result.registerItems.skipped++
+      result.registerItems.errors.push(`${item.title}: ${read.error}`)
+      continue
+    }
+
     try {
       await db.insert(registerItems).values({
         packKey,
         kind: item.kind,
         title: item.title,
-        fields: item.fields,
+        fields: read.fields,
         ownerId,
         source: "import",
       })
@@ -173,8 +182,8 @@ async function commitTasks(input: CommitInput, result: CommitResult) {
         title: task.title,
         description: task.description,
         assigneeId: ownerId,
-        status: "todo",
-        priority: "medium",
+        status: safeTaskStatus(task.status),
+        priority: safeTaskPriority(task.priority),
         discipline: discipline ?? null,
         metadata: { packKey, source: "import" },
       })

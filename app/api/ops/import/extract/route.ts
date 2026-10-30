@@ -4,7 +4,8 @@
 
 import { NextRequest, NextResponse } from "next/server"
 import { getSession } from "@/lib/auth-actions"
-import { defaultDisciplineOf } from "@/lib/registers/read"
+import { defaultDisciplineOf, loadPacks } from "@/lib/registers/read"
+import { packByKey } from "@/lib/packs/pack"
 import { loadOpsConfigForDiscipline } from "@/lib/ops/config-reader"
 import { extractFromDocument, summariseExtraction, isGeminiQuotaError, isGeminiAuthError } from "@/lib/ops/import/extract"
 import { badRequest, serverError, unauthorized } from "../../_shared"
@@ -56,7 +57,11 @@ export async function POST(request: NextRequest) {
       return badRequest("Your discipline does not have an operations pack yet.")
     }
 
-    const extraction = await extractFromDocument(ctx.config, mimeType, base64)
+    const pack = packByKey(await loadPacks(false), ctx.packKey)
+    const extraction = await extractFromDocument(ctx.config, mimeType, base64, {
+      discipline,
+      registerKinds: pack?.registerKinds ?? [],
+    })
     const summary = summariseExtraction(extraction)
 
     return NextResponse.json({

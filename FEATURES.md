@@ -777,3 +777,39 @@ templates had nowhere to be seen before the member went to write a report blind.
   each template's sections joined to computed KPIs (no `computeKpis` import, no estimation), is read-only,
   hands off to the builder with the period, and degrades to "no operations configured" / "no report
   templates" states; the overview test now expects the reports link in the sidebar and top bar.
+
+## 30. Document import preview is faithful and editable (2026-10-30)
+
+`/dashboard/ops/import` could extract a document into four surfaces — log entries, register items,
+playbooks, tasks — but the preview was a truncated read-only table, so what the member saw was not
+what the commit wrote. This step makes the preview the actual draft: schema-faithful, editable inline,
+and validated by the same rules the server uses.
+
+- **The pack schema drives every field.** In the preview phase the page fetches `/api/ops/pack` and
+  renders each extracted log entry against its entity's declared fields — the same per-type widgets the
+  activity-log page uses (string / text / number / date / datetime / enum). A key the model invented that
+  the pack never declared is shown as "not in your pack" instead of being silently dropped, and required
+  fields are marked and checked before commit.
+- **Preview and commit are the same object.** All four editors mutate one `extraction` state and
+  `handleCommit` POSTs exactly that object, so there is no second copy that could drift. The page still
+  issues no PATCH — editing a draft before it exists needs no write endpoint.
+- **Register fields now cross the credential boundary.** The commit path pushes every register item's
+  fields through `readRegisterFields`, the server's own rule: a password- or token-shaped key is refused,
+  the row is counted as skipped, and the reason is reported. The page surfaces the same refusal inline via
+  `readRegisterFieldsFor`, so the member learns before submitting rather than after.
+- **Task rows keep their own state.** `ExtractedTask` gained `status` and `priority`, normalised through
+  `safeTaskStatus` / `safeTaskPriority` on both the extract and commit sides, so a handover document that
+  says "in progress / urgent" no longer arrives as `todo` / `medium`.
+- **The prompt speaks the member's discipline.** Extraction no longer claims an IT context or a hardcoded
+  `server/computer/printer` list; the route passes the pack's own `registerKinds` and the member's
+  discipline into the system prompt, so a nurse's document is read as nursing.
+- **No record adder.** The preview only curates what was extracted — include/exclude per row. Fresh
+  records belong on the activity-log and register pages, which already own the full form.
+- **Guards.** `tests/unit/ops-import-preview.test.ts` covers the pure helper surface (declared-field
+  projection, dropped-key detection, per-field mutators, step reorder, task vocab clamping); the extract
+  unit test's fixture now carries status and priority; and a new
+  `ops import D5: faithful + editable preview` block in `tests/integration/ops-import.test.ts` proves the
+  page drives from `/api/ops/pack` and reuses the server validators, mutates a single `extraction` object,
+  surfaces register refusals inline, that commit gates registers through `readRegisterFields` and clamps
+  task status/priority, that the prompt is discipline-named with no IT residue, and that the page issues
+  no PATCH.

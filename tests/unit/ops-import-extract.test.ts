@@ -45,8 +45,8 @@ describe("summariseExtraction", () => {
         ],
         playbooks: [{ title: "Restore", summary: "", steps: ["Step 1"] }],
         tasks: [
-          { title: "Check backups", description: "" },
-          { title: "Update firmware", description: "" },
+          { title: "Check backups", description: "", status: "todo", priority: "medium" },
+          { title: "Update firmware", description: "", status: "todo", priority: "high" },
         ],
       }),
     )
