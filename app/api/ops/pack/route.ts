@@ -1,7 +1,8 @@
 // /api/ops/pack — resolve the signed-in member's ops pack.
-// GET → returns { packKey, hasOpsConfig, discipline, logs } so the sidebar and operations pages
-//       know whether to show the Operations nav group, which pack to query, and — from `logs` —
-//       the entity tabs and per-field schema the activity logs form renders against.
+// GET → returns { packKey, hasOpsConfig, discipline, logs, reportTemplates } so the sidebar and
+//       operations pages know whether to show the Operations nav group, which pack to query, and —
+//       from `logs` and `reportTemplates` — the entity tabs the activity form renders against and
+//       the report previews the reports page renders.
 
 import { NextResponse } from "next/server"
 import { getSession } from "@/lib/auth-actions"
@@ -20,7 +21,13 @@ export async function GET() {
     if (!discipline) {
       return NextResponse.json({
         success: true,
-        data: { packKey: null, hasOpsConfig: false, discipline: null, logs: null },
+        data: {
+          packKey: null,
+          hasOpsConfig: false,
+          discipline: null,
+          logs: null,
+          reportTemplates: null,
+        },
       })
     }
 
@@ -32,6 +39,7 @@ export async function GET() {
         hasOpsConfig: ctx !== null,
         discipline,
         logs: ctx?.config.logs ?? null,
+        reportTemplates: ctx?.config.reportTemplates ?? null,
       },
     })
   } catch (error) {

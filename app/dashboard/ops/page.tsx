@@ -12,6 +12,7 @@ import {
   CheckCircle2,
   ClipboardCheck,
   Clock,
+  FileBarChart2,
   FileText,
   RefreshCw,
   ShieldAlert,
@@ -213,6 +214,12 @@ export default function OperationsOverviewPage() {
             <Link href="/dashboard/ops/kpis">
               <TrendingUp className="mr-2 h-4 w-4" />
               KPIs
+            </Link>
+          </Button>
+          <Button variant="outline" size="sm" asChild>
+            <Link href="/dashboard/ops/reports">
+              <FileBarChart2 className="mr-2 h-4 w-4" />
+              Reports
             </Link>
           </Button>
           <Button variant="outline" size="sm" asChild>

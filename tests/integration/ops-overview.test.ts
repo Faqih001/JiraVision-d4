@@ -38,12 +38,14 @@ describe("ops overview integration", () => {
     const layout = src("components/dashboard-layout.tsx")
     expect(layout).toContain("/dashboard/ops/logs")
     expect(layout).toContain("/dashboard/ops/kpis")
+    expect(layout).toContain("/dashboard/ops/reports")
   })
 
-  it("links the overview top bar to the logs and KPIs pages", () => {
+  it("links the overview top bar to the logs, KPIs and reports pages", () => {
     const page = src("app/dashboard/ops/page.tsx")
     expect(page).toContain("/dashboard/ops/logs")
     expect(page).toContain("/dashboard/ops/kpis")
+    expect(page).toContain("/dashboard/ops/reports")
   })
 
   it("points recommendation hrefs at routes that exist", () => {

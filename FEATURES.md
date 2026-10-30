@@ -751,3 +751,29 @@ step 26 had pulled.
   `tabular-nums` values, states that numbers are "computed from rows you logged", and degrades to a
   "no operations configured" state. The overview test now expects the KPIs link back in the sidebar
   and top bar.
+
+## 29. Report previews, seeded from the pack's templates (2026-10-30)
+
+The operations engine lets a member log activity and read KPIs, but the pack's declared report
+templates had nowhere to be seen before the member went to write a report blind. This step adds
+`/dashboard/ops/reports` — a read-only preview of those templates that hands off to the existing work-report builder.
+
+- **Templates come from the config.** `/api/ops/pack` now also returns the pack's `reportTemplates`
+  (id, label, period, ordered `{ kpiId, label }` sections). Every one of the twelve seeded packs
+  declares at least one — IT hand-authored, the other eleven derived per register kind — so the page
+  is live for any discipline without a single hardcoded report.
+- **The preview is computed, never estimated.** For the selected month the page reuses
+  `/api/ops/kpis` and joins each section's `kpiId` to the resulting value, target and met flag; a
+  section with no matching KPI shows "no data for <month>". The client holds no arithmetic of its own.
+- **Read-only by construction.** The page issues no POST/PATCH/DELETE; it only reads. Its one action is
+  an "Open in report builder" link that deep-links to `/dashboard/reports-work` prefilled with the
+  template's period (`v=build&p=<type>&d=<month>`, or a custom span for a quarterly template, since
+  the builder has no quarter unit). The member finishes and submits the real report through the normal
+  flow — this page seeds it, it does not write it.
+- **Month-navigable and reachable.** The preview shifts one month at a time and mirrors the month to
+  `?month=`; a "Report previews" item (FileBarChart2) joins the "My Operations" sidebar group and the
+  overview top bar now links to it alongside logs and KPIs.
+- **Guards.** A new integration test proves the pack route serves `reportTemplates`, the page renders
+  each template's sections joined to computed KPIs (no `computeKpis` import, no estimation), is read-only,
+  hands off to the builder with the period, and degrades to "no operations configured" / "no report
+  templates" states; the overview test now expects the reports link in the sidebar and top bar.

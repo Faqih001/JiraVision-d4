@@ -37,6 +37,7 @@ import {
   ClipboardList,
   CreditCard,
   FileSpreadsheet,
+  FileBarChart2,
   FileText,
   Gamepad2,
   Heart,
@@ -378,6 +379,12 @@ export default function DashboardLayout({
                 icon: <TrendingUp className="h-5 w-5" />,
                 href: "/dashboard/ops/kpis",
                 active: pathname === "/dashboard/ops/kpis",
+              },
+              {
+                title: "Report previews",
+                icon: <FileBarChart2 className="h-5 w-5" />,
+                href: "/dashboard/ops/reports",
+                active: pathname === "/dashboard/ops/reports",
               },
               {
                 title: "Import document",
