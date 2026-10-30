@@ -864,3 +864,48 @@ surfaces to those declarations — and invents nothing.
   POST/PATCH/DELETE, and degrades on both empty states; and that the sidebar and overview link to it with
   `BookOpenCheck` actually imported. `tests/integration/ops-overview.test.ts` now expects the playbooks
   route in the sidebar link set and the overview top bar.
+
+## 33. The rules themselves, shown to the people they govern (2026-10-30)
+
+Asked whether a document upload could produce the full IT-workbook mapping (entities, KPI targets,
+escalation rules, checklists, report sections) for all 75 disciplines, the honest answer was no — and the
+reason was unprovable from the UI. Six operations surfaces read `opsConfig`, and not one of them showed
+it. A member could see four entity tabs and conclude anything; nothing told them those four entities all
+have the same `date / item / status / note` fields, that their KPIs have no targets, and that the rules
+sections were empty because no workbook had been authored for their discipline. You could measure the
+effects of the config but never read the config.
+
+- **`GET /api/ops/config` — the whole thing, and only yours.** Returns `{ packKey, discipline, config }`
+  with the full validated `OpsConfig`: every log entity and field, every KPI definition, report templates,
+  playbook seeds, automation templates, recommendation rules and the AI policy. The discipline comes from
+  the caller's session — there is no `?pack=` or `?discipline=` to read another pack's rules with, and the
+  route takes no body.
+- **`/dashboard/ops/config` — read-only, in the order the engine consumes it.** A count strip first (entities,
+  fields, KPIs with `n with a target`, seeds, report templates, automation templates, rules), then every
+  entity card listing its fields with type, `required`, and the closed enum list or default inline, then the
+  KPI table with source, aggregation, unit and target.
+- **A missing target is shown as missing.** Derived packs count things but assert no threshold, so each KPI
+  renders either its target badge or an explicit `no target set` outline badge. The KPI card header counts
+  them ("<n> of <total> with a target") rather than implying the pack has set goals it has not.
+- **Empty sections explain themselves.** Where seeds, report templates, automation templates or rules are
+  absent, the card states the derived-baseline rule: the engine declares only what a pack can prove from its
+  own register kinds and method, and rules and targets appear once authored for the discipline — "not
+  invented by the importer". The gap is information, not a hole to hide.
+- **Verbatim, not paraphrased.** Playbook seeds render each phase with its steps joined inline and the raw
+  `frequency`/`id` shown; report templates show every section's `kpiId` next to its label; automation
+  templates show `trigger.entity + condition (params)` and `action.type (params)`; rules show priority,
+  observation, risk and action. Each links onward to the page that *uses* it (playbook previews, report
+  previews), so the config and its effects stay connected.
+- **The raw JSON is one click away.** A collapsed "Raw config JSON" disclosure prints
+  `JSON.stringify(config, null, 2)` so the rules can be checked, diffed and quoted rather than trusted.
+- **Navigation and layout.** "Pack config" joins the My Operations sidebar group after Import document, and
+  the operations overview gains a Config button — which made its top bar seven controls wide, so that bar
+  and its header row now wrap instead of overflowing.
+- **No writes, no new tables.** One `GET`, nothing else; the page renders the config the seed script already
+  persists in `role_packs.ops_config`.
+- **Guards.** `tests/integration/ops-config.test.ts` asserts the route resolves from `defaultDisciplineOf(session)`
+  and rejects parameter- or body-driven pack selection, returns the whole `ctx.config` rather than the
+  `/api/ops/pack` slices, says plainly when a discipline has no pack; that the page renders all seven
+  sections, field types/required/enum values, `no target set`, the derived-baseline explanation, the raw
+  JSON, position-derived keys for seed phases and template sections, and issues no POST/PATCH/DELETE; plus
+  the Suspense shell and the sidebar/overview links with `Settings2` actually imported.
