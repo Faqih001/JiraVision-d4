@@ -4,7 +4,9 @@
 // left dark and none gets rules we invented. scripts/seed-ops-config.mjs persists these into
 // role_packs.ops_config, and scripts/create-registers-tables.mjs carries the same value into a
 // fresh pack row, so the config the unit tests validate is exactly the config the database runs.
-// Nothing else writes config — an admin pack edit changes pack facets, not the ops engine rules.
+// An admin pack edit changes pack facets, not the ops engine rules. The one runtime door that writes
+// config is /api/ops/config/apply (admin-only, additive, revalidated); /api/ops/config/reset puts a pack
+// back on whatever this file declares, which is also what a re-run of the seed script would do.
 
 import type { OpsConfig } from "./types"
 import { IT_TECHNICIAN_OPS_CONFIG } from "./it-technician.ts"

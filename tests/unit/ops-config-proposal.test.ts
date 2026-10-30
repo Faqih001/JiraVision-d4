@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest"
+import { diffConfig, mergeAndValidate, refFor } from "@/lib/ops/config/diff"
 import { normaliseProposal } from "@/lib/ops/config/proposal"
 import { IT_TECHNICIAN_OPS_CONFIG } from "@/lib/packs/ops/it-technician"
 import { safeValidateOpsConfig } from "@/lib/packs/ops/validator"
@@ -300,5 +301,83 @@ describe("normaliseProposal", () => {
       kpis: [...IT_TECHNICIAN_OPS_CONFIG.kpis, ...proposal.kpis],
     }
     expect(safeValidateOpsConfig(merged).success).toBe(true)
+  })
+})
+
+describe("the apply pipeline", () => {
+  const base = IT_TECHNICIAN_OPS_CONFIG
+
+  /** Exactly what /api/ops/config/apply does with whatever the browser sends it. */
+  function applyLike(payload: unknown) {
+    const outcome = normaliseProposal(base, payload)
+    const diff = diffConfig(base, outcome.proposal)
+    const result = mergeAndValidate(base, { ...diff, rejected: outcome.rejected }, outcome.proposal, diff.items.map((item) => item.ref))
+    return { outcome, diff, result }
+  }
+
+  it("re-gates a payload the browser edited, so AI policy stays the owner's", () => {
+    const { outcome, result } = applyLike({
+      aiPolicy: { level: "off", excludedEntities: ["incidents"], adminReadAccess: true, managerReadAccess: true },
+      logs: {
+        credentials: {
+          label: "Credential vault",
+          fields: {
+            date: { type: "date", label: "Date", required: true },
+            password: { type: "string", label: "Password" },
+          },
+        },
+      },
+    })
+
+    expect(reasons(outcome.rejected)).toContain("AI policy is a privacy stance")
+    expect(result.ok).toBe(true)
+    if (result.ok) {
+      expect(result.config.aiPolicy).toEqual(base.aiPolicy)
+      const entity = result.config.logs.credentials
+      expect(entity ? Object.keys(entity.fields) : []).not.toContain("password")
+    }
+  })
+
+  it("writes the items that survive the gate and leaves every other entity byte-identical", () => {
+    const { result } = applyLike({
+      logs: {
+        asset_audits: {
+          label: "Asset audits",
+          fields: {
+            date: { type: "date", label: "Date", required: true },
+            result: { type: "enum", label: "Result", values: ["Pass", "Fail"], required: true },
+          },
+        },
+      },
+      kpis: [{ id: "asset_audits_logged", label: "Asset audits logged", source: "asset_audits", aggregation: "count", unit: "audits" }],
+    })
+
+    expect(result.ok).toBe(true)
+    if (result.ok) {
+      expect(Object.keys(result.config.logs).sort()).toEqual([...Object.keys(base.logs), "asset_audits"].sort())
+      for (const key of Object.keys(base.logs)) expect(result.config.logs[key]).toEqual(base.logs[key])
+      expect(result.config.kpis.map((kpi) => kpi.id).slice(0, base.kpis.length)).toEqual(base.kpis.map((kpi) => kpi.id))
+      expect(result.applied.map((item) => item.ref)).toContain(refFor("logs", "asset_audits"))
+    }
+  })
+
+  it("names a thin rewrite of an existing entity a conflict and shows the fields it drops", () => {
+    const { diff, result } = applyLike({
+      logs: {
+        restore_tests: {
+          label: "Restore tests",
+          fields: {
+            date: { type: "date", label: "Date", required: true },
+            server: { type: "string", label: "Server", required: true },
+          },
+        },
+      },
+    })
+
+    const item = diff.items.find((entry) => entry.ref === refFor("logs", "restore_tests"))
+    expect(item?.status).toBe("conflict")
+    expect(item?.differences.join()).toContain("fields.readable")
+    expect(result.ok).toBe(true)
+    if (result.ok) expect(Object.keys(result.config.logs.restore_tests.fields)).toEqual(["date", "server"])
   })
 })

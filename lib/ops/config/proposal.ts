@@ -8,7 +8,8 @@
 // Two things make that safe enough to run against a live pack:
 //
 //   1. Nothing is stored here. The output is a proposal, diffed against the current config by
-//      lib/ops/config/diff.ts and approved (or not) by a human through /dashboard/ops/config.
+//      lib/ops/config/diff.ts and approved (or not) by a human; /api/ops/config/apply re-runs
+//      normaliseProposal() on whatever the browser sends, so this gate is not bypassable by editing.
 //   2. Nothing is invented. The prompt is the strict one — a field, enum value, threshold or frequency
 //      the document does not state must be omitted, not inferred — and normaliseProposal() then refuses
 //      the shapes that would break the engine: credential-shaped field names, enums with no closed value
