@@ -124,3 +124,28 @@ describe("the undo door after PR 11e", () => {
     expect(panel).toMatch(/setPreviousConfig\(null\)/)
   })
 })
+
+describe("the audit trail after PR 11f", () => {
+  const audit = src("app/dashboard/ops/config/config-audit.tsx")
+
+  it("is a client component that fetches the audit route", () => {
+    expect(audit.startsWith('"use client"')).toBe(true)
+    expect(audit).toContain('fetch("/api/ops/config/audit")')
+  })
+
+  it("shows the last 50 events with operation, summary, and timestamp", () => {
+    expect(audit).toContain("OperationBadge")
+    expect(audit).toContain("formatSummary")
+    expect(audit).toContain("formatDate")
+  })
+
+  it("renders an empty state when there are no events", () => {
+    expect(audit).toContain("No changes have been made to this pack's config yet.")
+  })
+
+  it("is mounted in the config client for admins only", () => {
+    expect(client).toContain("import ConfigAudit")
+    expect(client).toContain("<ConfigAudit")
+    expect(client).toMatch(/data\.admin && data\.packKey/)
+  })
+})

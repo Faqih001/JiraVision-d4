@@ -31,6 +31,7 @@ import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { SectionCard, EmptyNote, PriorityPill } from "@/components/dashboard-kit"
 import ConfigPropose from "./config-propose"
+import ConfigAudit from "./config-audit"
 
 type FieldDef = {
   type: string
@@ -526,6 +527,10 @@ export default function OpsConfigClient() {
           discipline={data.discipline}
           onApplied={() => void load()}
         />
+      )}
+
+      {data.admin && data.packKey && (
+        <ConfigAudit packKey={data.packKey} />
       )}
 
       <CountStrip config={config} />

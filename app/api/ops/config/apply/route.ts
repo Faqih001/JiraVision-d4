@@ -12,7 +12,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { eq } from "drizzle-orm"
 import { db } from "@/lib/db"
-import { rolePacks } from "@/drizzle/schema"
+import { rolePacks, opsConfigAudit } from "@/drizzle/schema"
 import { getSession } from "@/lib/auth-actions"
 import { defaultDisciplineOf } from "@/lib/registers/read"
 import { loadOpsConfigForDiscipline } from "@/lib/ops/config-reader"
@@ -68,6 +68,14 @@ export async function POST(request: NextRequest) {
     // An audit line without document content: who changed which pack, and how much of it moved.
     const conflicts = merged.applied.filter((item) => item.status === "conflict").length
     console.log(`opsConfig apply: user=${session.id} pack=${ctx.packKey} applied=${merged.applied.length} replaced=${conflicts}`)
+
+    await db.insert(opsConfigAudit).values({
+      packKey: ctx.packKey,
+      discipline,
+      userId: session.id,
+      operation: "apply",
+      summary: { applied: merged.applied.length, replaced: conflicts, new: merged.applied.filter((item) => item.status === "new").length },
+    })
 
     return NextResponse.json({
       success: true,

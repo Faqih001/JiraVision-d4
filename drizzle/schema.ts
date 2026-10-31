@@ -733,6 +733,22 @@ export const rolePacks = pgTable(
   (table) => [index("role_packs_active_idx").on(table.isActive)],
 )
 
+// Audit trail for operations config changes: who changed what, when, and how much moved.
+// The route handlers write one row per apply/revert/reset; the config page reads them to show the history.
+export const opsConfigAudit = pgTable(
+  "ops_config_audit",
+  {
+    id: serial("id").primaryKey(),
+    packKey: varchar("pack_key", { length: 60 }).notNull(),
+    discipline: varchar("discipline", { length: 60 }).notNull(),
+    userId: integer("user_id").notNull(),
+    operation: varchar("operation", { length: 20 }).notNull(),
+    summary: jsonb("summary").notNull().default("{}"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [index("ops_config_audit_pack_idx").on(table.packKey)],
+)
+
 // What the role is responsible for, one row per thing: a server, an account console, a
 // printer, an open ticket. `last_verified_at` + `verify_interval_days` are the only inputs
 // to staleness; the state itself is computed (lib/registers/staleness.ts), never stored.

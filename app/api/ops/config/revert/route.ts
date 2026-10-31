@@ -10,7 +10,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { eq } from "drizzle-orm"
 import { db } from "@/lib/db"
-import { rolePacks } from "@/drizzle/schema"
+import { rolePacks, opsConfigAudit } from "@/drizzle/schema"
 import { getSession } from "@/lib/auth-actions"
 import { defaultDisciplineOf } from "@/lib/registers/read"
 import { loadOpsConfigForDiscipline } from "@/lib/ops/config-reader"
@@ -55,6 +55,14 @@ export async function POST(request: NextRequest) {
       .where(eq(rolePacks.packKey, ctx.packKey))
 
     console.log(`opsConfig revert: user=${session.id} pack=${ctx.packKey}`)
+
+    await db.insert(opsConfigAudit).values({
+      packKey: ctx.packKey,
+      discipline,
+      userId: session.id,
+      operation: "revert",
+      summary: {},
+    })
 
     return NextResponse.json({
       success: true,
