@@ -1034,3 +1034,25 @@ last 50 events on the config page.
   write audit events with the correct operation. `tests/integration/ops-config-propose-ui.test.ts` (4 additional
   tests) asserts the audit UI is a client component, fetches the audit route, shows the operation/summary/timestamp,
   renders an empty state, and is mounted in the config client for admins only.
+
+## 37. Export config as JSON (2026-10-31)
+
+The raw JSON disclosure on the config page lets an admin inspect the rules, but there was no way to download
+them. An admin who wanted to back up the config before making changes, share it with someone for review, or diff
+it manually with another version had to copy-paste from the disclosure. The export button downloads the current
+config as a timestamped JSON file.
+
+- **Export JSON button in the header.** Next to the Reload button, the "Export JSON" button downloads the current
+  config as `{packKey}-config-{timestamp}.json` (e.g., `it_technician-config-2026-10-31T14-22-35.json`). The
+  timestamp is ISO 8601 with colons and periods replaced by hyphens so the filename is safe on all filesystems.
+- **Client-side download, no server route.** The export function creates a `Blob` from `JSON.stringify(config, null, 2)`,
+  generates an object URL, creates a temporary `<a>` element with the `download` attribute, clicks it, and revokes
+  the URL. No data leaves the browser — the config is already in memory from the `/api/ops/config` GET call.
+- **The Download icon from lucide-react.** The button uses the `Download` icon (not `FileDown` or `Save`) to match
+  the convention used elsewhere in the dashboard (worklog export, report builder export).
+- **Visible to all signed-in members, not just admins.** The export button is in the header, outside the
+  `data.admin &&` guard that wraps the propose panel and audit trail. Any member who can read the config can
+  export it — the config is read-only for non-admins anyway, so there is no write to gate.
+- **Guards.** `tests/integration/ops-config.test.ts` (1 additional test) asserts the client component contains
+  the `exportConfig` function, the `Download` icon, the "Export JSON" label, the `application/json` MIME type,
+  the `.json` extension, and the `toISOString()` timestamp generation.
