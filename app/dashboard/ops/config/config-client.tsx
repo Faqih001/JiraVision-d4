@@ -520,7 +520,7 @@ export default function OpsConfigClient() {
         </Button>
       </header>
 
-      {data.admin && (
+      {data.admin && data.packKey && data.discipline && (
         <ConfigPropose
           packKey={data.packKey}
           discipline={data.discipline}

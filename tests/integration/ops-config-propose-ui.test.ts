@@ -13,7 +13,7 @@ describe("pack config page after PR 11d", () => {
     expect(client).toContain('fetch("/api/ops/config")')
     expect(client).not.toContain('method: "POST"')
     expect(client).toContain('import ConfigPropose from "./config-propose"')
-    expect(client).toMatch(/data\.admin && \(\s*<ConfigPropose/u)
+    expect(client).toMatch(/data\.admin && data\.packKey && data\.discipline && \(\s*<ConfigPropose/u)
     expect(client).toContain("onApplied={() => void load()}")
   })
 
@@ -83,7 +83,7 @@ describe("the propose panel", () => {
   it("keeps the undo two steps away from an accidental click", () => {
     expect(panel).toContain("confirmReset ? (")
     expect(panel).toContain("Confirm reset")
-    expect(panel).toContain(JSON.stringify({ confirm: true }).replace(/\\"/g, '"'))
+    expect(panel).toContain("JSON.stringify({ confirm: true })")
   })
 
   it("surfaces the server's validation paths instead of a generic failure", () => {

@@ -377,7 +377,7 @@ export default function ConfigPropose({
           </Alert>
         )}
 
-        {phase === "review" && result && (
+        {(phase === "review" || phase === "applying") && result && (
           <div className="space-y-4">
             <p className="text-sm">
               {items.length > 0
