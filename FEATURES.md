@@ -1056,3 +1056,34 @@ config as a timestamped JSON file.
 - **Guards.** `tests/integration/ops-config.test.ts` (1 additional test) asserts the client component contains
   the `exportConfig` function, the `Download` icon, the "Export JSON" label, the `application/json` MIME type,
   the `.json` extension, and the `toISOString()` timestamp generation.
+
+## 38. Compare current config with code-authored baseline (2026-10-31)
+
+The config page shows the live rules and lets an admin propose changes from a document, apply them, undo them,
+and export the result — but there was no way to see *what had been customized* compared to the baseline the seed
+script declares. An admin considering a reset needed to know whether the current config was close to the code-authored
+default or had drifted significantly. The comparison view computes the diff server-side and shows it collapsed by
+default, expanding on demand.
+
+- **The compare route (`/api/ops/config/compare`).** GET-only. Returns `{ current, baseline, diff }` where `current`
+  is the live config from `role_packs.ops_config`, `baseline` is what `opsConfigForPackKey` declares (the same
+  config the seed script and the reset route use), and `diff` is a server-side summary computed by `diffConfig`
+  (`lib/ops/config/diff.ts`). Admin-only, scoped to the caller's discipline — there is no `packKey` parameter, so
+  an admin cannot read another discipline's config by supplying a body field.
+- **Graceful fallbacks.** If no code-authored baseline exists for the pack, the route returns `{ current, baseline: null, diff: null, message }`. If the baseline no longer validates against the current schema (e.g., the schema was tightened after the baseline was authored), the same shape is returned with a different message. The client renders the message as an informational note instead of an error.
+- **The comparison UI (`config-compare.tsx`).** A `SectionCard` collapsed by default with a "Show comparison" button.
+  Clicking it fetches the compare route and expands the card. The expanded view shows a count of customizations
+  ("Pack `it_technician` has 3 customizations compared to the code-authored baseline"), then groups items by
+  section (logs, kpis, etc.) with a capitalized heading and a list of items. Each item has a status badge
+  (`added` / `modified` / `removed`) and shows the label and key. A Refresh button in the card header re-fetches
+  the diff. Empty state: "No customizations — this pack matches the code-authored baseline exactly."
+- **Mounted for admins only.** The config client wraps `<ConfigCompare>` in `data.admin && data.packKey &&`, so
+  non-admin members never see the comparison card. The packKey is passed as a prop so the UI can display it in
+  the summary line without re-fetching the config.
+- **Guards.** `tests/integration/ops-config-compare.test.ts` (10 tests) asserts the compare route is GET-only,
+  requires a signed-in admin session, scopes the read to the caller's discipline (no body-supplied packKey),
+  returns both current and baseline, computes the diff server-side using `diffConfig`, handles the no-baseline
+  and invalid-baseline cases, uses `force-dynamic`, and never reads `GOOGLE_GEMINI_API_KEY`; plus 5 tests
+  asserting the comparison UI is a client component, fetches the compare route, shows status badges for each
+  diff item, renders an empty state when there are no customizations, and is mounted in the config client for
+  admins only.
