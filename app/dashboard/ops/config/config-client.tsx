@@ -33,6 +33,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { SectionCard, EmptyNote, PriorityPill } from "@/components/dashboard-kit"
 import ConfigPropose from "./config-propose"
 import ConfigAudit from "./config-audit"
+import ConfigCompare from "./config-compare"
 
 type FieldDef = {
   type: string
@@ -552,6 +553,10 @@ export default function OpsConfigClient() {
 
       {data.admin && data.packKey && (
         <ConfigAudit packKey={data.packKey} />
+      )}
+
+      {data.admin && data.packKey && (
+        <ConfigCompare packKey={data.packKey} />
       )}
 
       <CountStrip config={config} />
