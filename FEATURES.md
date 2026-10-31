@@ -967,3 +967,36 @@ through the UI, with the config persisted to `role_packs.ops_config` and immedia
   `tests/integration/ops-config-propose-ui.test.ts` (13 tests) asserts the panel is a client component, calls
   all three routes, shows the disclosure, requires acknowledgement, and renders the apply button during the
   `applying` phase so the spinner is visible.
+
+## 35. Undo and rollback for config changes (2026-10-31)
+
+The apply route returns the previous config, but the UI had no way to use it. An admin who applied a proposal
+and immediately realized it was wrong had only the reset-to-code-authored door, which throws away every change
+the pack had accumulated — not just the last one. The undo door reverts the last apply without discarding
+earlier work, and the reset door stays available as a full rollback to the seed script baseline.
+
+- **`POST /api/ops/config/revert` — previous config in, replaced config out.** Takes `{ previous }` where
+  `previous` is the config before the last apply. Re-validates it against the `OpsConfig` Zod schema before
+  writing, so a tampered or stale payload cannot corrupt the pack's rules. Returns `{ config, replaced }` where
+  `config` is the restored config and `replaced` is what was in place before the revert — so the admin can
+  undo the undo if needed. Admin-only, scoped to the caller's discipline (no `packKey` parameter).
+- **Two undo doors, not one.** After a successful apply, the UI shows two buttons: "Undo last apply" (calls
+  revert with the previous config) and "Reset to code-authored config" (calls reset with `{ confirm: true }`).
+  The first reverts the last change; the second throws away every applied change and restores the seed script
+  baseline. Both require the admin to click through a confirmation step.
+- **The previous config is stored in the UI, not re-fetched.** The apply response includes `previous`, which
+  the panel stores in `previousConfig` state. The revert route receives it back in the request body — no
+  server-side history table, no session-scoped stash, no race between two admins applying at once.
+- **Re-validation is the security gate.** The revert route does not trust the browser's previous config — it
+  re-runs `safeValidateOpsConfig(previous)` before writing, so if the admin opened devtools and edited the
+  previous config to include an invalid field or a malformed entity, the route refuses it with a 400.
+- **The audit trail names the revert.** The route logs `opsConfig revert: user=<id> pack=<key>` without
+  including the config content, so the audit trail shows who reverted what without filling the logs with JSON.
+- **Guards.** `tests/integration/ops-config-revert.test.ts` (11 tests) asserts the route is POST-only, requires
+  a signed-in admin session, requires the previous config in the body, re-validates it against the schema,
+  scopes the revert to the caller's discipline, writes to `role_packs.ops_config`, returns the replaced config,
+  logs the audit trail, uses `force-dynamic`, and never reads `GOOGLE_GEMINI_API_KEY`.
+  `tests/integration/ops-config-propose-ui.test.ts` (5 additional tests) asserts the panel calls the revert
+  route with the previous config, stores it from the apply response, shows the undo button after a successful
+  apply, keeps the reset-to-code-authored button as a separate door, and clears the previous config when the
+  undo fires.
