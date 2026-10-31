@@ -1000,3 +1000,37 @@ earlier work, and the reset door stays available as a full rollback to the seed 
   route with the previous config, stores it from the apply response, shows the undo button after a successful
   apply, keeps the reset-to-code-authored button as a separate door, and clears the previous config when the
   undo fires.
+
+## 36. Audit trail for config changes (2026-10-31)
+
+The apply, revert, and reset routes logged to console, but there was no way to view the history in the UI. An
+admin could see that a change had been made (the config was different), but not who made it, when, or what
+operation they performed. The audit trail persists one row per operation to `ops_config_audit` and renders the
+last 50 events on the config page.
+
+- **`ops_config_audit` table.** Stores `pack_key`, `discipline`, `user_id`, `operation` (apply/revert/reset),
+  `summary` (JSONB with counts of applied/replaced/new items), and `created_at`. Indexed on `pack_key` and
+  `created_at` for fast lookups. The migration script (`scripts/create-ops-config-audit-table.mjs`) creates the
+  table additive-only; the rollback script drops it.
+- **The write routes log audit events.** The apply route writes `{ operation: "apply", summary: { applied, replaced, new } }`;
+  the revert and reset routes write `{ operation: "revert"|"reset", summary: {} }`. The audit insert happens
+  after the config write succeeds, so a failed apply does not leave an orphan audit row.
+- **`GET /api/ops/config/audit` — the last 50 events, newest first.** Returns `{ events }` where each event has
+  `{ id, operation, summary, createdAt, userId }`. The route does not return the full config snapshots — those
+  are large and the audit trail is for "who changed what and when", not "what exactly was in the config at that
+  moment". Admin-only, scoped to the caller's discipline (no `packKey` parameter).
+- **The audit UI (`config-audit.tsx`) — a change history card.** Mounted below the propose panel on the config
+  page, visible to admins only. Each event shows an operation badge (applied/reverted/reset), the user ID, the
+  summary (formatted as "3 items, 1 replaced, 2 new"), and a relative timestamp ("5 minutes ago", "2 days ago").
+  Empty state: "No changes have been made to this pack's config yet."
+- **The summary is enough to understand scope, not content.** An apply event with `{ applied: 5, replaced: 2, new: 3 }`
+  tells the admin "five items were accepted, two of them replaced existing definitions, three were new" — enough
+  to understand the magnitude of the change without dumping the whole config. The full before/after is available
+  via the undo door (revert returns the replaced config).
+- **Guards.** `tests/integration/ops-config-audit.test.ts` (12 tests) asserts the audit route is GET-only,
+  requires a signed-in admin session, scopes the read to the caller's discipline, reads from `ops_config_audit`,
+  returns the last 50 events newest first, returns only the audit fields (not full config snapshots), uses
+  `force-dynamic`, and never reads `GOOGLE_GEMINI_API_KEY`; plus 3 tests asserting the apply/revert/reset routes
+  write audit events with the correct operation. `tests/integration/ops-config-propose-ui.test.ts` (4 additional
+  tests) asserts the audit UI is a client component, fetches the audit route, shows the operation/summary/timestamp,
+  renders an empty state, and is mounted in the config client for admins only.
