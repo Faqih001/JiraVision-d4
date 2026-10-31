@@ -909,3 +909,61 @@ effects of the config but never read the config.
   sections, field types/required/enum values, `no target set`, the derived-baseline explanation, the raw
   JSON, position-derived keys for seed phases and template sections, and issues no POST/PATCH/DELETE; plus
   the Suspense shell and the sidebar/overview links with `Settings2` actually imported.
+
+## 34. Approve-and-apply UI on the pack config page (2026-10-31)
+
+The read-only config page showed the rules but offered no way to change them. An admin who wanted to add a
+log entity, set a KPI target, or author a recommendation rule had to edit the seed script and re-run the
+migration. The propose-and-apply flow closes that gap: an admin uploads a document or pastes text, Gemini
+extracts a proposal, the admin reviews each item with a diff, selects what to accept, and applies it — all
+through the UI, with the config persisted to `role_packs.ops_config` and immediately visible on the read page.
+
+- **`POST /api/ops/config/propose` — document in, diff out.** Accepts `{ document: { name, text } }` or a
+  base64-encoded PDF, calls `geminiJson<T>()` with the ops-config proposal prompt, and returns the extracted
+  items classified as `new`, `conflict`, or `duplicate` against the current config. Admin-only: the route
+  checks `session.role === "admin" || session.role === "super_admin"` before calling Gemini, protecting the
+  free-tier quota (20 requests/day) from non-admin traffic. The proposal is normalized (`normaliseProposal`)
+  to refuse credential values and flag AI-policy changes as privacy stances the admin must explicitly accept.
+- **`POST /api/ops/config/apply` — selected items in, merged config persisted.** Takes `{ selectedRefs: string[] }`
+  where each ref is `section:id` (e.g., `logs:asset_audits`, `kpis:assets_open`). Re-normalizes the proposal
+  (so a tampered browser payload cannot bypass the privacy gate), merges only the selected items into a copy
+  of the current config, validates the result against the `OpsConfig` Zod schema, and writes it to
+  `role_packs.ops_config`. Returns `{ applied, counts, rejected, config, previous }` so the UI can show what
+  changed and offer an undo path. Admin-only, with the same role check as propose.
+- **`POST /api/ops/config/reset` — back to the code-authored baseline.** Takes `{ confirm: true }` and restores
+  the config from `lib/packs/ops/registry.ts` (the same source the seed script uses), overwriting whatever the
+  admin had applied. Two-step confirmation in the UI: the admin clicks "Reset to code-authored config", then
+  "Confirm reset" — the first click sets `confirmReset = true` and swaps the button, the second click fires
+  the route. Admin-only.
+- **The propose panel (`config-propose.tsx`) — upload, review, apply.** A `SectionCard` mounted below the
+  read-only config view when `data.admin && data.packKey && data.discipline` are all present. Three phases:
+  `upload` (file input or paste textarea, with a disclosure that the text is sent to Google and not stored),
+  `reading` (spinner while Gemini extracts), `review` (checkboxes for each proposed item, grouped by section,
+  with status badges: `new` = green, `conflict` = amber, `duplicate` = gray). The apply button is disabled
+  until at least one item is selected and the acknowledgement checkbox ("I have read the items I selected and
+  understand this changes the rules everyone on {discipline} logs against") is checked. During the `applying`
+  phase, the button shows a spinner instead of the shield icon.
+- **Safe defaults: only `new` items checked.** `defaultSelection(items)` returns only the refs with
+  `status === "new"`, so conflicts and duplicates require explicit opt-in. The selection summary reads
+  "add 3 new definitions, replace 1, leaving 2 unselected" — the admin sees exactly what will change before
+  clicking Apply.
+- **The diff is shown, not hidden.** Each proposed item renders its section label, ID, status badge, and the
+  formatted difference between the current config value and the proposed value (`formatSide` renders field
+  definitions as `type [values], required` rather than collapsing to "3 keys"). The admin can inspect every
+  change before accepting it.
+- **Re-normalization is the security gate.** The apply route does not trust the browser's proposal payload —
+  it re-runs `normaliseProposal` on whatever the client sends, so if the admin opened devtools and edited the
+  proposal to include a credential value or an AI-policy change, the route refuses it and returns the reason
+  in `rejected`. The AI policy is a privacy stance, not a config field to be edited through a document.
+- **The disclosure is always visible.** Below the upload area and the review list, the panel states: "The
+  pasted text or PDF is sent to Google for processing and is not stored. Credential values are refused; record
+  where each one is kept instead. AI output is a draft — the rules below are not in force until you apply
+  them." No fine print, no hidden terms.
+- **Guards.** `tests/integration/ops-config-apply.test.ts` (17 tests) asserts the three routes reject
+  unauthenticated requests, reject non-admin roles, re-normalize proposals to refuse credentials and AI-policy
+  changes, write only to the caller's pack, and log the audit trail. `tests/unit/ops-config-review.test.ts`
+  (12 tests) asserts `defaultSelection` checks only `new` items, `toggleRef` adds and removes refs,
+  `selectAllInSection` toggles the whole section, and `selectionSummary` formats the counts correctly.
+  `tests/integration/ops-config-propose-ui.test.ts` (13 tests) asserts the panel is a client component, calls
+  all three routes, shows the disclosure, requires acknowledgement, and renders the apply button during the
+  `applying` phase so the spinner is visible.
