@@ -107,4 +107,14 @@ describe("ops pack config page", () => {
     const overview = src("app/dashboard/ops/page.tsx")
     expect(overview).toContain('<div className="flex flex-wrap gap-2">')
   })
+
+  it("exports the config as a timestamped JSON file", () => {
+    const c = client()
+    expect(c).toContain("exportConfig")
+    expect(c).toContain("Download")
+    expect(c).toContain("Export JSON")
+    expect(c).toContain("application/json")
+    expect(c).toContain(".json")
+    expect(c).toContain("toISOString()")
+  })
 })

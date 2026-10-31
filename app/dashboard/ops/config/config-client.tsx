@@ -17,6 +17,7 @@ import Link from "next/link"
 import {
   BookOpenCheck,
   Bot,
+  Download,
   FileBarChart2,
   RefreshCw,
   ScrollText,
@@ -460,6 +461,20 @@ export default function OpsConfigClient() {
   const config = data?.config ?? null
   const json = useMemo(() => (config ? JSON.stringify(config, null, 2) : ""), [config])
 
+  const exportConfig = useCallback(() => {
+    if (!config || !data?.packKey) return
+    const blob = new Blob([JSON.stringify(config, null, 2)], { type: "application/json" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19)
+    a.href = url
+    a.download = `${data.packKey}-config-${timestamp}.json`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }, [config, data])
+
   if (loading) return <ConfigSkeleton />
 
   if (error) {
@@ -515,10 +530,16 @@ export default function OpsConfigClient() {
             engine runs on for this discipline.
           </p>
         </div>
-        <Button size="sm" variant="outline" onClick={() => void load()}>
-          <RefreshCw className="mr-2 h-4 w-4" aria-hidden />
-          Reload
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button size="sm" variant="outline" onClick={exportConfig}>
+            <Download className="mr-2 h-4 w-4" aria-hidden />
+            Export JSON
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => void load()}>
+            <RefreshCw className="mr-2 h-4 w-4" aria-hidden />
+            Reload
+          </Button>
+        </div>
       </header>
 
       {data.admin && data.packKey && data.discipline && (
