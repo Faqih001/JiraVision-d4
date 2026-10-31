@@ -97,3 +97,30 @@ describe("the propose panel", () => {
     expect(proposeRoute).toContain("Only an admin can propose changes")
   })
 })
+
+describe("the undo door after PR 11e", () => {
+  it("calls the revert route with the previous config", () => {
+    expect(panel).toContain('fetch("/api/ops/config/revert"')
+    expect(panel).toContain("previous: previousConfig")
+  })
+
+  it("stores the previous config from the apply response", () => {
+    expect(panel).toContain("setPreviousConfig(")
+    expect(panel).toMatch(/\.previous\)/)
+  })
+
+  it("shows an undo button after a successful apply", () => {
+    expect(panel).toContain("Undo last apply")
+    expect(panel).toContain("undoLastApply()")
+  })
+
+  it("keeps the reset-to-code-authored button as a separate, further door", () => {
+    expect(panel).toContain("Reset to code-authored config")
+    expect(panel).toContain("resetToCodeAuthored()")
+    expect(panel).toContain("confirmReset ? (")
+  })
+
+  it("clears the previous config when the undo fires", () => {
+    expect(panel).toMatch(/setPreviousConfig\(null\)/)
+  })
+})

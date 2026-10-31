@@ -50,6 +50,7 @@ type ApplyResponse = {
   applied: ProposalItem[]
   counts: DiffView["counts"]
   rejected: RejectedEntry[]
+  previous: unknown
 }
 
 const ACCEPTED_TYPES: Record<string, string> = {
@@ -147,6 +148,7 @@ export default function ConfigPropose({
   const [result, setResult] = useState<ProposalResponse | null>(null)
   const [selected, setSelected] = useState<string[]>([])
   const [applied, setApplied] = useState<ApplyResponse | null>(null)
+  const [previousConfig, setPreviousConfig] = useState<unknown>(null)
   const [errors, setErrors] = useState<string[]>([])
   const [pasted, setPasted] = useState("")
   const [acknowledged, setAcknowledged] = useState(false)
@@ -157,6 +159,7 @@ export default function ConfigPropose({
     setResult(null)
     setSelected([])
     setApplied(null)
+    setPreviousConfig(null)
     setErrors([])
     setAcknowledged(false)
     setConfirmReset(false)
@@ -225,6 +228,7 @@ export default function ConfigPropose({
         return
       }
       setApplied(json.data as ApplyResponse)
+      setPreviousConfig((json.data as ApplyResponse).previous)
       setResult(null)
       setSelected([])
       setAcknowledged(false)
@@ -236,7 +240,7 @@ export default function ConfigPropose({
     }
   }, [result, selected, onApplied])
 
-  const undo = useCallback(async () => {
+  const resetToCodeAuthored = useCallback(async () => {
     setErrors([])
     const res = await fetch("/api/ops/config/reset", {
       method: "POST",
@@ -249,8 +253,27 @@ export default function ConfigPropose({
     }
     setConfirmReset(false)
     setApplied(null)
+    setPreviousConfig(null)
     onApplied()
   }, [onApplied])
+
+  const undoLastApply = useCallback(async () => {
+    if (!previousConfig) return
+    setErrors([])
+    const res = await fetch("/api/ops/config/revert", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ previous: previousConfig }),
+    })
+    const json = await res.json().catch(() => null)
+    if (!res.ok || !json?.success) {
+      setErrors([json?.message ?? `Request failed (${res.status})`])
+      return
+    }
+    setApplied(null)
+    setPreviousConfig(null)
+    onApplied()
+  }, [previousConfig, onApplied])
 
   const items = result?.diff.items ?? []
   const rejected = result?.diff.rejected ?? []
@@ -307,26 +330,37 @@ export default function ConfigPropose({
             </div>
 
             {applied && (
-              <div className="flex flex-wrap items-center gap-2 rounded-md border bg-muted/20 p-3">
-                <div className="flex-1 text-xs text-muted-foreground">
-                  Undo every item a document has added by putting the pack back on the config its code
-                  declares.
-                </div>
-                {confirmReset ? (
-                  <>
-                    <Button size="sm" variant="destructive" onClick={() => void undo()}>
-                      Confirm reset
-                    </Button>
-                    <Button size="sm" variant="ghost" onClick={() => setConfirmReset(false)}>
-                      Cancel
-                    </Button>
-                  </>
-                ) : (
-                  <Button size="sm" variant="outline" onClick={() => setConfirmReset(true)}>
+              <div className="space-y-2">
+                <div className="flex flex-wrap items-center gap-2 rounded-md border bg-muted/20 p-3">
+                  <div className="flex-1 text-xs text-muted-foreground">
+                    Undo the last apply by restoring the config that was in place before it.
+                  </div>
+                  <Button size="sm" variant="outline" onClick={() => void undoLastApply()}>
                     <RotateCcw className="mr-2 h-4 w-4" aria-hidden />
-                    Reset to code-authored config
+                    Undo last apply
                   </Button>
-                )}
+                </div>
+                <div className="flex flex-wrap items-center gap-2 rounded-md border bg-muted/20 p-3">
+                  <div className="flex-1 text-xs text-muted-foreground">
+                    Undo every item a document has added by putting the pack back on the config its code
+                    declares.
+                  </div>
+                  {confirmReset ? (
+                    <>
+                      <Button size="sm" variant="destructive" onClick={() => void resetToCodeAuthored()}>
+                        Confirm reset
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => setConfirmReset(false)}>
+                        Cancel
+                      </Button>
+                    </>
+                  ) : (
+                    <Button size="sm" variant="outline" onClick={() => setConfirmReset(true)}>
+                      <RotateCcw className="mr-2 h-4 w-4" aria-hidden />
+                      Reset to code-authored config
+                    </Button>
+                  )}
+                </div>
               </div>
             )}
 
