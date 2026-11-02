@@ -1,6 +1,6 @@
 // lib/seed/users.ts
-import { db } from "../db";
-import { users } from "../../drizzle/schema";
+import { db } from "@/lib/db";
+import { users } from "@/drizzle/schema";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { type SeedResult } from "./types";

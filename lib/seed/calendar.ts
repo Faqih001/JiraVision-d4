@@ -1,6 +1,6 @@
 // lib/seed/calendar.ts
-import { db } from "../db";
-import { calendarEvents, users } from "../../drizzle/schema";
+import { db } from "@/lib/db";
+import { calendarEvents, users } from "@/drizzle/schema";
 import { eq } from "drizzle-orm";
 import { type SeedResult } from "./types";
 import { daysAgo, daysFromNow } from "./utils";

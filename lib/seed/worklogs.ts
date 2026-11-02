@@ -1,6 +1,6 @@
 // lib/seed/worklogs.ts
-import { db } from "../db";
-import { workLogEntries, users, tasks } from "../../drizzle/schema";
+import { db } from "@/lib/db";
+import { workLogEntries, users, tasks } from "@/drizzle/schema";
 import { eq } from "drizzle-orm";
 import { type SeedResult } from "./types";
 import { daysAgo, toDateOnly } from "./utils";

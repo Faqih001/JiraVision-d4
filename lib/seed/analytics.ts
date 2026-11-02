@@ -1,6 +1,6 @@
 // lib/seed/analytics.ts
-import { db } from "../db";
-import { gamification, wellbeingMetrics, ethicalMetrics, aiInsights, users } from "../../drizzle/schema";
+import { db } from "@/lib/db";
+import { gamification, wellbeingMetrics, ethicalMetrics, aiInsights, users } from "@/drizzle/schema";
 import { eq } from "drizzle-orm";
 import { type SeedResult } from "./types";
 import { daysAgo, daysFromNow, toDateOnly } from "./utils";

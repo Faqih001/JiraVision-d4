@@ -1,6 +1,6 @@
 // lib/seed/equipment.ts
-import { db } from "../db";
-import { registerItems, users } from "../../drizzle/schema";
+import { db } from "@/lib/db";
+import { registerItems, users } from "@/drizzle/schema";
 import { eq, and } from "drizzle-orm";
 import { type SeedResult } from "./types";
 import { generateSerial, daysAgo, toDateOnly } from "./utils";

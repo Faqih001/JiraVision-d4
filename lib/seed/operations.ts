@@ -1,6 +1,6 @@
 // lib/seed/operations.ts
-import { db } from "../db";
-import { opsLogEntries, users } from "../../drizzle/schema";
+import { db } from "@/lib/db";
+import { opsLogEntries, users } from "@/drizzle/schema";
 import { eq } from "drizzle-orm";
 import { type SeedResult } from "./types";
 import { daysAgo } from "./utils";

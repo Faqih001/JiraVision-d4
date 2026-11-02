@@ -1,6 +1,6 @@
 // lib/seed/playbooks.ts
-import { db } from "../db";
-import { playbooks, users } from "../../drizzle/schema";
+import { db } from "@/lib/db";
+import { playbooks, users } from "@/drizzle/schema";
 import { eq, and } from "drizzle-orm";
 import { type SeedResult } from "./types";
 import { toDateOnly } from "./utils";

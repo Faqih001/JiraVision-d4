@@ -1,6 +1,6 @@
 // lib/seed/tasks.ts
-import { db } from "../db";
-import { tasks, users, playbooks } from "../../drizzle/schema";
+import { db } from "@/lib/db";
+import { tasks, users, playbooks } from "@/drizzle/schema";
 import { eq, and } from "drizzle-orm";
 import { type SeedResult } from "./types";
 import { daysAgo, daysFromNow, toDateOnly } from "./utils";
