@@ -124,3 +124,32 @@ These items were identified but not fixed. All are quality improvements, not fun
 4. **`any` types in calendar route** — Minor #5 from review. Calendar events route uses `any` for task data. Type-safe but requires refactoring to fix.
 
 All remaining items are code quality improvements with no functional impact. The system is production-ready as-is.
+
+## Dashboard Gap Fixes (Post-Merge)
+
+After merging to main, additional dashboard-wide quality gaps were identified and resolved:
+
+### Error Boundaries (commit 48bdb5e)
+- Added 17 `error.tsx` files across all dashboard routes
+- Consistent error UI with retry button and dev-only error details
+
+### Loading States (commits 48bdb5e, a936c2c)
+- Added 9 main page `loading.tsx` files (tasks, backlog, goals, reports, activity, retros, ops, gamification, career)
+- Added 31 subpage `loading.tsx` files for all nested routes (ops/*, gamification/*, career/[discipline], planner/[id], playbooks/[id], etc.)
+- Standardized skeleton patterns across all dashboard pages
+
+### Empty States for Filtered Results (commit 98b46bb)
+- Calendar: "No events match these filters" when search/type filter returns empty
+- Automation: Distinguishes "No rules match filters" from "No rules yet"
+- Analytics: "No tasks match these filters" when range/sprint/priority filters return empty
+
+### Accessibility (commit 0da1d6e)
+- Added aria-labels to 9 icon-only buttons across 4 pages (tasks, goals, reports, calendar)
+- Buttons for edit, delete, duplicate, navigation, and create actions now have accessible labels
+
+### UI Refinements (commit 106e303)
+- Moved floating chatbot and accessibility buttons into dashboard header
+- Chatbot hidden on `/dashboard` routes (dashboard has its own AssistantPanel)
+- Accessibility launcher replaced with header icon button dispatching `OPEN_A11Y_EVENT`
+
+All dashboard pages now have consistent error handling, loading states, empty states, and accessibility labels.
