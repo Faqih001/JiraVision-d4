@@ -16,12 +16,12 @@ describe("sampleForDiscipline", () => {
       expect(sample.title).toMatch(/^Sample project — a first week in /u)
       expect(sample.title.length).toBeLessThanOrEqual(200)
       expect(sample.summary.length).toBeGreaterThan(0)
-      expect(sample.items).toHaveLength(3)
+      expect(sample.items.length).toBeGreaterThanOrEqual(1)
+      expect(sample.items.length).toBeLessThanOrEqual(12)
       for (const item of sample.items) {
         expect(item.title.length).toBeGreaterThan(0)
         expect(item.description.length).toBeGreaterThan(0)
       }
-      // The name step always carries the discipline label, so the preview is recognisably its own.
       expect(sample.title).toContain(DISCIPLINE_LABEL[discipline])
     }
   })
@@ -34,11 +34,11 @@ describe("sampleForDiscipline", () => {
     expect(technician.items.map((i) => i.title)).not.toEqual(finance.items.map((i) => i.title))
   })
 
-  it("draws each sample from the discipline's authored method, not a generic one", () => {
-    // The technician pack stores its own six-step method; the sample surfaces it verbatim.
+  it("draws the method from the discipline's seed JSON", () => {
     const sample = sampleForDiscipline("technician")
     expect(sample.method).toEqual(["Identify", "Reproduce", "Diagnose", "Fix", "Test", "Document"])
-    expect(sample.items[1].title).toContain("Identify → Reproduce → Diagnose → Fix → Test → Document")
+    expect(sample.seed).not.toBeNull()
+    expect(sample.seed!.discipline.key).toBe("technician")
   })
 
   it("falls back to the general pack when no discipline is mapped", () => {
@@ -46,6 +46,16 @@ describe("sampleForDiscipline", () => {
     expect(sample.discipline).toBeNull()
     expect(sample.title).toContain("your role")
     expect(sample.items).toHaveLength(3)
+    expect(sample.seed).toBeNull()
+  })
+
+  it("includes seed preview data when the JSON file exists", () => {
+    const sample = sampleForDiscipline("technician")
+    expect(sample.seed).not.toBeNull()
+    expect(sample.seed!.registers.length).toBeGreaterThan(0)
+    expect(sample.seed!.playbooks.length).toBeGreaterThan(0)
+    expect(sample.seed!.tasks.length).toBeGreaterThan(0)
+    expect(sample.seed!.kpis.length).toBeGreaterThan(0)
   })
 })
 
@@ -60,5 +70,15 @@ describe("the onboarding sample no longer hard-codes IT support", () => {
     expect(wizard).toContain("sampleForDiscipline")
     expect(wizard).toContain("See what you")
     expect(wizard).toContain("projectMode === \"sample\"")
+  })
+
+  it("fetches the seed preview from the API route for the rich preview", () => {
+    const wizard = src("app/onboarding/onboarding-wizard.tsx")
+    expect(wizard).toContain("/api/onboarding/sample")
+    expect(wizard).toContain("seedPreview")
+    expect(wizard).toContain("Register rows")
+    expect(wizard).toContain("Playbook drafts")
+    expect(wizard).toContain("Recurring tasks")
+    expect(wizard).toContain("KPIs")
   })
 })
