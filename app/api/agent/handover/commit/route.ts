@@ -1,12 +1,12 @@
 // POST /api/agent/handover/commit — the human's preview comes back, and every item is
 // validated again by the same readers the manual forms use. Registers land as
 // `source:"gemini"`; playbooks land as drafts with `aiMarked:true`, so publishing needs a
-// human edit. Nothing here touches `tasks`.
+// human edit. Tasks are created from outstanding work register rows and playbook steps.
 
 import { NextResponse } from "next/server"
 import { eq } from "drizzle-orm"
 import { db } from "@/lib/db"
-import { playbooks, registerItems } from "@/drizzle/schema"
+import { playbooks, registerItems, tasks } from "@/drizzle/schema"
 import { stripCredentialValues } from "@/lib/agent/handover"
 import { readPlaybookInput } from "@/lib/playbooks/fields"
 import { defaultMethod } from "@/lib/playbooks/method"
@@ -164,7 +164,74 @@ export async function POST(request: Request) {
         createdPlaybooks += 1
       }
 
-      return { registers: createdRegisters, playbooks: createdPlaybooks }
+      // Create tasks from outstanding work register rows and playbook steps
+      let createdTasks = 0
+
+      // Tasks from outstanding work register rows
+      for (const entry of registers) {
+        const row = (entry ?? {}) as Record<string, unknown>
+        const kind = typeof row.kind === "string" ? row.kind.trim() : ""
+        if (kind !== "outstanding") continue
+
+        const title = typeof row.title === "string" ? row.title.trim() : ""
+        if (!title) continue
+
+        const fields = row.fields as Record<string, string> | undefined
+        const description = fields?.status || fields?.notes || null
+
+        await tx.insert(tasks).values({
+          title: `[Outstanding] ${title}`,
+          description,
+          status: "todo",
+          priority: "medium",
+          storyPoints: 0,
+          assigneeId: gate.id,
+          sprintId: null,
+          dueDate: null,
+          tags: ["handover", "outstanding"],
+          startDate: null,
+          discipline: null,
+          sourcePlanId: null,
+          metadata: { source: "handover", kind: "outstanding", registerTitle: title },
+        })
+        createdTasks += 1
+      }
+
+      // Tasks from playbook steps
+      for (const entry of drafts) {
+        const row = (entry ?? {}) as Record<string, unknown>
+        const playbookTitle = typeof row.title === "string" ? row.title.trim() : ""
+        if (!playbookTitle) continue
+
+        const steps = Array.isArray(row.steps) ? row.steps : []
+        for (let i = 0; i < steps.length; i++) {
+          const step = steps[i] as Record<string, unknown> | undefined
+          if (!step) continue
+
+          const phase = typeof step.phase === "string" ? step.phase.trim() : ""
+          const action = typeof step.action === "string" ? step.action.trim() : ""
+          if (!action) continue
+
+          await tx.insert(tasks).values({
+            title: `[${playbookTitle}] ${phase ? `${phase}: ` : ""}${action}`,
+            description: null,
+            status: "todo",
+            priority: "medium",
+            storyPoints: 1,
+            assigneeId: gate.id,
+            sprintId: null,
+            dueDate: null,
+            tags: ["handover", "playbook-step"],
+            startDate: null,
+            discipline: null,
+            sourcePlanId: null,
+            metadata: { source: "handover", kind: "playbook-step", playbook: playbookTitle, stepIndex: i, phase },
+          })
+          createdTasks += 1
+        }
+      }
+
+      return { registers: createdRegisters, playbooks: createdPlaybooks, tasks: createdTasks }
     })
 
     return NextResponse.json({ success: true, data: { created: result, skipped } })

@@ -281,11 +281,11 @@ export default function AgentClient() {
       setError(json?.error ?? "The handover could not be saved.")
       return
     }
-    const created = json.data.created as { registers: number; playbooks: number }
+    const created = json.data.created as { registers: number; playbooks: number; tasks: number }
     const skipped = (json.data.skipped ?? []) as { title: string; reason: string }[]
     toast({
       title: "Saved",
-      description: `${created.registers} register row(s), ${created.playbooks} playbook draft(s)${
+      description: `${created.registers} register row(s), ${created.playbooks} playbook draft(s), ${created.tasks} task(s)${
         skipped.length ? `; ${skipped.length} skipped` : ""
       }.`,
     })
@@ -550,6 +550,34 @@ export default function AgentClient() {
                   </AlertDescription>
                 </Alert>
               ) : null}
+
+              <SectionCard title="Pages this will populate" icon={<FileText className="h-4 w-4" />}>
+                <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+                  <div className="rounded-lg border bg-card p-3">
+                    <p className="text-xs font-medium text-muted-foreground">Registers</p>
+                    <p className="mt-1 text-2xl font-bold">{preview.registers.length}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">rows → /dashboard/registers</p>
+                  </div>
+                  <div className="rounded-lg border bg-card p-3">
+                    <p className="text-xs font-medium text-muted-foreground">Playbooks</p>
+                    <p className="mt-1 text-2xl font-bold">{preview.playbooks.length}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">drafts → /dashboard/playbooks</p>
+                  </div>
+                  <div className="rounded-lg border bg-card p-3">
+                    <p className="text-xs font-medium text-muted-foreground">Tasks</p>
+                    <p className="mt-1 text-2xl font-bold">
+                      {preview.registers.filter((r) => r.kind === "outstanding").length +
+                        preview.playbooks.reduce((sum, pb) => sum + pb.steps.length, 0)}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">from outstanding + steps → /dashboard/tasks</p>
+                  </div>
+                  <div className="rounded-lg border bg-card p-3">
+                    <p className="text-xs font-medium text-muted-foreground">Also populates</p>
+                    <p className="mt-1 text-sm font-medium">Kanban, Sprints, Ops</p>
+                    <p className="mt-1 text-xs text-muted-foreground">tasks auto-appear in related pages</p>
+                  </div>
+                </div>
+              </SectionCard>
 
               <SectionCard
                 title="Register rows"
