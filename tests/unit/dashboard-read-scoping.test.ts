@@ -139,9 +139,9 @@ describe("the calendar only shows events the member is in", () => {
 
   it("sends the scope the page's own toggle is already holding", () => {
     expect(calendarPage).toContain('useState<"mine" | "workspace">("mine")')
-    expect(calendarPage).toContain("fetch(`/api/calendar/events?${scopeParam}`)")
+    expect(calendarPage).toMatch(/fetch\(`\/api\/calendar\/events\?\$\{scopeParam\}(&viewMode=\$\{viewMode\})?`\)/)
     expect(calendarPage).not.toContain('fetch("/api/calendar/events")')
-    expect(calendarPage).toMatch(/const reloadEvents = useCallback\(async \(\) => \{[\s\S]{0,420}\[toast, scopeParam\]\)/)
+    expect(calendarPage).toMatch(/const reloadEvents = useCallback\(async \(\) => \{[\s\S]{0,420}\[toast, scopeParam,? ?viewMode?\]\)/)
   })
 })
 
