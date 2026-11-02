@@ -76,7 +76,36 @@ export async function PATCH(
     const { content, status } = body
 
     const updateData: Record<string, unknown> = {}
-    if (content !== undefined) updateData.content = content
+    if (content !== undefined) {
+      if (!Array.isArray(content)) {
+        return NextResponse.json(
+          { success: false, message: "content must be an array of report sections" },
+          { status: 400 },
+        )
+      }
+      for (const section of content) {
+        if (!section || typeof section !== "object") {
+          return NextResponse.json(
+            { success: false, message: "Each content section must be an object" },
+            { status: 400 },
+          )
+        }
+        const s = section as Record<string, unknown>
+        if (typeof s.id !== "string" || typeof s.title !== "string") {
+          return NextResponse.json(
+            { success: false, message: "Each content section must have string id and title" },
+            { status: 400 },
+          )
+        }
+        if (s.data !== null && !Array.isArray(s.data)) {
+          return NextResponse.json(
+            { success: false, message: "Section data must be null or an array" },
+            { status: 400 },
+          )
+        }
+      }
+      updateData.content = content
+    }
     if (status !== undefined) {
       if (!["draft", "final"].includes(status)) {
         return NextResponse.json(

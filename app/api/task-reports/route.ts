@@ -21,6 +21,8 @@ export async function GET(request: Request) {
     const templateId = searchParams.get("templateId") ? parseInt(searchParams.get("templateId")!, 10) : undefined
     const status = searchParams.get("status") || undefined
     const authorId = searchParams.get("authorId") ? parseInt(searchParams.get("authorId")!, 10) : session?.id
+    const limit = searchParams.get("limit") ? Math.min(parseInt(searchParams.get("limit")!, 10), 100) : 50
+    const offset = searchParams.get("offset") ? parseInt(searchParams.get("offset")!, 10) : 0
 
     const conditions = []
     if (templateId) conditions.push(eq(taskReports.templateId, templateId))
@@ -34,6 +36,8 @@ export async function GET(request: Request) {
       .from(taskReports)
       .where(where)
       .orderBy(sql`${taskReports.createdAt} DESC`)
+      .limit(limit)
+      .offset(offset)
 
     return NextResponse.json({ success: true, data: reports })
   } catch (error) {

@@ -116,19 +116,12 @@ export async function generateInitialInstances(
   if (dates.length === 0) return 0
 
   try {
-    let inserted = 0
-    for (const date of dates) {
-      try {
-        await db
-          .insert(taskInstances)
-          .values({ taskId, instanceDate: date, status: "todo" })
-          .onConflictDoNothing()
-        inserted++
-      } catch {
-        // Unique constraint violation — skip
-      }
-    }
-    return inserted
+    const rows = dates.map((date) => ({ taskId, instanceDate: date, status: "todo" as const }))
+    const result = await db
+      .insert(taskInstances)
+      .values(rows)
+      .onConflictDoNothing()
+    return result.length > 0 ? result.length : rows.length
   } catch (error) {
     console.error("Error generating initial instances:", error)
     return 0
