@@ -30,6 +30,7 @@ import {
   Pencil,
   Plus,
   RefreshCw,
+  Repeat,
   Rows3,
   Scale,
   Search,
@@ -73,6 +74,8 @@ import {
 import { useToast } from "@/hooks/use-toast"
 import { LIVE_REFRESH_MS, useLiveRefresh } from "@/hooks/use-live-refresh"
 import { cn } from "@/lib/utils"
+import { CADENCES, CADENCE_LABEL, type Cadence } from "@/lib/cadence"
+import { parseChecklistItems, type ChecklistItem, type ChecklistResponse } from "@/lib/tasks/checklist"
 import type { DashboardOverview } from "@/lib/dashboard-data"
 import {
   AXIS,
@@ -104,6 +107,8 @@ type ApiTask = {
   tags: unknown
   createdAt: string | null
   updatedAt: string | null
+  cadence?: string | null
+  checklistItems?: unknown
 }
 
 type SprintOption = { id: number; name: string; status: string }
@@ -119,6 +124,18 @@ type TaskDraft = {
   sprintId: number | ""
   dueDate: string
   tags: string
+  cadence: Cadence
+  checklistItems: ChecklistItem[]
+}
+
+type TaskInstanceRow = {
+  id: number
+  taskId: number
+  instanceDate: string
+  status: string
+  completedAt: string | null
+  notes: string | null
+  checklistResponses: unknown
 }
 
 type SortKey = "updated" | "created" | "due" | "priority" | "title"
@@ -165,6 +182,16 @@ function nextStatus(status: string) {
   return STATUSES[(idx + 1) % STATUSES.length]
 }
 
+function CadenceBadge({ cadence }: { cadence: string | null | undefined }) {
+  if (!cadence || cadence === "one-off") return null
+  return (
+    <Badge variant="secondary" className="gap-1 text-[10px]">
+      <Repeat className="h-3 w-3" />
+      {CADENCE_LABEL[cadence as Cadence] ?? cadence}
+    </Badge>
+  )
+}
+
 /* --------------------------------------------------------------- the page */
 
 export default function TasksWorkspacePage() {
@@ -190,6 +217,7 @@ export default function TasksWorkspacePage() {
   const [boardScope, setBoardScope] = useState<"mine" | "workspace">("mine")
   const [assigneeFilter, setAssigneeFilter] = useState("all")
   const [sprintFilter, setSprintFilter] = useState("all")
+  const [cadenceFilter, setCadenceFilter] = useState<string>("all")
   const scopeParam = boardScope === "mine" ? "scope=mine" : "scope=all"
   const switchScope = (next: "mine" | "workspace") => {
     setBoardScope(next)
@@ -207,6 +235,14 @@ export default function TasksWorkspacePage() {
   const [saving, setSaving] = useState(false)
   const [detailTask, setDetailTask] = useState<ApiTask | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
+
+  // Task instances (for recurring tasks)
+  const [instances, setInstances] = useState<TaskInstanceRow[]>([])
+  const [instancesLoading, setInstancesLoading] = useState(false)
+  const [completingInstance, setCompletingInstance] = useState<TaskInstanceRow | null>(null)
+  const [instanceResponses, setInstanceResponses] = useState<ChecklistResponse[]>([])
+  const [instanceNotes, setInstanceNotes] = useState("")
+  const [completingBusy, setCompletingBusy] = useState(false)
 
   const todayIso = useMemo(() => isoDay(new Date()), [])
   const weekEndIso = useMemo(() => addDays(todayIso, 7), [todayIso])
@@ -279,6 +315,10 @@ export default function TasksWorkspacePage() {
       if (sprintFilter !== "all" && sprintFilter !== BACKLOG) params.set("sprintId", sprintFilter)
       if (search.trim()) params.set("search", search.trim())
 
+      // Cadence is a client-side filter — the tasks API doesn't expose it as a query param,
+      // so we widen the page when cadence is filtered and drop rows below.
+      if (cadenceFilter !== "all") params.set("pageSize", "500")
+
       // Backlog (sprintId IS NULL) and Unassigned (assigneeId IS NULL) cannot be
       // expressed as API filters, so widen the query and drop rows client-side.
       if (sprintFilter === BACKLOG || assigneeFilter === "none") params.set("pageSize", "500")
@@ -290,7 +330,8 @@ export default function TasksWorkspacePage() {
       let total = json.pagination.total as number
       if (sprintFilter === BACKLOG) rows = rows.filter((t) => t.sprintId === null)
       if (assigneeFilter === "none") rows = rows.filter((t) => t.assigneeId === null)
-      if (sprintFilter === BACKLOG || assigneeFilter === "none") total = rows.length
+      if (cadenceFilter !== "all") rows = rows.filter((t) => (t.cadence ?? "one-off") === cadenceFilter)
+      if (sprintFilter === BACKLOG || assigneeFilter === "none" || cadenceFilter !== "all") total = rows.length
       setTasks(rows)
       setPagination((p) => ({ ...p, total, pageCount: Math.max(1, Math.ceil(total / p.pageSize)) }))
     } catch (err) {
@@ -298,7 +339,7 @@ export default function TasksWorkspacePage() {
     } finally {
       if (!quiet) setListLoading(false)
     }
-  }, [pagination.page, pagination.pageSize, statusFilter, priorityFilter, assigneeFilter, sprintFilter, search, scopeParam, toast])
+  }, [pagination.page, pagination.pageSize, statusFilter, priorityFilter, assigneeFilter, sprintFilter, cadenceFilter, search, scopeParam, toast])
 
   useEffect(() => {
     loadBase()
@@ -334,7 +375,7 @@ export default function TasksWorkspacePage() {
   useEffect(() => {
     setSelected([])
     setConfirmBulkDelete(false)
-  }, [statusFilter, priorityFilter, assigneeFilter, sprintFilter, search, sortKey, view, pagination.page])
+  }, [statusFilter, priorityFilter, assigneeFilter, sprintFilter, cadenceFilter, search, sortKey, view, pagination.page])
 
   /* ---- mutations ---- */
 
@@ -349,12 +390,17 @@ export default function TasksWorkspacePage() {
       sprintId: overview?.activeSprint?.id ?? "",
       dueDate: "",
       tags: "",
+      cadence: "one-off",
+      checklistItems: [],
     })
     setConfirmDelete(false)
     setFormOpen(true)
   }
 
   const openEdit = (t: ApiTask) => {
+    const items = parseChecklistItems(
+      typeof t.checklistItems === "string" ? t.checklistItems : JSON.stringify(t.checklistItems ?? [])
+    )
     setDraft({
       id: t.id,
       title: t.title,
@@ -366,6 +412,8 @@ export default function TasksWorkspacePage() {
       sprintId: t.sprintId ?? "",
       dueDate: t.dueDate ?? "",
       tags: taskTags(t.tags).join(", "),
+      cadence: (t.cadence as Cadence) ?? "one-off",
+      checklistItems: items,
     })
     setConfirmDelete(false)
     setDetailTask(null)
@@ -392,6 +440,8 @@ export default function TasksWorkspacePage() {
           .split(",")
           .map((tag) => tag.trim())
           .filter(Boolean),
+        cadence: draft.cadence,
+        checklistItems: draft.cadence !== "one-off" ? draft.checklistItems : [],
       }
       const res = draft.id
         ? await fetch(`/api/tasks/${draft.id}`, {
@@ -484,6 +534,86 @@ export default function TasksWorkspacePage() {
   }
 
   /* ---- derived selections / sections ---- */
+
+  /* ---- task instances (recurring tasks) ---- */
+
+  const loadInstances = useCallback(async (taskId: number) => {
+    setInstancesLoading(true)
+    try {
+      const res = await fetch(`/api/task-instances?taskId=${taskId}`)
+      const json = await res.json()
+      if (!json.success) throw new Error(json.message ?? "Failed to load instances")
+      setInstances(json.data as TaskInstanceRow[])
+    } catch (err) {
+      toast({ variant: "destructive", title: "Instances", description: (err as Error).message })
+      setInstances([])
+    } finally {
+      setInstancesLoading(false)
+    }
+  }, [toast])
+
+  const openCompletionDialog = async (instance: TaskInstanceRow, task: ApiTask) => {
+    setCompletingInstance(instance)
+    setInstanceNotes(instance.notes ?? "")
+    const items = parseChecklistItems(
+      typeof task.checklistItems === "string" ? task.checklistItems : JSON.stringify(task.checklistItems ?? [])
+    )
+    // Pre-fill responses from existing instance data or default to "yes"
+    const existing = Array.isArray(instance.checklistResponses) ? instance.checklistResponses : []
+    const responseMap = new Map<string, string>()
+    for (const r of existing) {
+      if (r && typeof r === "object") {
+        const obj = r as Record<string, unknown>
+        if (typeof obj.id === "string" && typeof obj.value === "string") {
+          responseMap.set(obj.id, obj.value)
+        }
+      }
+    }
+    setInstanceResponses(
+      items.map((item) => ({
+        id: item.id,
+        value: (responseMap.get(item.id) as ChecklistResponse["value"]) ?? "yes",
+      }))
+    )
+  }
+
+  const submitInstanceCompletion = async () => {
+    if (!completingInstance) return
+    setCompletingBusy(true)
+    try {
+      const res = await fetch(`/api/task-instances/${completingInstance.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status: "done",
+          notes: instanceNotes || null,
+          checklistResponses: instanceResponses,
+        }),
+      })
+      const json = await res.json()
+      if (!json.success) throw new Error(json.message ?? "Failed to complete instance")
+      toast({ title: "Instance completed", description: `Instance for ${completingInstance.instanceDate}` })
+      setCompletingInstance(null)
+      // Reload instances for the detail task
+      if (detailTask) await loadInstances(detailTask.id)
+      await reloadAll()
+    } catch (err) {
+      toast({ variant: "destructive", title: "Completion", description: (err as Error).message })
+    } finally {
+      setCompletingBusy(false)
+    }
+  }
+
+  /* ---- end task instances ---- */
+
+  // Load task instances when the detail modal opens for a recurring task
+  useEffect(() => {
+    if (detailTask && detailTask.cadence && detailTask.cadence !== "one-off") {
+      loadInstances(detailTask.id)
+    } else {
+      setInstances([])
+    }
+  }, [detailTask, loadInstances])
 
   const filteredByAssignee = useMemo(() => {
     if (assigneeFilter === "none") return tasks.filter((t) => t.assigneeId === null)
@@ -647,8 +777,11 @@ export default function TasksWorkspacePage() {
       const name = sprintFilter === BACKLOG ? "Backlog" : sprintName(Number(sprintFilter))
       chips.push({ label: `Sprint: ${name}`, clear: () => setSprintFilter("all") })
     }
+    if (cadenceFilter !== "all") {
+      chips.push({ label: `Cadence: ${CADENCE_LABEL[cadenceFilter as Cadence] ?? cadenceFilter}`, clear: () => setCadenceFilter("all") })
+    }
     return chips
-  }, [search, statusFilter, priorityFilter, assigneeFilter, sprintFilter, userById, sprintName])
+  }, [search, statusFilter, priorityFilter, assigneeFilter, sprintFilter, cadenceFilter, userById, sprintName])
 
   const clearFilters = () => {
     setSearchInput("")
@@ -657,6 +790,7 @@ export default function TasksWorkspacePage() {
     setPriorityFilter("all")
     setAssigneeFilter("all")
     setSprintFilter("all")
+    setCadenceFilter("all")
   }
 
   /* ---- render ---- */
@@ -832,6 +966,19 @@ export default function TasksWorkspacePage() {
               ))}
             </SelectContent>
           </Select>
+          <Select value={cadenceFilter} onValueChange={setCadenceFilter}>
+            <SelectTrigger className="h-9 w-36 text-sm" aria-label="Filter by cadence">
+              <SelectValue placeholder="Cadence" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All cadences</SelectItem>
+              {CADENCES.map((c) => (
+                <SelectItem key={c} value={c}>
+                  {CADENCE_LABEL[c]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Select value={sortKey} onValueChange={(v) => setSortKey(v as SortKey)}>
             <SelectTrigger className="h-9 w-36 text-sm" aria-label="Sort tasks">
               <SelectValue placeholder="Sort" />
@@ -990,7 +1137,10 @@ export default function TasksWorkspacePage() {
                         {t.title}
                       </button>
                     </div>
-                    <StatusPill status={t.status} />
+                    <div className="flex items-center gap-1">
+                      <StatusPill status={t.status} />
+                      <CadenceBadge cadence={t.cadence} />
+                    </div>
                   </div>
                   <p className="line-clamp-2 text-xs text-muted-foreground">{t.description || "No description"}</p>
                   <div className="flex flex-wrap gap-1">
@@ -1069,15 +1219,15 @@ export default function TasksWorkspacePage() {
                         <button className="block truncate text-left font-medium hover:underline" onClick={() => setDetailTask(t)}>
                           {t.title}
                         </button>
-                        {taskTags(t.tags).length > 0 && (
-                          <div className="flex flex-wrap gap-1">
-                            {taskTags(t.tags).slice(0, 3).map((tag) => (
+                        <div className="flex flex-wrap items-center gap-1">
+                          {taskTags(t.tags).length > 0 &&
+                            taskTags(t.tags).slice(0, 3).map((tag) => (
                               <Badge key={tag} variant="outline" className="text-[10px]">
                                 {tag}
                               </Badge>
                             ))}
-                          </div>
-                        )}
+                          <CadenceBadge cadence={t.cadence} />
+                        </div>
                       </td>
                       <td className="px-2 py-2">
                         <StatusPill status={t.status} />
@@ -1153,6 +1303,7 @@ export default function TasksWorkspacePage() {
                   )}
                   <PriorityPill priority={t.priority} />
                   <StatusPill status={t.status} />
+                  <CadenceBadge cadence={t.cadence} />
                   <span className={cn("w-20 shrink-0 text-right text-xs tabular-nums", isOverdue(t, todayIso) && "font-semibold text-red-500")}>
                     {t.dueDate ?? "—"}
                   </span>
@@ -1554,6 +1705,82 @@ export default function TasksWorkspacePage() {
                   ))}
                 </div>
               </div>
+              {/* Task instances for recurring tasks */}
+              {detailTask.cadence && detailTask.cadence !== "one-off" && (
+                <div>
+                  <div className="flex items-center gap-2">
+                    <Label className="text-xs">Instances</Label>
+                    <CadenceBadge cadence={detailTask.cadence} />
+                    {instancesLoading && <Skeleton className="h-4 w-16" />}
+                  </div>
+                  <div className="mt-1 space-y-1">
+                    {instances.length === 0 && !instancesLoading && (
+                      <p className="text-xs text-muted-foreground">No instances yet.</p>
+                    )}
+                    {instances
+                      .sort((a, b) => (b.instanceDate ?? "").localeCompare(a.instanceDate ?? ""))
+                      .slice(0, 10)
+                      .map((inst) => {
+                        const items = parseChecklistItems(
+                          typeof detailTask.checklistItems === "string"
+                            ? detailTask.checklistItems
+                            : JSON.stringify(detailTask.checklistItems ?? [])
+                        )
+                        return (
+                          <div
+                            key={inst.id}
+                            className="flex items-center justify-between rounded-md border px-2 py-1.5"
+                          >
+                            <div className="flex items-center gap-2">
+                              <StatusPill status={inst.status} />
+                              <span className="text-xs tabular-nums">{inst.instanceDate}</span>
+                            </div>
+                            {inst.status !== "done" && items.length > 0 && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 text-xs"
+                                onClick={() => openCompletionDialog(inst, detailTask)}
+                              >
+                                <CheckSquare className="mr-1 h-3 w-3" /> Complete
+                              </Button>
+                            )}
+                            {inst.status !== "done" && items.length === 0 && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 text-xs"
+                                onClick={async () => {
+                                  try {
+                                    const res = await fetch(`/api/task-instances/${inst.id}`, {
+                                      method: "PATCH",
+                                      headers: { "Content-Type": "application/json" },
+                                      body: JSON.stringify({ status: "done" }),
+                                    })
+                                    const json = await res.json()
+                                    if (!json.success) throw new Error(json.message ?? "Failed")
+                                    toast({ title: "Instance completed" })
+                                    await loadInstances(detailTask.id)
+                                    await reloadAll()
+                                  } catch (err) {
+                                    toast({ variant: "destructive", title: "Error", description: (err as Error).message })
+                                  }
+                                }}
+                              >
+                                Complete
+                              </Button>
+                            )}
+                            {inst.status === "done" && (
+                              <span className="text-[10px] text-muted-foreground">
+                                {inst.completedAt ? relativeTime(inst.completedAt) : "done"}
+                              </span>
+                            )}
+                          </div>
+                        )
+                      })}
+                  </div>
+                </div>
+              )}
             </div>
             <DialogFooter className="flex gap-2 sm:justify-between">
               {confirmDelete ? (
@@ -1678,6 +1905,76 @@ export default function TasksWorkspacePage() {
                 <Label htmlFor="tf-tags">Tags (comma separated)</Label>
                 <Input id="tf-tags" value={draft.tags} onChange={(e) => setDraft({ ...draft, tags: e.target.value })} placeholder="frontend, bug" />
               </div>
+              <div className="space-y-1">
+                <Label htmlFor="tf-cadence">Cadence</Label>
+                <Select value={draft.cadence} onValueChange={(v) => setDraft({ ...draft, cadence: v as Cadence, checklistItems: v === "one-off" ? [] : draft.checklistItems })}>
+                  <SelectTrigger id="tf-cadence">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CADENCES.map((c) => (
+                      <SelectItem key={c} value={c}>
+                        {CADENCE_LABEL[c]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {draft.cadence !== "one-off" && (
+                <div className="space-y-2 sm:col-span-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs">Checklist items</Label>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 text-xs"
+                      onClick={() =>
+                        setDraft({
+                          ...draft,
+                          checklistItems: [
+                            ...draft.checklistItems,
+                            { id: `item-${Date.now()}`, label: "", type: "yes-no-na" as const },
+                          ],
+                        })
+                      }
+                    >
+                      <Plus className="mr-1 h-3 w-3" /> Add item
+                    </Button>
+                  </div>
+                  {draft.checklistItems.length === 0 && (
+                    <p className="text-xs text-muted-foreground">No checklist items. Add items to track recurring checks.</p>
+                  )}
+                  {draft.checklistItems.map((item, idx) => (
+                    <div key={item.id} className="flex items-center gap-2">
+                      <Input
+                        className="h-8 text-xs"
+                        value={item.label}
+                        onChange={(e) => {
+                          const updated = [...draft.checklistItems]
+                          updated[idx] = { ...updated[idx], label: e.target.value }
+                          setDraft({ ...draft, checklistItems: updated })
+                        }}
+                        placeholder={`Item ${idx + 1}`}
+                      />
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 w-8 p-0 text-red-500"
+                        onClick={() =>
+                          setDraft({
+                            ...draft,
+                            checklistItems: draft.checklistItems.filter((_, i) => i !== idx),
+                          })
+                        }
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             <DialogFooter>
               <Button variant="ghost" onClick={() => setFormOpen(false)} disabled={saving}>
@@ -1685,6 +1982,100 @@ export default function TasksWorkspacePage() {
               </Button>
               <Button onClick={saveTask} disabled={saving}>
                 {saving ? "Saving…" : draft.id ? "Save changes" : "Create task"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        )}
+      </Dialog>
+
+      {/* ---- task instance completion dialog ---- */}
+      <Dialog
+        open={completingInstance !== null}
+        onOpenChange={(o) => {
+          if (!o) {
+            setCompletingInstance(null)
+            setInstanceResponses([])
+            setInstanceNotes("")
+          }
+        }}
+      >
+        {completingInstance && detailTask && (
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-base">
+                Complete instance — {completingInstance.instanceDate}
+              </DialogTitle>
+              <DialogDescription className="text-xs">
+                {detailTask.title} · {CADENCE_LABEL[(detailTask.cadence as Cadence) ?? "one-off"]}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3">
+              {(() => {
+                const items = parseChecklistItems(
+                  typeof detailTask.checklistItems === "string"
+                    ? detailTask.checklistItems
+                    : JSON.stringify(detailTask.checklistItems ?? [])
+                )
+                if (items.length === 0) return null
+                return (
+                  <div className="space-y-2">
+                    <Label className="text-xs">Checklist</Label>
+                    {items.map((item) => {
+                      const resp = instanceResponses.find((r) => r.id === item.id)
+                      return (
+                        <div key={item.id} className="flex items-center justify-between rounded-md border px-3 py-2">
+                          <span className="text-sm">{item.label}</span>
+                          <div className="flex gap-1">
+                            {(["yes", "no", "n/a"] as const).map((val) => (
+                              <Button
+                                key={val}
+                                size="sm"
+                                variant={resp?.value === val ? "default" : "outline"}
+                                className="h-7 px-2 text-xs capitalize"
+                                onClick={() =>
+                                  setInstanceResponses((prev) => {
+                                    const filtered = prev.filter((r) => r.id !== item.id)
+                                    return [...filtered, { id: item.id, value: val }]
+                                  })
+                                }
+                              >
+                                {val}
+                              </Button>
+                            ))}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )
+              })()}
+              <div className="space-y-1">
+                <Label htmlFor="inst-notes" className="text-xs">
+                  Notes (optional)
+                </Label>
+                <Textarea
+                  id="inst-notes"
+                  rows={2}
+                  value={instanceNotes}
+                  onChange={(e) => setInstanceNotes(e.target.value)}
+                  placeholder="Any observations for this instance…"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setCompletingInstance(null)
+                  setInstanceResponses([])
+                  setInstanceNotes("")
+                }}
+                disabled={completingBusy}
+              >
+                Cancel
+              </Button>
+              <Button onClick={submitInstanceCompletion} disabled={completingBusy}>
+                {completingBusy ? "Completing…" : "Mark complete"}
               </Button>
             </DialogFooter>
           </DialogContent>
