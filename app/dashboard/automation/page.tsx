@@ -615,12 +615,12 @@ export default function AutomationPage() {
       </SectionCard>
 
       {/* 4 — rules list */}
-      <SectionCard title=”Rules” icon={<Zap className=”h-4 w-4” />}>
+      <SectionCard title="Rules" icon={<Zap className="h-4 w-4" />}>
         {filtered.length === 0 ? (
           <EmptyNote>
-            {query.trim() !== “” || fTrigger !== “all” || fState !== “all”
-              ? “No rules match these filters. Clear the search or adjust the trigger/state filters.”
-              : “No rules yet — instantiate a template below or build one with 'New rule'.”}
+            {query.trim() !== "" || fTrigger !== "all" || fState !== "all"
+              ? "No rules match these filters. Clear the search or adjust the trigger/state filters."
+              : "No rules yet - instantiate a template below or build one with 'New rule'."}
           </EmptyNote>
         ) : (
           <div className="space-y-2">
