@@ -21,7 +21,7 @@ export async function seedAnalytics(): Promise<SeedResult> {
     console.log("Seeding analytics...");
 
     const allUsers = await db.select().from(users);
-    const adminId = allUsers.find((u) => u.email === "admin@jiravision.com")?.id;
+    const adminId = allUsers.find((u) => u.email === "fakiiahmad001@gmail.com")?.id;
 
     let totalCount = 0;
 

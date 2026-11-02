@@ -21,7 +21,7 @@ export async function seedPlaybooks(): Promise<SeedResult> {
     console.log("Seeding playbooks...");
 
     // Get admin user ID
-    const admin = await db.select().from(users).where(eq(users.email, "admin@jiravision.com")).limit(1);
+    const admin = await db.select().from(users).where(eq(users.email, "fakiiahmad001@gmail.com")).limit(1);
     const authorId = admin[0]?.id;
 
     const playbookData = [

@@ -21,9 +21,9 @@ export async function seedTasks(): Promise<SeedResult> {
     console.log("Seeding tasks...");
 
     const allUsers = await db.select().from(users);
-    const userMap = new Map(allUsers.map((u) => [u.name, u.id]));
-    const adminId = userMap.get("Admin User");
-    const jamesId = userMap.get("James Otieno");
+    const targetUser = allUsers.find((u) => u.email === "fakiiahmad001@gmail.com");
+    const adminId = targetUser?.id;
+    const jamesId = targetUser?.id;
 
     const taskData = [
       // Critical (1)

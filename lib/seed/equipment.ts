@@ -20,9 +20,10 @@ export async function seedEquipment(): Promise<SeedResult> {
 
     console.log("Seeding equipment...");
 
-    // Get user IDs for assignments
+    // Get user IDs for assignments — all owned by the primary account
     const allUsers = await db.select().from(users);
-    const userMap = new Map(allUsers.map((u) => [u.name, u.id]));
+    const primaryUser = allUsers.find((u) => u.email === "fakiiahmad001@gmail.com");
+    const primaryUserId = primaryUser?.id;
 
     const equipment = [
       // Laptops (8)
@@ -37,7 +38,7 @@ export async function seedEquipment(): Promise<SeedResult> {
           assignedTo: "Francis Mwangi",
         },
         status: "in_service",
-        ownerId: userMap.get("Francis Mwangi"),
+        ownerId: primaryUserId,
       },
       {
         title: "Dell Latitude 5520 - Grace",
@@ -50,7 +51,7 @@ export async function seedEquipment(): Promise<SeedResult> {
           assignedTo: "Grace Akinyi",
         },
         status: "in_service",
-        ownerId: userMap.get("Grace Akinyi"),
+        ownerId: primaryUserId,
       },
       {
         title: "Dell Latitude 5520 - David",
@@ -63,7 +64,7 @@ export async function seedEquipment(): Promise<SeedResult> {
           assignedTo: "David Kimani",
         },
         status: "in_service",
-        ownerId: userMap.get("David Kimani"),
+        ownerId: primaryUserId,
       },
       {
         title: "Dell Latitude 5520 - Catherine",
@@ -76,7 +77,7 @@ export async function seedEquipment(): Promise<SeedResult> {
           assignedTo: "Catherine Wanjiku",
         },
         status: "in_service",
-        ownerId: userMap.get("Catherine Wanjiku"),
+        ownerId: primaryUserId,
       },
       {
         title: "Dell Latitude 5520 - James",
@@ -89,7 +90,7 @@ export async function seedEquipment(): Promise<SeedResult> {
           assignedTo: "James Otieno",
         },
         status: "in_service",
-        ownerId: userMap.get("James Otieno"),
+        ownerId: primaryUserId,
       },
       {
         title: "HP EliteBook 840 G8 - Spare 1",
@@ -139,7 +140,7 @@ export async function seedEquipment(): Promise<SeedResult> {
           assignedTo: "Amina Hassan",
         },
         status: "in_service",
-        ownerId: userMap.get("Amina Hassan"),
+        ownerId: primaryUserId,
       },
       {
         title: "Dell OptiPlex 7090 - Irene",
@@ -152,7 +153,7 @@ export async function seedEquipment(): Promise<SeedResult> {
           assignedTo: "Irene Chebet",
         },
         status: "in_service",
-        ownerId: userMap.get("Irene Chebet"),
+        ownerId: primaryUserId,
       },
       {
         title: "Dell OptiPlex 7090 - Brian",
@@ -165,7 +166,7 @@ export async function seedEquipment(): Promise<SeedResult> {
           assignedTo: "Brian Ochieng",
         },
         status: "in_service",
-        ownerId: userMap.get("Brian Ochieng"),
+        ownerId: primaryUserId,
       },
       {
         title: "HP ProDesk 400 G7 - Henry",
@@ -178,7 +179,7 @@ export async function seedEquipment(): Promise<SeedResult> {
           assignedTo: "Henry Kipchoge",
         },
         status: "in_service",
-        ownerId: userMap.get("Henry Kipchoge"),
+        ownerId: primaryUserId,
       },
       {
         title: "HP ProDesk 400 G7 - Spare",

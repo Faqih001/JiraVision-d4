@@ -21,7 +21,7 @@ export async function seedOperations(): Promise<SeedResult> {
     console.log("Seeding operations...");
 
     const allUsers = await db.select().from(users);
-    const adminId = allUsers.find((u) => u.email === "admin@jiravision.com")?.id;
+    const adminId = allUsers.find((u) => u.email === "fakiiahmad001@gmail.com")?.id;
 
     const opsData = [
       // 10 backup operations (last 10 nights)

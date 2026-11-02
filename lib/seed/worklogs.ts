@@ -21,7 +21,7 @@ export async function seedWorklogs(): Promise<SeedResult> {
     console.log("Seeding worklogs...");
 
     const allUsers = await db.select().from(users);
-    const adminId = allUsers.find((u) => u.email === "admin@jiravision.com")?.id;
+    const adminId = allUsers.find((u) => u.email === "fakiiahmad001@gmail.com")?.id;
 
     const allTasks = await db.select().from(tasks).where(eq(tasks.discipline, "technician"));
     const mcsTask = allTasks.find((t) => t.title.includes("MCS Server"));

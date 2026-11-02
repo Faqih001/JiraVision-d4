@@ -21,8 +21,8 @@ export async function seedCalendar(): Promise<SeedResult> {
     console.log("Seeding calendar events...");
 
     const allUsers = await db.select().from(users);
-    const adminId = allUsers.find((u) => u.email === "admin@jiravision.com")?.id;
-    const jamesId = allUsers.find((u) => u.name === "James Otieno")?.id;
+    const adminId = allUsers.find((u) => u.email === "fakiiahmad001@gmail.com")?.id;
+    const jamesId = adminId;
 
     const eventData = [
       // Upcoming events (5)
