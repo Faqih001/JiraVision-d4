@@ -19,7 +19,7 @@ import { agentSession, bad } from "../../_shared"
 export const dynamic = "force-dynamic"
 
 const MAX_REGISTERS = 40
-const MAX_PLAYBOOKS = 10
+const MAX_PLAYBOOKS = 25
 
 type Pairs = { key: string; value: string }[]
 

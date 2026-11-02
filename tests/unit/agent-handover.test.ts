@@ -165,6 +165,57 @@ describe("readHandover", () => {
     expect(preview.refusals[0].reason).toMatch(/credential/i)
   })
 
+  it("keeps up to 25 playbooks and refuses the rest", () => {
+    const playbooks = Array.from({ length: 30 }, (_, i) => ({
+      title: `Playbook ${i + 1}`,
+      summary: "A test playbook.",
+      steps: [{ phase: "Identify", action: "Test action." }],
+    }))
+    const preview = readHandover({ registers: [], playbooks }, PACK)
+    expect(preview.playbooks).toHaveLength(25)
+    expect(preview.refusals).toHaveLength(1)
+    expect(preview.refusals[0].reason).toMatch(/more than 25 drafts/)
+  })
+
+  it("accepts an invalid discipline as null instead of refusing the playbook", () => {
+    const preview = readHandover(
+      {
+        registers: [],
+        playbooks: [
+          {
+            title: "Test playbook",
+            summary: "A test.",
+            discipline: "IT support",
+            steps: [{ phase: "Identify", action: "Test action." }],
+          },
+        ],
+      },
+      PACK,
+    )
+    expect(preview.playbooks).toHaveLength(1)
+    expect(preview.playbooks[0].discipline).toBeNull()
+    expect(preview.refusals).toEqual([])
+  })
+
+  it("keeps a valid discipline when one is provided", () => {
+    const preview = readHandover(
+      {
+        registers: [],
+        playbooks: [
+          {
+            title: "Test playbook",
+            summary: "A test.",
+            discipline: "technician",
+            steps: [{ phase: "Identify", action: "Test action." }],
+          },
+        ],
+      },
+      PACK,
+    )
+    expect(preview.playbooks).toHaveLength(1)
+    expect(preview.playbooks[0].discipline).toBe("technician")
+  })
+
   it("throws a badjson GeminiError for a payload that is not an object", () => {
     expect(() => readHandover("not json", PACK)).toThrow(GeminiError)
   })
@@ -183,7 +234,7 @@ describe("the prompt", () => {
 
   it("bounds the answer to what the reader keeps, so extraction stays inside the wait", () => {
     const prompt = handoverPrompt({ pack: PACK, source: "pdf" })
-    expect(prompt).toContain("at most 10 playbooks of at most 12 steps")
+    expect(prompt).toContain("at most 25 playbooks of at most 12 steps")
     expect(prompt).toContain("at most 40 register rows")
     expect(prompt).toMatch(/one short sentence/u)
     expect(prompt).toMatch(/optional step fields only where the document states them/u)

@@ -77,10 +77,7 @@ export function readPlaybookInput(value: unknown, fallbackMethod: readonly strin
       ? null
       : isWorkDiscipline(raw.discipline)
         ? raw.discipline
-        : undefined
-  if (discipline === undefined) {
-    return { ok: false, error: "discipline must be null or a known work discipline." }
-  }
+        : null
 
   const scopeKind =
     raw.scopeKind === undefined || raw.scopeKind === null

@@ -35,7 +35,7 @@ export type HandoverPreview = {
 }
 
 const MAX_REGISTERS = 40
-const MAX_PLAYBOOKS = 10
+const MAX_PLAYBOOKS = 25
 const MAX_TITLE = 200
 const MAX_SUMMARY = 2000
 
