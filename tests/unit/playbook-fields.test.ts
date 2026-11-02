@@ -48,9 +48,10 @@ describe("readPlaybookInput", () => {
     if (!parsed.ok) expect(parsed.error).toMatch(/distinct/i)
   })
 
-  it("rejects a discipline the app does not know", () => {
+  it("accepts an unknown discipline as null", () => {
     const parsed = readPlaybookInput({ ...base, discipline: "astronaut" }, [])
-    expect(parsed.ok).toBe(false)
+    expect(parsed.ok).toBe(true)
+    if (parsed.ok) expect(parsed.value.discipline).toBeNull()
   })
 
   it("accepts a known discipline and null", () => {
