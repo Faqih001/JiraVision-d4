@@ -51,8 +51,8 @@ async function main() {
   try {
     await sql.begin(async (tx) => {
       // Verify the users exist
-      const [u1] = await tx`select id, email from users where id = ${OLD_USER_1}`
-      const [u2] = await tx`select id, email from users where id = ${OLD_USER_2}`
+      const [u1] = await tx`select * from users where id = ${OLD_USER_1}`
+      const [u2] = await tx`select * from users where id = ${OLD_USER_2}`
       
       if (!u1) throw new Error(`User ${OLD_USER_1} not found`)
       if (!u2) throw new Error(`User ${OLD_USER_2} not found`)
@@ -61,7 +61,23 @@ async function main() {
       console.log(`  ${OLD_USER_1} (${u1.email}) → ${NEW_USER_1}`)
       console.log(`  ${OLD_USER_2} (${u2.email}) → ${NEW_USER_2}\n`)
 
-      // Update foreign key references
+      // Step 1: Update old users' emails to temporary values FIRST (to free them up)
+      await tx`UPDATE users SET email = 'temp_old_23@deleted.local' WHERE id = ${OLD_USER_1}`
+      await tx`UPDATE users SET email = 'temp_old_24@deleted.local' WHERE id = ${OLD_USER_2}`
+      console.log(`  Freed emails from users ${OLD_USER_1} and ${OLD_USER_2}`)
+
+      // Step 2: Insert new users with target ids (using original emails from u1 and u2)
+      await tx`
+        INSERT INTO users (id, email, name, role, password_hash, avatar, email_verified, job_title, department, location, bio, language, timezone, preferences, status, skills, created_at, updated_at)
+        VALUES (${NEW_USER_1}, ${u1.email}, ${u1.name}, ${u1.role}, ${u1.password_hash}, ${u1.avatar}, ${u1.email_verified}, ${u1.job_title}, ${u1.department}, ${u1.location}, ${u1.bio}, ${u1.language}, ${u1.timezone}, ${u1.preferences}, ${u1.status}, ${u1.skills}, ${u1.created_at}, ${u1.updated_at})
+      `
+      await tx`
+        INSERT INTO users (id, email, name, role, password_hash, avatar, email_verified, job_title, department, location, bio, language, timezone, preferences, status, skills, created_at, updated_at)
+        VALUES (${NEW_USER_2}, ${u2.email}, ${u2.name}, ${u2.role}, ${u2.password_hash}, ${u2.avatar}, ${u2.email_verified}, ${u2.job_title}, ${u2.department}, ${u2.location}, ${u2.bio}, ${u2.language}, ${u2.timezone}, ${u2.preferences}, ${u2.status}, ${u2.skills}, ${u2.created_at}, ${u2.updated_at})
+      `
+      console.log(`  Created users ${NEW_USER_1} and ${NEW_USER_2}`)
+
+      // Step 2: Update foreign key references
       for (const { table, column } of FK_TABLES) {
         const r1 = await tx.unsafe(
           `UPDATE ${table} SET ${column} = ${NEW_USER_1} WHERE ${column} = ${OLD_USER_1}`
@@ -76,9 +92,8 @@ async function main() {
         }
       }
 
-      // Update JSON array columns (attendees in calendar_events)
+      // Step 3: Update JSON array columns (attendees in calendar_events)
       for (const { table, column } of JSON_ARRAY_COLUMNS) {
-        // Replace OLD_USER_1 with NEW_USER_1 in the JSON array
         await tx.unsafe(`
           UPDATE ${table}
           SET ${column} = (
@@ -98,15 +113,11 @@ async function main() {
         console.log(`  ${table}.${column}: updated user ids in JSON array`)
       }
 
-      // Update the users table itself
-      // Use a temporary id to avoid conflicts during the swap
-      await tx`UPDATE users SET id = 9999 WHERE id = ${OLD_USER_1}`
-      await tx`UPDATE users SET id = ${NEW_USER_1} WHERE id = 9999`
-      await tx`UPDATE users SET id = ${NEW_USER_2} WHERE id = ${OLD_USER_2}`
-      
-      console.log(`\n  users table: ids remapped`)
+      // Step 4: Delete the old users
+      await tx`DELETE FROM users WHERE id IN (${OLD_USER_1}, ${OLD_USER_2})`
+      console.log(`  Deleted old users ${OLD_USER_1} and ${OLD_USER_2}`)
 
-      // Reset the sequence to start after the highest id
+      // Step 5: Reset the sequence
       await tx`SELECT setval('users_id_seq', (SELECT MAX(id) FROM users))`
       console.log(`  users_id_seq: reset to ${NEW_USER_2}`)
 
