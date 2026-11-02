@@ -148,6 +148,10 @@ export const tasks = pgTable("tasks", {
   sourcePlanId: integer("source_plan_id"),
   // Ops engine metadata: pack-specific fields (category, support_type, site, asset_ref, resolved_at, sla_target)
   metadata: jsonb("metadata").default("{}"),
+  cadence: varchar("cadence", { length: 20 }).default("one-off"),
+  parentTaskId: integer("parent_task_id").references((): AnyPgColumn => tasks.id),
+  isTemplate: boolean("is_template").notNull().default(false),
+  checklistItems: jsonb("checklist_items").default("[]"),
 })
 
 // Wellbeing metrics table
@@ -900,4 +904,23 @@ export const userOnboarding = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [index("user_onboarding_status_idx").on(table.status)],
+)
+
+export const taskInstances = pgTable(
+  "task_instances",
+  {
+    id: serial("id").primaryKey(),
+    taskId: integer("task_id").notNull().references(() => tasks.id, { onDelete: "cascade" }),
+    instanceDate: date("instance_date").notNull(),
+    status: varchar("status", { length: 50 }).notNull().default("todo"),
+    completedAt: timestamp("completed_at"),
+    completedBy: integer("completed_by").references(() => users.id),
+    notes: text("notes"),
+    checklistResponses: jsonb("checklist_responses").default("[]"),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("idx_task_instances_task_date").on(table.taskId, table.instanceDate),
+    index("idx_task_instances_status").on(table.status),
+  ],
 )
