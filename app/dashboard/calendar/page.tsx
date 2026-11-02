@@ -937,6 +937,14 @@ export default function CalendarWorkspace() {
         </CardContent>
       </Card>
 
+      {filtered.length === 0 && (search.trim() !== "" || typeFilter !== "all") && (
+        <Card>
+          <CardContent className="py-8">
+            <EmptyNote>No events match these filters. Clear the search or type filter to see all events.</EmptyNote>
+          </CardContent>
+        </Card>
+      )}
+
       {/* 3 — KPI strip */}
       <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
         {[

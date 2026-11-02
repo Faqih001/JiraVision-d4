@@ -589,6 +589,18 @@ export default function AnalyticsWorkspace() {
         </CardContent>
       </Card>
 
+      {visibleTasks.length === 0 &&
+        taskRows.length > 0 &&
+        (filters.rangeDays !== DEFAULT_FILTERS.rangeDays ||
+          filters.sprintId !== DEFAULT_FILTERS.sprintId ||
+          filters.priority !== DEFAULT_FILTERS.priority) && (
+          <Card>
+            <CardContent className="py-8">
+              <EmptyNote>No tasks match these filters. Reset the filters or adjust the range, sprint, or priority.</EmptyNote>
+            </CardContent>
+          </Card>
+        )}
+
       {/* 3 — Saved reports */}
       <SectionCard
         title="Saved reports"
