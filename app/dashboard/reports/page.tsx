@@ -1007,15 +1007,16 @@ export default function ReportsPage() {
                   <Button size="sm" variant="ghost" disabled={busyId === s.id} onClick={() => void toggleActive(s)}>
                     {s.isActive ? "Pause" : "Resume"}
                   </Button>
-                  <Button size="sm" variant="ghost" onClick={() => openCreate(s)}>
+                  <Button size="sm" variant="ghost" aria-label="Edit schedule entry" onClick={() => openCreate(s)}>
                     <Pencil className="h-3.5 w-3.5" />
                   </Button>
-                  <Button size="sm" variant="ghost" disabled={busyId === s.id} onClick={() => void duplicateSchedule(s)}>
+                  <Button size="sm" variant="ghost" aria-label="Duplicate schedule entry" disabled={busyId === s.id} onClick={() => void duplicateSchedule(s)}>
                     <Copy className="h-3.5 w-3.5" />
                   </Button>
                   <Button
                     size="sm"
                     variant="ghost"
+                    aria-label="Delete schedule entry"
                     className="text-destructive"
                     onClick={() => {
                       setDeleteTarget(s)

@@ -1081,10 +1081,10 @@ export default function CalendarWorkspace() {
           icon={<CalendarClock className="h-4 w-4 text-muted-foreground" />}
           action={
             <div className="flex items-center gap-1">
-              <Button size="sm" variant="outline" onClick={() => { const d = addDays(dayViewTarget, -1); setSelectedDate(d); setFocusedDay(d); if (!isSameMonth(d, cursor)) setCursor(startOfMonth(d)) }}>
+              <Button size="sm" variant="outline" aria-label="Previous day" onClick={() => { const d = addDays(dayViewTarget, -1); setSelectedDate(d); setFocusedDay(d); if (!isSameMonth(d, cursor)) setCursor(startOfMonth(d)) }}>
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              <Button size="sm" variant="outline" onClick={() => { const d = addDays(dayViewTarget, 1); setSelectedDate(d); setFocusedDay(d); if (!isSameMonth(d, cursor)) setCursor(startOfMonth(d)) }}>
+              <Button size="sm" variant="outline" aria-label="Next day" onClick={() => { const d = addDays(dayViewTarget, 1); setSelectedDate(d); setFocusedDay(d); if (!isSameMonth(d, cursor)) setCursor(startOfMonth(d)) }}>
                 <ChevronRight className="h-4 w-4" />
               </Button>
               <Button size="sm" onClick={() => openCreate(dayViewTarget)}>
@@ -1172,7 +1172,7 @@ export default function CalendarWorkspace() {
           title="Upcoming · next 14 days"
           icon={<CalendarClock className="h-4 w-4 text-muted-foreground" />}
           action={
-            <Button size="sm" variant="ghost" onClick={() => openCreate()}>
+            <Button size="sm" variant="ghost" aria-label="Create event" onClick={() => openCreate()}>
               <Plus className="h-4 w-4" />
             </Button>
           }

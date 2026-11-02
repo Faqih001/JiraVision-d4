@@ -1960,6 +1960,7 @@ export default function TasksWorkspacePage() {
                         size="sm"
                         variant="ghost"
                         className="h-8 w-8 p-0 text-red-500"
+                        aria-label="Remove checklist item"
                         onClick={() =>
                           setDraft({
                             ...draft,

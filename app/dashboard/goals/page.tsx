@@ -841,12 +841,13 @@ export default function GoalsPage() {
             icon={<Target className="h-4 w-4" />}
             action={
               <div className="flex gap-1">
-                <Button size="sm" variant="ghost" onClick={() => openEdit(selected)}>
+                <Button size="sm" variant="ghost" aria-label="Edit goal" onClick={() => openEdit(selected)}>
                   <Pencil className="h-4 w-4" />
                 </Button>
                 <Button
                   size="sm"
                   variant="ghost"
+                  aria-label="Delete goal"
                   className="text-destructive"
                   onClick={() => {
                     setDeleteTarget(selected)
