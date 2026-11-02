@@ -59,7 +59,7 @@ describe("the handover routes", () => {
     expect(route).toMatch(/status: "draft"/)
     expect(route).toMatch(/version: 1/)
     expect(route).toMatch(/authorId: gate\.id/)
-    expect(route).not.toMatch(/insert\(tasks\)/)
+    expect(route).toMatch(/insert\(tasks\)/)
   })
 
   it("commit dedupes by pack, kind and title", () => {
@@ -119,5 +119,14 @@ describe("the agent's advice routes", () => {
     expect(route).toMatch(/GOOGLE_GEMINI_API_KEY/)
     expect(route).toMatch(/readAiSuggestions\(/)
     expect(route).toMatch(/aiAvailable/)
+  })
+
+  it("commit creates tasks from outstanding work and playbook steps", () => {
+    const route = codeOnly(src("app/api/agent/handover/commit/route.ts"))
+    expect(route).toMatch(/import.*tasks.*from.*schema/)
+    expect(route).toMatch(/createdTasks/)
+    expect(route).toMatch(/outstanding/)
+    expect(route).toMatch(/steps\.length/)
+    expect(route).toMatch(/tx\.insert\(tasks\)/)
   })
 })
