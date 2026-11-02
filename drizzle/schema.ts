@@ -148,6 +148,10 @@ export const tasks = pgTable("tasks", {
   sourcePlanId: integer("source_plan_id"),
   // Ops engine metadata: pack-specific fields (category, support_type, site, asset_ref, resolved_at, sla_target)
   metadata: jsonb("metadata").default("{}"),
+  cadence: varchar("cadence", { length: 20 }).default("one-off"),
+  parentTaskId: integer("parent_task_id").references((): AnyPgColumn => tasks.id),
+  isTemplate: boolean("is_template").notNull().default(false),
+  checklistItems: jsonb("checklist_items").default("[]"),
 })
 
 // Wellbeing metrics table
@@ -901,3 +905,48 @@ export const userOnboarding = pgTable(
   },
   (table) => [index("user_onboarding_status_idx").on(table.status)],
 )
+
+export const taskInstances = pgTable(
+  "task_instances",
+  {
+    id: serial("id").primaryKey(),
+    taskId: integer("task_id").notNull().references(() => tasks.id, { onDelete: "cascade" }),
+    instanceDate: date("instance_date").notNull(),
+    status: varchar("status", { length: 50 }).notNull().default("todo"),
+    completedAt: timestamp("completed_at"),
+    completedBy: integer("completed_by").references(() => users.id),
+    notes: text("notes"),
+    checklistResponses: jsonb("checklist_responses").default("[]"),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("idx_task_instances_task_date").on(table.taskId, table.instanceDate),
+    index("idx_task_instances_status").on(table.status),
+  ],
+)
+
+export const taskReportTemplates = pgTable("task_report_templates", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  cadence: varchar("cadence", { length: 20 }).notNull().default("monthly"),
+  discipline: varchar("discipline", { length: 40 }),
+  sections: jsonb("sections").notNull().default([]),
+  dataSources: jsonb("data_sources").notNull().default({}),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+})
+
+export const taskReports = pgTable("task_reports", {
+  id: serial("id").primaryKey(),
+  templateId: integer("template_id").notNull().references(() => taskReportTemplates.id, { onDelete: "cascade" }),
+  title: varchar("title", { length: 255 }).notNull(),
+  periodStart: date("period_start").notNull(),
+  periodEnd: date("period_end").notNull(),
+  content: jsonb("content").notNull().default({}),
+  status: varchar("status", { length: 20 }).notNull().default("draft"),
+  authorId: integer("author_id").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+})

@@ -98,9 +98,19 @@ describe("auth escape hatches are production-inert", () => {
     const files = filesIn("app")
       .concat(filesIn("lib"))
       .filter((f) => src(f).includes("ENABLE_TEST_MODE"))
-    expect(files).toEqual(["app/api/tasks/route.ts"])
-    const source = codeOnly(src("app/api/tasks/route.ts"))
-    expect(source).toMatch(/NODE_ENV\s*!==?\s*["']production["'][\s\S]{0,120}ENABLE_TEST_MODE/)
+    expect(files).toEqual([
+      "app/api/task-instances/[id]/route.ts",
+      "app/api/task-instances/route.ts",
+      "app/api/task-report-templates/route.ts",
+      "app/api/task-reports/[id]/route.ts",
+      "app/api/task-reports/route.ts",
+      "app/api/tasks/route.ts",
+    ])
+    // Every file that defines ENABLE_TEST_MODE must gate it behind a non-production check.
+    for (const f of files) {
+      const source = codeOnly(src(f))
+      expect(source).toMatch(/NODE_ENV\s*!==?\s*["']production["'][\s\S]{0,120}ENABLE_TEST_MODE/)
+    }
   })
 
   it("no route fabricates a signed-in user", () => {

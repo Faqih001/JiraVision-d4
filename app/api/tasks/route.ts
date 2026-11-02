@@ -2,6 +2,8 @@ import { NextResponse } from "next/server"
 import { getSession } from "@/lib/auth-actions"
 import { createTask, getPaginatedTasks } from "@/lib/data-access"
 import { createNotification } from "@/lib/notifications"
+import { isCadence } from "@/lib/cadence"
+import { generateInitialInstances } from "@/lib/data-access-task-instances"
 
 // Anonymous access is a convenience for local development and scripted runs only.
 // The previous expression ORed in ENABLE_TEST_MODE unconditionally, so a stray
@@ -95,6 +97,17 @@ export async function POST(request: Request) {
         { status: 400 }
       )
     }
+
+    // Validate cadence if provided
+    const cadence = data.cadence || "one-off"
+    const checklistItems = data.checklistItems || []
+
+    if (!isCadence(cadence)) {
+      return NextResponse.json(
+        { success: false, message: "Invalid cadence value" },
+        { status: 400 }
+      )
+    }
     
     // Prepare task data, ensuring proper date formatting for dueDate
     const taskData = {
@@ -106,11 +119,20 @@ export async function POST(request: Request) {
       assigneeId: data.assigneeId || (session ? session.id : 1), // Default to test user ID 1 if session is null
       sprintId: data.sprintId || null,
       dueDate: data.dueDate ? data.dueDate : null, // Save as string, not Date object
-      tags: data.tags || []
+      tags: data.tags || [],
+      cadence,
+      checklistItems,
+      isTemplate: cadence !== "one-off",
     }
     
     // Create the task
     const newTask = await createTask(taskData)
+
+    // Generate initial instances for recurring tasks
+    let instanceCount = 0
+    if (cadence !== "one-off") {
+      instanceCount = await generateInitialInstances(newTask.id, cadence as any, data.dueDate || undefined)
+    }
 
     if (newTask.assigneeId && newTask.assigneeId !== userId) {
       await createNotification({
@@ -125,7 +147,8 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      data: newTask
+      data: newTask,
+      instanceCount,
     })
   } catch (error) {
     console.error("Error creating task:", error)

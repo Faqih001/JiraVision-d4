@@ -80,6 +80,7 @@ describe("worklog schema", () => {
       "id", "title", "description", "status", "priority", "story_points", "assignee_id",
       "sprint_id", "due_date", "tags", "created_at", "updated_at",
       "start_date", "discipline", "source_plan_id", "metadata",
+      "cadence", "parent_task_id", "is_template", "checklist_items",
     ])
   })
 

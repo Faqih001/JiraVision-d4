@@ -22,10 +22,12 @@ import {
   ArrowRight,
   BarChart3,
   CalendarClock,
+  ClipboardList,
   Copy,
   Download,
   Eye,
   FileSpreadsheet,
+  FileText,
   History,
   LayoutGrid,
   Pencil,
@@ -142,6 +144,45 @@ type ScheduleDraft = {
   isActive: boolean
 }
 
+/* ----------------------------------------- task report types (TT-8) */
+
+type TaskReportTemplate = {
+  id: number
+  name: string
+  description: string | null
+  cadence: string
+  discipline: string | null
+  sections: Array<{
+    id: string
+    title: string
+    dataSource: { type: string; filters?: Record<string, string> } | null
+  }>
+  dataSources: Record<string, unknown>
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+type ReportSectionOutput = {
+  id: string
+  title: string
+  data: Array<Record<string, unknown>> | null
+  manualContent?: string
+}
+
+type TaskReport = {
+  id: number
+  templateId: number
+  title: string
+  periodStart: string
+  periodEnd: string
+  content: ReportSectionOutput[]
+  status: "draft" | "final"
+  authorId: number
+  createdAt: string
+  updatedAt: string
+}
+
 /* ------------------------------------------------------------------- page */
 
 export default function ReportsPage() {
@@ -176,7 +217,36 @@ export default function ReportsPage() {
   const [deleteConfirm, setDeleteConfirm] = useState(false)
   const [busyId, setBusyId] = useState<number | null>(null)
 
+  /* task reports (TT-8) */
+  const [templates, setTemplates] = useState<TaskReportTemplate[]>([])
+  const [taskReports, setTaskReports] = useState<TaskReport[]>([])
+  const [templateDialogOpen, setTemplateDialogOpen] = useState(false)
+  const [loadingTemplates, setLoadingTemplates] = useState(false)
+  const [editorReport, setEditorReport] = useState<TaskReport | null>(null)
+  const [editorOpen, setEditorOpen] = useState(false)
+  const [editorSaving, setEditorSaving] = useState(false)
+  const [manualContents, setManualContents] = useState<Record<string, string>>({})
+
   /* ------------------------------------------------------------- fetching */
+
+  const loadTaskReports = useCallback(async () => {
+    try {
+      const [tmplRes, repRes] = await Promise.all([
+        fetch("/api/task-report-templates"),
+        fetch("/api/task-reports"),
+      ])
+      if (tmplRes.ok) {
+        const j = await tmplRes.json()
+        setTemplates(j.data ?? [])
+      }
+      if (repRes.ok) {
+        const j = await repRes.json()
+        setTaskReports(j.data ?? [])
+      }
+    } catch {
+      // silent – task reports are additive to the existing schedule page
+    }
+  }, [])
 
   const load = useCallback(async (quiet = false) => {
     try {
@@ -199,13 +269,14 @@ export default function ReportsPage() {
           })),
         )
       }
+      await loadTaskReports()
       setError(null)
     } catch (e) {
       if (!quiet) setError((e as Error).message)
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [loadTaskReports])
 
   useEffect(() => {
     void load()
@@ -475,6 +546,149 @@ export default function ReportsPage() {
     }
   }
 
+  /* ------------------------------------------ task reports (TT-8) helpers */
+
+  const getCurrentMonthRange = () => {
+    const now = new Date()
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1)
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+    return {
+      start: firstDay.toISOString().split("T")[0],
+      end: lastDay.toISOString().split("T")[0],
+    }
+  }
+
+  useEffect(() => {
+    void loadTaskReports()
+  }, [loadTaskReports])
+
+  const openTemplateDialog = async () => {
+    setTemplateDialogOpen(true)
+    setLoadingTemplates(true)
+    try {
+      const res = await fetch("/api/task-report-templates")
+      if (res.ok) {
+        const j = await res.json()
+        setTemplates(j.data ?? [])
+      }
+    } catch {
+      toast({ title: "Failed to load templates", variant: "destructive" })
+    } finally {
+      setLoadingTemplates(false)
+    }
+  }
+
+  const selectTemplate = async (template: TaskReportTemplate) => {
+    const range = getCurrentMonthRange()
+    const title = `${template.name} – ${new Date().toLocaleString("default", { month: "long", year: "numeric" })}`
+    try {
+      const res = await fetch("/api/task-reports", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          templateId: template.id,
+          title,
+          periodStart: range.start,
+          periodEnd: range.end,
+        }),
+      })
+      const j = await res.json().catch(() => null)
+      if (!res.ok || !j?.success) throw new Error(j?.message ?? `Create failed (${res.status})`)
+      const created = j.data as TaskReport
+      const contents: Record<string, string> = {}
+      for (const section of created.content ?? []) {
+        if (section.data === null) {
+          contents[section.id] = section.manualContent ?? ""
+        }
+      }
+      setManualContents(contents)
+      setEditorReport(created)
+      setEditorOpen(true)
+      setTemplateDialogOpen(false)
+      await loadTaskReports()
+      toast({ title: "Report created", description: `"${title}" is ready to edit.` })
+    } catch (e) {
+      toast({ title: "Create failed", description: (e as Error).message, variant: "destructive" })
+    }
+  }
+
+  const openEditor = async (report: TaskReport) => {
+    try {
+      const res = await fetch(`/api/task-reports/${report.id}`)
+      const j = await res.json().catch(() => null)
+      if (!res.ok || !j?.success) throw new Error(j?.message ?? `Fetch failed (${res.status})`)
+      const full = j.data as TaskReport
+      const contents: Record<string, string> = {}
+      for (const section of full.content ?? []) {
+        if (section.data === null) {
+          contents[section.id] = section.manualContent ?? ""
+        }
+      }
+      setManualContents(contents)
+      setEditorReport(full)
+      setEditorOpen(true)
+    } catch {
+      const contents: Record<string, string> = {}
+      for (const section of report.content ?? []) {
+        if (section.data === null) {
+          contents[section.id] = section.manualContent ?? ""
+        }
+      }
+      setManualContents(contents)
+      setEditorReport(report)
+      setEditorOpen(true)
+    }
+  }
+
+  const saveEditorDraft = async () => {
+    if (!editorReport) return
+    setEditorSaving(true)
+    try {
+      const updatedContent = editorReport.content.map((section) => {
+        if (section.data === null) {
+          return { ...section, manualContent: manualContents[section.id] ?? "" }
+        }
+        return section
+      })
+      const res = await fetch(`/api/task-reports/${editorReport.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: updatedContent }),
+      })
+      const j = await res.json().catch(() => null)
+      if (!res.ok || !j?.success) throw new Error(j?.message ?? `Save failed (${res.status})`)
+      setEditorReport({ ...editorReport, content: j.data.content })
+      toast({ title: "Draft saved", description: "Report content updated." })
+      await loadTaskReports()
+    } catch (e) {
+      toast({ title: "Save failed", description: (e as Error).message, variant: "destructive" })
+    } finally {
+      setEditorSaving(false)
+    }
+  }
+
+  const finalizeReport = async () => {
+    if (!editorReport) return
+    setEditorSaving(true)
+    try {
+      const res = await fetch(`/api/task-reports/${editorReport.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "final" }),
+      })
+      const j = await res.json().catch(() => null)
+      if (!res.ok || !j?.success) throw new Error(j?.message ?? `Finalize failed (${res.status})`)
+      setEditorReport({ ...editorReport, status: "final" })
+      toast({ title: "Report finalized", description: "Report is now marked as final." })
+      setEditorOpen(false)
+      await loadTaskReports()
+    } catch (e) {
+      toast({ title: "Finalize failed", description: (e as Error).message, variant: "destructive" })
+    } finally {
+      setEditorSaving(false)
+    }
+  }
+
   /* --------------------------------------------------------------- render */
 
   if (loading) {
@@ -519,6 +733,9 @@ export default function ReportsPage() {
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => void load()}>
             <RefreshCw className="mr-2 h-4 w-4" /> Refresh
+          </Button>
+          <Button variant="outline" onClick={() => void openTemplateDialog()}>
+            <FileText className="mr-2 h-4 w-4" /> Create report
           </Button>
           <Button onClick={() => openCreate()}>
             <Plus className="mr-2 h-4 w-4" /> New schedule
@@ -814,6 +1031,43 @@ export default function ReportsPage() {
         )}
       </SectionCard>
 
+      {/* 5b — task reports (TT-8) */}
+      <SectionCard title="Task reports" icon={<ClipboardList className="h-4 w-4" />}>
+        {taskReports.length === 0 ? (
+          <EmptyNote>
+            No task reports yet — click &ldquo;Create report&rdquo; to start from a template.
+          </EmptyNote>
+        ) : (
+          <div className="space-y-2">
+            {taskReports.map((r) => (
+              <div
+                key={r.id}
+                className="flex flex-wrap items-center gap-3 rounded-lg border bg-card p-3"
+              >
+                <div className="min-w-[200px] flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">{r.title}</span>
+                    <Badge
+                      variant={r.status === "final" ? "default" : "secondary"}
+                      className="text-[10px]"
+                    >
+                      {r.status}
+                    </Badge>
+                  </div>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    {r.periodStart} &mdash; {r.periodEnd} &middot; {r.content?.length ?? 0} section(s)
+                    &middot; created {relativeTime(r.createdAt)}
+                  </p>
+                </div>
+                <Button size="sm" variant="outline" onClick={() => void openEditor(r)}>
+                  <Pencil className="mr-1 h-3.5 w-3.5" /> Edit
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+      </SectionCard>
+
       {/* 6+7 — cadence mix + dataset usage */}
       <div className="grid gap-4 lg:grid-cols-2">
         <SectionCard title="Cadence mix" icon={<CalendarClock className="h-4 w-4" />}>
@@ -1089,6 +1343,174 @@ export default function ReportsPage() {
               <Button variant="destructive" onClick={() => setDeleteConfirm(true)}>
                 Delete
               </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* template selection dialog (TT-8) */}
+      <Dialog
+        open={templateDialogOpen}
+        onOpenChange={(o) => setTemplateDialogOpen(o)}
+      >
+        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Choose a report template</DialogTitle>
+            <DialogDescription>
+              Select a template to create a new task report. The report period defaults to the
+              current month.
+            </DialogDescription>
+          </DialogHeader>
+          {loadingTemplates ? (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} className="h-28" />
+              ))}
+            </div>
+          ) : templates.length === 0 ? (
+            <EmptyNote>
+              No active templates found. Create a template in the database to get started.
+            </EmptyNote>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {templates.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => void selectTemplate(t)}
+                  className="cursor-pointer rounded-lg border bg-card p-4 text-left transition-colors hover:border-primary/50 hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <h3 className="font-medium leading-tight">{t.name}</h3>
+                    <Badge variant="secondary" className="shrink-0 text-[10px]">
+                      {CADENCE_LABEL[t.cadence as Cadence] ?? t.cadence}
+                    </Badge>
+                  </div>
+                  {t.description && (
+                    <p className="mt-1.5 line-clamp-2 text-xs text-muted-foreground">
+                      {t.description}
+                    </p>
+                  )}
+                  {t.discipline && (
+                    <p className="mt-1.5 text-[10px] text-muted-foreground">
+                      Discipline: {t.discipline}
+                    </p>
+                  )}
+                  <p className="mt-2 text-[10px] text-muted-foreground">
+                    {t.sections?.length ?? 0} section(s)
+                  </p>
+                </button>
+              ))}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTemplateDialogOpen(false)}>
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* report editor dialog (TT-8) */}
+      <Dialog
+        open={editorOpen}
+        onOpenChange={(o) => {
+          if (!editorSaving) setEditorOpen(o)
+        }}
+      >
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>
+              {editorReport?.status === "final" ? "View report" : "Edit report"}
+            </DialogTitle>
+            <DialogDescription>
+              {editorReport?.title} &middot; {editorReport?.periodStart} &mdash;{" "}
+              {editorReport?.periodEnd}
+              {editorReport?.status === "final" && " (finalized)"}
+            </DialogDescription>
+          </DialogHeader>
+          {editorReport && (
+            <div className="space-y-4">
+              {(editorReport.content ?? []).map((section, idx) => (
+                <div key={section.id} className="rounded-lg border p-4">
+                  <h3 className="mb-2 text-sm font-semibold">
+                    {idx + 1}. {section.title}
+                  </h3>
+                  {section.data !== null ? (
+                    section.data.length === 0 ? (
+                      <p className="text-xs text-muted-foreground italic">
+                        No data for this section in the selected period.
+                      </p>
+                    ) : (
+                      <div className="max-h-56 overflow-auto rounded-md border">
+                        <table className="w-full text-xs">
+                          <thead className="sticky top-0 bg-muted text-left">
+                            <tr>
+                              {Object.keys(section.data[0] ?? {}).map((key) => (
+                                <th key={key} className="px-2 py-1.5 font-medium text-muted-foreground">
+                                  {key}
+                                </th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y">
+                            {section.data.map((row, ri) => (
+                              <tr key={ri}>
+                                {Object.values(row).map((val, ci) => (
+                                  <td key={ci} className="px-2 py-1.5 text-muted-foreground">
+                                    {String(val ?? "")}
+                                  </td>
+                                ))}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )
+                  ) : editorReport.status === "final" ? (
+                    <p className="whitespace-pre-wrap text-sm text-muted-foreground">
+                      {section.manualContent || "No content provided."}
+                    </p>
+                  ) : (
+                    <Textarea
+                      rows={4}
+                      placeholder="Write your content for this section..."
+                      value={manualContents[section.id] ?? ""}
+                      onChange={(e) =>
+                        setManualContents((prev) => ({
+                          ...prev,
+                          [section.id]: e.target.value,
+                        }))
+                      }
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setEditorOpen(false)}
+              disabled={editorSaving}
+            >
+              Close
+            </Button>
+            {editorReport?.status !== "final" && (
+              <>
+                <Button
+                  variant="outline"
+                  onClick={() => void saveEditorDraft()}
+                  disabled={editorSaving}
+                >
+                  {editorSaving ? "Saving..." : "Save draft"}
+                </Button>
+                <Button
+                  onClick={() => void finalizeReport()}
+                  disabled={editorSaving}
+                >
+                  {editorSaving ? "Finalizing..." : "Finalize"}
+                </Button>
+              </>
             )}
           </DialogFooter>
         </DialogContent>

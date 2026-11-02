@@ -263,6 +263,7 @@ export default function CalendarWorkspace() {
 
   // navigation + filters
   const [view, setView] = useState<"month" | "week" | "day">("month")
+  const [viewMode, setViewMode] = useState<"due" | "cadence" | "both" | "range">("both")
   const [cursor, setCursor] = useState<Date>(() => new Date())
   const [focusedDay, setFocusedDay] = useState<Date>(() => new Date())
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
@@ -296,7 +297,7 @@ export default function CalendarWorkspace() {
     setLoading(true)
     try {
       const [evRes, ovRes, spRes, tkRes, ntRes] = await Promise.all([
-        fetch(`/api/calendar/events?${scopeParam}`),
+        fetch(`/api/calendar/events?${scopeParam}&viewMode=${viewMode}`),
         fetch("/api/dashboard/overview?scope=member"),
         fetch(`/api/sprints?${scopeParam}`),
         fetch(`/api/tasks?pageSize=100&${scopeParam}`),
@@ -332,17 +333,17 @@ export default function CalendarWorkspace() {
     } finally {
       setLoading(false)
     }
-  }, [toast, scopeParam])
+  }, [toast, scopeParam, viewMode])
 
   const reloadEvents = useCallback(async () => {
     try {
-      const res = await fetch(`/api/calendar/events?${scopeParam}`)
+      const res = await fetch(`/api/calendar/events?${scopeParam}&viewMode=${viewMode}`)
       const json = await res.json()
       if (json.success) setEvents(json.events ?? [])
     } catch {
       toast({ variant: "destructive", title: "Calendar", description: "Could not refresh events." })
     }
-  }, [toast, scopeParam])
+  }, [toast, scopeParam, viewMode])
 
   useEffect(() => {
     void load()
@@ -750,28 +751,49 @@ export default function CalendarWorkspace() {
 
   /* ---- event chip ---- */
 
-  const renderChip = (e: CalendarEvent, fullWidth = false) => (
-    <button
-      key={e.id}
-      type="button"
-      onClick={(ev) => {
-        ev.stopPropagation()
-        openEdit(e)
-      }}
-      aria-label={`${e.title}, ${timeRange(e)}`}
-      className={cn(
-        "block max-w-full truncate rounded px-1 py-0.5 text-left text-[11px] font-medium transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-        fullWidth ? "w-full" : "",
-      )}
-      style={{
-        backgroundColor: `color-mix(in srgb, ${typeColor(e.eventType)} 18%, transparent)`,
-        color: typeColor(e.eventType),
-      }}
-    >
-      {e.isAllDay ? "" : `${format(parseISO(e.startTime), "HH:mm")} `}
-      {e.title}
-    </button>
-  )
+  const isRecurringInstance = (e: CalendarEvent) =>
+    e.eventType === "task_instance" || e.isRecurring === true
+
+  const renderChip = (e: CalendarEvent, fullWidth = false) => {
+    const recurring = isRecurringInstance(e)
+    const cadenceLabel = recurring
+      ? (e.recurringPattern?.cadence as string | undefined)
+      : undefined
+    return (
+      <button
+        key={e.id}
+        type="button"
+        onClick={(ev) => {
+          ev.stopPropagation()
+          openEdit(e)
+        }}
+        aria-label={`${e.title}, ${timeRange(e)}${recurring ? " (recurring)" : ""}`}
+        className={cn(
+          "block max-w-full truncate rounded px-1 py-0.5 text-left text-[11px] font-medium transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          fullWidth ? "w-full" : "",
+          recurring && "border border-primary/30 bg-primary/20 text-primary",
+        )}
+        style={
+          recurring
+            ? undefined
+            : {
+                backgroundColor: `color-mix(in srgb, ${typeColor(e.eventType)} 18%, transparent)`,
+                color: typeColor(e.eventType),
+              }
+        }
+      >
+        <span className="flex items-center gap-1">
+          {e.isAllDay ? "" : `${format(parseISO(e.startTime), "HH:mm")} `}
+          <span className="truncate">{e.title}</span>
+          {cadenceLabel && (
+            <Badge variant="outline" className="ml-auto shrink-0 text-[9px] leading-none">
+              {cadenceLabel}
+            </Badge>
+          )}
+        </span>
+      </button>
+    )
+  }
 
   /* ---- loading skeleton ---- */
 
@@ -829,6 +851,20 @@ export default function CalendarWorkspace() {
                 onClick={() => setView(v)}
               >
                 {v}
+              </Button>
+            ))}
+          </div>
+          <div role="group" aria-label="Task view mode" className="flex items-center rounded-md border">
+            {(["due", "cadence", "both", "range"] as const).map((m) => (
+              <Button
+                key={m}
+                size="sm"
+                variant={viewMode === m ? "secondary" : "ghost"}
+                className="h-8 rounded-none capitalize"
+                aria-pressed={viewMode === m}
+                onClick={() => setViewMode(m)}
+              >
+                {m}
               </Button>
             ))}
           </div>
