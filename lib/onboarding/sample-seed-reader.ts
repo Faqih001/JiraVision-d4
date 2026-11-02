@@ -6,8 +6,6 @@
 // with the build. A missing or malformed file returns null so the caller can fall
 // back to the generic sample.
 
-import { readFileSync } from "node:fs"
-import { resolve } from "node:path"
 import type { WorkDiscipline } from "@/lib/roles"
 
 export type SeedRegisterItem = {
@@ -56,13 +54,17 @@ export type DisciplineSeedPreview = {
 }
 
 /**
- * Load the seed JSON for a discipline. Returns null if the file is missing or
- * does not parse — the caller falls back to the generic sample.
+ * Load the seed JSON for a discipline. Returns null if the file is missing,
+ * does not parse, or the code is running in the browser (where fs is unavailable).
+ * The caller falls back to the generic sample.
  */
 export function loadDisciplineSeed(discipline: WorkDiscipline | null): DisciplineSeedPreview | null {
   if (!discipline) return null
+  if (typeof window !== "undefined") return null
 
   try {
+    const { readFileSync } = require("node:fs") as typeof import("node:fs")
+    const { resolve } = require("node:path") as typeof import("node:path")
     const filePath = resolve(process.cwd(), "public", "files", "disciplines", `${discipline}.json`)
     const raw = readFileSync(filePath, "utf8")
     const json = JSON.parse(raw) as Record<string, unknown>

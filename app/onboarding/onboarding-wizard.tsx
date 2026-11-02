@@ -1,14 +1,18 @@
 "use client"
 
-import { useMemo, useRef, useState, type ReactNode } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
 import {
   ArrowLeft,
   ArrowRight,
+  BarChart3,
+  BookOpen,
   Check,
   ChevronDown,
   CircleDot,
+  Database,
   FileUp,
+  ListTodo,
   Loader2,
   Sparkles,
 } from "lucide-react"
@@ -168,6 +172,48 @@ export function OnboardingWizard({ initial, inviteToken, account }: Props) {
   // The sample the member will actually get, derived from the role step's mapped discipline —
   // the same module the server uses, so the preview cannot drift from what is written.
   const sampleDraft = useMemo(() => sampleForDiscipline(autoPopulated.discipline), [autoPopulated.discipline])
+
+  // The rich seed preview fetched from the API — register rows, playbook seeds, task templates
+  // and KPIs from the discipline's JSON file. Shown in the expanded preview card.
+  type SeedPreview = {
+    discipline: { key: string; label: string; focus: string }
+    pack: { key: string; registerKinds: string[] }
+    method: string[]
+    registers: Array<{ kind: string; title: string; fields: Record<string, string> }>
+    playbooks: Array<{ key: string; title: string; frequency: string; stepCount: number }>
+    tasks: Array<{ title: string; frequency: string }>
+    kpis: Array<{ id: string; label: string }>
+    needsConfirmation: string[]
+  }
+  const [seedPreview, setSeedPreview] = useState<SeedPreview | null>(null)
+  const [seedLoading, setSeedLoading] = useState(false)
+
+  const fetchSeedPreview = useCallback(async (discipline: string | null) => {
+    if (!discipline) {
+      setSeedPreview(null)
+      return
+    }
+    setSeedLoading(true)
+    try {
+      const res = await fetch(`/api/onboarding/sample?discipline=${encodeURIComponent(discipline)}`)
+      const json = await res.json().catch(() => null)
+      if (res.ok && json?.success && json?.data) {
+        setSeedPreview(json.data as SeedPreview)
+      } else {
+        setSeedPreview(null)
+      }
+    } catch {
+      setSeedPreview(null)
+    } finally {
+      setSeedLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (projectMode === "sample") {
+      void fetchSeedPreview(autoPopulated.discipline)
+    }
+  }, [projectMode, autoPopulated.discipline, fetchSeedPreview])
 
   const current = ONBOARDING_STEPS[step]
   const identity: OnboardingData["profile"] = useMemo(
