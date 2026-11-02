@@ -169,6 +169,11 @@ export default function LandingChatbot() {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const pathname = usePathname()
 
+  // Hide on dashboard routes — dashboard has its own AssistantPanel in the header
+  if (pathname.startsWith("/dashboard")) {
+    return null
+  }
+
   useEffect(() => {
     setMessages([{ role: "assistant", content: knowledgeFor(pathname).greeting }])
   }, [pathname])

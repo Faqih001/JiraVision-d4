@@ -23,9 +23,10 @@ import { AssistantPanel } from "@/components/assistant-panel"
 import { GoogleTranslateSelect } from "@/components/layout/google-translate"
 import { ThemeSwitch } from "@/components/theme-switch"
 import { ThemeToggle } from "@/components/layout/theme-toggle"
-import { AccessibilityLauncher } from "@/components/accessibility/accessibility-launcher"
+import { OPEN_A11Y_EVENT } from "@/lib/accessibility"
 import { Badge } from "@/components/ui/badge"
 import {
+  Accessibility,
   Activity,
   BarChart3,
   BookOpenCheck,
@@ -724,6 +725,15 @@ export default function DashboardLayout({
 
             {!isMobile && <AssistantPanel />}
 
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new Event(OPEN_A11Y_EVENT))}
+              aria-label="Open accessibility menu"
+              className="flex h-9 w-9 items-center justify-center rounded-md border border-border bg-card text-sm font-medium shadow-sm transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            >
+              <Accessibility className="h-4 w-4" aria-hidden="true" />
+            </button>
+
             <NotificationsBell />
 
             <DropdownMenu>
@@ -755,10 +765,6 @@ export default function DashboardLayout({
           </div>
         </main>
       </div>
-
-      {/* Bottom-right, stacked above the assistant pill; the panel it opens is mounted
-          once in the root layout. It steps aside while the mobile drawer is over it. */}
-      <AccessibilityLauncher className={mobileSidebarOpen ? "hidden" : undefined} />
     </div>
   )
 }
