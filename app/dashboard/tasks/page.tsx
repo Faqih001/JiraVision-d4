@@ -1734,11 +1734,12 @@ export default function TasksWorkspacePage() {
                     {instances.length === 0 && !instancesLoading && (
                       <p className="text-xs text-muted-foreground">No instances yet.</p>
                     )}
-                    {[...instances]
-                      .sort((a, b) => (b.instanceDate ?? "").localeCompare(a.instanceDate ?? ""))
-                      .slice(0, 10)                      .map((inst) => {
-                        const items = readChecklist(detailTask.checklistItems)
-                        return (
+                    {(() => {
+                      const items = readChecklist(detailTask.checklistItems)
+                      return [...instances]
+                        .sort((a, b) => (b.instanceDate ?? "").localeCompare(a.instanceDate ?? ""))
+                        .slice(0, 10)
+                        .map((inst) => (
                           <div
                             key={inst.id}
                             className="flex items-center justify-between rounded-md border px-2 py-1.5"
@@ -1773,8 +1774,8 @@ export default function TasksWorkspacePage() {
                               </span>
                             )}
                           </div>
-                        )
-                      })}
+                        ))
+                    })()}
                   </div>
                 </div>
               )}
