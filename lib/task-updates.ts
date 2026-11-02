@@ -31,6 +31,8 @@ const MUTABLE_FIELDS = [
   "startDate",
   "discipline",
   "tags",
+  "cadence",
+  "checklistItems",
 ] as const
 
 export function pickTaskUpdates(input: unknown): TaskPatchResult {
@@ -136,6 +138,20 @@ export function pickTaskUpdates(input: unknown): TaskPatchResult {
         }
         patch.tags = value.map((tag) => String(tag ?? ""))
         break
+      case "cadence": {
+        if (typeof value !== "string" || !["one-off", "daily", "weekly", "monthly", "yearly"].includes(value)) {
+          return { error: "cadence must be one of: one-off, daily, weekly, monthly, yearly" }
+        }
+        patch.cadence = value
+        break
+      }
+      case "checklistItems": {
+        if (!Array.isArray(value)) {
+          return { error: "checklistItems must be an array" }
+        }
+        patch.checklistItems = value
+        break
+      }
     }
   }
 
