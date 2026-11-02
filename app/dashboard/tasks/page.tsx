@@ -169,6 +169,10 @@ function taskTags(tags: unknown): string[] {
   return Array.isArray(tags) ? tags.map((t) => String(t)) : []
 }
 
+function readChecklist(raw: unknown): ChecklistItem[] {
+  return parseChecklistItems(typeof raw === "string" ? raw : JSON.stringify(raw ?? []))
+}
+
 function isOverdue(t: ApiTask, todayIso: string) {
   return Boolean(t.dueDate && t.dueDate < todayIso && t.status !== "done")
 }
@@ -398,9 +402,7 @@ export default function TasksWorkspacePage() {
   }
 
   const openEdit = (t: ApiTask) => {
-    const items = parseChecklistItems(
-      typeof t.checklistItems === "string" ? t.checklistItems : JSON.stringify(t.checklistItems ?? [])
-    )
+    const items = readChecklist(t.checklistItems)
     setDraft({
       id: t.id,
       title: t.title,
@@ -552,12 +554,10 @@ export default function TasksWorkspacePage() {
     }
   }, [toast])
 
-  const openCompletionDialog = async (instance: TaskInstanceRow, task: ApiTask) => {
+  const openCompletionDialog = (instance: TaskInstanceRow, task: ApiTask) => {
     setCompletingInstance(instance)
     setInstanceNotes(instance.notes ?? "")
-    const items = parseChecklistItems(
-      typeof task.checklistItems === "string" ? task.checklistItems : JSON.stringify(task.checklistItems ?? [])
-    )
+    const items = readChecklist(task.checklistItems)
     // Pre-fill responses from existing instance data or default to "yes"
     const existing = Array.isArray(instance.checklistResponses) ? instance.checklistResponses : []
     const responseMap = new Map<string, string>()
@@ -605,6 +605,23 @@ export default function TasksWorkspacePage() {
   }
 
   /* ---- end task instances ---- */
+
+  const quickCompleteInstance = async (instanceId: number, taskId: number) => {
+    try {
+      const res = await fetch(`/api/task-instances/${instanceId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "done" }),
+      })
+      const json = await res.json()
+      if (!json.success) throw new Error(json.message ?? "Failed")
+      toast({ title: "Instance completed" })
+      await loadInstances(taskId)
+      await reloadAll()
+    } catch (err) {
+      toast({ variant: "destructive", title: "Error", description: (err as Error).message })
+    }
+  }
 
   // Load task instances when the detail modal opens for a recurring task
   useEffect(() => {
@@ -1717,15 +1734,10 @@ export default function TasksWorkspacePage() {
                     {instances.length === 0 && !instancesLoading && (
                       <p className="text-xs text-muted-foreground">No instances yet.</p>
                     )}
-                    {instances
+                    {[...instances]
                       .sort((a, b) => (b.instanceDate ?? "").localeCompare(a.instanceDate ?? ""))
-                      .slice(0, 10)
-                      .map((inst) => {
-                        const items = parseChecklistItems(
-                          typeof detailTask.checklistItems === "string"
-                            ? detailTask.checklistItems
-                            : JSON.stringify(detailTask.checklistItems ?? [])
-                        )
+                      .slice(0, 10)                      .map((inst) => {
+                        const items = readChecklist(detailTask.checklistItems)
                         return (
                           <div
                             key={inst.id}
@@ -1750,22 +1762,7 @@ export default function TasksWorkspacePage() {
                                 size="sm"
                                 variant="outline"
                                 className="h-7 text-xs"
-                                onClick={async () => {
-                                  try {
-                                    const res = await fetch(`/api/task-instances/${inst.id}`, {
-                                      method: "PATCH",
-                                      headers: { "Content-Type": "application/json" },
-                                      body: JSON.stringify({ status: "done" }),
-                                    })
-                                    const json = await res.json()
-                                    if (!json.success) throw new Error(json.message ?? "Failed")
-                                    toast({ title: "Instance completed" })
-                                    await loadInstances(detailTask.id)
-                                    await reloadAll()
-                                  } catch (err) {
-                                    toast({ variant: "destructive", title: "Error", description: (err as Error).message })
-                                  }
-                                }}
+                                onClick={() => quickCompleteInstance(inst.id, detailTask.id)}
                               >
                                 Complete
                               </Button>
@@ -2011,11 +2008,7 @@ export default function TasksWorkspacePage() {
             </DialogHeader>
             <div className="space-y-3">
               {(() => {
-                const items = parseChecklistItems(
-                  typeof detailTask.checklistItems === "string"
-                    ? detailTask.checklistItems
-                    : JSON.stringify(detailTask.checklistItems ?? [])
-                )
+                const items = readChecklist(detailTask.checklistItems)
                 if (items.length === 0) return null
                 return (
                   <div className="space-y-2">
