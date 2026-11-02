@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server"
 import { db } from "@/lib/db"
-import { calendarEvents, users } from "@/drizzle/schema"
+import { calendarEvents, users, tasks } from "@/drizzle/schema"
 import { and, desc, eq, or, gte, lte, sql } from "drizzle-orm"
 import { getSession } from "@/lib/auth-actions"
 import { createNotification } from "@/lib/notifications"
+import { getTaskInstances } from "@/lib/data-access-task-instances"
 
 export const dynamic = "force-dynamic"
 
@@ -188,9 +189,90 @@ export async function GET(request: Request) {
         .orderBy(desc(calendarEvents.startTime)),
     ])
 
+    // Parse viewMode parameter
+    const viewMode = searchParams.get("viewMode") || "due"
+    const validViewModes = ["due", "cadence", "both", "range"]
+    if (!validViewModes.includes(viewMode)) {
+      return NextResponse.json(
+        { success: false, error: `Invalid viewMode. Must be one of: ${validViewModes.join(", ")}` },
+        { status: 400 }
+      )
+    }
+
+    // Fetch task instances for cadence-based views
+    let taskInstancesList: any[] = []
+    if (viewMode === "cadence" || viewMode === "both" || viewMode === "range") {
+      taskInstancesList = await getTaskInstances({
+        startDate: startDate || undefined,
+        endDate: endDate || undefined,
+      })
+    }
+
+    // Fetch recurring template tasks for "due" and "both" views
+    let recurringTasksList: any[] = []
+    if (viewMode === "due" || viewMode === "both") {
+      const taskConditions = [eq(tasks.isTemplate, true)]
+      if (startDate && !Number.isNaN(Date.parse(startDate))) {
+        taskConditions.push(gte(tasks.dueDate, startDate))
+      }
+      if (endDate && !Number.isNaN(Date.parse(endDate))) {
+        taskConditions.push(lte(tasks.dueDate, endDate))
+      }
+      recurringTasksList = await db
+        .select()
+        .from(tasks)
+        .where(and(...taskConditions))
+    }
+
+    // Convert task instances to calendar event format
+    const instanceEvents = taskInstancesList.map((instance: any) => ({
+      id: `instance-${instance.id}`,
+      title: `Task #${instance.taskId} (Instance)`,
+      startTime: `${instance.instanceDate}T00:00:00Z`,
+      endTime: `${instance.instanceDate}T23:59:59Z`,
+      eventType: "task_instance",
+      isRecurring: true,
+      instanceStatus: instance.status,
+      instanceId: instance.id,
+      taskId: instance.taskId,
+      isAllDay: true,
+      description: null,
+      location: null,
+      organizer: { id: 0, name: "System", avatar: null },
+      recurringPattern: {},
+      attendees: [],
+      color: "green",
+      createdAt: instance.createdAt?.toISOString() || new Date().toISOString(),
+      updatedAt: instance.createdAt?.toISOString() || new Date().toISOString(),
+    }))
+
+    // Convert recurring tasks to calendar event format
+    const recurringEvents = recurringTasksList.map((task: any) => ({
+      id: `task-${task.id}`,
+      title: task.title,
+      startTime: task.dueDate ? `${task.dueDate}T00:00:00Z` : new Date().toISOString(),
+      endTime: task.dueDate ? `${task.dueDate}T23:59:59Z` : new Date().toISOString(),
+      eventType: "task",
+      isRecurring: true,
+      cadence: task.cadence,
+      taskId: task.id,
+      isAllDay: true,
+      description: task.description,
+      location: null,
+      organizer: { id: task.assigneeId || 0, name: "System", avatar: null },
+      recurringPattern: {},
+      attendees: [],
+      color: "blue",
+      createdAt: task.createdAt?.toISOString() || new Date().toISOString(),
+      updatedAt: task.updatedAt?.toISOString() || new Date().toISOString(),
+    }))
+
+    // Merge with existing calendar events
+    const allEvents = [...rows.map((row) => formatEvent(row, allUsers)), ...instanceEvents, ...recurringEvents]
+
     return NextResponse.json({
       success: true,
-      events: rows.map((row) => formatEvent(row, allUsers)),
+      events: allEvents,
     })
   } catch (error) {
     console.error("Error fetching calendar events:", error)
