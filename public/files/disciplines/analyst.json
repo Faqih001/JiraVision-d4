@@ -1,0 +1,633 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "analyst",
+    "label": "Analyst",
+    "category": "information",
+    "categoryLabel": "Analysis, research & information",
+    "focus": "Analysis requests, reports and methodology"
+  },
+  "pack": {
+    "key": "analyst",
+    "reportTemplate": "assurance",
+    "registerKinds": [
+      "Data sources",
+      "Analysis reports",
+      "Dashboards",
+      "Methodology"
+    ],
+    "ladderDiscipline": {
+      "proposed": "analyst",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced analyst practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use.",
+    "detailLevel": "detailed"
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "requests_delivered",
+          "label": "Requests delivered",
+          "source": "analysis_requests",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "requests_overdue",
+          "label": "Requests overdue",
+          "source": "analysis_requests",
+          "sourceType": "log",
+          "aggregation": "overdue_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "reports_approved_first_time",
+          "label": "Reports approved first time",
+          "source": "report_reviews",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "data_sources_documented",
+          "label": "Data sources documented",
+          "source": "data_sources",
+          "sourceType": "register",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "request_past_due",
+          "when": "request past due",
+          "suggest": "update requester",
+          "deterministic": true
+        },
+        {
+          "id": "source_not_reviewed_in_90_days",
+          "when": "source not reviewed in 90 days",
+          "suggest": "verify",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "analysis_requests",
+          "label": "Analysis requests",
+          "fields": [
+            {
+              "key": "received_date",
+              "type": "date"
+            },
+            {
+              "key": "requester",
+              "type": "text"
+            },
+            {
+              "key": "question",
+              "type": "text"
+            },
+            {
+              "key": "due_date",
+              "type": "date"
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "requested",
+                "in_progress",
+                "delivered"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "report_reviews",
+          "label": "Report reviews",
+          "fields": [
+            {
+              "key": "review_date",
+              "type": "date"
+            },
+            {
+              "key": "report",
+              "type": "text"
+            },
+            {
+              "key": "reviewer_ref",
+              "type": "text"
+            },
+            {
+              "key": "outcome",
+              "type": "enum",
+              "values": [
+                "approved",
+                "changes"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "daily_checklist",
+          "label": "Daily checklist",
+          "fields": [
+            {
+              "key": "date",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "triage_new_analysis_requests",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Triage new analysis requests"
+            },
+            {
+              "key": "work_planned_analyses_and_queries",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Work planned analyses and queries"
+            },
+            {
+              "key": "check_dashboard_and_data_refresh_status",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check dashboard and data refresh status"
+            },
+            {
+              "key": "answer_stakeholder_questions",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Answer stakeholder questions"
+            },
+            {
+              "key": "update_the_request_tracker",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Update the request tracker"
+            }
+          ]
+        },
+        {
+          "key": "weekly_checklist",
+          "label": "Weekly checklist",
+          "fields": [
+            {
+              "key": "week_starting",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "report_and_analysis_review_with_a_peer",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Report and analysis review with a peer"
+            },
+            {
+              "key": "data_source_and_quality_check",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Data source and quality check"
+            },
+            {
+              "key": "stakeholder_update",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Stakeholder update"
+            },
+            {
+              "key": "refine_or_retire_dashboards",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Refine or retire dashboards"
+            },
+            {
+              "key": "update_methodology_notes",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Update methodology notes"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Data sources",
+          "track": [
+            "sources and owners"
+          ]
+        },
+        {
+          "kind": "Analysis reports",
+          "track": [
+            "delivered analyses"
+          ]
+        },
+        {
+          "kind": "Dashboards",
+          "track": [
+            "dashboards maintained"
+          ]
+        },
+        {
+          "kind": "Methodology",
+          "track": [
+            "approaches used"
+          ]
+        }
+      ],
+      "documentationCategories": [
+        "Analysis request log",
+        "Reports and findings",
+        "Data source catalogue",
+        "Methodology notes",
+        "Dashboard inventory",
+        "Peer review notes"
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "analysis_request",
+          "title": "Analysis request",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Clarify the question and the decision it supports",
+                "Agree scope, data and deadline",
+                "Get and check data",
+                "Analyse and test assumptions",
+                "Peer review",
+                "Deliver with caveats and next steps"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "report_review",
+          "title": "Report review",
+          "frequency": "weekly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Check the question is answered",
+                "Check numbers against source",
+                "Check method and assumptions",
+                "Check charts and wording",
+                "Approve or request changes"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "data_source_documentation",
+          "title": "Data source documentation",
+          "frequency": "monthly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "List fields and definitions",
+                "Record owner and refresh frequency",
+                "Note known issues",
+                "Link to dashboards",
+                "Review annually"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "dashboard_handover",
+          "title": "Dashboard handover",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Document purpose and audience",
+                "Document data and logic",
+                "Give access and training",
+                "Agree support",
+                "Record"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "escalation",
+          "title": "Escalation",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "triggers": [
+            "Figures conflict between sources",
+            "Data error found in a published report",
+            "Sensitive data exposed",
+            "Request conflicts with data policy",
+            "Deadline cannot be met"
+          ],
+          "recordFields": [
+            "date_time",
+            "affected_area_or_system",
+            "people_affected_by_code_or_count",
+            "description",
+            "actions_taken",
+            "evidence_or_logs",
+            "impact",
+            "person_or_party_contacted",
+            "current_status"
+          ],
+          "rules": [
+            "Record facts; escalate promptly when a trigger is met"
+          ]
+        },
+        {
+          "key": "role_handover",
+          "title": "Role handover",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Handover",
+              "steps": [
+                "Transfer Data sources: sources and owners",
+                "Transfer Analysis reports: delivered analyses",
+                "Transfer Dashboards: dashboards maintained",
+                "Transfer Methodology: approaches used",
+                "List open work, deadlines and commitments",
+                "Share trackers, templates and contacts",
+                "Transfer accounts and access only through the approved secure process, never in documents",
+                "Brief the successor and confirm access",
+                "Review progress after one week"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Triage new analysis requests",
+          "frequency": "daily"
+        },
+        {
+          "title": "Work planned analyses and queries",
+          "frequency": "daily"
+        },
+        {
+          "title": "Check dashboard and data refresh status",
+          "frequency": "daily"
+        },
+        {
+          "title": "Answer stakeholder questions",
+          "frequency": "daily"
+        },
+        {
+          "title": "Update the request tracker",
+          "frequency": "daily"
+        },
+        {
+          "title": "Report and analysis review with a peer",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Data source and quality check",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Stakeholder update",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Refine or retire dashboards",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Update methodology notes",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Data source review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Recurring report delivery",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Request backlog review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Dashboard usage review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Methodology and tooling review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Stakeholder needs survey",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Archive completed analyses",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Skills and learning plan",
+          "frequency": "quarterly"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "assurance",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Requests delivered",
+        "Requests overdue",
+        "Reports approved first time",
+        "Data sources documented",
+        "Risks and recommendations",
+        "Plan for next period"
+      ],
+      "cadenceContent": {
+        "daily": [
+          "Daily checklist results",
+          "Open items and issues",
+          "Escalations",
+          "Plan for tomorrow"
+        ],
+        "weekly": [
+          "Weekly checklist results",
+          "KPI snapshot",
+          "Risks and blockers",
+          "Plan for next week"
+        ],
+        "monthly": [
+          "All KPI sections",
+          "Trends",
+          "Risks and recommendations",
+          "Plan for next month"
+        ]
+      }
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "standard",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Analyst from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: analysis_requests, report_reviews"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Analyst method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "Detailed checklists, playbook steps and triggers are proposals written from general professional practice, not from a source document: a practitioner must review and adapt them.",
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and register tracking lists are proposals: confirm against local practice and regulations."
+  ]
+}

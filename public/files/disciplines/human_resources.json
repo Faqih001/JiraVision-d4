@@ -1,0 +1,630 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "human_resources",
+    "label": "Human resources",
+    "category": "people",
+    "categoryLabel": "People, administration & governance",
+    "focus": "Recruitment, onboarding and records"
+  },
+  "pack": {
+    "key": "hr",
+    "reportTemplate": "general",
+    "registerKinds": [
+      "Employee records",
+      "Policies",
+      "Training",
+      "Compliance"
+    ],
+    "ladderDiscipline": {
+      "proposed": "hr",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced human resources practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use.",
+    "detailLevel": "detailed"
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "roles_filled",
+          "label": "Roles filled",
+          "source": "recruitment_pipeline",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "roles_open",
+          "label": "Roles open",
+          "source": "recruitment_pipeline",
+          "sourceType": "log",
+          "aggregation": "open_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "onboardings_completed",
+          "label": "Onboardings completed",
+          "source": "onboarding_checks",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "policies_reviewed",
+          "label": "Policies reviewed",
+          "source": "policies",
+          "sourceType": "register",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "role_open_over_60_days",
+          "when": "role open over 60 days",
+          "suggest": "review process",
+          "deterministic": true
+        },
+        {
+          "id": "onboarding_checklist_incomplete_after_14_days",
+          "when": "onboarding checklist incomplete after 14 days",
+          "suggest": "complete",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "recruitment_pipeline",
+          "label": "Recruitment pipeline",
+          "fields": [
+            {
+              "key": "role_ref",
+              "type": "text"
+            },
+            {
+              "key": "stage",
+              "type": "enum",
+              "values": [
+                "open",
+                "screening",
+                "interview",
+                "offer",
+                "filled"
+              ]
+            },
+            {
+              "key": "opened_date",
+              "type": "date"
+            },
+            {
+              "key": "filled_date",
+              "type": "date"
+            }
+          ]
+        },
+        {
+          "key": "onboarding_checks",
+          "label": "Onboarding checks",
+          "fields": [
+            {
+              "key": "start_date",
+              "type": "date"
+            },
+            {
+              "key": "employee_ref",
+              "type": "text"
+            },
+            {
+              "key": "checklist_complete",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "daily_checklist",
+          "label": "Daily checklist",
+          "fields": [
+            {
+              "key": "date",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "respond_to_employee_queries",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Respond to employee queries"
+            },
+            {
+              "key": "process_joiner_mover_and_leaver_requests",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Process joiner, mover and leaver requests"
+            },
+            {
+              "key": "review_the_recruitment_pipeline",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review the recruitment pipeline"
+            },
+            {
+              "key": "check_leave_and_absence_records",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check leave and absence records"
+            },
+            {
+              "key": "update_hr_records",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Update HR records"
+            }
+          ]
+        },
+        {
+          "key": "weekly_checklist",
+          "label": "Weekly checklist",
+          "fields": [
+            {
+              "key": "week_starting",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "recruitment_review",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Recruitment review"
+            },
+            {
+              "key": "onboarding_and_offboarding_checks",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Onboarding and offboarding checks"
+            },
+            {
+              "key": "case_and_grievance_review",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Case and grievance review"
+            },
+            {
+              "key": "payroll_inputs_check",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Payroll inputs check"
+            },
+            {
+              "key": "team_hr_meeting",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Team HR meeting"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Employee records",
+          "track": [
+            "records held (codes only)"
+          ]
+        },
+        {
+          "kind": "Policies",
+          "track": [
+            "HR policies"
+          ]
+        },
+        {
+          "kind": "Training",
+          "track": [
+            "mandatory training"
+          ]
+        },
+        {
+          "kind": "Compliance",
+          "track": [
+            "employment compliance"
+          ]
+        }
+      ],
+      "documentationCategories": [
+        "Employee files (restricted)",
+        "Contracts and policies",
+        "Recruitment records",
+        "Leave and absence records",
+        "Training records",
+        "Case files (restricted)"
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "recruitment",
+          "title": "Recruitment",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Agree the role and profile",
+                "Advertise and screen",
+                "Interview with consistent criteria",
+                "Check references",
+                "Make an offer",
+                "Plan onboarding"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "onboarding",
+          "title": "Onboarding",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Prepare contract, access and equipment",
+                "Welcome and induct",
+                "Assign a buddy",
+                "Check in at 30, 60 and 90 days",
+                "Confirm the probation outcome"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "offboarding",
+          "title": "Offboarding",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Confirm notice and last day",
+                "Handover work",
+                "Return equipment",
+                "Remove access",
+                "Hold an exit interview",
+                "Final pay and records"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "employee_case",
+          "title": "Employee case",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Record the concern",
+                "Follow the policy steps",
+                "Document meetings",
+                "Decide and communicate",
+                "Review the outcome"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "escalation",
+          "title": "Escalation",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "triggers": [
+            "Harassment or discrimination allegation",
+            "Safety or legal compliance issue",
+            "Pay or contract error",
+            "Serious misconduct",
+            "Data breach involving employee data"
+          ],
+          "recordFields": [
+            "date_time",
+            "affected_area_or_system",
+            "people_affected_by_code_or_count",
+            "description",
+            "actions_taken",
+            "evidence_or_logs",
+            "impact",
+            "person_or_party_contacted",
+            "current_status"
+          ],
+          "rules": [
+            "Record facts only; no personal identifiers in free text"
+          ]
+        },
+        {
+          "key": "role_handover",
+          "title": "Role handover",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Handover",
+              "steps": [
+                "Transfer Employee records: records held (codes only)",
+                "Transfer Policies: HR policies",
+                "Transfer Training: mandatory training",
+                "Transfer Compliance: employment compliance",
+                "List open work, deadlines and commitments",
+                "Share trackers, templates and contacts",
+                "Transfer accounts and access only through the approved secure process, never in documents",
+                "Brief the successor and confirm access",
+                "Review progress after one week"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Respond to employee queries",
+          "frequency": "daily"
+        },
+        {
+          "title": "Process joiner, mover and leaver requests",
+          "frequency": "daily"
+        },
+        {
+          "title": "Review the recruitment pipeline",
+          "frequency": "daily"
+        },
+        {
+          "title": "Check leave and absence records",
+          "frequency": "daily"
+        },
+        {
+          "title": "Update HR records",
+          "frequency": "daily"
+        },
+        {
+          "title": "Recruitment review",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Onboarding and offboarding checks",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Case and grievance review",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Payroll inputs check",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Team HR meeting",
+          "frequency": "weekly"
+        },
+        {
+          "title": "HR metrics report",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Payroll and benefits review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Policy and compliance check",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Training and development review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Workforce plan review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Engagement survey follow-up",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Policy review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Compliance audit",
+          "frequency": "quarterly"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "general",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Roles filled",
+        "Roles open",
+        "Onboardings completed",
+        "Policies reviewed",
+        "Risks and recommendations",
+        "Plan for next period"
+      ],
+      "cadenceContent": {
+        "daily": [
+          "Daily checklist results",
+          "Open items and issues",
+          "Escalations",
+          "Plan for tomorrow"
+        ],
+        "weekly": [
+          "Weekly checklist results",
+          "KPI snapshot",
+          "Risks and blockers",
+          "Plan for next week"
+        ],
+        "monthly": [
+          "All KPI sections",
+          "Trends",
+          "Risks and recommendations",
+          "Plan for next month"
+        ]
+      }
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "restricted",
+      "neverSendRegisterKinds": [
+        "Employee records"
+      ],
+      "neverSendEntities": [
+        "recruitment_pipeline",
+        "onboarding_checks"
+      ],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers",
+        "amounts and balances"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Human resources from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Human resources method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "Detailed checklists, playbook steps and triggers are proposals written from general professional practice, not from a source document: a practitioner must review and adapt them.",
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and register tracking lists are proposals: confirm against local practice and regulations.",
+    "Restricted data: keep personal, patient, employee, account and privileged data out of prompts; use codes only."
+  ]
+}

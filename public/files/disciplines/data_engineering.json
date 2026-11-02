@@ -1,0 +1,653 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "data_engineering",
+    "label": "Data engineer",
+    "category": "technology",
+    "categoryLabel": "Software, IT & digital",
+    "focus": "Pipelines, data quality and platform cost"
+  },
+  "pack": {
+    "key": "developer",
+    "reportTemplate": "engineering",
+    "registerKinds": [
+      "Code repositories",
+      "Pull requests",
+      "Technical debt",
+      "Sprint backlog"
+    ],
+    "ladderDiscipline": {
+      "proposed": "developer",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced data engineer practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use.",
+    "detailLevel": "detailed"
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": [
+      "Extract",
+      "Transform",
+      "Load",
+      "Validate",
+      "Optimize",
+      "Monitor"
+    ],
+    "documentedIn": "roles doc section 4.7 (verify in code)"
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "pipeline_success_rate",
+          "label": "Pipeline success rate",
+          "source": "pipeline_runs",
+          "sourceType": "log",
+          "aggregation": "rate",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "pipeline_failures",
+          "label": "Pipeline failures",
+          "source": "pipeline_runs",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "quality_checks_failed",
+          "label": "Quality checks failed",
+          "source": "data_quality_checks",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "debt_items",
+          "label": "Debt items",
+          "source": "technical_debt",
+          "sourceType": "register",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "pipeline_failed_twice_in_a_week",
+          "when": "pipeline failed twice in a week",
+          "suggest": "root-cause",
+          "deterministic": true
+        },
+        {
+          "id": "quality_check_failing_3_days",
+          "when": "quality check failing 3 days",
+          "suggest": "fix source",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "pipeline_runs",
+          "label": "Pipeline runs",
+          "fields": [
+            {
+              "key": "run_date",
+              "type": "date"
+            },
+            {
+              "key": "pipeline",
+              "type": "text"
+            },
+            {
+              "key": "result",
+              "type": "enum",
+              "values": [
+                "success",
+                "failed"
+              ]
+            },
+            {
+              "key": "rows_processed_count",
+              "type": "number"
+            },
+            {
+              "key": "duration_minutes",
+              "type": "number"
+            }
+          ]
+        },
+        {
+          "key": "data_quality_checks",
+          "label": "Data quality checks",
+          "fields": [
+            {
+              "key": "check_date",
+              "type": "date"
+            },
+            {
+              "key": "dataset",
+              "type": "text"
+            },
+            {
+              "key": "check",
+              "type": "text"
+            },
+            {
+              "key": "result",
+              "type": "enum",
+              "values": [
+                "pass",
+                "fail"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "daily_checklist",
+          "label": "Daily checklist",
+          "fields": [
+            {
+              "key": "date",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "check_pipeline_run_results",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check pipeline run results"
+            },
+            {
+              "key": "review_data_quality_alerts",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review data quality alerts"
+            },
+            {
+              "key": "check_data_freshness_for_key_tables",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check data freshness for key tables"
+            },
+            {
+              "key": "respond_to_data_requests",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Respond to data requests"
+            },
+            {
+              "key": "review_storage_and_cost_alerts",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review storage and cost alerts"
+            },
+            {
+              "key": "update_tickets",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Update tickets"
+            }
+          ]
+        },
+        {
+          "key": "weekly_checklist",
+          "label": "Weekly checklist",
+          "fields": [
+            {
+              "key": "week_starting",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "data_quality_report_review",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Data quality report review"
+            },
+            {
+              "key": "schema_change_review",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Schema change review"
+            },
+            {
+              "key": "backfill_and_rerun_check",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Backfill and rerun check"
+            },
+            {
+              "key": "review_performance_of_heavy_jobs",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review performance of heavy jobs"
+            },
+            {
+              "key": "clean_old_data_per_retention",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Clean old data per retention"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Code repositories",
+          "track": [
+            "pipeline code"
+          ]
+        },
+        {
+          "kind": "Technical debt",
+          "track": [
+            "pipeline debt"
+          ]
+        },
+        {
+          "kind": "Pull requests",
+          "track": [
+            "pipeline changes"
+          ]
+        },
+        {
+          "kind": "Sprint backlog",
+          "track": [
+            "data platform work"
+          ]
+        }
+      ],
+      "documentationCategories": [
+        "Pipeline catalogue",
+        "Data dictionary",
+        "Data lineage notes",
+        "Data quality results",
+        "Runbooks",
+        "Access list"
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "pipeline_failure_response",
+          "title": "Pipeline failure response",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Read logs and identify the failing step",
+                "Check upstream sources",
+                "Fix or rerun",
+                "Validate output counts",
+                "Notify consumers",
+                "Record the cause"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "data_quality_check",
+          "title": "Data quality check",
+          "frequency": "weekly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Define rules and thresholds",
+                "Run checks",
+                "Review failures",
+                "Fix at source",
+                "Record results"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "schema_change",
+          "title": "Schema change",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Assess impact on consumers",
+                "Version and announce",
+                "Migrate",
+                "Validate",
+                "Retire old fields"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "backfill",
+          "title": "Backfill",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Define range and impact",
+                "Run in batches",
+                "Validate against source",
+                "Switch consumers",
+                "Record"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "escalation",
+          "title": "Escalation",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "triggers": [
+            "Critical dashboard data missing",
+            "Data corruption",
+            "Personal data exposed",
+            "Source system change breaks pipelines",
+            "Cost overrun"
+          ],
+          "recordFields": [
+            "date_time",
+            "affected_area_or_system",
+            "people_affected_by_code_or_count",
+            "description",
+            "actions_taken",
+            "evidence_or_logs",
+            "impact",
+            "person_or_party_contacted",
+            "current_status"
+          ],
+          "rules": [
+            "Record facts; escalate promptly when a trigger is met"
+          ]
+        },
+        {
+          "key": "role_handover",
+          "title": "Role handover",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Handover",
+              "steps": [
+                "Transfer Code repositories: pipeline code",
+                "Transfer Technical debt: pipeline debt",
+                "Transfer Pull requests: pipeline changes",
+                "Transfer Sprint backlog: data platform work",
+                "List open work, deadlines and commitments",
+                "Share trackers, templates and contacts",
+                "Transfer accounts and access only through the approved secure process, never in documents",
+                "Brief the successor and confirm access",
+                "Review progress after one week"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Check pipeline run results",
+          "frequency": "daily"
+        },
+        {
+          "title": "Review data quality alerts",
+          "frequency": "daily"
+        },
+        {
+          "title": "Check data freshness for key tables",
+          "frequency": "daily"
+        },
+        {
+          "title": "Respond to data requests",
+          "frequency": "daily"
+        },
+        {
+          "title": "Review storage and cost alerts",
+          "frequency": "daily"
+        },
+        {
+          "title": "Update tickets",
+          "frequency": "daily"
+        },
+        {
+          "title": "Data quality report review",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Schema change review",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Backfill and rerun check",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Review performance of heavy jobs",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Clean old data per retention",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Cost and storage review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Access and permissions review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Pipeline documentation update",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Disaster recovery restore sample",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Platform and tool review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Data model review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Retention and compliance review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Capacity plan",
+          "frequency": "quarterly"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "engineering",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Pipeline success rate",
+        "Pipeline failures",
+        "Quality checks failed",
+        "Debt items",
+        "Risks and recommendations",
+        "Plan for next period"
+      ],
+      "cadenceContent": {
+        "daily": [
+          "Daily checklist results",
+          "Open items and issues",
+          "Escalations",
+          "Plan for tomorrow"
+        ],
+        "weekly": [
+          "Weekly checklist results",
+          "KPI snapshot",
+          "Risks and blockers",
+          "Plan for next week"
+        ],
+        "monthly": [
+          "All KPI sections",
+          "Trends",
+          "Risks and recommendations",
+          "Plan for next month"
+        ]
+      }
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "standard",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Data engineer from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: pipeline_runs, data_quality_checks"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Data engineer method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "Detailed checklists, playbook steps and triggers are proposals written from general professional practice, not from a source document: a practitioner must review and adapt them.",
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and register tracking lists are proposals: confirm against local practice and regulations."
+  ]
+}

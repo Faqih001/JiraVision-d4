@@ -1,0 +1,638 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "production",
+    "label": "Production",
+    "category": "operations",
+    "categoryLabel": "Operations & supply chain",
+    "focus": "Production runs, output and scrap"
+  },
+  "pack": {
+    "key": "operations",
+    "reportTemplate": "technical",
+    "registerKinds": [
+      "Processes",
+      "Inventory",
+      "Logistics",
+      "Quality control"
+    ],
+    "ladderDiscipline": {
+      "proposed": "operations",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced production practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use.",
+    "detailLevel": "detailed"
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "runs_completed",
+          "label": "Runs completed",
+          "source": "production_runs",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "downtime_minutes",
+          "label": "Downtime minutes",
+          "source": "production_runs",
+          "sourceType": "log",
+          "aggregation": "sum",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "scrap_units",
+          "label": "Scrap units",
+          "source": "scrap_records",
+          "sourceType": "log",
+          "aggregation": "sum",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "processes_documented",
+          "label": "Processes documented",
+          "source": "processes",
+          "sourceType": "register",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "actual_output_below_plan_twice",
+          "when": "actual output below plan twice",
+          "suggest": "review line",
+          "deterministic": true
+        },
+        {
+          "id": "scrap_rising",
+          "when": "scrap rising",
+          "suggest": "investigate cause",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "production_runs",
+          "label": "Production runs",
+          "fields": [
+            {
+              "key": "run_date",
+              "type": "date"
+            },
+            {
+              "key": "line",
+              "type": "text"
+            },
+            {
+              "key": "planned_units",
+              "type": "number"
+            },
+            {
+              "key": "actual_units",
+              "type": "number"
+            },
+            {
+              "key": "downtime_minutes",
+              "type": "number"
+            }
+          ]
+        },
+        {
+          "key": "scrap_records",
+          "label": "Scrap records",
+          "fields": [
+            {
+              "key": "record_date",
+              "type": "date"
+            },
+            {
+              "key": "line",
+              "type": "text"
+            },
+            {
+              "key": "reason",
+              "type": "text"
+            },
+            {
+              "key": "scrap_units",
+              "type": "number"
+            }
+          ]
+        },
+        {
+          "key": "daily_checklist",
+          "label": "Daily checklist",
+          "fields": [
+            {
+              "key": "date",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "review_production_plan_and_targets",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review production plan and targets"
+            },
+            {
+              "key": "check_line_readiness_and_materials",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check line readiness and materials"
+            },
+            {
+              "key": "run_production_and_record_output",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Run production and record output"
+            },
+            {
+              "key": "hold_shift_handover",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Hold shift handover"
+            },
+            {
+              "key": "record_downtime_and_scrap",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Record downtime and scrap"
+            },
+            {
+              "key": "check_safety_and_quality_checks",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check safety and quality checks"
+            }
+          ]
+        },
+        {
+          "key": "weekly_checklist",
+          "label": "Weekly checklist",
+          "fields": [
+            {
+              "key": "week_starting",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "output_versus_plan_review",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Output versus plan review"
+            },
+            {
+              "key": "downtime_and_scrap_analysis",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Downtime and scrap analysis"
+            },
+            {
+              "key": "material_and_schedule_planning",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Material and schedule planning"
+            },
+            {
+              "key": "maintenance_coordination",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Maintenance coordination"
+            },
+            {
+              "key": "safety_review",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Safety review"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Processes",
+          "track": [
+            "production processes"
+          ]
+        },
+        {
+          "kind": "Inventory",
+          "track": [
+            "materials"
+          ]
+        },
+        {
+          "kind": "Logistics",
+          "track": [
+            "line supply"
+          ]
+        },
+        {
+          "kind": "Quality control",
+          "track": [
+            "line checks"
+          ]
+        }
+      ],
+      "documentationCategories": [
+        "Production plans",
+        "Run sheets and output records",
+        "Downtime log",
+        "Scrap records",
+        "Standard operating procedures",
+        "Maintenance requests"
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "production_run",
+          "title": "Production run",
+          "frequency": "daily",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Confirm plan, materials and settings",
+                "Do start-up checks",
+                "Run and monitor",
+                "Record output and quality",
+                "Shut down and clean",
+                "Hand over"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "downtime_response",
+          "title": "Downtime response",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Record start and cause",
+                "Call maintenance",
+                "Reassign work",
+                "Restart and verify",
+                "Analyse the cause"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "scrap_review",
+          "title": "Scrap review",
+          "frequency": "weekly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Collect scrap data",
+                "Group by reason",
+                "Find causes",
+                "Agree actions",
+                "Track"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "changeover",
+          "title": "Changeover",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Plan the sequence",
+                "Clean and set up",
+                "First-off check",
+                "Release to run",
+                "Record time"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "escalation",
+          "title": "Escalation",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "triggers": [
+            "Line stoppage over agreed time",
+            "Quality failure in production",
+            "Injury or near miss",
+            "Material shortage",
+            "Repeated scrap spike"
+          ],
+          "recordFields": [
+            "date_time",
+            "affected_area_or_system",
+            "people_affected_by_code_or_count",
+            "description",
+            "actions_taken",
+            "evidence_or_logs",
+            "impact",
+            "person_or_party_contacted",
+            "current_status"
+          ],
+          "rules": [
+            "Record facts; escalate promptly when a trigger is met"
+          ]
+        },
+        {
+          "key": "role_handover",
+          "title": "Role handover",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Handover",
+              "steps": [
+                "Transfer Processes: production processes",
+                "Transfer Inventory: materials",
+                "Transfer Logistics: line supply",
+                "Transfer Quality control: line checks",
+                "List open work, deadlines and commitments",
+                "Share trackers, templates and contacts",
+                "Transfer accounts and access only through the approved secure process, never in documents",
+                "Brief the successor and confirm access",
+                "Review progress after one week"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Review production plan and targets",
+          "frequency": "daily"
+        },
+        {
+          "title": "Check line readiness and materials",
+          "frequency": "daily"
+        },
+        {
+          "title": "Run production and record output",
+          "frequency": "daily"
+        },
+        {
+          "title": "Hold shift handover",
+          "frequency": "daily"
+        },
+        {
+          "title": "Record downtime and scrap",
+          "frequency": "daily"
+        },
+        {
+          "title": "Check safety and quality checks",
+          "frequency": "daily"
+        },
+        {
+          "title": "Output versus plan review",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Downtime and scrap analysis",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Material and schedule planning",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Maintenance coordination",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Safety review",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Production performance report",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Efficiency and yield review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Cost and waste review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Continuous improvement actions",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Capacity and plan review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Equipment and layout review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Training and skills review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Process audit",
+          "frequency": "quarterly"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "technical",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Runs completed",
+        "Downtime minutes",
+        "Scrap units",
+        "Processes documented",
+        "Risks and recommendations",
+        "Plan for next period"
+      ],
+      "cadenceContent": {
+        "daily": [
+          "Daily checklist results",
+          "Open items and issues",
+          "Escalations",
+          "Plan for tomorrow"
+        ],
+        "weekly": [
+          "Weekly checklist results",
+          "KPI snapshot",
+          "Risks and blockers",
+          "Plan for next week"
+        ],
+        "monthly": [
+          "All KPI sections",
+          "Trends",
+          "Risks and recommendations",
+          "Plan for next month"
+        ]
+      }
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "standard",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Production from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: production_runs, scrap_records"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Production method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "Detailed checklists, playbook steps and triggers are proposals written from general professional practice, not from a source document: a practitioner must review and adapt them.",
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and register tracking lists are proposals: confirm against local practice and regulations."
+  ]
+}

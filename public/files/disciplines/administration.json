@@ -1,0 +1,637 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "administration",
+    "label": "Administration",
+    "category": "people",
+    "categoryLabel": "People, administration & governance",
+    "focus": "Document handling, requests and office tasks"
+  },
+  "pack": {
+    "key": "hr",
+    "reportTemplate": "general",
+    "registerKinds": [
+      "Employee records",
+      "Policies",
+      "Training",
+      "Compliance"
+    ],
+    "ladderDiscipline": {
+      "proposed": "hr",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced administration practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use.",
+    "detailLevel": "detailed"
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "requests_completed",
+          "label": "Requests completed",
+          "source": "document_requests",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "requests_open",
+          "label": "Requests open",
+          "source": "document_requests",
+          "sourceType": "log",
+          "aggregation": "open_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "tasks_done",
+          "label": "Tasks done",
+          "source": "office_tasks",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "procedures_documented",
+          "label": "Procedures documented",
+          "source": "policies",
+          "sourceType": "register",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "request_open_over_3_days",
+          "when": "request open over 3 days",
+          "suggest": "chase",
+          "deterministic": true
+        },
+        {
+          "id": "filing_backlog_over_a_week",
+          "when": "filing backlog over a week",
+          "suggest": "clear",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "document_requests",
+          "label": "Document requests",
+          "fields": [
+            {
+              "key": "received_date",
+              "type": "date"
+            },
+            {
+              "key": "type",
+              "type": "text"
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "open",
+                "done"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "office_tasks",
+          "label": "Office tasks",
+          "fields": [
+            {
+              "key": "task_date",
+              "type": "date"
+            },
+            {
+              "key": "task",
+              "type": "text"
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "open",
+                "done"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "daily_checklist",
+          "label": "Daily checklist",
+          "fields": [
+            {
+              "key": "date",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "handle_post_calls_and_visitors",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Handle post, calls and visitors"
+            },
+            {
+              "key": "process_requests_and_bookings",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Process requests and bookings"
+            },
+            {
+              "key": "file_and_update_records",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "File and update records"
+            },
+            {
+              "key": "order_supplies",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Order supplies"
+            },
+            {
+              "key": "support_managers_with_schedules",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Support managers with schedules"
+            },
+            {
+              "key": "check_the_shared_inbox",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check the shared inbox"
+            }
+          ]
+        },
+        {
+          "key": "weekly_checklist",
+          "label": "Weekly checklist",
+          "fields": [
+            {
+              "key": "week_starting",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "filing_and_records_check",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Filing and records check"
+            },
+            {
+              "key": "meeting_and_travel_arrangements",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Meeting and travel arrangements"
+            },
+            {
+              "key": "supplies_and_stock_check",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Supplies and stock check"
+            },
+            {
+              "key": "expense_and_invoice_processing",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Expense and invoice processing"
+            },
+            {
+              "key": "update_trackers",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Update trackers"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Employee records",
+          "track": [
+            "office records (codes only)"
+          ]
+        },
+        {
+          "kind": "Policies",
+          "track": [
+            "office procedures"
+          ]
+        },
+        {
+          "kind": "Training",
+          "track": [
+            "admin training"
+          ]
+        },
+        {
+          "kind": "Compliance",
+          "track": [
+            "records compliance"
+          ]
+        }
+      ],
+      "documentationCategories": [
+        "Request log",
+        "Filing index",
+        "Supplier and contract list",
+        "Travel and booking records",
+        "Procedures and templates",
+        "Supplies list"
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "request_handling",
+          "title": "Request handling",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Log the request",
+                "Check who can approve",
+                "Carry out or assign",
+                "Confirm with the requester",
+                "Close"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "meeting_and_travel_arrangement",
+          "title": "Meeting and travel arrangement",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Confirm purpose and attendees",
+                "Book rooms or travel",
+                "Send details",
+                "Prepare papers",
+                "Follow up"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "filing_and_records",
+          "title": "Filing and records",
+          "frequency": "weekly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Sort and label",
+                "File in the right location",
+                "Update the index",
+                "Archive old records",
+                "Check access"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "supplies_ordering",
+          "title": "Supplies ordering",
+          "frequency": "monthly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Check stock",
+                "Raise the order",
+                "Approve",
+                "Receive and check",
+                "Update the stock list"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "escalation",
+          "title": "Escalation",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "triggers": [
+            "Confidential document misplaced",
+            "Urgent request from senior management",
+            "Supplier failure",
+            "Security or access problem",
+            "Missed deadline for a legal document"
+          ],
+          "recordFields": [
+            "date_time",
+            "affected_area_or_system",
+            "people_affected_by_code_or_count",
+            "description",
+            "actions_taken",
+            "evidence_or_logs",
+            "impact",
+            "person_or_party_contacted",
+            "current_status"
+          ],
+          "rules": [
+            "Record facts only; no personal identifiers in free text"
+          ]
+        },
+        {
+          "key": "role_handover",
+          "title": "Role handover",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Handover",
+              "steps": [
+                "Transfer Employee records: office records (codes only)",
+                "Transfer Policies: office procedures",
+                "Transfer Training: admin training",
+                "Transfer Compliance: records compliance",
+                "List open work, deadlines and commitments",
+                "Share trackers, templates and contacts",
+                "Transfer accounts and access only through the approved secure process, never in documents",
+                "Brief the successor and confirm access",
+                "Review progress after one week"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Handle post, calls and visitors",
+          "frequency": "daily"
+        },
+        {
+          "title": "Process requests and bookings",
+          "frequency": "daily"
+        },
+        {
+          "title": "File and update records",
+          "frequency": "daily"
+        },
+        {
+          "title": "Order supplies",
+          "frequency": "daily"
+        },
+        {
+          "title": "Support managers with schedules",
+          "frequency": "daily"
+        },
+        {
+          "title": "Check the shared inbox",
+          "frequency": "daily"
+        },
+        {
+          "title": "Filing and records check",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Meeting and travel arrangements",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Supplies and stock check",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Expense and invoice processing",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Update trackers",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Supplies and vendor review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Records audit sample",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Budget and expense report",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Process improvement review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Document retention review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Contract and service renewals",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Office layout and safety check",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Business continuity contacts update",
+          "frequency": "quarterly"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "general",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Requests completed",
+        "Requests open",
+        "Tasks done",
+        "Procedures documented",
+        "Risks and recommendations",
+        "Plan for next period"
+      ],
+      "cadenceContent": {
+        "daily": [
+          "Daily checklist results",
+          "Open items and issues",
+          "Escalations",
+          "Plan for tomorrow"
+        ],
+        "weekly": [
+          "Weekly checklist results",
+          "KPI snapshot",
+          "Risks and blockers",
+          "Plan for next week"
+        ],
+        "monthly": [
+          "All KPI sections",
+          "Trends",
+          "Risks and recommendations",
+          "Plan for next month"
+        ]
+      }
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "restricted",
+      "neverSendRegisterKinds": [
+        "Employee records"
+      ],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers",
+        "amounts and balances"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Administration from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: document_requests, office_tasks"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Administration method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "Detailed checklists, playbook steps and triggers are proposals written from general professional practice, not from a source document: a practitioner must review and adapt them.",
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and register tracking lists are proposals: confirm against local practice and regulations.",
+    "Restricted data: keep personal, patient, employee, account and privileged data out of prompts; use codes only."
+  ]
+}

@@ -1,0 +1,646 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "risk_management",
+    "label": "Risk management",
+    "category": "finance",
+    "categoryLabel": "Finance, audit & commercial",
+    "focus": "Risk assessment, controls and testing"
+  },
+  "pack": {
+    "key": "finance",
+    "reportTemplate": "assurance",
+    "registerKinds": [
+      "Accounts",
+      "Audits",
+      "Compliance",
+      "Financial reports"
+    ],
+    "ladderDiscipline": {
+      "proposed": "finance",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced risk management practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use.",
+    "detailLevel": "detailed"
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "risks_assessed",
+          "label": "Risks assessed",
+          "source": "risk_assessments",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "risks_open",
+          "label": "Risks open",
+          "source": "risk_assessments",
+          "sourceType": "log",
+          "aggregation": "open_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "controls_ineffective",
+          "label": "Controls ineffective",
+          "source": "control_tests",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "controls_tested",
+          "label": "Controls tested",
+          "source": "control_tests",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "high_risk_without_owner",
+          "when": "high risk without owner",
+          "suggest": "assign",
+          "deterministic": true
+        },
+        {
+          "id": "control_ineffective",
+          "when": "control ineffective",
+          "suggest": "remediate",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "risk_assessments",
+          "label": "Risk assessments",
+          "fields": [
+            {
+              "key": "assessed_date",
+              "type": "date"
+            },
+            {
+              "key": "risk",
+              "type": "text"
+            },
+            {
+              "key": "likelihood",
+              "type": "enum",
+              "values": [
+                "low",
+                "medium",
+                "high"
+              ]
+            },
+            {
+              "key": "impact",
+              "type": "enum",
+              "values": [
+                "low",
+                "medium",
+                "high"
+              ]
+            },
+            {
+              "key": "owner_ref",
+              "type": "text"
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "open",
+                "mitigating",
+                "closed"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "control_tests",
+          "label": "Control tests",
+          "fields": [
+            {
+              "key": "test_date",
+              "type": "date"
+            },
+            {
+              "key": "control",
+              "type": "text"
+            },
+            {
+              "key": "result",
+              "type": "enum",
+              "values": [
+                "effective",
+                "ineffective"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "daily_checklist",
+          "label": "Daily checklist",
+          "fields": [
+            {
+              "key": "date",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "review_new_risks_and_incidents",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review new risks and incidents"
+            },
+            {
+              "key": "check_key_risk_indicators",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check key risk indicators"
+            },
+            {
+              "key": "update_risk_register_entries",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Update risk register entries"
+            },
+            {
+              "key": "respond_to_risk_queries",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Respond to risk queries"
+            },
+            {
+              "key": "follow_up_overdue_actions",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Follow up overdue actions"
+            }
+          ]
+        },
+        {
+          "key": "weekly_checklist",
+          "label": "Weekly checklist",
+          "fields": [
+            {
+              "key": "week_starting",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "risk_register_review",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Risk register review"
+            },
+            {
+              "key": "control_and_action_tracking",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Control and action tracking"
+            },
+            {
+              "key": "review_incidents_and_near_misses",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review incidents and near misses"
+            },
+            {
+              "key": "brief_risk_owners",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Brief risk owners"
+            },
+            {
+              "key": "update_the_risk_report",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Update the risk report"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Accounts",
+          "track": [
+            "risk-bearing accounts"
+          ]
+        },
+        {
+          "kind": "Audits",
+          "track": [
+            "risk reviews"
+          ]
+        },
+        {
+          "kind": "Compliance",
+          "track": [
+            "risk policy"
+          ]
+        },
+        {
+          "kind": "Financial reports",
+          "track": [
+            "risk reports"
+          ]
+        }
+      ],
+      "documentationCategories": [
+        "Risk register",
+        "Control library and test results",
+        "Incident and near-miss log",
+        "Risk appetite statement",
+        "Risk reports",
+        "Action tracker"
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "risk_assessment",
+          "title": "Risk assessment",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Identify and describe the risk",
+                "Rate likelihood and impact",
+                "Identify existing controls",
+                "Plan mitigation with owner and date",
+                "Record in the register"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "control_test",
+          "title": "Control test",
+          "frequency": "monthly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Select the control and sample",
+                "Test operation",
+                "Record exceptions",
+                "Rate effectiveness",
+                "Agree fixes"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "risk_review",
+          "title": "Risk review",
+          "frequency": "weekly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "List risks by rating",
+                "Check owners and actions",
+                "Update ratings",
+                "Escalate high risks",
+                "Record changes"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "incident_to_risk_learning",
+          "title": "Incident to risk learning",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Record incident facts",
+                "Identify root cause",
+                "Update related risks and controls",
+                "Share lessons",
+                "Close"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "escalation",
+          "title": "Escalation",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "triggers": [
+            "Risk rated above appetite",
+            "Control failure",
+            "Risk with no owner",
+            "Near miss with serious potential",
+            "Regulatory change"
+          ],
+          "recordFields": [
+            "date_time",
+            "affected_area_or_system",
+            "people_affected_by_code_or_count",
+            "description",
+            "actions_taken",
+            "evidence_or_logs",
+            "impact",
+            "person_or_party_contacted",
+            "current_status"
+          ],
+          "rules": [
+            "Record facts only; no personal identifiers in free text"
+          ]
+        },
+        {
+          "key": "role_handover",
+          "title": "Role handover",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Handover",
+              "steps": [
+                "Transfer Accounts: risk-bearing accounts",
+                "Transfer Audits: risk reviews",
+                "Transfer Compliance: risk policy",
+                "Transfer Financial reports: risk reports",
+                "List open work, deadlines and commitments",
+                "Share trackers, templates and contacts",
+                "Transfer accounts and access only through the approved secure process, never in documents",
+                "Brief the successor and confirm access",
+                "Review progress after one week"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Review new risks and incidents",
+          "frequency": "daily"
+        },
+        {
+          "title": "Check key risk indicators",
+          "frequency": "daily"
+        },
+        {
+          "title": "Update risk register entries",
+          "frequency": "daily"
+        },
+        {
+          "title": "Respond to risk queries",
+          "frequency": "daily"
+        },
+        {
+          "title": "Follow up overdue actions",
+          "frequency": "daily"
+        },
+        {
+          "title": "Risk register review",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Control and action tracking",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Review incidents and near misses",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Brief risk owners",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Update the risk report",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Control testing sample",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Risk report to management",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Review risk indicators and appetite",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Review emerging risks",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Full risk assessment refresh",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Risk committee report",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Control effectiveness review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Business continuity review",
+          "frequency": "quarterly"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "assurance",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Risks assessed",
+        "Risks open",
+        "Controls ineffective",
+        "Controls tested",
+        "Risks and recommendations",
+        "Plan for next period"
+      ],
+      "cadenceContent": {
+        "daily": [
+          "Daily checklist results",
+          "Open items and issues",
+          "Escalations",
+          "Plan for tomorrow"
+        ],
+        "weekly": [
+          "Weekly checklist results",
+          "KPI snapshot",
+          "Risks and blockers",
+          "Plan for next week"
+        ],
+        "monthly": [
+          "All KPI sections",
+          "Trends",
+          "Risks and recommendations",
+          "Plan for next month"
+        ]
+      }
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "restricted",
+      "neverSendRegisterKinds": [
+        "Accounts"
+      ],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers",
+        "amounts and balances"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Risk management from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: risk_assessments, control_tests"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Risk management method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "Detailed checklists, playbook steps and triggers are proposals written from general professional practice, not from a source document: a practitioner must review and adapt them.",
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and register tracking lists are proposals: confirm against local practice and regulations.",
+    "Restricted data: keep personal, patient, employee, account and privileged data out of prompts; use codes only."
+  ]
+}

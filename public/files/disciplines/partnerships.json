@@ -1,0 +1,624 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "partnerships",
+    "label": "Partnerships",
+    "category": "market",
+    "categoryLabel": "Sales, marketing & customer",
+    "focus": "Partners, agreements and joint activities"
+  },
+  "pack": {
+    "key": "sales-marketing",
+    "reportTemplate": "creative",
+    "registerKinds": [
+      "Leads",
+      "Campaigns",
+      "Customers",
+      "Metrics"
+    ],
+    "ladderDiscipline": {
+      "proposed": "sales_marketing",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced partnerships practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use.",
+    "detailLevel": "detailed"
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "meetings_held",
+          "label": "Meetings held",
+          "source": "partner_meetings",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "agreements_renewing",
+          "label": "Agreements renewing",
+          "source": "partner_agreements",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "follow_ups_overdue",
+          "label": "Follow-ups overdue",
+          "source": "partner_meetings",
+          "sourceType": "log",
+          "aggregation": "overdue_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "active_agreements",
+          "label": "Active agreements",
+          "source": "partner_agreements",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "agreement_renewing_in_60_days",
+          "when": "agreement renewing in 60 days",
+          "suggest": "plan renewal",
+          "deterministic": true
+        },
+        {
+          "id": "meeting_without_next_step",
+          "when": "meeting without next step",
+          "suggest": "set one",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "partner_meetings",
+          "label": "Partner meetings",
+          "fields": [
+            {
+              "key": "meeting_date",
+              "type": "date"
+            },
+            {
+              "key": "partner",
+              "type": "text"
+            },
+            {
+              "key": "outcome",
+              "type": "text"
+            },
+            {
+              "key": "next_step_date",
+              "type": "date"
+            }
+          ]
+        },
+        {
+          "key": "partner_agreements",
+          "label": "Partner agreements",
+          "fields": [
+            {
+              "key": "partner",
+              "type": "text"
+            },
+            {
+              "key": "start_date",
+              "type": "date"
+            },
+            {
+              "key": "renewal_date",
+              "type": "date"
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "active",
+                "renewing",
+                "ended"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "daily_checklist",
+          "label": "Daily checklist",
+          "fields": [
+            {
+              "key": "date",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "respond_to_partner_messages",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Respond to partner messages"
+            },
+            {
+              "key": "update_partner_records",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Update partner records"
+            },
+            {
+              "key": "prepare_for_meetings",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Prepare for meetings"
+            },
+            {
+              "key": "check_joint_activities",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check joint activities"
+            },
+            {
+              "key": "track_follow_ups",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Track follow-ups"
+            }
+          ]
+        },
+        {
+          "key": "weekly_checklist",
+          "label": "Weekly checklist",
+          "fields": [
+            {
+              "key": "week_starting",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "partner_follow_ups",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Partner follow-ups"
+            },
+            {
+              "key": "pipeline_of_prospective_partners",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Pipeline of prospective partners"
+            },
+            {
+              "key": "review_joint_activity_status",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review joint activity status"
+            },
+            {
+              "key": "internal_alignment_meeting",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Internal alignment meeting"
+            },
+            {
+              "key": "update_the_tracker",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Update the tracker"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Leads",
+          "track": [
+            "partner prospects"
+          ]
+        },
+        {
+          "kind": "Campaigns",
+          "track": [
+            "joint campaigns"
+          ]
+        },
+        {
+          "kind": "Customers",
+          "track": [
+            "partner accounts"
+          ]
+        },
+        {
+          "kind": "Metrics",
+          "track": [
+            "partnership metrics"
+          ]
+        }
+      ],
+      "documentationCategories": [
+        "Partner register",
+        "Agreements",
+        "Meeting notes",
+        "Joint plans and results",
+        "Due diligence files",
+        "Relationship health notes"
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "partner_onboarding",
+          "title": "Partner onboarding",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Agree objectives and responsibilities",
+                "Complete due diligence",
+                "Sign the agreement",
+                "Share access and training",
+                "Set review dates"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "partner_review",
+          "title": "Partner review",
+          "frequency": "monthly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Collect results",
+                "Review against goals",
+                "Discuss issues",
+                "Agree actions",
+                "Record"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "agreement_renewal",
+          "title": "Agreement renewal",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "List agreements due",
+                "Review value and risks",
+                "Negotiate",
+                "Approve",
+                "Sign and store"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "partner_issue",
+          "title": "Partner issue",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Record the issue",
+                "Discuss with the partner",
+                "Agree a fix and date",
+                "Escalate if needed",
+                "Review"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "escalation",
+          "title": "Escalation",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "triggers": [
+            "Partner breach of agreement",
+            "Reputational risk from a partner",
+            "Conflict of interest",
+            "Key partner contact leaves",
+            "Dispute over terms"
+          ],
+          "recordFields": [
+            "date_time",
+            "affected_area_or_system",
+            "people_affected_by_code_or_count",
+            "description",
+            "actions_taken",
+            "evidence_or_logs",
+            "impact",
+            "person_or_party_contacted",
+            "current_status"
+          ],
+          "rules": [
+            "Record facts; escalate promptly when a trigger is met"
+          ]
+        },
+        {
+          "key": "role_handover",
+          "title": "Role handover",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Handover",
+              "steps": [
+                "Transfer Leads: partner prospects",
+                "Transfer Campaigns: joint campaigns",
+                "Transfer Customers: partner accounts",
+                "Transfer Metrics: partnership metrics",
+                "List open work, deadlines and commitments",
+                "Share trackers, templates and contacts",
+                "Transfer accounts and access only through the approved secure process, never in documents",
+                "Brief the successor and confirm access",
+                "Review progress after one week"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Respond to partner messages",
+          "frequency": "daily"
+        },
+        {
+          "title": "Update partner records",
+          "frequency": "daily"
+        },
+        {
+          "title": "Prepare for meetings",
+          "frequency": "daily"
+        },
+        {
+          "title": "Check joint activities",
+          "frequency": "daily"
+        },
+        {
+          "title": "Track follow-ups",
+          "frequency": "daily"
+        },
+        {
+          "title": "Partner follow-ups",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Pipeline of prospective partners",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Review joint activity status",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Internal alignment meeting",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Update the tracker",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Partner performance review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Agreement and renewal check",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Joint activity report",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Relationship health check",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Partnership strategy review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Partner business review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Agreement review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Risk and compliance check",
+          "frequency": "quarterly"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "creative",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Meetings held",
+        "Agreements renewing",
+        "Follow-ups overdue",
+        "Active agreements",
+        "Risks and recommendations",
+        "Plan for next period"
+      ],
+      "cadenceContent": {
+        "daily": [
+          "Daily checklist results",
+          "Open items and issues",
+          "Escalations",
+          "Plan for tomorrow"
+        ],
+        "weekly": [
+          "Weekly checklist results",
+          "KPI snapshot",
+          "Risks and blockers",
+          "Plan for next week"
+        ],
+        "monthly": [
+          "All KPI sections",
+          "Trends",
+          "Risks and recommendations",
+          "Plan for next month"
+        ]
+      }
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "standard",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Partnerships from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: partner_meetings, partner_agreements"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Partnerships method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "Detailed checklists, playbook steps and triggers are proposals written from general professional practice, not from a source document: a practitioner must review and adapt them.",
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and register tracking lists are proposals: confirm against local practice and regulations."
+  ]
+}

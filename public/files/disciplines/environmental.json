@@ -1,0 +1,630 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "environmental",
+    "label": "Environmental",
+    "category": "engineering",
+    "categoryLabel": "Engineering & built works",
+    "focus": "Monitoring, permits and compliance"
+  },
+  "pack": {
+    "key": "engineering",
+    "reportTemplate": "engineering",
+    "registerKinds": [
+      "Projects",
+      "Specifications",
+      "Inspections",
+      "Compliance"
+    ],
+    "ladderDiscipline": {
+      "proposed": "engineering",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "environmental professional",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use.",
+    "detailLevel": "detailed"
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "readings_within_limits",
+          "label": "Readings within limits",
+          "source": "monitoring_readings",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "readings_exceeding_limits",
+          "label": "Readings exceeding limits",
+          "source": "monitoring_readings",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "permit_conditions_overdue",
+          "label": "Permit conditions overdue",
+          "source": "permit_conditions",
+          "sourceType": "log",
+          "aggregation": "overdue_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "inspections",
+          "label": "Inspections",
+          "source": "inspections",
+          "sourceType": "register",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "reading_exceeds_limit",
+          "when": "reading exceeds limit",
+          "suggest": "notify and investigate",
+          "deterministic": true
+        },
+        {
+          "id": "permit_condition_due_in_14_days",
+          "when": "permit condition due in 14 days",
+          "suggest": "prepare",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "monitoring_readings",
+          "label": "Monitoring readings",
+          "fields": [
+            {
+              "key": "reading_date",
+              "type": "date"
+            },
+            {
+              "key": "site",
+              "type": "text"
+            },
+            {
+              "key": "parameter",
+              "type": "text"
+            },
+            {
+              "key": "limit_status",
+              "type": "enum",
+              "values": [
+                "within",
+                "exceeds"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "permit_conditions",
+          "label": "Permit conditions",
+          "fields": [
+            {
+              "key": "permit_ref",
+              "type": "text"
+            },
+            {
+              "key": "condition",
+              "type": "text"
+            },
+            {
+              "key": "due_date",
+              "type": "date"
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "open",
+                "met",
+                "overdue"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "daily_checklist",
+          "label": "Daily checklist",
+          "fields": [
+            {
+              "key": "date",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "check_site_environmental_controls",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check site environmental controls"
+            },
+            {
+              "key": "record_monitoring_readings",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Record monitoring readings"
+            },
+            {
+              "key": "check_waste_and_spill_controls",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check waste and spill controls"
+            },
+            {
+              "key": "respond_to_complaints",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Respond to complaints"
+            },
+            {
+              "key": "update_the_environmental_log",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Update the environmental log"
+            }
+          ]
+        },
+        {
+          "key": "weekly_checklist",
+          "label": "Weekly checklist",
+          "fields": [
+            {
+              "key": "week_starting",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "monitoring_round",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Monitoring round"
+            },
+            {
+              "key": "waste_and_discharge_review",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Waste and discharge review"
+            },
+            {
+              "key": "permit_condition_tracking",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Permit condition tracking"
+            },
+            {
+              "key": "inspection_of_controls",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Inspection of controls"
+            },
+            {
+              "key": "update_the_tracker",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Update the tracker"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Projects",
+          "track": [
+            "environmental projects"
+          ]
+        },
+        {
+          "kind": "Specifications",
+          "track": [
+            "environmental standards"
+          ]
+        },
+        {
+          "kind": "Inspections",
+          "track": [
+            "site and monitoring inspections"
+          ]
+        },
+        {
+          "kind": "Compliance",
+          "track": [
+            "permits and conditions"
+          ]
+        }
+      ],
+      "documentationCategories": [
+        "Permits and conditions",
+        "Monitoring data",
+        "Waste records",
+        "Impact assessments",
+        "Inspection and audit reports",
+        "Complaints log"
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "monitoring_round",
+          "title": "Monitoring round",
+          "frequency": "weekly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Check instruments and calibration",
+                "Take readings or samples",
+                "Record location and time",
+                "Compare to limits",
+                "Report exceedances",
+                "Send samples with chain of custody"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "spill_response",
+          "title": "Spill response",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Make safe and stop the source",
+                "Contain",
+                "Notify as required",
+                "Clean up and dispose",
+                "Investigate the cause",
+                "Record"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "permit_compliance",
+          "title": "Permit compliance",
+          "frequency": "monthly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "List conditions and due dates",
+                "Collect evidence",
+                "Check status",
+                "Report",
+                "Plan corrective action"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "environmental_incident",
+          "title": "Environmental incident",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Record facts",
+                "Assess harm",
+                "Notify the regulator if required",
+                "Take corrective action",
+                "Review"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "escalation",
+          "title": "Escalation",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "triggers": [
+            "Release or spill to the environment",
+            "Limit exceeded",
+            "Regulator notice",
+            "Community complaint",
+            "Permit condition missed"
+          ],
+          "recordFields": [
+            "date_time",
+            "affected_area_or_system",
+            "people_affected_by_code_or_count",
+            "description",
+            "actions_taken",
+            "evidence_or_logs",
+            "impact",
+            "person_or_party_contacted",
+            "current_status"
+          ],
+          "rules": [
+            "Record facts; escalate promptly when a trigger is met"
+          ]
+        },
+        {
+          "key": "role_handover",
+          "title": "Role handover",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Handover",
+              "steps": [
+                "Transfer Projects: environmental projects",
+                "Transfer Specifications: environmental standards",
+                "Transfer Inspections: site and monitoring inspections",
+                "Transfer Compliance: permits and conditions",
+                "List open work, deadlines and commitments",
+                "Share trackers, templates and contacts",
+                "Transfer accounts and access only through the approved secure process, never in documents",
+                "Brief the successor and confirm access",
+                "Review progress after one week"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Check site environmental controls",
+          "frequency": "daily"
+        },
+        {
+          "title": "Record monitoring readings",
+          "frequency": "daily"
+        },
+        {
+          "title": "Check waste and spill controls",
+          "frequency": "daily"
+        },
+        {
+          "title": "Respond to complaints",
+          "frequency": "daily"
+        },
+        {
+          "title": "Update the environmental log",
+          "frequency": "daily"
+        },
+        {
+          "title": "Monitoring round",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Waste and discharge review",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Permit condition tracking",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Inspection of controls",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Update the tracker",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Monitoring results report",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Permit compliance check",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Waste and resource review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Stakeholder or community update",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Environmental audit",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Impact assessment update",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Training and awareness",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Regulatory update review",
+          "frequency": "quarterly"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "engineering",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Readings within limits",
+        "Readings exceeding limits",
+        "Permit conditions overdue",
+        "Inspections",
+        "Risks and recommendations",
+        "Plan for next period"
+      ],
+      "cadenceContent": {
+        "daily": [
+          "Daily checklist results",
+          "Open items and issues",
+          "Escalations",
+          "Plan for tomorrow"
+        ],
+        "weekly": [
+          "Weekly checklist results",
+          "KPI snapshot",
+          "Risks and blockers",
+          "Plan for next week"
+        ],
+        "monthly": [
+          "All KPI sections",
+          "Trends",
+          "Risks and recommendations",
+          "Plan for next month"
+        ]
+      }
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "standard",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Environmental from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: monitoring_readings, permit_conditions"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Environmental method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "Detailed checklists, playbook steps and triggers are proposals written from general professional practice, not from a source document: a practitioner must review and adapt them.",
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and register tracking lists are proposals: confirm against local practice and regulations."
+  ]
+}

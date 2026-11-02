@@ -1,0 +1,633 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "architect",
+    "label": "Architect",
+    "category": "technology",
+    "categoryLabel": "Software, IT & digital",
+    "focus": "Architecture decisions, design reviews and standards"
+  },
+  "pack": {
+    "key": "developer",
+    "reportTemplate": "engineering",
+    "registerKinds": [
+      "Code repositories",
+      "Pull requests",
+      "Technical debt",
+      "Sprint backlog"
+    ],
+    "ladderDiscipline": {
+      "proposed": "developer",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced architect practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use.",
+    "detailLevel": "detailed"
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": [
+      "Design",
+      "Review",
+      "Approve",
+      "Document",
+      "Govern",
+      "Mentor"
+    ],
+    "documentedIn": "roles doc section 4.7 (verify in code)"
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "decisions_recorded",
+          "label": "Decisions recorded",
+          "source": "design_decisions",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "reviews_open",
+          "label": "Reviews open",
+          "source": "design_reviews",
+          "sourceType": "log",
+          "aggregation": "open_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "debt_items",
+          "label": "Debt items",
+          "source": "technical_debt",
+          "sourceType": "register",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "reviews_completed",
+          "label": "Reviews completed",
+          "source": "design_reviews",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "decision_without_an_adr",
+          "when": "decision without an ADR",
+          "suggest": "write one",
+          "deterministic": true
+        },
+        {
+          "id": "review_open_over_14_days",
+          "when": "review open over 14 days",
+          "suggest": "close or escalate",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "design_decisions",
+          "label": "Design decisions",
+          "fields": [
+            {
+              "key": "decision_date",
+              "type": "date"
+            },
+            {
+              "key": "area",
+              "type": "text"
+            },
+            {
+              "key": "options_considered",
+              "type": "text"
+            },
+            {
+              "key": "decision",
+              "type": "text"
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "proposed",
+                "accepted",
+                "superseded"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "design_reviews",
+          "label": "Design reviews",
+          "fields": [
+            {
+              "key": "review_date",
+              "type": "date"
+            },
+            {
+              "key": "component",
+              "type": "text"
+            },
+            {
+              "key": "findings",
+              "type": "text"
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "open",
+                "closed"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "daily_checklist",
+          "label": "Daily checklist",
+          "fields": [
+            {
+              "key": "date",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "answer_design_questions_from_teams",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Answer design questions from teams"
+            },
+            {
+              "key": "review_proposed_changes_against_standards",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review proposed changes against standards"
+            },
+            {
+              "key": "check_technical_risk_items",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check technical risk items"
+            },
+            {
+              "key": "review_adrs_awaiting_input",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review ADRs awaiting input"
+            },
+            {
+              "key": "track_cross_team_dependencies",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Track cross-team dependencies"
+            }
+          ]
+        },
+        {
+          "key": "weekly_checklist",
+          "label": "Weekly checklist",
+          "fields": [
+            {
+              "key": "week_starting",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "architecture_review_board",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Architecture review board"
+            },
+            {
+              "key": "design_reviews_for_upcoming_work",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Design reviews for upcoming work"
+            },
+            {
+              "key": "review_technical_debt_items",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review technical debt items"
+            },
+            {
+              "key": "meet_with_tech_leads",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Meet with tech leads"
+            },
+            {
+              "key": "update_the_architecture_roadmap",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Update the architecture roadmap"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Code repositories",
+          "track": [
+            "architecture decision records"
+          ]
+        },
+        {
+          "kind": "Technical debt",
+          "track": [
+            "architectural debt"
+          ]
+        },
+        {
+          "kind": "Pull requests",
+          "track": [
+            "design reviews"
+          ]
+        }
+      ],
+      "documentationCategories": [
+        "Architecture decision records",
+        "System context and diagrams",
+        "Standards and guidelines",
+        "Technology radar",
+        "Technical debt register",
+        "Design review notes"
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "design_review",
+          "title": "Design review",
+          "frequency": "weekly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Collect the design document and context",
+                "Check requirements and constraints",
+                "Review options and trade-offs",
+                "Check security, scale, cost and operability",
+                "Record findings and decision",
+                "Follow up on actions"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "architecture_decision_record",
+          "title": "Architecture decision record",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "State the problem and constraints",
+                "List options with pros and cons",
+                "Choose and justify",
+                "Note consequences and risks",
+                "Get approval",
+                "Publish and link"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "technical_debt_assessment",
+          "title": "Technical debt assessment",
+          "frequency": "quarterly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "List debt items",
+                "Rate impact and effort",
+                "Link to risks",
+                "Prioritise",
+                "Agree a paydown plan"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "architecture_governance",
+          "title": "Architecture governance",
+          "frequency": "monthly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Review exceptions to standards",
+                "Decide approve or reject",
+                "Update guidelines",
+                "Communicate changes"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "escalation",
+          "title": "Escalation",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "triggers": [
+            "Design conflicts with security or compliance",
+            "Single point of failure found",
+            "Cost exceeds budget materially",
+            "Vendor lock-in risk",
+            "Teams diverge on a core standard"
+          ],
+          "recordFields": [
+            "date_time",
+            "affected_area_or_system",
+            "people_affected_by_code_or_count",
+            "description",
+            "actions_taken",
+            "evidence_or_logs",
+            "impact",
+            "person_or_party_contacted",
+            "current_status"
+          ],
+          "rules": [
+            "Record facts; escalate promptly when a trigger is met"
+          ]
+        },
+        {
+          "key": "role_handover",
+          "title": "Role handover",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Handover",
+              "steps": [
+                "Transfer Code repositories: architecture decision records",
+                "Transfer Technical debt: architectural debt",
+                "Transfer Pull requests: design reviews",
+                "List open work, deadlines and commitments",
+                "Share trackers, templates and contacts",
+                "Transfer accounts and access only through the approved secure process, never in documents",
+                "Brief the successor and confirm access",
+                "Review progress after one week"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Answer design questions from teams",
+          "frequency": "daily"
+        },
+        {
+          "title": "Review proposed changes against standards",
+          "frequency": "daily"
+        },
+        {
+          "title": "Check technical risk items",
+          "frequency": "daily"
+        },
+        {
+          "title": "Review ADRs awaiting input",
+          "frequency": "daily"
+        },
+        {
+          "title": "Track cross-team dependencies",
+          "frequency": "daily"
+        },
+        {
+          "title": "Architecture review board",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Design reviews for upcoming work",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Review technical debt items",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Meet with tech leads",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Update the architecture roadmap",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Technology radar update",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Cost and performance review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Standards and guidelines review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Capacity and scalability check",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Architecture roadmap review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Security and resilience review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Vendor and platform review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Training and mentoring plan",
+          "frequency": "quarterly"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "engineering",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Decisions recorded",
+        "Reviews open",
+        "Debt items",
+        "Reviews completed",
+        "Risks and recommendations",
+        "Plan for next period"
+      ],
+      "cadenceContent": {
+        "daily": [
+          "Daily checklist results",
+          "Open items and issues",
+          "Escalations",
+          "Plan for tomorrow"
+        ],
+        "weekly": [
+          "Weekly checklist results",
+          "KPI snapshot",
+          "Risks and blockers",
+          "Plan for next week"
+        ],
+        "monthly": [
+          "All KPI sections",
+          "Trends",
+          "Risks and recommendations",
+          "Plan for next month"
+        ]
+      }
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "standard",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Architect from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: design_decisions, design_reviews"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Architect method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "Detailed checklists, playbook steps and triggers are proposals written from general professional practice, not from a source document: a practitioner must review and adapt them.",
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and register tracking lists are proposals: confirm against local practice and regulations."
+  ]
+}

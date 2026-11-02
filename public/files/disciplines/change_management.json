@@ -1,0 +1,632 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "change_management",
+    "label": "Change management",
+    "category": "delivery",
+    "categoryLabel": "Management & project delivery",
+    "focus": "Change requests, impact assessment and adoption"
+  },
+  "pack": {
+    "key": "management",
+    "reportTemplate": "general",
+    "registerKinds": [
+      "Initiatives",
+      "Stakeholders",
+      "Risks",
+      "Reports"
+    ],
+    "ladderDiscipline": {
+      "proposed": "coordinator",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced change management practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use.",
+    "detailLevel": "detailed"
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "changes_implemented",
+          "label": "Changes implemented",
+          "source": "change_requests",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "approvals_pending",
+          "label": "Approvals pending",
+          "source": "change_requests",
+          "sourceType": "log",
+          "aggregation": "open_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "groups_with_low_adoption",
+          "label": "Groups with low adoption",
+          "source": "adoption_checks",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "change_requests_logged",
+          "label": "Change requests logged",
+          "source": "change_requests",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "approval_pending_over_5_days",
+          "when": "approval pending over 5 days",
+          "suggest": "chase approver",
+          "deterministic": true
+        },
+        {
+          "id": "low_adoption_twice_in_a_row",
+          "when": "low adoption twice in a row",
+          "suggest": "plan intervention",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "change_requests",
+          "label": "Change requests",
+          "fields": [
+            {
+              "key": "received_date",
+              "type": "date"
+            },
+            {
+              "key": "change",
+              "type": "text"
+            },
+            {
+              "key": "impact",
+              "type": "enum",
+              "values": [
+                "low",
+                "medium",
+                "high"
+              ]
+            },
+            {
+              "key": "approver",
+              "type": "text"
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "submitted",
+                "approved",
+                "implemented",
+                "rejected"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "adoption_checks",
+          "label": "Adoption checks",
+          "fields": [
+            {
+              "key": "check_date",
+              "type": "date"
+            },
+            {
+              "key": "group",
+              "type": "text"
+            },
+            {
+              "key": "adoption_level",
+              "type": "enum",
+              "values": [
+                "low",
+                "medium",
+                "high"
+              ]
+            },
+            {
+              "key": "action",
+              "type": "text"
+            }
+          ]
+        },
+        {
+          "key": "daily_checklist",
+          "label": "Daily checklist",
+          "fields": [
+            {
+              "key": "date",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "review_new_change_requests",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review new change requests"
+            },
+            {
+              "key": "check_implementation_tasks_due",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check implementation tasks due"
+            },
+            {
+              "key": "monitor_adoption_feedback",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Monitor adoption feedback"
+            },
+            {
+              "key": "respond_to_stakeholder_questions",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Respond to stakeholder questions"
+            },
+            {
+              "key": "update_the_change_log",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Update the change log"
+            }
+          ]
+        },
+        {
+          "key": "weekly_checklist",
+          "label": "Weekly checklist",
+          "fields": [
+            {
+              "key": "week_starting",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "change_advisory_review",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Change advisory review"
+            },
+            {
+              "key": "stakeholder_communications_update",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Stakeholder communications update"
+            },
+            {
+              "key": "check_training_and_readiness_progress",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check training and readiness progress"
+            },
+            {
+              "key": "review_resistance_and_issues",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review resistance and issues"
+            },
+            {
+              "key": "update_the_change_plan",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Update the change plan"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Initiatives",
+          "track": [
+            "change initiatives"
+          ]
+        },
+        {
+          "kind": "Stakeholders",
+          "track": [
+            "impacted groups"
+          ]
+        },
+        {
+          "kind": "Risks",
+          "track": [
+            "change risks"
+          ]
+        }
+      ],
+      "documentationCategories": [
+        "Change request log",
+        "Impact assessments",
+        "Stakeholder map",
+        "Communications plan",
+        "Training records",
+        "Adoption reports"
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "change_advisory_review",
+          "title": "Change advisory review",
+          "frequency": "weekly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "List requests and impacts",
+                "Check risk and rollback plan",
+                "Check readiness and approvals",
+                "Approve, defer or reject",
+                "Record decisions and dates"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "impact_assessment",
+          "title": "Impact assessment",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Describe the change",
+                "Identify affected groups and processes",
+                "Rate impact and effort",
+                "Define training and communication needs",
+                "Document mitigation"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "adoption_tracking",
+          "title": "Adoption tracking",
+          "frequency": "monthly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Define adoption measures",
+                "Collect usage and feedback",
+                "Compare to target",
+                "Plan interventions for low adoption",
+                "Report results"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "post_implementation_review",
+          "title": "Post-implementation review",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Confirm the change was delivered",
+                "Compare to objectives",
+                "Collect lessons",
+                "Close open actions",
+                "Archive records"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "escalation",
+          "title": "Escalation",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "triggers": [
+            "Change causes service disruption",
+            "Key stakeholder opposes the change",
+            "Low adoption after two checks",
+            "Compliance impact discovered",
+            "Rollback required"
+          ],
+          "recordFields": [
+            "date_time",
+            "affected_area_or_system",
+            "people_affected_by_code_or_count",
+            "description",
+            "actions_taken",
+            "evidence_or_logs",
+            "impact",
+            "person_or_party_contacted",
+            "current_status"
+          ],
+          "rules": [
+            "Record facts; escalate promptly when a trigger is met"
+          ]
+        },
+        {
+          "key": "role_handover",
+          "title": "Role handover",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Handover",
+              "steps": [
+                "Transfer Initiatives: change initiatives",
+                "Transfer Stakeholders: impacted groups",
+                "Transfer Risks: change risks",
+                "List open work, deadlines and commitments",
+                "Share trackers, templates and contacts",
+                "Transfer accounts and access only through the approved secure process, never in documents",
+                "Brief the successor and confirm access",
+                "Review progress after one week"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Review new change requests",
+          "frequency": "daily"
+        },
+        {
+          "title": "Check implementation tasks due",
+          "frequency": "daily"
+        },
+        {
+          "title": "Monitor adoption feedback",
+          "frequency": "daily"
+        },
+        {
+          "title": "Respond to stakeholder questions",
+          "frequency": "daily"
+        },
+        {
+          "title": "Update the change log",
+          "frequency": "daily"
+        },
+        {
+          "title": "Change advisory review",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Stakeholder communications update",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Check training and readiness progress",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Review resistance and issues",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Update the change plan",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Adoption metrics review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Impact assessment refresh",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Stakeholder map update",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Report to sponsor",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Change portfolio review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Lessons learned",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Readiness assessment for upcoming changes",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Governance review",
+          "frequency": "quarterly"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "general",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Changes implemented",
+        "Approvals pending",
+        "Groups with low adoption",
+        "Change requests logged",
+        "Risks and recommendations",
+        "Plan for next period"
+      ],
+      "cadenceContent": {
+        "daily": [
+          "Daily checklist results",
+          "Open items and issues",
+          "Escalations",
+          "Plan for tomorrow"
+        ],
+        "weekly": [
+          "Weekly checklist results",
+          "KPI snapshot",
+          "Risks and blockers",
+          "Plan for next week"
+        ],
+        "monthly": [
+          "All KPI sections",
+          "Trends",
+          "Risks and recommendations",
+          "Plan for next month"
+        ]
+      }
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "standard",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Change management from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: change_requests, adoption_checks"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Change management method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "Detailed checklists, playbook steps and triggers are proposals written from general professional practice, not from a source document: a practitioner must review and adapt them.",
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and register tracking lists are proposals: confirm against local practice and regulations."
+  ]
+}

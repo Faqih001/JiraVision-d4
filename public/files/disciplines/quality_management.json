@@ -1,0 +1,650 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "quality_management",
+    "label": "Quality management",
+    "category": "operations",
+    "categoryLabel": "Operations & supply chain",
+    "focus": "QC checks, nonconformances and corrective action"
+  },
+  "pack": {
+    "key": "operations",
+    "reportTemplate": "technical",
+    "registerKinds": [
+      "Processes",
+      "Inventory",
+      "Logistics",
+      "Quality control"
+    ],
+    "ladderDiscipline": {
+      "proposed": "operations",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced quality management practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use.",
+    "detailLevel": "detailed"
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "qc_checks_passed",
+          "label": "QC checks passed",
+          "source": "qc_checks",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "qc_checks_failed",
+          "label": "QC checks failed",
+          "source": "qc_checks",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "open_nonconformances",
+          "label": "Open nonconformances",
+          "source": "nonconformances",
+          "sourceType": "log",
+          "aggregation": "open_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "corrective_actions_overdue",
+          "label": "Corrective actions overdue",
+          "source": "nonconformances",
+          "sourceType": "log",
+          "aggregation": "overdue_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "corrective_action_overdue",
+          "when": "corrective action overdue",
+          "suggest": "escalate",
+          "deterministic": true
+        },
+        {
+          "id": "repeat_defect_type",
+          "when": "repeat defect type",
+          "suggest": "root-cause analysis",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "qc_checks",
+          "label": "Qc checks",
+          "fields": [
+            {
+              "key": "check_date",
+              "type": "date"
+            },
+            {
+              "key": "batch_ref",
+              "type": "text"
+            },
+            {
+              "key": "result",
+              "type": "enum",
+              "values": [
+                "pass",
+                "fail"
+              ]
+            },
+            {
+              "key": "defect_type",
+              "type": "text"
+            }
+          ]
+        },
+        {
+          "key": "nonconformances",
+          "label": "Nonconformances",
+          "fields": [
+            {
+              "key": "raised_date",
+              "type": "date"
+            },
+            {
+              "key": "ref",
+              "type": "text"
+            },
+            {
+              "key": "severity",
+              "type": "enum",
+              "values": [
+                "low",
+                "medium",
+                "high"
+              ]
+            },
+            {
+              "key": "corrective_action_due",
+              "type": "text"
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "open",
+                "closed"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "daily_checklist",
+          "label": "Daily checklist",
+          "fields": [
+            {
+              "key": "date",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "check_line_or_batch_quality_results",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check line or batch quality results"
+            },
+            {
+              "key": "review_nonconformances_raised",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review nonconformances raised"
+            },
+            {
+              "key": "check_calibration_status_of_instruments",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check calibration status of instruments"
+            },
+            {
+              "key": "hold_a_quality_briefing",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Hold a quality briefing"
+            },
+            {
+              "key": "record_inspection_results",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Record inspection results"
+            },
+            {
+              "key": "quarantine_suspect_items",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Quarantine suspect items"
+            }
+          ]
+        },
+        {
+          "key": "weekly_checklist",
+          "label": "Weekly checklist",
+          "fields": [
+            {
+              "key": "week_starting",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "nonconformance_and_corrective_action_review",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Nonconformance and corrective action review"
+            },
+            {
+              "key": "trend_review_of_defects",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Trend review of defects"
+            },
+            {
+              "key": "supplier_quality_issues_review",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Supplier quality issues review"
+            },
+            {
+              "key": "internal_inspection_round",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Internal inspection round"
+            },
+            {
+              "key": "update_quality_records",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Update quality records"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Processes",
+          "track": [
+            "quality procedures"
+          ]
+        },
+        {
+          "kind": "Inventory",
+          "track": [
+            "samples"
+          ]
+        },
+        {
+          "kind": "Logistics",
+          "track": [
+            "quarantine"
+          ]
+        },
+        {
+          "kind": "Quality control",
+          "track": [
+            "control plans"
+          ]
+        }
+      ],
+      "documentationCategories": [
+        "Quality manual and procedures",
+        "Inspection records",
+        "Nonconformance and CAPA log",
+        "Audit reports",
+        "Calibration records",
+        "Customer complaints"
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "quality_check",
+          "title": "Quality check",
+          "frequency": "daily",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Confirm specification and method",
+                "Inspect or test a sample",
+                "Record results",
+                "Accept or reject",
+                "Quarantine rejects"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "nonconformance",
+          "title": "Nonconformance",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Record and contain",
+                "Identify root cause",
+                "Define corrective and preventive action",
+                "Assign owner and date",
+                "Verify effectiveness"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "internal_audit",
+          "title": "Internal audit",
+          "frequency": "quarterly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Plan scope and checklist",
+                "Audit processes and records",
+                "Record findings",
+                "Agree actions",
+                "Follow up"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "complaint_handling",
+          "title": "Complaint handling",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Log the complaint",
+                "Investigate",
+                "Respond to the customer",
+                "Correct the cause",
+                "Close and review"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "escalation",
+          "title": "Escalation",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "triggers": [
+            "Defective product reached a customer",
+            "Repeated failures at the same step",
+            "Critical instrument out of calibration",
+            "Supplier quality failure",
+            "Regulatory or audit finding"
+          ],
+          "recordFields": [
+            "date_time",
+            "affected_area_or_system",
+            "people_affected_by_code_or_count",
+            "description",
+            "actions_taken",
+            "evidence_or_logs",
+            "impact",
+            "person_or_party_contacted",
+            "current_status"
+          ],
+          "rules": [
+            "Record facts; escalate promptly when a trigger is met"
+          ]
+        },
+        {
+          "key": "role_handover",
+          "title": "Role handover",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Handover",
+              "steps": [
+                "Transfer Processes: quality procedures",
+                "Transfer Inventory: samples",
+                "Transfer Logistics: quarantine",
+                "Transfer Quality control: control plans",
+                "List open work, deadlines and commitments",
+                "Share trackers, templates and contacts",
+                "Transfer accounts and access only through the approved secure process, never in documents",
+                "Brief the successor and confirm access",
+                "Review progress after one week"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Check line or batch quality results",
+          "frequency": "daily"
+        },
+        {
+          "title": "Review nonconformances raised",
+          "frequency": "daily"
+        },
+        {
+          "title": "Check calibration status of instruments",
+          "frequency": "daily"
+        },
+        {
+          "title": "Hold a quality briefing",
+          "frequency": "daily"
+        },
+        {
+          "title": "Record inspection results",
+          "frequency": "daily"
+        },
+        {
+          "title": "Quarantine suspect items",
+          "frequency": "daily"
+        },
+        {
+          "title": "Nonconformance and corrective action review",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Trend review of defects",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Supplier quality issues review",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Internal inspection round",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Update quality records",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Quality performance report",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Corrective action effectiveness check",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Customer complaint review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Document control review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Internal audit",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Management review input",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Process capability review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Training and competence check",
+          "frequency": "quarterly"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "technical",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "QC checks passed",
+        "QC checks failed",
+        "Open nonconformances",
+        "Corrective actions overdue",
+        "Risks and recommendations",
+        "Plan for next period"
+      ],
+      "cadenceContent": {
+        "daily": [
+          "Daily checklist results",
+          "Open items and issues",
+          "Escalations",
+          "Plan for tomorrow"
+        ],
+        "weekly": [
+          "Weekly checklist results",
+          "KPI snapshot",
+          "Risks and blockers",
+          "Plan for next week"
+        ],
+        "monthly": [
+          "All KPI sections",
+          "Trends",
+          "Risks and recommendations",
+          "Plan for next month"
+        ]
+      }
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "standard",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Quality management from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: qc_checks, nonconformances"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Quality management method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "Detailed checklists, playbook steps and triggers are proposals written from general professional practice, not from a source document: a practitioner must review and adapt them.",
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and register tracking lists are proposals: confirm against local practice and regulations."
+  ]
+}

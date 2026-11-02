@@ -1,0 +1,659 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "security",
+    "label": "Security",
+    "category": "technology",
+    "categoryLabel": "Software, IT & digital",
+    "focus": "Detection, response and access review"
+  },
+  "pack": {
+    "key": "it-technician",
+    "reportTemplate": "technical",
+    "registerKinds": [
+      "Infrastructure",
+      "Accounts and systems",
+      "Equipment",
+      "Outstanding work"
+    ],
+    "ladderDiscipline": {
+      "proposed": "technician",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced security practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use.",
+    "detailLevel": "detailed"
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": [
+      "Assess",
+      "Detect",
+      "Contain",
+      "Eradicate",
+      "Recover",
+      "Review"
+    ],
+    "documentedIn": "roles doc section 4.7 (verify in code)"
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "events_closed",
+          "label": "Events closed",
+          "source": "security_events",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "critical_events_open",
+          "label": "Critical events open",
+          "source": "security_events",
+          "sourceType": "log",
+          "aggregation": "open_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "access_reviews_done",
+          "label": "Access reviews done",
+          "source": "access_reviews",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "reviews_needing_changes",
+          "label": "Reviews needing changes",
+          "source": "access_reviews",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "critical_event_uncontained_over_4_hours",
+          "when": "critical event uncontained over 4 hours",
+          "suggest": "escalate",
+          "deterministic": true
+        },
+        {
+          "id": "system_not_access_reviewed_in_90_days",
+          "when": "system not access-reviewed in 90 days",
+          "suggest": "review",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "security_events",
+          "label": "Security events",
+          "fields": [
+            {
+              "key": "event_date",
+              "type": "date"
+            },
+            {
+              "key": "type",
+              "type": "text"
+            },
+            {
+              "key": "severity",
+              "type": "enum",
+              "values": [
+                "low",
+                "medium",
+                "high",
+                "critical"
+              ]
+            },
+            {
+              "key": "contained_date",
+              "type": "date"
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "open",
+                "contained",
+                "closed"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "access_reviews",
+          "label": "Access reviews",
+          "fields": [
+            {
+              "key": "review_date",
+              "type": "date"
+            },
+            {
+              "key": "system",
+              "type": "text"
+            },
+            {
+              "key": "result",
+              "type": "enum",
+              "values": [
+                "ok",
+                "changes_needed"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "daily_checklist",
+          "label": "Daily checklist",
+          "fields": [
+            {
+              "key": "date",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "review_security_alerts_and_endpoint_status",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review security alerts and endpoint status"
+            },
+            {
+              "key": "check_authentication_anomalies",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check authentication anomalies"
+            },
+            {
+              "key": "review_phishing_reports",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review phishing reports"
+            },
+            {
+              "key": "check_patch_and_vulnerability_alerts",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check patch and vulnerability alerts"
+            },
+            {
+              "key": "confirm_backups_of_security_logs",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Confirm backups of security logs"
+            },
+            {
+              "key": "respond_to_access_requests",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Respond to access requests"
+            }
+          ]
+        },
+        {
+          "key": "weekly_checklist",
+          "label": "Weekly checklist",
+          "fields": [
+            {
+              "key": "week_starting",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "vulnerability_scan_review",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Vulnerability scan review"
+            },
+            {
+              "key": "review_privileged_access_changes",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review privileged access changes"
+            },
+            {
+              "key": "review_firewall_and_email_filter_logs",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review firewall and email filter logs"
+            },
+            {
+              "key": "check_user_awareness_reports",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check user awareness reports"
+            },
+            {
+              "key": "review_open_security_tickets",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review open security tickets"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Infrastructure",
+          "track": [
+            "protected systems"
+          ]
+        },
+        {
+          "kind": "Accounts and systems",
+          "track": [
+            "security tools (references only; never credentials)"
+          ]
+        },
+        {
+          "kind": "Equipment",
+          "track": [
+            "security hardware"
+          ]
+        },
+        {
+          "kind": "Outstanding work",
+          "track": [
+            "open remediation"
+          ]
+        }
+      ],
+      "documentationCategories": [
+        "Incident log",
+        "Vulnerability register",
+        "Access review records",
+        "Security policies",
+        "Security awareness records",
+        "Risk register"
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "alert_triage",
+          "title": "Alert triage",
+          "frequency": "daily",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Collect the alert details",
+                "Check true or false positive",
+                "Scope affected users and systems",
+                "Escalate if confirmed",
+                "Record the outcome"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "incident_response",
+          "title": "Incident response",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Identify and classify",
+                "Contain",
+                "Eradicate the cause",
+                "Recover and verify",
+                "Notify as required",
+                "Review lessons"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "access_review",
+          "title": "Access review",
+          "frequency": "monthly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Export access lists",
+                "Compare to roles",
+                "Remove or adjust excess access",
+                "Get owner sign-off",
+                "Record results"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "vulnerability_management",
+          "title": "Vulnerability management",
+          "frequency": "weekly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Collect scan results",
+                "Rate by risk",
+                "Assign fixes with dates",
+                "Verify fixes",
+                "Report status"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "escalation",
+          "title": "Escalation",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "triggers": [
+            "Confirmed compromise",
+            "Data exposure",
+            "Ransomware or malware spreading",
+            "Privileged account misuse",
+            "Critical vulnerability exploited"
+          ],
+          "recordFields": [
+            "date_time",
+            "affected_area_or_system",
+            "people_affected_by_code_or_count",
+            "description",
+            "actions_taken",
+            "evidence_or_logs",
+            "impact",
+            "person_or_party_contacted",
+            "current_status"
+          ],
+          "rules": [
+            "Record facts only; no personal identifiers in free text"
+          ]
+        },
+        {
+          "key": "role_handover",
+          "title": "Role handover",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Handover",
+              "steps": [
+                "Transfer Infrastructure: protected systems",
+                "Transfer Accounts and systems: security tools (references only; never credentials)",
+                "Transfer Equipment: security hardware",
+                "Transfer Outstanding work: open remediation",
+                "List open work, deadlines and commitments",
+                "Share trackers, templates and contacts",
+                "Transfer accounts and access only through the approved secure process, never in documents",
+                "Brief the successor and confirm access",
+                "Review progress after one week"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Review security alerts and endpoint status",
+          "frequency": "daily"
+        },
+        {
+          "title": "Check authentication anomalies",
+          "frequency": "daily"
+        },
+        {
+          "title": "Review phishing reports",
+          "frequency": "daily"
+        },
+        {
+          "title": "Check patch and vulnerability alerts",
+          "frequency": "daily"
+        },
+        {
+          "title": "Confirm backups of security logs",
+          "frequency": "daily"
+        },
+        {
+          "title": "Respond to access requests",
+          "frequency": "daily"
+        },
+        {
+          "title": "Vulnerability scan review",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Review privileged access changes",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Review firewall and email filter logs",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Check user awareness reports",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Review open security tickets",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Access recertification sample",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Patch compliance report",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Phishing exercise or awareness note",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Review third-party and vendor risks",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Incident response exercise",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Policy and control review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Penetration test or review follow-up",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Risk register review",
+          "frequency": "quarterly"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "technical",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Events closed",
+        "Critical events open",
+        "Access reviews done",
+        "Reviews needing changes",
+        "Risks and recommendations",
+        "Plan for next period"
+      ],
+      "cadenceContent": {
+        "daily": [
+          "Daily checklist results",
+          "Open items and issues",
+          "Escalations",
+          "Plan for tomorrow"
+        ],
+        "weekly": [
+          "Weekly checklist results",
+          "KPI snapshot",
+          "Risks and blockers",
+          "Plan for next week"
+        ],
+        "monthly": [
+          "All KPI sections",
+          "Trends",
+          "Risks and recommendations",
+          "Plan for next month"
+        ]
+      }
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "restricted",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [
+        "security_events"
+      ],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Security from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: access_reviews"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Security method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "Detailed checklists, playbook steps and triggers are proposals written from general professional practice, not from a source document: a practitioner must review and adapt them.",
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and register tracking lists are proposals: confirm against local practice and regulations.",
+    "Restricted data: keep personal, patient, employee, account and privileged data out of prompts; use codes only."
+  ]
+}

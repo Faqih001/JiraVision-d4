@@ -1,0 +1,649 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "database",
+    "label": "Database",
+    "category": "technology",
+    "categoryLabel": "Software, IT & digital",
+    "focus": "Backups, restores, performance and integrity"
+  },
+  "pack": {
+    "key": "it-technician",
+    "reportTemplate": "technical",
+    "registerKinds": [
+      "Infrastructure",
+      "Accounts and systems",
+      "Equipment",
+      "Outstanding work"
+    ],
+    "ladderDiscipline": {
+      "proposed": "technician",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced database practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use.",
+    "detailLevel": "detailed"
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": [
+      "Backup",
+      "Monitor",
+      "Optimize",
+      "Restore",
+      "Test",
+      "Document"
+    ],
+    "documentedIn": "roles doc section 4.7 (verify in code)"
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "backup_success_rate",
+          "label": "Backup success rate",
+          "source": "backup_runs",
+          "sourceType": "log",
+          "aggregation": "rate",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "backup_failures",
+          "label": "Backup failures",
+          "source": "backup_runs",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "restore_tests_passed",
+          "label": "Restore tests passed",
+          "source": "restore_tests",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "databases_tracked",
+          "label": "Databases tracked",
+          "source": "infrastructure",
+          "sourceType": "register",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "no_successful_backup_in_24_hours",
+          "when": "no successful backup in 24 hours",
+          "suggest": "investigate",
+          "deterministic": true
+        },
+        {
+          "id": "no_restore_test_in_30_days",
+          "when": "no restore test in 30 days",
+          "suggest": "schedule one",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "backup_runs",
+          "label": "Backup runs",
+          "fields": [
+            {
+              "key": "run_date",
+              "type": "date"
+            },
+            {
+              "key": "database",
+              "type": "text"
+            },
+            {
+              "key": "result",
+              "type": "enum",
+              "values": [
+                "success",
+                "warning",
+                "failed"
+              ]
+            },
+            {
+              "key": "size_gb",
+              "type": "text"
+            }
+          ]
+        },
+        {
+          "key": "restore_tests",
+          "label": "Restore tests",
+          "fields": [
+            {
+              "key": "test_date",
+              "type": "date"
+            },
+            {
+              "key": "database",
+              "type": "text"
+            },
+            {
+              "key": "backup_date_restored",
+              "type": "text"
+            },
+            {
+              "key": "result",
+              "type": "enum",
+              "values": [
+                "pass",
+                "fail"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "daily_checklist",
+          "label": "Daily checklist",
+          "fields": [
+            {
+              "key": "date",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "check_backup_job_results",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check backup job results"
+            },
+            {
+              "key": "review_database_health_and_alerts",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review database health and alerts"
+            },
+            {
+              "key": "check_disk_and_log_space",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check disk and log space"
+            },
+            {
+              "key": "review_slow_queries_and_locks",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review slow queries and locks"
+            },
+            {
+              "key": "respond_to_access_and_query_requests",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Respond to access and query requests"
+            },
+            {
+              "key": "check_replication_status",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check replication status"
+            }
+          ]
+        },
+        {
+          "key": "weekly_checklist",
+          "label": "Weekly checklist",
+          "fields": [
+            {
+              "key": "week_starting",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "verify_backup_integrity",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Verify backup integrity"
+            },
+            {
+              "key": "review_performance_trends",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review performance trends"
+            },
+            {
+              "key": "review_index_and_statistics_maintenance",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review index and statistics maintenance"
+            },
+            {
+              "key": "review_user_and_privilege_changes",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review user and privilege changes"
+            },
+            {
+              "key": "check_job_schedules",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check job schedules"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Infrastructure",
+          "track": [
+            "database servers"
+          ]
+        },
+        {
+          "kind": "Accounts and systems",
+          "track": [
+            "database consoles (references only)"
+          ]
+        },
+        {
+          "kind": "Equipment",
+          "track": [
+            "storage"
+          ]
+        },
+        {
+          "kind": "Outstanding work",
+          "track": [
+            "maintenance tasks"
+          ]
+        }
+      ],
+      "documentationCategories": [
+        "Database inventory",
+        "Backup and restore logs",
+        "Maintenance plan",
+        "Access list",
+        "Schema documentation",
+        "Performance reports"
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "backup_procedure",
+          "title": "Backup procedure",
+          "frequency": "daily",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Confirm backup system and storage",
+                "Run or verify the scheduled backup",
+                "Check completion and size",
+                "Verify integrity",
+                "Record the result in the log"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "restore_test",
+          "title": "Restore test",
+          "frequency": "monthly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Pick a database and backup",
+                "Restore to a test server",
+                "Check data and row counts",
+                "Compare with source",
+                "Record time taken and result"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "slow_query_investigation",
+          "title": "Slow query investigation",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Capture the query and plan",
+                "Check indexes and statistics",
+                "Test changes in non-production",
+                "Apply and measure",
+                "Record"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "schema_change",
+          "title": "Schema change",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Review script and rollback",
+                "Back up",
+                "Apply in the window",
+                "Validate",
+                "Update documentation"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "escalation",
+          "title": "Escalation",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "triggers": [
+            "Backup failed repeatedly",
+            "Database unavailable",
+            "Corruption detected",
+            "Replication broken",
+            "Unauthorised access"
+          ],
+          "recordFields": [
+            "date_time",
+            "affected_area_or_system",
+            "people_affected_by_code_or_count",
+            "description",
+            "actions_taken",
+            "evidence_or_logs",
+            "impact",
+            "person_or_party_contacted",
+            "current_status"
+          ],
+          "rules": [
+            "Record facts; escalate promptly when a trigger is met"
+          ]
+        },
+        {
+          "key": "role_handover",
+          "title": "Role handover",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Handover",
+              "steps": [
+                "Transfer Infrastructure: database servers",
+                "Transfer Accounts and systems: database consoles (references only)",
+                "Transfer Equipment: storage",
+                "Transfer Outstanding work: maintenance tasks",
+                "List open work, deadlines and commitments",
+                "Share trackers, templates and contacts",
+                "Transfer accounts and access only through the approved secure process, never in documents",
+                "Brief the successor and confirm access",
+                "Review progress after one week"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Check backup job results",
+          "frequency": "daily"
+        },
+        {
+          "title": "Review database health and alerts",
+          "frequency": "daily"
+        },
+        {
+          "title": "Check disk and log space",
+          "frequency": "daily"
+        },
+        {
+          "title": "Review slow queries and locks",
+          "frequency": "daily"
+        },
+        {
+          "title": "Respond to access and query requests",
+          "frequency": "daily"
+        },
+        {
+          "title": "Check replication status",
+          "frequency": "daily"
+        },
+        {
+          "title": "Verify backup integrity",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Review performance trends",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Review index and statistics maintenance",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Review user and privilege changes",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Check job schedules",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Restore test",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Patch and version review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Capacity forecast",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Security and audit log review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Integrity and consistency checks",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Disaster recovery exercise",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Schema and data retention review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Licence and support review",
+          "frequency": "quarterly"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "technical",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Backup success rate",
+        "Backup failures",
+        "Restore tests passed",
+        "Databases tracked",
+        "Risks and recommendations",
+        "Plan for next period"
+      ],
+      "cadenceContent": {
+        "daily": [
+          "Daily checklist results",
+          "Open items and issues",
+          "Escalations",
+          "Plan for tomorrow"
+        ],
+        "weekly": [
+          "Weekly checklist results",
+          "KPI snapshot",
+          "Risks and blockers",
+          "Plan for next week"
+        ],
+        "monthly": [
+          "All KPI sections",
+          "Trends",
+          "Risks and recommendations",
+          "Plan for next month"
+        ]
+      }
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "standard",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Database from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: backup_runs, restore_tests"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Database method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "Detailed checklists, playbook steps and triggers are proposals written from general professional practice, not from a source document: a practitioner must review and adapt them.",
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and register tracking lists are proposals: confirm against local practice and regulations."
+  ]
+}

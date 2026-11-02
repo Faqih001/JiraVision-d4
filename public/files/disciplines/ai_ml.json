@@ -1,0 +1,662 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "ai_ml",
+    "label": "AI and ML engineer",
+    "category": "technology",
+    "categoryLabel": "Software, IT & digital",
+    "focus": "Experiments, deployments and responsible-AI review"
+  },
+  "pack": {
+    "key": "developer",
+    "reportTemplate": "engineering",
+    "registerKinds": [
+      "Code repositories",
+      "Pull requests",
+      "Technical debt",
+      "Sprint backlog"
+    ],
+    "ladderDiscipline": {
+      "proposed": "developer",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced ai and ml engineer practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use.",
+    "detailLevel": "detailed"
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": [
+      "Research",
+      "Collect",
+      "Train",
+      "Validate",
+      "Deploy",
+      "Monitor"
+    ],
+    "documentedIn": "roles doc section 4.7 (verify in code)"
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "experiments_run",
+          "label": "Experiments run",
+          "source": "experiments",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "deployments_successful",
+          "label": "Deployments successful",
+          "source": "model_deployments",
+          "sourceType": "log",
+          "aggregation": "rate",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "rollbacks",
+          "label": "Rollbacks",
+          "source": "model_deployments",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "debt_items",
+          "label": "Debt items",
+          "source": "technical_debt",
+          "sourceType": "register",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "model_in_production_not_reviewed_in_30_days",
+          "when": "model in production not reviewed in 30 days",
+          "suggest": "review drift",
+          "deterministic": true
+        },
+        {
+          "id": "deployment_rolled_back",
+          "when": "deployment rolled back",
+          "suggest": "post-mortem",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "experiments",
+          "label": "Experiments",
+          "fields": [
+            {
+              "key": "run_date",
+              "type": "date"
+            },
+            {
+              "key": "model",
+              "type": "text"
+            },
+            {
+              "key": "dataset_version",
+              "type": "text"
+            },
+            {
+              "key": "metric",
+              "type": "text"
+            },
+            {
+              "key": "value",
+              "type": "number"
+            },
+            {
+              "key": "decision",
+              "type": "enum",
+              "values": [
+                "keep",
+                "discard"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "model_deployments",
+          "label": "Model deployments",
+          "fields": [
+            {
+              "key": "deploy_date",
+              "type": "date"
+            },
+            {
+              "key": "model_version",
+              "type": "text"
+            },
+            {
+              "key": "environment",
+              "type": "enum",
+              "values": [
+                "staging",
+                "production"
+              ]
+            },
+            {
+              "key": "result",
+              "type": "enum",
+              "values": [
+                "success",
+                "rolled_back"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "daily_checklist",
+          "label": "Daily checklist",
+          "fields": [
+            {
+              "key": "date",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "check_training_and_inference_job_status",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check training and inference job status"
+            },
+            {
+              "key": "review_model_monitoring_metrics",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review model monitoring metrics"
+            },
+            {
+              "key": "check_data_pipeline_inputs",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check data pipeline inputs"
+            },
+            {
+              "key": "log_experiments_and_results",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Log experiments and results"
+            },
+            {
+              "key": "review_model_related_tickets",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review model-related tickets"
+            },
+            {
+              "key": "check_compute_usage",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check compute usage"
+            }
+          ]
+        },
+        {
+          "key": "weekly_checklist",
+          "label": "Weekly checklist",
+          "fields": [
+            {
+              "key": "week_starting",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "experiment_review",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Experiment review"
+            },
+            {
+              "key": "model_performance_and_drift_review",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Model performance and drift review"
+            },
+            {
+              "key": "dataset_and_label_quality_check",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Dataset and label quality check"
+            },
+            {
+              "key": "review_errors_and_bias_samples",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review errors and bias samples"
+            },
+            {
+              "key": "update_experiment_tracking",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Update experiment tracking"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Code repositories",
+          "track": [
+            "model code"
+          ]
+        },
+        {
+          "kind": "Technical debt",
+          "track": [
+            "model and data debt"
+          ]
+        },
+        {
+          "kind": "Pull requests",
+          "track": [
+            "model changes"
+          ]
+        },
+        {
+          "kind": "Sprint backlog",
+          "track": [
+            "ML work"
+          ]
+        }
+      ],
+      "documentationCategories": [
+        "Model inventory",
+        "Experiment tracking",
+        "Dataset documentation",
+        "Evaluation reports",
+        "Deployment log",
+        "Responsible AI assessments"
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "experiment_cycle",
+          "title": "Experiment cycle",
+          "frequency": "weekly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "State hypothesis and metric",
+                "Prepare data and split",
+                "Train and track",
+                "Evaluate against baseline",
+                "Decide keep or discard",
+                "Record results"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "model_deployment",
+          "title": "Model deployment",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Check evaluation and approval",
+                "Package and version",
+                "Deploy to staging",
+                "Shadow or canary test",
+                "Promote and monitor",
+                "Keep rollback ready"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "drift_and_bias_review",
+          "title": "Drift and bias review",
+          "frequency": "monthly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Collect production metrics",
+                "Compare to baseline",
+                "Check subgroup performance",
+                "Decide on retraining",
+                "Record findings"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "model_retirement",
+          "title": "Model retirement",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Confirm the replacement",
+                "Notify users",
+                "Archive artefacts and documentation",
+                "Remove access",
+                "Record"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "escalation",
+          "title": "Escalation",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "triggers": [
+            "Model causing harm or unfair outcomes",
+            "Sudden performance drop",
+            "Training data issue or leakage",
+            "Personal data in a training set",
+            "Production rollback needed"
+          ],
+          "recordFields": [
+            "date_time",
+            "affected_area_or_system",
+            "people_affected_by_code_or_count",
+            "description",
+            "actions_taken",
+            "evidence_or_logs",
+            "impact",
+            "person_or_party_contacted",
+            "current_status"
+          ],
+          "rules": [
+            "Record facts; escalate promptly when a trigger is met"
+          ]
+        },
+        {
+          "key": "role_handover",
+          "title": "Role handover",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Handover",
+              "steps": [
+                "Transfer Code repositories: model code",
+                "Transfer Technical debt: model and data debt",
+                "Transfer Pull requests: model changes",
+                "Transfer Sprint backlog: ML work",
+                "List open work, deadlines and commitments",
+                "Share trackers, templates and contacts",
+                "Transfer accounts and access only through the approved secure process, never in documents",
+                "Brief the successor and confirm access",
+                "Review progress after one week"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Check training and inference job status",
+          "frequency": "daily"
+        },
+        {
+          "title": "Review model monitoring metrics",
+          "frequency": "daily"
+        },
+        {
+          "title": "Check data pipeline inputs",
+          "frequency": "daily"
+        },
+        {
+          "title": "Log experiments and results",
+          "frequency": "daily"
+        },
+        {
+          "title": "Review model-related tickets",
+          "frequency": "daily"
+        },
+        {
+          "title": "Check compute usage",
+          "frequency": "daily"
+        },
+        {
+          "title": "Experiment review",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Model performance and drift review",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Dataset and label quality check",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Review errors and bias samples",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Update experiment tracking",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Drift and bias report",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Retraining decision",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Compute cost review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Model and dataset documentation update",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Responsible AI review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Model inventory review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Benchmark and baseline refresh",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Roadmap and tooling review",
+          "frequency": "quarterly"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "engineering",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Experiments run",
+        "Deployments successful",
+        "Rollbacks",
+        "Debt items",
+        "Risks and recommendations",
+        "Plan for next period"
+      ],
+      "cadenceContent": {
+        "daily": [
+          "Daily checklist results",
+          "Open items and issues",
+          "Escalations",
+          "Plan for tomorrow"
+        ],
+        "weekly": [
+          "Weekly checklist results",
+          "KPI snapshot",
+          "Risks and blockers",
+          "Plan for next week"
+        ],
+        "monthly": [
+          "All KPI sections",
+          "Trends",
+          "Risks and recommendations",
+          "Plan for next month"
+        ]
+      }
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "standard",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for AI and ML engineer from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: experiments, model_deployments"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the AI and ML engineer method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "Detailed checklists, playbook steps and triggers are proposals written from general professional practice, not from a source document: a practitioner must review and adapt them.",
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and register tracking lists are proposals: confirm against local practice and regulations."
+  ]
+}

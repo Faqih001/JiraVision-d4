@@ -1,0 +1,641 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "executive",
+    "label": "Executive",
+    "category": "delivery",
+    "categoryLabel": "Management & project delivery",
+    "focus": "Strategic oversight, decisions and board reporting"
+  },
+  "pack": {
+    "key": "management",
+    "reportTemplate": "general",
+    "registerKinds": [
+      "Initiatives",
+      "Stakeholders",
+      "Risks",
+      "Reports"
+    ],
+    "ladderDiscipline": {
+      "proposed": "coordinator",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced executive practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use.",
+    "detailLevel": "detailed"
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "decisions_past_review_date",
+          "label": "Decisions past review date",
+          "source": "decisions",
+          "sourceType": "log",
+          "aggregation": "overdue_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "initiatives_on_track",
+          "label": "Initiatives on track",
+          "source": "initiatives",
+          "sourceType": "register",
+          "aggregation": "rate",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "enterprise_risks_rated_high",
+          "label": "Enterprise risks rated high",
+          "source": "risks",
+          "sourceType": "register",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "stakeholder_follow_ups_overdue",
+          "label": "Stakeholder follow-ups overdue",
+          "source": "stakeholder_meetings",
+          "sourceType": "log",
+          "aggregation": "overdue_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "decision_past_its_review_date",
+          "when": "decision past its review date",
+          "suggest": "schedule a review",
+          "deterministic": true
+        },
+        {
+          "id": "high_risk_without_mitigation_owner",
+          "when": "high risk without mitigation owner",
+          "suggest": "assign an owner",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "decisions",
+          "label": "Decisions",
+          "fields": [
+            {
+              "key": "decision_date",
+              "type": "date"
+            },
+            {
+              "key": "topic",
+              "type": "text"
+            },
+            {
+              "key": "owner",
+              "type": "text"
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "proposed",
+                "approved",
+                "deferred",
+                "rejected"
+              ]
+            },
+            {
+              "key": "review_date",
+              "type": "date"
+            }
+          ]
+        },
+        {
+          "key": "stakeholder_meetings",
+          "label": "Stakeholder meetings",
+          "fields": [
+            {
+              "key": "meeting_date",
+              "type": "date"
+            },
+            {
+              "key": "stakeholder",
+              "type": "text"
+            },
+            {
+              "key": "outcome",
+              "type": "text"
+            },
+            {
+              "key": "follow_up_due",
+              "type": "text"
+            }
+          ]
+        },
+        {
+          "key": "daily_checklist",
+          "label": "Daily checklist",
+          "fields": [
+            {
+              "key": "date",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "review_key_decisions_awaiting_you",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review key decisions awaiting you"
+            },
+            {
+              "key": "scan_top_risks_and_exceptions_from_reports",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Scan top risks and exceptions from reports"
+            },
+            {
+              "key": "respond_to_escalations_from_direct_reports",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Respond to escalations from direct reports"
+            },
+            {
+              "key": "check_stakeholder_and_board_communications",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check stakeholder and board communications"
+            },
+            {
+              "key": "confirm_today_s_priorities_with_your_assistant_or_chief_of_s",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Confirm today's priorities with your assistant or chief of staff"
+            }
+          ]
+        },
+        {
+          "key": "weekly_checklist",
+          "label": "Weekly checklist",
+          "fields": [
+            {
+              "key": "week_starting",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "leadership_team_meeting_and_action_review",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Leadership team meeting and action review"
+            },
+            {
+              "key": "review_initiative_status_and_variances",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review initiative status and variances"
+            },
+            {
+              "key": "review_cash_and_performance_headlines",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review cash and performance headlines"
+            },
+            {
+              "key": "decide_on_items_past_their_review_date",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Decide on items past their review date"
+            },
+            {
+              "key": "one_to_ones_with_direct_reports",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "One-to-ones with direct reports"
+            },
+            {
+              "key": "update_the_decision_log",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Update the decision log"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Initiatives",
+          "track": [
+            "strategic priorities",
+            "owners"
+          ]
+        },
+        {
+          "kind": "Risks",
+          "track": [
+            "enterprise risks",
+            "mitigations"
+          ]
+        },
+        {
+          "kind": "Reports",
+          "track": [
+            "board packs",
+            "decision papers"
+          ]
+        }
+      ],
+      "documentationCategories": [
+        "Decision register",
+        "Board and committee papers",
+        "Delegations of authority",
+        "Strategic plan and objectives",
+        "Enterprise risk register",
+        "Stakeholder correspondence log"
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "weekly_leadership_review",
+          "title": "Weekly leadership review",
+          "frequency": "weekly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Collect status from each function",
+                "Review decisions and actions due",
+                "Review risks and exceptions",
+                "Agree priorities and owners",
+                "Record decisions and actions"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "board_pack_preparation",
+          "title": "Board pack preparation",
+          "frequency": "monthly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Agree agenda with the chair or secretary",
+                "Collect reports and figures from functions",
+                "Check figures against source reports",
+                "Draft executive summary and decisions required",
+                "Circulate the pack by the deadline",
+                "Record minutes and actions"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "decision_record",
+          "title": "Decision record",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "State the decision and options considered",
+                "Record rationale and risks",
+                "Name the decision owner and approver",
+                "Set a review date",
+                "Communicate and log in the decision register"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "crisis_response",
+          "title": "Crisis response",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Confirm facts and scope",
+                "Convene the response team",
+                "Assign roles and a communications owner",
+                "Decide interim actions",
+                "Brief board and key stakeholders",
+                "Review lessons learned"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "escalation",
+          "title": "Escalation",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "triggers": [
+            "Regulatory or legal breach suspected",
+            "Major financial or reputational exposure",
+            "Safety incident with serious harm",
+            "Loss of a key client or partner",
+            "Conflict of interest or integrity concern"
+          ],
+          "recordFields": [
+            "date_time",
+            "affected_area_or_system",
+            "people_affected_by_code_or_count",
+            "description",
+            "actions_taken",
+            "evidence_or_logs",
+            "impact",
+            "person_or_party_contacted",
+            "current_status"
+          ],
+          "rules": [
+            "Record facts; escalate promptly when a trigger is met"
+          ]
+        },
+        {
+          "key": "role_handover",
+          "title": "Role handover",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Handover",
+              "steps": [
+                "Transfer Initiatives: strategic priorities, owners",
+                "Transfer Risks: enterprise risks, mitigations",
+                "Transfer Reports: board packs, decision papers",
+                "List open work, deadlines and commitments",
+                "Share trackers, templates and contacts",
+                "Transfer accounts and access only through the approved secure process, never in documents",
+                "Brief the successor and confirm access",
+                "Review progress after one week"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Review key decisions awaiting you",
+          "frequency": "daily"
+        },
+        {
+          "title": "Scan top risks and exceptions from reports",
+          "frequency": "daily"
+        },
+        {
+          "title": "Respond to escalations from direct reports",
+          "frequency": "daily"
+        },
+        {
+          "title": "Check stakeholder and board communications",
+          "frequency": "daily"
+        },
+        {
+          "title": "Confirm today's priorities with your assistant or chief of staff",
+          "frequency": "daily"
+        },
+        {
+          "title": "Leadership team meeting and action review",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Review initiative status and variances",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Review cash and performance headlines",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Decide on items past their review date",
+          "frequency": "weekly"
+        },
+        {
+          "title": "One-to-ones with direct reports",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Update the decision log",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Prepare and review board or committee pack",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Review strategic initiative health",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Review enterprise risk register",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Review key stakeholder relationships",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Strategy and priorities review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Risk appetite and risk register review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Succession and capability review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Performance against annual objectives",
+          "frequency": "quarterly"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "general",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Decisions past review date",
+        "Initiatives on track",
+        "Enterprise risks rated high",
+        "Stakeholder follow-ups overdue",
+        "Risks and recommendations",
+        "Plan for next period"
+      ],
+      "cadenceContent": {
+        "daily": [
+          "Daily checklist results",
+          "Open items and issues",
+          "Escalations",
+          "Plan for tomorrow"
+        ],
+        "weekly": [
+          "Weekly checklist results",
+          "KPI snapshot",
+          "Risks and blockers",
+          "Plan for next week"
+        ],
+        "monthly": [
+          "All KPI sections",
+          "Trends",
+          "Risks and recommendations",
+          "Plan for next month"
+        ]
+      }
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "standard",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Executive from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: decisions, stakeholder_meetings"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Executive method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "Detailed checklists, playbook steps and triggers are proposals written from general professional practice, not from a source document: a practitioner must review and adapt them.",
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and register tracking lists are proposals: confirm against local practice and regulations."
+  ]
+}

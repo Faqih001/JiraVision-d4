@@ -1,0 +1,620 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "data_analyst",
+    "label": "Data analyst",
+    "category": "information",
+    "categoryLabel": "Analysis, research & information",
+    "focus": "Dashboards, refreshes and data quality"
+  },
+  "pack": {
+    "key": "analyst",
+    "reportTemplate": "assurance",
+    "registerKinds": [
+      "Data sources",
+      "Analysis reports",
+      "Dashboards",
+      "Methodology"
+    ],
+    "ladderDiscipline": {
+      "proposed": "analyst",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced data analyst practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use.",
+    "detailLevel": "detailed"
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "refresh_success_rate",
+          "label": "Refresh success rate",
+          "source": "data_refreshes",
+          "sourceType": "log",
+          "aggregation": "rate",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "open_data_quality_issues",
+          "label": "Open data quality issues",
+          "source": "data_quality_issues",
+          "sourceType": "log",
+          "aggregation": "open_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "dashboards",
+          "label": "Dashboards",
+          "source": "dashboards",
+          "sourceType": "register",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "issues_fixed",
+          "label": "Issues fixed",
+          "source": "data_quality_issues",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "refresh_failed_twice",
+          "when": "refresh failed twice",
+          "suggest": "investigate source",
+          "deterministic": true
+        },
+        {
+          "id": "issue_open_over_7_days",
+          "when": "issue open over 7 days",
+          "suggest": "assign owner",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "data_refreshes",
+          "label": "Data refreshes",
+          "fields": [
+            {
+              "key": "refresh_date",
+              "type": "date"
+            },
+            {
+              "key": "source",
+              "type": "text"
+            },
+            {
+              "key": "dashboard",
+              "type": "text"
+            },
+            {
+              "key": "result",
+              "type": "enum",
+              "values": [
+                "success",
+                "failed"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "data_quality_issues",
+          "label": "Data quality issues",
+          "fields": [
+            {
+              "key": "found_date",
+              "type": "date"
+            },
+            {
+              "key": "dataset",
+              "type": "text"
+            },
+            {
+              "key": "issue",
+              "type": "text"
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "open",
+                "fixed"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "daily_checklist",
+          "label": "Daily checklist",
+          "fields": [
+            {
+              "key": "date",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "check_data_refresh_results",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check data refresh results"
+            },
+            {
+              "key": "review_dashboard_anomalies",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review dashboard anomalies"
+            },
+            {
+              "key": "answer_ad_hoc_data_questions",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Answer ad hoc data questions"
+            },
+            {
+              "key": "check_data_quality_alerts",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check data quality alerts"
+            },
+            {
+              "key": "update_ticket_status",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Update ticket status"
+            }
+          ]
+        },
+        {
+          "key": "weekly_checklist",
+          "label": "Weekly checklist",
+          "fields": [
+            {
+              "key": "week_starting",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "data_quality_review",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Data quality review"
+            },
+            {
+              "key": "dashboard_accuracy_review",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Dashboard accuracy review"
+            },
+            {
+              "key": "stakeholder_report_delivery",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Stakeholder report delivery"
+            },
+            {
+              "key": "review_usage_of_dashboards",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review usage of dashboards"
+            },
+            {
+              "key": "document_changes",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Document changes"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Data sources",
+          "track": [
+            "source systems"
+          ]
+        },
+        {
+          "kind": "Dashboards",
+          "track": [
+            "dashboards owned"
+          ]
+        },
+        {
+          "kind": "Analysis reports",
+          "track": [
+            "recurring reports"
+          ]
+        }
+      ],
+      "documentationCategories": [
+        "Dashboard inventory",
+        "KPI definitions",
+        "Data source list",
+        "Refresh and failure log",
+        "Report schedules",
+        "Change log"
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "daily_refresh_check",
+          "title": "Daily refresh check",
+          "frequency": "daily",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "List scheduled refreshes",
+                "Confirm success and timing",
+                "Investigate failures",
+                "Notify users if data is late",
+                "Record the outcome"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "data_quality_investigation",
+          "title": "Data quality investigation",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Describe the anomaly",
+                "Trace to source",
+                "Test with queries",
+                "Fix or report to the owner",
+                "Record the resolution"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "new_dashboard",
+          "title": "New dashboard",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Agree purpose and audience",
+                "Define metrics",
+                "Build and test",
+                "Review with users",
+                "Publish and document"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "metric_definition_change",
+          "title": "Metric definition change",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Describe the change and reason",
+                "Assess impact on history",
+                "Get approval",
+                "Update and announce",
+                "Record the version"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "escalation",
+          "title": "Escalation",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "triggers": [
+            "Executive dashboard shows wrong data",
+            "Refresh failing over a day",
+            "Source system change",
+            "Sensitive data exposure",
+            "Conflicting metric definitions"
+          ],
+          "recordFields": [
+            "date_time",
+            "affected_area_or_system",
+            "people_affected_by_code_or_count",
+            "description",
+            "actions_taken",
+            "evidence_or_logs",
+            "impact",
+            "person_or_party_contacted",
+            "current_status"
+          ],
+          "rules": [
+            "Record facts; escalate promptly when a trigger is met"
+          ]
+        },
+        {
+          "key": "role_handover",
+          "title": "Role handover",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Handover",
+              "steps": [
+                "Transfer Data sources: source systems",
+                "Transfer Dashboards: dashboards owned",
+                "Transfer Analysis reports: recurring reports",
+                "List open work, deadlines and commitments",
+                "Share trackers, templates and contacts",
+                "Transfer accounts and access only through the approved secure process, never in documents",
+                "Brief the successor and confirm access",
+                "Review progress after one week"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Check data refresh results",
+          "frequency": "daily"
+        },
+        {
+          "title": "Review dashboard anomalies",
+          "frequency": "daily"
+        },
+        {
+          "title": "Answer ad hoc data questions",
+          "frequency": "daily"
+        },
+        {
+          "title": "Check data quality alerts",
+          "frequency": "daily"
+        },
+        {
+          "title": "Update ticket status",
+          "frequency": "daily"
+        },
+        {
+          "title": "Data quality review",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Dashboard accuracy review",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Stakeholder report delivery",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Review usage of dashboards",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Document changes",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Dashboard and report review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Data source access review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "KPI definition review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Retire unused reports",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Stakeholder satisfaction check",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Tooling and automation review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Data model review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Training and documentation update",
+          "frequency": "quarterly"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "assurance",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Refresh success rate",
+        "Open data quality issues",
+        "Dashboards",
+        "Issues fixed",
+        "Risks and recommendations",
+        "Plan for next period"
+      ],
+      "cadenceContent": {
+        "daily": [
+          "Daily checklist results",
+          "Open items and issues",
+          "Escalations",
+          "Plan for tomorrow"
+        ],
+        "weekly": [
+          "Weekly checklist results",
+          "KPI snapshot",
+          "Risks and blockers",
+          "Plan for next week"
+        ],
+        "monthly": [
+          "All KPI sections",
+          "Trends",
+          "Risks and recommendations",
+          "Plan for next month"
+        ]
+      }
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "standard",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Data analyst from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: data_refreshes, data_quality_issues"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Data analyst method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "Detailed checklists, playbook steps and triggers are proposals written from general professional practice, not from a source document: a practitioner must review and adapt them.",
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and register tracking lists are proposals: confirm against local practice and regulations."
+  ]
+}

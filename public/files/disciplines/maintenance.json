@@ -1,0 +1,648 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "maintenance",
+    "label": "Maintenance",
+    "category": "operations",
+    "categoryLabel": "Operations & supply chain",
+    "focus": "Work orders, downtime and asset care"
+  },
+  "pack": {
+    "key": "operations",
+    "reportTemplate": "technical",
+    "registerKinds": [
+      "Processes",
+      "Inventory",
+      "Logistics",
+      "Quality control"
+    ],
+    "ladderDiscipline": {
+      "proposed": "operations",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced maintenance practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use.",
+    "detailLevel": "detailed"
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "preventive_work_orders_done",
+          "label": "Preventive work orders done",
+          "source": "work_orders",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "open_work_orders",
+          "label": "Open work orders",
+          "source": "work_orders",
+          "sourceType": "log",
+          "aggregation": "open_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "downtime_events",
+          "label": "Downtime events",
+          "source": "downtime_events",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "spares_tracked",
+          "label": "Spares tracked",
+          "source": "inventory",
+          "sourceType": "register",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "preventive_work_overdue",
+          "when": "preventive work overdue",
+          "suggest": "schedule",
+          "deterministic": true
+        },
+        {
+          "id": "asset_with_repeated_downtime",
+          "when": "asset with repeated downtime",
+          "suggest": "root-cause review",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "work_orders",
+          "label": "Work orders",
+          "fields": [
+            {
+              "key": "raised_date",
+              "type": "date"
+            },
+            {
+              "key": "asset_ref",
+              "type": "text"
+            },
+            {
+              "key": "type",
+              "type": "enum",
+              "values": [
+                "preventive",
+                "corrective"
+              ]
+            },
+            {
+              "key": "completed_date",
+              "type": "date"
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "open",
+                "in_progress",
+                "done"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "downtime_events",
+          "label": "Downtime events",
+          "fields": [
+            {
+              "key": "event_date",
+              "type": "date"
+            },
+            {
+              "key": "asset_ref",
+              "type": "text"
+            },
+            {
+              "key": "minutes",
+              "type": "number"
+            },
+            {
+              "key": "cause",
+              "type": "text"
+            }
+          ]
+        },
+        {
+          "key": "daily_checklist",
+          "label": "Daily checklist",
+          "fields": [
+            {
+              "key": "date",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "check_critical_assets_and_readings",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check critical assets and readings"
+            },
+            {
+              "key": "review_open_work_orders",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review open work orders"
+            },
+            {
+              "key": "carry_out_planned_jobs",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Carry out planned jobs"
+            },
+            {
+              "key": "record_work_and_parts_used",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Record work and parts used"
+            },
+            {
+              "key": "write_handover_notes_for_the_next_shift",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Write handover notes for the next shift"
+            },
+            {
+              "key": "check_safety_isolations",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check safety isolations"
+            }
+          ]
+        },
+        {
+          "key": "weekly_checklist",
+          "label": "Weekly checklist",
+          "fields": [
+            {
+              "key": "week_starting",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "preventive_maintenance_schedule",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Preventive maintenance schedule"
+            },
+            {
+              "key": "review_breakdowns_and_repeat_faults",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review breakdowns and repeat faults"
+            },
+            {
+              "key": "spare_parts_check",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Spare parts check"
+            },
+            {
+              "key": "lubrication_and_inspection_rounds",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Lubrication and inspection rounds"
+            },
+            {
+              "key": "update_the_maintenance_log",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Update the maintenance log"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Processes",
+          "track": [
+            "maintenance procedures"
+          ]
+        },
+        {
+          "kind": "Inventory",
+          "track": [
+            "spares"
+          ]
+        },
+        {
+          "kind": "Logistics",
+          "track": [
+            "parts supply"
+          ]
+        },
+        {
+          "kind": "Quality control",
+          "track": [
+            "post-repair checks"
+          ]
+        }
+      ],
+      "documentationCategories": [
+        "Asset register",
+        "Work order history",
+        "Maintenance schedules",
+        "Spare parts list",
+        "Calibration and certificates",
+        "Downtime records"
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "preventive_maintenance",
+          "title": "Preventive maintenance",
+          "frequency": "weekly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Review the task list",
+                "Isolate and tag the asset",
+                "Inspect, clean and lubricate",
+                "Replace worn parts",
+                "Test and return to service",
+                "Record findings"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "breakdown_response",
+          "title": "Breakdown response",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Make safe and isolate",
+                "Diagnose the fault",
+                "Repair or apply a temporary fix",
+                "Test",
+                "Record cause and time",
+                "Plan the permanent fix"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "work_order",
+          "title": "Work order",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Raise with asset and priority",
+                "Plan labour, parts and permits",
+                "Carry out",
+                "Verify completion",
+                "Close and record"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "root_cause_analysis",
+          "title": "Root cause analysis",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Collect failure data",
+                "Ask why repeatedly",
+                "Identify the cause",
+                "Define the fix",
+                "Track results"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "escalation",
+          "title": "Escalation",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "triggers": [
+            "Critical asset failure",
+            "Safety isolation failure",
+            "Repeated failure of the same asset",
+            "Spare part unavailable",
+            "Injury during maintenance"
+          ],
+          "recordFields": [
+            "date_time",
+            "affected_area_or_system",
+            "people_affected_by_code_or_count",
+            "description",
+            "actions_taken",
+            "evidence_or_logs",
+            "impact",
+            "person_or_party_contacted",
+            "current_status"
+          ],
+          "rules": [
+            "Record facts; escalate promptly when a trigger is met"
+          ]
+        },
+        {
+          "key": "role_handover",
+          "title": "Role handover",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Handover",
+              "steps": [
+                "Transfer Processes: maintenance procedures",
+                "Transfer Inventory: spares",
+                "Transfer Logistics: parts supply",
+                "Transfer Quality control: post-repair checks",
+                "List open work, deadlines and commitments",
+                "Share trackers, templates and contacts",
+                "Transfer accounts and access only through the approved secure process, never in documents",
+                "Brief the successor and confirm access",
+                "Review progress after one week"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Check critical assets and readings",
+          "frequency": "daily"
+        },
+        {
+          "title": "Review open work orders",
+          "frequency": "daily"
+        },
+        {
+          "title": "Carry out planned jobs",
+          "frequency": "daily"
+        },
+        {
+          "title": "Record work and parts used",
+          "frequency": "daily"
+        },
+        {
+          "title": "Write handover notes for the next shift",
+          "frequency": "daily"
+        },
+        {
+          "title": "Check safety isolations",
+          "frequency": "daily"
+        },
+        {
+          "title": "Preventive maintenance schedule",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Review breakdowns and repeat faults",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Spare parts check",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Lubrication and inspection rounds",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Update the maintenance log",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Downtime and reliability report",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Planned maintenance completion review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Spare parts and stock review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Contractor performance review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Asset condition review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Maintenance plan review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Reliability improvement actions",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Calibration and compliance check",
+          "frequency": "quarterly"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "technical",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Preventive work orders done",
+        "Open work orders",
+        "Downtime events",
+        "Spares tracked",
+        "Risks and recommendations",
+        "Plan for next period"
+      ],
+      "cadenceContent": {
+        "daily": [
+          "Daily checklist results",
+          "Open items and issues",
+          "Escalations",
+          "Plan for tomorrow"
+        ],
+        "weekly": [
+          "Weekly checklist results",
+          "KPI snapshot",
+          "Risks and blockers",
+          "Plan for next week"
+        ],
+        "monthly": [
+          "All KPI sections",
+          "Trends",
+          "Risks and recommendations",
+          "Plan for next month"
+        ]
+      }
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "standard",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Maintenance from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: work_orders, downtime_events"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Maintenance method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "Detailed checklists, playbook steps and triggers are proposals written from general professional practice, not from a source document: a practitioner must review and adapt them.",
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and register tracking lists are proposals: confirm against local practice and regulations."
+  ]
+}

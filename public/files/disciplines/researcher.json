@@ -1,0 +1,621 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "researcher",
+    "label": "Researcher",
+    "category": "information",
+    "categoryLabel": "Analysis, research & information",
+    "focus": "Literature, methods and research outputs"
+  },
+  "pack": {
+    "key": "analyst",
+    "reportTemplate": "assurance",
+    "registerKinds": [
+      "Data sources",
+      "Analysis reports",
+      "Dashboards",
+      "Methodology"
+    ],
+    "ladderDiscipline": {
+      "proposed": "analyst",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced researcher practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use.",
+    "detailLevel": "detailed"
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "milestones_met",
+          "label": "Milestones met",
+          "source": "research_milestones",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "milestones_missed",
+          "label": "Milestones missed",
+          "source": "research_milestones",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "reviews_finalised",
+          "label": "Reviews finalised",
+          "source": "literature_reviews",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "outputs_recorded",
+          "label": "Outputs recorded",
+          "source": "analysis_reports",
+          "sourceType": "register",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "milestone_missed",
+          "when": "milestone missed",
+          "suggest": "replan",
+          "deterministic": true
+        },
+        {
+          "id": "ethics_approval_expiring_in_30_days",
+          "when": "ethics approval expiring in 30 days",
+          "suggest": "renew",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "literature_reviews",
+          "label": "Literature reviews",
+          "fields": [
+            {
+              "key": "review_date",
+              "type": "date"
+            },
+            {
+              "key": "topic",
+              "type": "text"
+            },
+            {
+              "key": "sources_reviewed_count",
+              "type": "number"
+            },
+            {
+              "key": "summary_status",
+              "type": "enum",
+              "values": [
+                "draft",
+                "final"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "research_milestones",
+          "label": "Research milestones",
+          "fields": [
+            {
+              "key": "milestone",
+              "type": "text"
+            },
+            {
+              "key": "planned_date",
+              "type": "date"
+            },
+            {
+              "key": "actual_date",
+              "type": "date"
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "planned",
+                "met",
+                "missed"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "daily_checklist",
+          "label": "Daily checklist",
+          "fields": [
+            {
+              "key": "date",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "review_sources_and_new_literature",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review sources and new literature"
+            },
+            {
+              "key": "work_on_data_collection_or_writing",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Work on data collection or writing"
+            },
+            {
+              "key": "log_notes_and_references",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Log notes and references"
+            },
+            {
+              "key": "respond_to_collaborators",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Respond to collaborators"
+            },
+            {
+              "key": "back_up_data_and_notes",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Back up data and notes"
+            }
+          ]
+        },
+        {
+          "key": "weekly_checklist",
+          "label": "Weekly checklist",
+          "fields": [
+            {
+              "key": "week_starting",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "literature_review_update",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Literature review update"
+            },
+            {
+              "key": "supervisor_or_team_meeting",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Supervisor or team meeting"
+            },
+            {
+              "key": "check_progress_against_milestones",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check progress against milestones"
+            },
+            {
+              "key": "analyse_collected_data",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Analyse collected data"
+            },
+            {
+              "key": "update_the_reference_library",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Update the reference library"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Analysis reports",
+          "track": [
+            "research outputs"
+          ]
+        },
+        {
+          "kind": "Methodology",
+          "track": [
+            "methods and ethics approvals"
+          ]
+        },
+        {
+          "kind": "Data sources",
+          "track": [
+            "datasets and literature"
+          ]
+        }
+      ],
+      "documentationCategories": [
+        "Research plan and milestones",
+        "Literature library",
+        "Datasets and codebooks",
+        "Ethics approvals",
+        "Analysis scripts",
+        "Draft outputs"
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "literature_review",
+          "title": "Literature review",
+          "frequency": "weekly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Define search terms and scope",
+                "Search databases",
+                "Screen and select sources",
+                "Extract key findings",
+                "Synthesise and record references"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "data_collection_round",
+          "title": "Data collection round",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Confirm method and ethics approval",
+                "Prepare instruments",
+                "Collect data",
+                "Validate and clean",
+                "Store securely"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "research_output_review",
+          "title": "Research output review",
+          "frequency": "monthly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Check claims against evidence",
+                "Check citations",
+                "Get peer feedback",
+                "Revise",
+                "Record the version"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "ethics_approval_renewal",
+          "title": "Ethics approval renewal",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Check expiry",
+                "Update protocol and consent",
+                "Submit",
+                "Record the decision",
+                "Brief the team"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "escalation",
+          "title": "Escalation",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "triggers": [
+            "Ethics breach",
+            "Data loss",
+            "Participant harm or privacy risk",
+            "Plagiarism or integrity concern",
+            "Major deviation from protocol"
+          ],
+          "recordFields": [
+            "date_time",
+            "affected_area_or_system",
+            "people_affected_by_code_or_count",
+            "description",
+            "actions_taken",
+            "evidence_or_logs",
+            "impact",
+            "person_or_party_contacted",
+            "current_status"
+          ],
+          "rules": [
+            "Record facts; escalate promptly when a trigger is met"
+          ]
+        },
+        {
+          "key": "role_handover",
+          "title": "Role handover",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Handover",
+              "steps": [
+                "Transfer Analysis reports: research outputs",
+                "Transfer Methodology: methods and ethics approvals",
+                "Transfer Data sources: datasets and literature",
+                "List open work, deadlines and commitments",
+                "Share trackers, templates and contacts",
+                "Transfer accounts and access only through the approved secure process, never in documents",
+                "Brief the successor and confirm access",
+                "Review progress after one week"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Review sources and new literature",
+          "frequency": "daily"
+        },
+        {
+          "title": "Work on data collection or writing",
+          "frequency": "daily"
+        },
+        {
+          "title": "Log notes and references",
+          "frequency": "daily"
+        },
+        {
+          "title": "Respond to collaborators",
+          "frequency": "daily"
+        },
+        {
+          "title": "Back up data and notes",
+          "frequency": "daily"
+        },
+        {
+          "title": "Literature review update",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Supervisor or team meeting",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Check progress against milestones",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Analyse collected data",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Update the reference library",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Milestone and plan review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Ethics and data management check",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Draft a section or output",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Funding and budget check",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Output and publication planning",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Methods and tools review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Dissemination activity",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Skills development",
+          "frequency": "quarterly"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "assurance",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Milestones met",
+        "Milestones missed",
+        "Reviews finalised",
+        "Outputs recorded",
+        "Risks and recommendations",
+        "Plan for next period"
+      ],
+      "cadenceContent": {
+        "daily": [
+          "Daily checklist results",
+          "Open items and issues",
+          "Escalations",
+          "Plan for tomorrow"
+        ],
+        "weekly": [
+          "Weekly checklist results",
+          "KPI snapshot",
+          "Risks and blockers",
+          "Plan for next week"
+        ],
+        "monthly": [
+          "All KPI sections",
+          "Trends",
+          "Risks and recommendations",
+          "Plan for next month"
+        ]
+      }
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "standard",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Researcher from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: literature_reviews, research_milestones"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Researcher method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "Detailed checklists, playbook steps and triggers are proposals written from general professional practice, not from a source document: a practitioner must review and adapt them.",
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and register tracking lists are proposals: confirm against local practice and regulations."
+  ]
+}

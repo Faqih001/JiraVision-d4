@@ -1,0 +1,643 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "operations",
+    "label": "Operations",
+    "category": "operations",
+    "categoryLabel": "Operations & supply chain",
+    "focus": "Shift operations, processes and deviations"
+  },
+  "pack": {
+    "key": "operations",
+    "reportTemplate": "technical",
+    "registerKinds": [
+      "Processes",
+      "Inventory",
+      "Logistics",
+      "Quality control"
+    ],
+    "ladderDiscipline": {
+      "proposed": "operations",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced operations practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use.",
+    "detailLevel": "detailed"
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "handovers_logged",
+          "label": "Handovers logged",
+          "source": "shift_handovers",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "open_deviations",
+          "label": "Open deviations",
+          "source": "process_deviations",
+          "sourceType": "log",
+          "aggregation": "open_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "deviations_resolved",
+          "label": "Deviations resolved",
+          "source": "process_deviations",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "processes_documented",
+          "label": "Processes documented",
+          "source": "processes",
+          "sourceType": "register",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "deviation_open_over_3_days",
+          "when": "deviation open over 3 days",
+          "suggest": "escalate",
+          "deterministic": true
+        },
+        {
+          "id": "process_not_reviewed_in_12_months",
+          "when": "process not reviewed in 12 months",
+          "suggest": "review",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "shift_handovers",
+          "label": "Shift handovers",
+          "fields": [
+            {
+              "key": "shift_date",
+              "type": "date"
+            },
+            {
+              "key": "shift",
+              "type": "text"
+            },
+            {
+              "key": "issues",
+              "type": "text"
+            },
+            {
+              "key": "actions",
+              "type": "text"
+            }
+          ]
+        },
+        {
+          "key": "process_deviations",
+          "label": "Process deviations",
+          "fields": [
+            {
+              "key": "raised_date",
+              "type": "date"
+            },
+            {
+              "key": "process",
+              "type": "text"
+            },
+            {
+              "key": "severity",
+              "type": "enum",
+              "values": [
+                "low",
+                "medium",
+                "high"
+              ]
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "open",
+                "resolved"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "daily_checklist",
+          "label": "Daily checklist",
+          "fields": [
+            {
+              "key": "date",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "review_shift_plan_and_staffing",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review shift plan and staffing"
+            },
+            {
+              "key": "check_process_performance_and_queues",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check process performance and queues"
+            },
+            {
+              "key": "handle_issues_and_deviations",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Handle issues and deviations"
+            },
+            {
+              "key": "hold_shift_handover",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Hold shift handover"
+            },
+            {
+              "key": "check_supplies_and_equipment",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check supplies and equipment"
+            },
+            {
+              "key": "update_the_operations_log",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Update the operations log"
+            }
+          ]
+        },
+        {
+          "key": "weekly_checklist",
+          "label": "Weekly checklist",
+          "fields": [
+            {
+              "key": "week_starting",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "performance_review_against_targets",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Performance review against targets"
+            },
+            {
+              "key": "process_deviation_review",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Process deviation review"
+            },
+            {
+              "key": "staffing_and_schedule_planning",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Staffing and schedule planning"
+            },
+            {
+              "key": "review_customer_and_internal_feedback",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review customer and internal feedback"
+            },
+            {
+              "key": "update_procedures",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Update procedures"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Processes",
+          "track": [
+            "documented processes"
+          ]
+        },
+        {
+          "kind": "Inventory",
+          "track": [
+            "consumables"
+          ]
+        },
+        {
+          "kind": "Logistics",
+          "track": [
+            "internal movements"
+          ]
+        },
+        {
+          "kind": "Quality control",
+          "track": [
+            "process checks"
+          ]
+        }
+      ],
+      "documentationCategories": [
+        "Process documentation",
+        "Shift handover log",
+        "Deviation log",
+        "Performance reports",
+        "Staffing plans",
+        "Improvement actions"
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "shift_handover",
+          "title": "Shift handover",
+          "frequency": "daily",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Summarise status and issues",
+                "List open actions",
+                "Flag safety or quality concerns",
+                "Confirm equipment and stock",
+                "Sign off both sides"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "process_deviation",
+          "title": "Process deviation",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Record what happened",
+                "Contain the impact",
+                "Find the cause",
+                "Agree corrective action",
+                "Update the process",
+                "Close"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "weekly_performance_review",
+          "title": "Weekly performance review",
+          "frequency": "weekly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Collect KPIs",
+                "Compare to targets",
+                "Discuss causes",
+                "Agree actions",
+                "Record"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "process_improvement",
+          "title": "Process improvement",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Map the current process",
+                "Identify waste or delays",
+                "Test a change",
+                "Measure",
+                "Standardise"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "escalation",
+          "title": "Escalation",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "triggers": [
+            "Safety incident",
+            "Service or production stopped",
+            "Repeated deviations",
+            "Key resource unavailable",
+            "Customer impact"
+          ],
+          "recordFields": [
+            "date_time",
+            "affected_area_or_system",
+            "people_affected_by_code_or_count",
+            "description",
+            "actions_taken",
+            "evidence_or_logs",
+            "impact",
+            "person_or_party_contacted",
+            "current_status"
+          ],
+          "rules": [
+            "Record facts; escalate promptly when a trigger is met"
+          ]
+        },
+        {
+          "key": "role_handover",
+          "title": "Role handover",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Handover",
+              "steps": [
+                "Transfer Processes: documented processes",
+                "Transfer Inventory: consumables",
+                "Transfer Logistics: internal movements",
+                "Transfer Quality control: process checks",
+                "List open work, deadlines and commitments",
+                "Share trackers, templates and contacts",
+                "Transfer accounts and access only through the approved secure process, never in documents",
+                "Brief the successor and confirm access",
+                "Review progress after one week"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Review shift plan and staffing",
+          "frequency": "daily"
+        },
+        {
+          "title": "Check process performance and queues",
+          "frequency": "daily"
+        },
+        {
+          "title": "Handle issues and deviations",
+          "frequency": "daily"
+        },
+        {
+          "title": "Hold shift handover",
+          "frequency": "daily"
+        },
+        {
+          "title": "Check supplies and equipment",
+          "frequency": "daily"
+        },
+        {
+          "title": "Update the operations log",
+          "frequency": "daily"
+        },
+        {
+          "title": "Performance review against targets",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Process deviation review",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Staffing and schedule planning",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Review customer and internal feedback",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Update procedures",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Operations performance report",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Process improvement review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Cost and efficiency review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Safety and quality check",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Process documentation review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Capacity planning",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Continuous improvement projects",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Business continuity check",
+          "frequency": "quarterly"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "technical",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Handovers logged",
+        "Open deviations",
+        "Deviations resolved",
+        "Processes documented",
+        "Risks and recommendations",
+        "Plan for next period"
+      ],
+      "cadenceContent": {
+        "daily": [
+          "Daily checklist results",
+          "Open items and issues",
+          "Escalations",
+          "Plan for tomorrow"
+        ],
+        "weekly": [
+          "Weekly checklist results",
+          "KPI snapshot",
+          "Risks and blockers",
+          "Plan for next week"
+        ],
+        "monthly": [
+          "All KPI sections",
+          "Trends",
+          "Risks and recommendations",
+          "Plan for next month"
+        ]
+      }
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "standard",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Operations from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: shift_handovers, process_deviations"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Operations method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "Detailed checklists, playbook steps and triggers are proposals written from general professional practice, not from a source document: a practitioner must review and adapt them.",
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and register tracking lists are proposals: confirm against local practice and regulations."
+  ]
+}

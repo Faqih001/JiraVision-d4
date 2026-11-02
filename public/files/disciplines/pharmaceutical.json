@@ -1,0 +1,633 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "pharmaceutical",
+    "label": "Pharmaceutical",
+    "category": "science",
+    "categoryLabel": "Health, science & specialist services",
+    "focus": "Stock, expiry and cold chain"
+  },
+  "pack": {
+    "key": "healthcare-science",
+    "reportTemplate": "technical",
+    "registerKinds": [
+      "Patients",
+      "Clinical protocols",
+      "Research",
+      "Compliance"
+    ],
+    "ladderDiscipline": {
+      "proposed": "healthcare_science",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "registered pharmacist",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use.",
+    "detailLevel": "detailed"
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "cold_chain_records_in_range",
+          "label": "Cold chain records in range",
+          "source": "cold_chain_records",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "cold_chain_excursions",
+          "label": "Cold chain excursions",
+          "source": "cold_chain_records",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "near_expiry_items",
+          "label": "Near-expiry items",
+          "source": "stock_expiry_checks",
+          "sourceType": "log",
+          "aggregation": "sum",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "checks_done",
+          "label": "Checks done",
+          "source": "stock_expiry_checks",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "cold_chain_out_of_range",
+          "when": "cold chain out of range",
+          "suggest": "quarantine and report",
+          "deterministic": true
+        },
+        {
+          "id": "items_near_expiry",
+          "when": "items near expiry",
+          "suggest": "use or return",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "stock_expiry_checks",
+          "label": "Stock expiry checks",
+          "fields": [
+            {
+              "key": "check_date",
+              "type": "date"
+            },
+            {
+              "key": "location",
+              "type": "text"
+            },
+            {
+              "key": "near_expiry_count",
+              "type": "number"
+            }
+          ]
+        },
+        {
+          "key": "cold_chain_records",
+          "label": "Cold chain records",
+          "fields": [
+            {
+              "key": "record_date",
+              "type": "date"
+            },
+            {
+              "key": "unit",
+              "type": "text"
+            },
+            {
+              "key": "in_range",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "daily_checklist",
+          "label": "Daily checklist",
+          "fields": [
+            {
+              "key": "date",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "record_fridge_and_room_temperatures",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Record fridge and room temperatures"
+            },
+            {
+              "key": "check_stock_levels_and_expiry",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check stock levels and expiry"
+            },
+            {
+              "key": "dispense_or_issue_per_policy",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Dispense or issue per policy"
+            },
+            {
+              "key": "reconcile_controlled_items",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Reconcile controlled items"
+            },
+            {
+              "key": "check_labelling_and_records",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check labelling and records"
+            },
+            {
+              "key": "quarantine_damaged_or_expired_items",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Quarantine damaged or expired items"
+            }
+          ]
+        },
+        {
+          "key": "weekly_checklist",
+          "label": "Weekly checklist",
+          "fields": [
+            {
+              "key": "week_starting",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "expiry_check_by_location",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Expiry check by location"
+            },
+            {
+              "key": "order_and_receive_stock",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Order and receive stock"
+            },
+            {
+              "key": "check_storage_conditions",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check storage conditions"
+            },
+            {
+              "key": "review_errors_and_near_misses",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review errors and near misses"
+            },
+            {
+              "key": "reconcile_records",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Reconcile records"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Patients",
+          "track": [
+            "none: no patient data held"
+          ]
+        },
+        {
+          "kind": "Clinical protocols",
+          "track": [
+            "dispensing and storage procedures"
+          ]
+        },
+        {
+          "kind": "Research",
+          "track": [
+            "studies and trials"
+          ]
+        },
+        {
+          "kind": "Compliance",
+          "track": [
+            "licences and regulations"
+          ]
+        }
+      ],
+      "documentationCategories": [
+        "Stock and batch records",
+        "Temperature logs",
+        "Controlled items register",
+        "Procedures",
+        "Supplier records",
+        "Licences and inspections"
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "cold_chain_monitoring",
+          "title": "Cold chain monitoring",
+          "frequency": "daily",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Read and record temperatures",
+                "Compare to range",
+                "Act on an excursion by policy",
+                "Quarantine affected stock",
+                "Report and record"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "expiry_check",
+          "title": "Expiry check",
+          "frequency": "weekly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "List items near expiry",
+                "Use first-expiry-first-out",
+                "Return or dispose by policy",
+                "Record",
+                "Update orders"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "goods_receipt",
+          "title": "Goods receipt",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Check delivery and documents",
+                "Check condition and temperature",
+                "Record batch and expiry",
+                "Store",
+                "Report discrepancies"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "recall",
+          "title": "Recall",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Receive the notice",
+                "Identify affected stock",
+                "Quarantine",
+                "Return or destroy",
+                "Record and report"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "escalation",
+          "title": "Escalation",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "triggers": [
+            "Temperature excursion",
+            "Medicine error",
+            "Missing controlled item",
+            "Product recall",
+            "Expired stock found in use"
+          ],
+          "recordFields": [
+            "date_time",
+            "affected_area_or_system",
+            "people_affected_by_code_or_count",
+            "description",
+            "actions_taken",
+            "evidence_or_logs",
+            "impact",
+            "person_or_party_contacted",
+            "current_status"
+          ],
+          "rules": [
+            "Record facts only; no personal identifiers in free text"
+          ]
+        },
+        {
+          "key": "role_handover",
+          "title": "Role handover",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Handover",
+              "steps": [
+                "Transfer Patients: none: no patient data held",
+                "Transfer Clinical protocols: dispensing and storage procedures",
+                "Transfer Research: studies and trials",
+                "Transfer Compliance: licences and regulations",
+                "List open work, deadlines and commitments",
+                "Share trackers, templates and contacts",
+                "Transfer accounts and access only through the approved secure process, never in documents",
+                "Brief the successor and confirm access",
+                "Review progress after one week"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Record fridge and room temperatures",
+          "frequency": "daily"
+        },
+        {
+          "title": "Check stock levels and expiry",
+          "frequency": "daily"
+        },
+        {
+          "title": "Dispense or issue per policy",
+          "frequency": "daily"
+        },
+        {
+          "title": "Reconcile controlled items",
+          "frequency": "daily"
+        },
+        {
+          "title": "Check labelling and records",
+          "frequency": "daily"
+        },
+        {
+          "title": "Quarantine damaged or expired items",
+          "frequency": "daily"
+        },
+        {
+          "title": "Expiry check by location",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Order and receive stock",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Check storage conditions",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Review errors and near misses",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Reconcile records",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Stock reconciliation",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Cold chain review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Controlled items audit",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Supplier and recall check",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Licence and regulation review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Procedure review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Internal audit",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Training and competency",
+          "frequency": "quarterly"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "technical",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Cold chain records in range",
+        "Cold chain excursions",
+        "Near-expiry items",
+        "Checks done",
+        "Risks and recommendations",
+        "Plan for next period"
+      ],
+      "cadenceContent": {
+        "daily": [
+          "Daily checklist results",
+          "Open items and issues",
+          "Escalations",
+          "Plan for tomorrow"
+        ],
+        "weekly": [
+          "Weekly checklist results",
+          "KPI snapshot",
+          "Risks and blockers",
+          "Plan for next week"
+        ],
+        "monthly": [
+          "All KPI sections",
+          "Trends",
+          "Risks and recommendations",
+          "Plan for next month"
+        ]
+      }
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "restricted",
+      "neverSendRegisterKinds": [
+        "Patients"
+      ],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers",
+        "amounts and balances"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Pharmaceutical from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: stock_expiry_checks, cold_chain_records"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Pharmaceutical method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "Detailed checklists, playbook steps and triggers are proposals written from general professional practice, not from a source document: a practitioner must review and adapt them.",
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and register tracking lists are proposals: confirm against local practice and regulations.",
+    "Restricted data: keep personal, patient, employee, account and privileged data out of prompts; use codes only."
+  ]
+}

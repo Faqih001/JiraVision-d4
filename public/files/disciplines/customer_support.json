@@ -1,0 +1,652 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "customer_support",
+    "label": "Customer support",
+    "category": "market",
+    "categoryLabel": "Sales, marketing & customer",
+    "focus": "Tickets, response times and satisfaction"
+  },
+  "pack": {
+    "key": "sales-marketing",
+    "reportTemplate": "creative",
+    "registerKinds": [
+      "Leads",
+      "Campaigns",
+      "Customers",
+      "Metrics"
+    ],
+    "ladderDiscipline": {
+      "proposed": "sales_marketing",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced customer support practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use.",
+    "detailLevel": "detailed"
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "tickets_resolved",
+          "label": "Tickets resolved",
+          "source": "support_tickets",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "open_tickets",
+          "label": "Open tickets",
+          "source": "support_tickets",
+          "sourceType": "log",
+          "aggregation": "open_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "average_satisfaction",
+          "label": "Average satisfaction",
+          "source": "csat_responses",
+          "sourceType": "log",
+          "aggregation": "avg",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "tickets_past_response_target",
+          "label": "Tickets past response target",
+          "source": "support_tickets",
+          "sourceType": "log",
+          "aggregation": "overdue_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "urgent_ticket_unanswered_1_hour",
+          "when": "urgent ticket unanswered 1 hour",
+          "suggest": "escalate",
+          "deterministic": true
+        },
+        {
+          "id": "repeat_issue_from_same_customer",
+          "when": "repeat issue from same customer",
+          "suggest": "root cause",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "support_tickets",
+          "label": "Support tickets",
+          "fields": [
+            {
+              "key": "received_date",
+              "type": "date"
+            },
+            {
+              "key": "customer_ref",
+              "type": "text"
+            },
+            {
+              "key": "channel",
+              "type": "text"
+            },
+            {
+              "key": "priority",
+              "type": "enum",
+              "values": [
+                "low",
+                "medium",
+                "high",
+                "urgent"
+              ]
+            },
+            {
+              "key": "resolved_date",
+              "type": "date"
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "open",
+                "pending",
+                "resolved"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "csat_responses",
+          "label": "Csat responses",
+          "fields": [
+            {
+              "key": "response_date",
+              "type": "date"
+            },
+            {
+              "key": "ticket_ref",
+              "type": "text"
+            },
+            {
+              "key": "score",
+              "type": "number"
+            }
+          ]
+        },
+        {
+          "key": "daily_checklist",
+          "label": "Daily checklist",
+          "fields": [
+            {
+              "key": "date",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "work_the_ticket_queue_by_priority",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Work the ticket queue by priority"
+            },
+            {
+              "key": "respond_within_target_times",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Respond within target times"
+            },
+            {
+              "key": "update_tickets_and_customers",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Update tickets and customers"
+            },
+            {
+              "key": "escalate_unresolved_issues",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Escalate unresolved issues"
+            },
+            {
+              "key": "check_the_knowledge_base_for_gaps",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check the knowledge base for gaps"
+            },
+            {
+              "key": "handle_chat_and_phone_contacts",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Handle chat and phone contacts"
+            }
+          ]
+        },
+        {
+          "key": "weekly_checklist",
+          "label": "Weekly checklist",
+          "fields": [
+            {
+              "key": "week_starting",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "ticket_trend_review",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Ticket trend review"
+            },
+            {
+              "key": "quality_review_of_replies",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Quality review of replies"
+            },
+            {
+              "key": "knowledge_base_updates",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Knowledge base updates"
+            },
+            {
+              "key": "review_escalations_and_bugs",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review escalations and bugs"
+            },
+            {
+              "key": "team_meeting",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Team meeting"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Leads",
+          "track": [
+            "escalations"
+          ]
+        },
+        {
+          "kind": "Campaigns",
+          "track": [
+            "support campaigns"
+          ]
+        },
+        {
+          "kind": "Customers",
+          "track": [
+            "accounts"
+          ]
+        },
+        {
+          "kind": "Metrics",
+          "track": [
+            "support metrics"
+          ]
+        }
+      ],
+      "documentationCategories": [
+        "Ticket history",
+        "Knowledge base",
+        "Escalation log",
+        "Satisfaction scores",
+        "Macro and template library",
+        "Incident communications"
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "ticket_handling",
+          "title": "Ticket handling",
+          "frequency": "daily",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Read and confirm the issue",
+                "Check history and the knowledge base",
+                "Fix or give a workaround",
+                "Reply clearly",
+                "Confirm resolution",
+                "Close and tag"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "escalation_to_engineering",
+          "title": "Escalation to engineering",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Reproduce and gather evidence",
+                "Add logs and customer impact",
+                "Set severity",
+                "Hand over with context",
+                "Update the customer"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "quality_review",
+          "title": "Quality review",
+          "frequency": "weekly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Sample tickets",
+                "Score accuracy, tone and speed",
+                "Give feedback",
+                "Share good examples",
+                "Record"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "major_incident_communication",
+          "title": "Major incident communication",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Confirm scope",
+                "Post a status update",
+                "Update at set intervals",
+                "Notify affected customers",
+                "Follow up with a summary"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "escalation",
+          "title": "Escalation",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "triggers": [
+            "Urgent ticket unanswered",
+            "Data breach or privacy complaint",
+            "Many customers affected by one issue",
+            "Abusive or threatening contact",
+            "Complaint to a regulator or the media"
+          ],
+          "recordFields": [
+            "date_time",
+            "affected_area_or_system",
+            "people_affected_by_code_or_count",
+            "description",
+            "actions_taken",
+            "evidence_or_logs",
+            "impact",
+            "person_or_party_contacted",
+            "current_status"
+          ],
+          "rules": [
+            "Record facts only; no personal identifiers in free text"
+          ]
+        },
+        {
+          "key": "role_handover",
+          "title": "Role handover",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Handover",
+              "steps": [
+                "Transfer Leads: escalations",
+                "Transfer Campaigns: support campaigns",
+                "Transfer Customers: accounts",
+                "Transfer Metrics: support metrics",
+                "List open work, deadlines and commitments",
+                "Share trackers, templates and contacts",
+                "Transfer accounts and access only through the approved secure process, never in documents",
+                "Brief the successor and confirm access",
+                "Review progress after one week"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Work the ticket queue by priority",
+          "frequency": "daily"
+        },
+        {
+          "title": "Respond within target times",
+          "frequency": "daily"
+        },
+        {
+          "title": "Update tickets and customers",
+          "frequency": "daily"
+        },
+        {
+          "title": "Escalate unresolved issues",
+          "frequency": "daily"
+        },
+        {
+          "title": "Check the knowledge base for gaps",
+          "frequency": "daily"
+        },
+        {
+          "title": "Handle chat and phone contacts",
+          "frequency": "daily"
+        },
+        {
+          "title": "Ticket trend review",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Quality review of replies",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Knowledge base updates",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Review escalations and bugs",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Team meeting",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Support performance report",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Satisfaction analysis",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Root-cause review of top issues",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Training and coaching",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Process and tools review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Customer feedback synthesis",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Staffing and capacity plan",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Knowledge base audit",
+          "frequency": "quarterly"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "creative",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Tickets resolved",
+        "Open tickets",
+        "Average satisfaction",
+        "Tickets past response target",
+        "Risks and recommendations",
+        "Plan for next period"
+      ],
+      "cadenceContent": {
+        "daily": [
+          "Daily checklist results",
+          "Open items and issues",
+          "Escalations",
+          "Plan for tomorrow"
+        ],
+        "weekly": [
+          "Weekly checklist results",
+          "KPI snapshot",
+          "Risks and blockers",
+          "Plan for next week"
+        ],
+        "monthly": [
+          "All KPI sections",
+          "Trends",
+          "Risks and recommendations",
+          "Plan for next month"
+        ]
+      }
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "restricted",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [
+        "support_tickets"
+      ],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Customer support from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: csat_responses"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Customer support method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "Detailed checklists, playbook steps and triggers are proposals written from general professional practice, not from a source document: a practitioner must review and adapt them.",
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and register tracking lists are proposals: confirm against local practice and regulations.",
+    "Restricted data: keep personal, patient, employee, account and privileged data out of prompts; use codes only."
+  ]
+}

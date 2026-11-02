@@ -1,0 +1,638 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "retail",
+    "label": "Retail",
+    "category": "services",
+    "categoryLabel": "Creative, service & industry work",
+    "focus": "Daily sales checks and replenishment"
+  },
+  "pack": {
+    "key": "general",
+    "reportTemplate": "general",
+    "registerKinds": [
+      "Responsibilities",
+      "Records and documents",
+      "Assets and equipment",
+      "Outstanding work"
+    ],
+    "ladderDiscipline": {
+      "proposed": null,
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced retail practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use.",
+    "detailLevel": "detailed"
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "tills_reconciled",
+          "label": "Tills reconciled",
+          "source": "daily_sales_checks",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "major_variances",
+          "label": "Major variances",
+          "source": "daily_sales_checks",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "replenishments_pending",
+          "label": "Replenishments pending",
+          "source": "stock_replenishment",
+          "sourceType": "log",
+          "aggregation": "open_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "open_tasks",
+          "label": "Open tasks",
+          "source": "outstanding_work",
+          "sourceType": "register",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "till_not_reconciled",
+          "when": "till not reconciled",
+          "suggest": "reconcile",
+          "deterministic": true
+        },
+        {
+          "id": "replenishment_pending_over_3_days",
+          "when": "replenishment pending over 3 days",
+          "suggest": "chase",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "daily_sales_checks",
+          "label": "Daily sales checks",
+          "fields": [
+            {
+              "key": "check_date",
+              "type": "date"
+            },
+            {
+              "key": "till_reconciled",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no"
+              ]
+            },
+            {
+              "key": "variance",
+              "type": "enum",
+              "values": [
+                "none",
+                "minor",
+                "major"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "stock_replenishment",
+          "label": "Stock replenishment",
+          "fields": [
+            {
+              "key": "request_date",
+              "type": "date"
+            },
+            {
+              "key": "item",
+              "type": "text"
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "requested",
+                "done"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "daily_checklist",
+          "label": "Daily checklist",
+          "fields": [
+            {
+              "key": "date",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "open_the_store_and_check_displays",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Open the store and check displays"
+            },
+            {
+              "key": "count_tills_and_reconcile",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Count tills and reconcile"
+            },
+            {
+              "key": "serve_customers_and_handle_returns",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Serve customers and handle returns"
+            },
+            {
+              "key": "check_stock_levels_and_replenish",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check stock levels and replenish"
+            },
+            {
+              "key": "check_safety_and_security",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check safety and security"
+            },
+            {
+              "key": "record_daily_sales",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Record daily sales"
+            }
+          ]
+        },
+        {
+          "key": "weekly_checklist",
+          "label": "Weekly checklist",
+          "fields": [
+            {
+              "key": "week_starting",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "stock_and_replenishment",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Stock and replenishment"
+            },
+            {
+              "key": "price_and_promotion_check",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Price and promotion check"
+            },
+            {
+              "key": "staff_rota_and_training",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Staff rota and training"
+            },
+            {
+              "key": "review_sales_and_wastage",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review sales and wastage"
+            },
+            {
+              "key": "review_customer_feedback",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review customer feedback"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Responsibilities",
+          "track": [
+            "store duties"
+          ]
+        },
+        {
+          "kind": "Records and documents",
+          "track": [
+            "procedures and receipts"
+          ]
+        },
+        {
+          "kind": "Assets and equipment",
+          "track": [
+            "fixtures and tills"
+          ]
+        },
+        {
+          "kind": "Outstanding work",
+          "track": [
+            "open tasks"
+          ]
+        }
+      ],
+      "documentationCategories": [
+        "Daily sales and till records",
+        "Stock records",
+        "Price and promotion records",
+        "Supplier records",
+        "Incident log",
+        "Staff rota and training"
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "till_reconciliation",
+          "title": "Till reconciliation",
+          "frequency": "daily",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Count cash and takings",
+                "Compare to the system",
+                "Investigate differences",
+                "Bank and record",
+                "Sign off by a second person"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "replenishment",
+          "title": "Replenishment",
+          "frequency": "weekly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Check stock and sales",
+                "Raise orders",
+                "Receive and shelve",
+                "Check pricing and labels",
+                "Update records"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "returns_and_refunds",
+          "title": "Returns and refunds",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Check policy and proof",
+                "Inspect the item",
+                "Refund or exchange",
+                "Record the reason",
+                "Update stock"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "stock_take",
+          "title": "Stock take",
+          "frequency": "quarterly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Plan the count",
+                "Freeze movements",
+                "Count and verify",
+                "Investigate variances",
+                "Adjust and report"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "escalation",
+          "title": "Escalation",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "triggers": [
+            "Till difference above limit",
+            "Theft or security incident",
+            "Product safety issue or recall",
+            "Injury in store",
+            "Supplier failure for key lines"
+          ],
+          "recordFields": [
+            "date_time",
+            "affected_area_or_system",
+            "people_affected_by_code_or_count",
+            "description",
+            "actions_taken",
+            "evidence_or_logs",
+            "impact",
+            "person_or_party_contacted",
+            "current_status"
+          ],
+          "rules": [
+            "Record facts; escalate promptly when a trigger is met"
+          ]
+        },
+        {
+          "key": "role_handover",
+          "title": "Role handover",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Handover",
+              "steps": [
+                "Transfer Responsibilities: store duties",
+                "Transfer Records and documents: procedures and receipts",
+                "Transfer Assets and equipment: fixtures and tills",
+                "Transfer Outstanding work: open tasks",
+                "List open work, deadlines and commitments",
+                "Share trackers, templates and contacts",
+                "Transfer accounts and access only through the approved secure process, never in documents",
+                "Brief the successor and confirm access",
+                "Review progress after one week"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Open the store and check displays",
+          "frequency": "daily"
+        },
+        {
+          "title": "Count tills and reconcile",
+          "frequency": "daily"
+        },
+        {
+          "title": "Serve customers and handle returns",
+          "frequency": "daily"
+        },
+        {
+          "title": "Check stock levels and replenish",
+          "frequency": "daily"
+        },
+        {
+          "title": "Check safety and security",
+          "frequency": "daily"
+        },
+        {
+          "title": "Record daily sales",
+          "frequency": "daily"
+        },
+        {
+          "title": "Stock and replenishment",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Price and promotion check",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Staff rota and training",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Review sales and wastage",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Review customer feedback",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Stock take sample",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Sales and margin review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Supplier and order review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Loss prevention review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Full stock take",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Range and layout review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Promotion calendar",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Policy and compliance review",
+          "frequency": "quarterly"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "general",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Tills reconciled",
+        "Major variances",
+        "Replenishments pending",
+        "Open tasks",
+        "Risks and recommendations",
+        "Plan for next period"
+      ],
+      "cadenceContent": {
+        "daily": [
+          "Daily checklist results",
+          "Open items and issues",
+          "Escalations",
+          "Plan for tomorrow"
+        ],
+        "weekly": [
+          "Weekly checklist results",
+          "KPI snapshot",
+          "Risks and blockers",
+          "Plan for next week"
+        ],
+        "monthly": [
+          "All KPI sections",
+          "Trends",
+          "Risks and recommendations",
+          "Plan for next month"
+        ]
+      }
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "standard",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Retail from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: daily_sales_checks, stock_replenishment"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Retail method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "Detailed checklists, playbook steps and triggers are proposals written from general professional practice, not from a source document: a practitioner must review and adapt them.",
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and register tracking lists are proposals: confirm against local practice and regulations."
+  ]
+}

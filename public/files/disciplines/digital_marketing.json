@@ -1,0 +1,632 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "digital_marketing",
+    "label": "Digital marketing",
+    "category": "market",
+    "categoryLabel": "Sales, marketing & customer",
+    "focus": "Ads, SEO and conversion tracking"
+  },
+  "pack": {
+    "key": "sales-marketing",
+    "reportTemplate": "creative",
+    "registerKinds": [
+      "Leads",
+      "Campaigns",
+      "Customers",
+      "Metrics"
+    ],
+    "ladderDiscipline": {
+      "proposed": "sales_marketing",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced digital marketing practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use.",
+    "detailLevel": "detailed"
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "conversions",
+          "label": "Conversions",
+          "source": "ad_campaign_reports",
+          "sourceType": "log",
+          "aggregation": "sum",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "campaigns_over_cost",
+          "label": "Campaigns over cost",
+          "source": "ad_campaign_reports",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "seo_issues_open",
+          "label": "SEO issues open",
+          "source": "seo_checks",
+          "sourceType": "log",
+          "aggregation": "open_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "seo_issues_fixed",
+          "label": "SEO issues fixed",
+          "source": "seo_checks",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "spend_over_cap",
+          "when": "spend over cap",
+          "suggest": "pause or adjust",
+          "deterministic": true
+        },
+        {
+          "id": "seo_issue_open_over_14_days",
+          "when": "SEO issue open over 14 days",
+          "suggest": "fix",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "ad_campaign_reports",
+          "label": "Ad campaign reports",
+          "fields": [
+            {
+              "key": "period",
+              "type": "text"
+            },
+            {
+              "key": "platform",
+              "type": "text"
+            },
+            {
+              "key": "clicks",
+              "type": "number"
+            },
+            {
+              "key": "conversions",
+              "type": "number"
+            },
+            {
+              "key": "cost_status",
+              "type": "enum",
+              "values": [
+                "within",
+                "over"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "seo_checks",
+          "label": "Seo checks",
+          "fields": [
+            {
+              "key": "check_date",
+              "type": "date"
+            },
+            {
+              "key": "page",
+              "type": "text"
+            },
+            {
+              "key": "issue",
+              "type": "text"
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "open",
+                "fixed"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "daily_checklist",
+          "label": "Daily checklist",
+          "fields": [
+            {
+              "key": "date",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "check_ad_spend_and_performance",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check ad spend and performance"
+            },
+            {
+              "key": "respond_to_comments_and_messages",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Respond to comments and messages"
+            },
+            {
+              "key": "monitor_tracking_and_site_health",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Monitor tracking and site health"
+            },
+            {
+              "key": "adjust_bids_and_budgets",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Adjust bids and budgets"
+            },
+            {
+              "key": "publish_scheduled_content",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Publish scheduled content"
+            }
+          ]
+        },
+        {
+          "key": "weekly_checklist",
+          "label": "Weekly checklist",
+          "fields": [
+            {
+              "key": "week_starting",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "performance_review_by_channel",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Performance review by channel"
+            },
+            {
+              "key": "a_b_test_review",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "A/B test review"
+            },
+            {
+              "key": "seo_and_site_checks",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "SEO and site checks"
+            },
+            {
+              "key": "budget_pacing_check",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Budget pacing check"
+            },
+            {
+              "key": "report_to_the_marketing_lead",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Report to the marketing lead"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Leads",
+          "track": [
+            "digital leads"
+          ]
+        },
+        {
+          "kind": "Campaigns",
+          "track": [
+            "ad campaigns"
+          ]
+        },
+        {
+          "kind": "Customers",
+          "track": [
+            "audiences"
+          ]
+        },
+        {
+          "kind": "Metrics",
+          "track": [
+            "digital metrics"
+          ]
+        }
+      ],
+      "documentationCategories": [
+        "Campaign records",
+        "Tracking plan",
+        "Analytics reports",
+        "SEO audits",
+        "Creative library",
+        "Budget tracker"
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "ad_campaign_setup",
+          "title": "Ad campaign setup",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Define goal, audience and budget",
+                "Set up tracking",
+                "Create ads and landing page",
+                "Review policy compliance",
+                "Launch",
+                "Review at 48 hours"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "weekly_performance_review",
+          "title": "Weekly performance review",
+          "frequency": "weekly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Pull results by channel",
+                "Compare to targets",
+                "Pause weak ads",
+                "Scale strong ads",
+                "Record changes"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "seo_check",
+          "title": "SEO check",
+          "frequency": "monthly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Crawl the site",
+                "List technical and content issues",
+                "Prioritise fixes",
+                "Assign owners",
+                "Re-check"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "tracking_audit",
+          "title": "Tracking audit",
+          "frequency": "quarterly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "List events and tags",
+                "Test firing",
+                "Check consent handling",
+                "Fix gaps",
+                "Record"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "escalation",
+          "title": "Escalation",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "triggers": [
+            "Ad account suspended",
+            "Tracking broken",
+            "Spend far above plan",
+            "Brand safety incident",
+            "Privacy or consent breach"
+          ],
+          "recordFields": [
+            "date_time",
+            "affected_area_or_system",
+            "people_affected_by_code_or_count",
+            "description",
+            "actions_taken",
+            "evidence_or_logs",
+            "impact",
+            "person_or_party_contacted",
+            "current_status"
+          ],
+          "rules": [
+            "Record facts; escalate promptly when a trigger is met"
+          ]
+        },
+        {
+          "key": "role_handover",
+          "title": "Role handover",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Handover",
+              "steps": [
+                "Transfer Leads: digital leads",
+                "Transfer Campaigns: ad campaigns",
+                "Transfer Customers: audiences",
+                "Transfer Metrics: digital metrics",
+                "List open work, deadlines and commitments",
+                "Share trackers, templates and contacts",
+                "Transfer accounts and access only through the approved secure process, never in documents",
+                "Brief the successor and confirm access",
+                "Review progress after one week"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Check ad spend and performance",
+          "frequency": "daily"
+        },
+        {
+          "title": "Respond to comments and messages",
+          "frequency": "daily"
+        },
+        {
+          "title": "Monitor tracking and site health",
+          "frequency": "daily"
+        },
+        {
+          "title": "Adjust bids and budgets",
+          "frequency": "daily"
+        },
+        {
+          "title": "Publish scheduled content",
+          "frequency": "daily"
+        },
+        {
+          "title": "Performance review by channel",
+          "frequency": "weekly"
+        },
+        {
+          "title": "A/B test review",
+          "frequency": "weekly"
+        },
+        {
+          "title": "SEO and site checks",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Budget pacing check",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Report to the marketing lead",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Monthly analytics report",
+          "frequency": "monthly"
+        },
+        {
+          "title": "SEO audit",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Audience and keyword review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Conversion funnel review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Channel strategy review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Attribution and tracking audit",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Platform policy and privacy review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Tool review",
+          "frequency": "quarterly"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "creative",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Conversions",
+        "Campaigns over cost",
+        "SEO issues open",
+        "SEO issues fixed",
+        "Risks and recommendations",
+        "Plan for next period"
+      ],
+      "cadenceContent": {
+        "daily": [
+          "Daily checklist results",
+          "Open items and issues",
+          "Escalations",
+          "Plan for tomorrow"
+        ],
+        "weekly": [
+          "Weekly checklist results",
+          "KPI snapshot",
+          "Risks and blockers",
+          "Plan for next week"
+        ],
+        "monthly": [
+          "All KPI sections",
+          "Trends",
+          "Risks and recommendations",
+          "Plan for next month"
+        ]
+      }
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "standard",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Digital marketing from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: ad_campaign_reports, seo_checks"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Digital marketing method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "Detailed checklists, playbook steps and triggers are proposals written from general professional practice, not from a source document: a practitioner must review and adapt them.",
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and register tracking lists are proposals: confirm against local practice and regulations."
+  ]
+}

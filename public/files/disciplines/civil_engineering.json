@@ -1,0 +1,630 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "civil_engineering",
+    "label": "Civil engineer",
+    "category": "engineering",
+    "categoryLabel": "Engineering & built works",
+    "focus": "Site inspections, design changes and compliance"
+  },
+  "pack": {
+    "key": "engineering",
+    "reportTemplate": "engineering",
+    "registerKinds": [
+      "Projects",
+      "Specifications",
+      "Inspections",
+      "Compliance"
+    ],
+    "ladderDiscipline": {
+      "proposed": "engineering",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "chartered/registered engineer",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use.",
+    "detailLevel": "detailed"
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "inspections_passed",
+          "label": "Inspections passed",
+          "source": "site_inspections",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "inspections_failed",
+          "label": "Inspections failed",
+          "source": "site_inspections",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "design_changes_open",
+          "label": "Design changes open",
+          "source": "design_changes",
+          "sourceType": "log",
+          "aggregation": "open_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "projects_tracked",
+          "label": "Projects tracked",
+          "source": "projects",
+          "sourceType": "register",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "failed_inspection_not_rectified_in_7_days",
+          "when": "failed inspection not rectified in 7 days",
+          "suggest": "escalate",
+          "deterministic": true
+        },
+        {
+          "id": "design_change_unapproved",
+          "when": "design change unapproved",
+          "suggest": "chase",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "site_inspections",
+          "label": "Site inspections",
+          "fields": [
+            {
+              "key": "inspection_date",
+              "type": "date"
+            },
+            {
+              "key": "site",
+              "type": "text"
+            },
+            {
+              "key": "element",
+              "type": "text"
+            },
+            {
+              "key": "result",
+              "type": "enum",
+              "values": [
+                "pass",
+                "fail",
+                "observation"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "design_changes",
+          "label": "Design changes",
+          "fields": [
+            {
+              "key": "request_date",
+              "type": "date"
+            },
+            {
+              "key": "drawing_ref",
+              "type": "text"
+            },
+            {
+              "key": "reason",
+              "type": "text"
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "requested",
+                "approved",
+                "issued"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "daily_checklist",
+          "label": "Daily checklist",
+          "fields": [
+            {
+              "key": "date",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "review_site_progress_against_programme",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review site progress against programme"
+            },
+            {
+              "key": "inspect_work_in_progress",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Inspect work in progress"
+            },
+            {
+              "key": "check_safety_and_permits",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check safety and permits"
+            },
+            {
+              "key": "respond_to_rfis_and_queries",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Respond to RFIs and queries"
+            },
+            {
+              "key": "record_the_site_diary",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Record the site diary"
+            }
+          ]
+        },
+        {
+          "key": "weekly_checklist",
+          "label": "Weekly checklist",
+          "fields": [
+            {
+              "key": "week_starting",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "site_meeting_and_minutes",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Site meeting and minutes"
+            },
+            {
+              "key": "quality_inspection_round",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Quality inspection round"
+            },
+            {
+              "key": "review_design_changes_and_drawings",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review design changes and drawings"
+            },
+            {
+              "key": "progress_and_cost_review",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Progress and cost review"
+            },
+            {
+              "key": "check_material_and_test_records",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check material and test records"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Projects",
+          "track": [
+            "civil projects"
+          ]
+        },
+        {
+          "kind": "Specifications",
+          "track": [
+            "design specifications"
+          ]
+        },
+        {
+          "kind": "Inspections",
+          "track": [
+            "site inspections"
+          ]
+        },
+        {
+          "kind": "Compliance",
+          "track": [
+            "codes and permits"
+          ]
+        }
+      ],
+      "documentationCategories": [
+        "Drawings and specifications",
+        "Site diary",
+        "Inspection and test records",
+        "RFI and design change log",
+        "Material approvals",
+        "Permits and certificates"
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "site_inspection",
+          "title": "Site inspection",
+          "frequency": "weekly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Check drawings and specifications",
+                "Inspect the work",
+                "Test where required",
+                "Record result and photos",
+                "Issue instructions for defects",
+                "Reinspect"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "rfi_and_design_change",
+          "title": "RFI and design change",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Log the query",
+                "Review with the designer",
+                "Assess cost and time",
+                "Approve or reject",
+                "Update drawings"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "material_approval",
+          "title": "Material approval",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Check the specification",
+                "Review sample or certificate",
+                "Approve or reject",
+                "Record",
+                "Notify site"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "handover_and_snagging",
+          "title": "Handover and snagging",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Walk through with the client",
+                "List defects",
+                "Agree dates",
+                "Fix and verify",
+                "Issue completion documents"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "escalation",
+          "title": "Escalation",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "triggers": [
+            "Structural defect or failure risk",
+            "Serious safety incident",
+            "Ground or design condition differs from assumptions",
+            "Major programme delay",
+            "Non-compliance with permit or code"
+          ],
+          "recordFields": [
+            "date_time",
+            "affected_area_or_system",
+            "people_affected_by_code_or_count",
+            "description",
+            "actions_taken",
+            "evidence_or_logs",
+            "impact",
+            "person_or_party_contacted",
+            "current_status"
+          ],
+          "rules": [
+            "Record facts; escalate promptly when a trigger is met"
+          ]
+        },
+        {
+          "key": "role_handover",
+          "title": "Role handover",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Handover",
+              "steps": [
+                "Transfer Projects: civil projects",
+                "Transfer Specifications: design specifications",
+                "Transfer Inspections: site inspections",
+                "Transfer Compliance: codes and permits",
+                "List open work, deadlines and commitments",
+                "Share trackers, templates and contacts",
+                "Transfer accounts and access only through the approved secure process, never in documents",
+                "Brief the successor and confirm access",
+                "Review progress after one week"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Review site progress against programme",
+          "frequency": "daily"
+        },
+        {
+          "title": "Inspect work in progress",
+          "frequency": "daily"
+        },
+        {
+          "title": "Check safety and permits",
+          "frequency": "daily"
+        },
+        {
+          "title": "Respond to RFIs and queries",
+          "frequency": "daily"
+        },
+        {
+          "title": "Record the site diary",
+          "frequency": "daily"
+        },
+        {
+          "title": "Site meeting and minutes",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Quality inspection round",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Review design changes and drawings",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Progress and cost review",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Check material and test records",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Progress report",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Valuation and claims check",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Environmental and safety review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Programme update",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Compliance and permit review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Lessons learned",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Risk review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Handover planning",
+          "frequency": "quarterly"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "engineering",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Inspections passed",
+        "Inspections failed",
+        "Design changes open",
+        "Projects tracked",
+        "Risks and recommendations",
+        "Plan for next period"
+      ],
+      "cadenceContent": {
+        "daily": [
+          "Daily checklist results",
+          "Open items and issues",
+          "Escalations",
+          "Plan for tomorrow"
+        ],
+        "weekly": [
+          "Weekly checklist results",
+          "KPI snapshot",
+          "Risks and blockers",
+          "Plan for next week"
+        ],
+        "monthly": [
+          "All KPI sections",
+          "Trends",
+          "Risks and recommendations",
+          "Plan for next month"
+        ]
+      }
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "standard",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Civil engineer from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: site_inspections, design_changes"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Civil engineer method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "Detailed checklists, playbook steps and triggers are proposals written from general professional practice, not from a source document: a practitioner must review and adapt them.",
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and register tracking lists are proposals: confirm against local practice and regulations."
+  ]
+}

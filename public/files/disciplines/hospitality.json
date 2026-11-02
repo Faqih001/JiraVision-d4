@@ -1,0 +1,637 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "hospitality",
+    "label": "Hospitality",
+    "category": "services",
+    "categoryLabel": "Creative, service & industry work",
+    "focus": "Service checks and guest feedback"
+  },
+  "pack": {
+    "key": "general",
+    "reportTemplate": "general",
+    "registerKinds": [
+      "Responsibilities",
+      "Records and documents",
+      "Assets and equipment",
+      "Outstanding work"
+    ],
+    "ladderDiscipline": {
+      "proposed": null,
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced hospitality practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use.",
+    "detailLevel": "detailed"
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "service_checks_ok",
+          "label": "Service checks ok",
+          "source": "service_checks",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "checks_needing_action",
+          "label": "Checks needing action",
+          "source": "service_checks",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "feedback_logged",
+          "label": "Feedback logged",
+          "source": "guest_feedback",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "open_tasks",
+          "label": "Open tasks",
+          "source": "outstanding_work",
+          "sourceType": "register",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "area_needing_action_2_days_running",
+          "when": "area needing action 2 days running",
+          "suggest": "fix",
+          "deterministic": true
+        },
+        {
+          "id": "low_rating",
+          "when": "low rating",
+          "suggest": "follow up",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "service_checks",
+          "label": "Service checks",
+          "fields": [
+            {
+              "key": "check_date",
+              "type": "date"
+            },
+            {
+              "key": "area",
+              "type": "text"
+            },
+            {
+              "key": "result",
+              "type": "enum",
+              "values": [
+                "ok",
+                "action"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "guest_feedback",
+          "label": "Guest feedback",
+          "fields": [
+            {
+              "key": "feedback_date",
+              "type": "date"
+            },
+            {
+              "key": "channel",
+              "type": "text"
+            },
+            {
+              "key": "rating",
+              "type": "number"
+            },
+            {
+              "key": "action",
+              "type": "text"
+            }
+          ]
+        },
+        {
+          "key": "daily_checklist",
+          "label": "Daily checklist",
+          "fields": [
+            {
+              "key": "date",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "do_opening_and_closing_checklists",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Do opening and closing checklists"
+            },
+            {
+              "key": "check_cleanliness_and_presentation",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check cleanliness and presentation"
+            },
+            {
+              "key": "check_stock_supplies_and_temperatures",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check stock, supplies and temperatures"
+            },
+            {
+              "key": "brief_the_team_on_bookings_and_events",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Brief the team on bookings and events"
+            },
+            {
+              "key": "respond_to_guest_requests_and_feedback",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Respond to guest requests and feedback"
+            },
+            {
+              "key": "check_safety_and_hygiene",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check safety and hygiene"
+            }
+          ]
+        },
+        {
+          "key": "weekly_checklist",
+          "label": "Weekly checklist",
+          "fields": [
+            {
+              "key": "week_starting",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "service_and_quality_review",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Service and quality review"
+            },
+            {
+              "key": "stock_and_ordering",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Stock and ordering"
+            },
+            {
+              "key": "rota_and_training_check",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Rota and training check"
+            },
+            {
+              "key": "review_guest_feedback",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review guest feedback"
+            },
+            {
+              "key": "maintenance_requests",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Maintenance requests"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Responsibilities",
+          "track": [
+            "service duties"
+          ]
+        },
+        {
+          "kind": "Records and documents",
+          "track": [
+            "standard procedures"
+          ]
+        },
+        {
+          "kind": "Assets and equipment",
+          "track": [
+            "equipment"
+          ]
+        },
+        {
+          "kind": "Outstanding work",
+          "track": [
+            "open tasks"
+          ]
+        }
+      ],
+      "documentationCategories": [
+        "Daily checklists",
+        "Temperature and hygiene records",
+        "Bookings and events",
+        "Guest feedback",
+        "Supplier and stock records",
+        "Licences and certificates"
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "opening_checklist",
+          "title": "Opening checklist",
+          "frequency": "daily",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Check safety and security",
+                "Check cleanliness and setup",
+                "Check equipment and temperatures",
+                "Check stock and prep",
+                "Brief the team",
+                "Open on time"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "guest_complaint",
+          "title": "Guest complaint",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Listen and apologise",
+                "Fix the problem",
+                "Record details",
+                "Follow up with the guest",
+                "Share learning"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "food_safety_check",
+          "title": "Food safety check",
+          "frequency": "daily",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Record fridge and hot-holding temperatures",
+                "Check labels and dates",
+                "Check hygiene and cleaning",
+                "Record and act on issues",
+                "Sign off"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "event_service",
+          "title": "Event service",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Confirm requirements",
+                "Plan staffing and stock",
+                "Set up",
+                "Run service",
+                "Close and review"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "escalation",
+          "title": "Escalation",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "triggers": [
+            "Food safety incident",
+            "Guest injury or illness",
+            "Fire or security incident",
+            "Serious complaint",
+            "Equipment failure during service"
+          ],
+          "recordFields": [
+            "date_time",
+            "affected_area_or_system",
+            "people_affected_by_code_or_count",
+            "description",
+            "actions_taken",
+            "evidence_or_logs",
+            "impact",
+            "person_or_party_contacted",
+            "current_status"
+          ],
+          "rules": [
+            "Record facts only; no personal identifiers in free text"
+          ]
+        },
+        {
+          "key": "role_handover",
+          "title": "Role handover",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Handover",
+              "steps": [
+                "Transfer Responsibilities: service duties",
+                "Transfer Records and documents: standard procedures",
+                "Transfer Assets and equipment: equipment",
+                "Transfer Outstanding work: open tasks",
+                "List open work, deadlines and commitments",
+                "Share trackers, templates and contacts",
+                "Transfer accounts and access only through the approved secure process, never in documents",
+                "Brief the successor and confirm access",
+                "Review progress after one week"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Do opening and closing checklists",
+          "frequency": "daily"
+        },
+        {
+          "title": "Check cleanliness and presentation",
+          "frequency": "daily"
+        },
+        {
+          "title": "Check stock, supplies and temperatures",
+          "frequency": "daily"
+        },
+        {
+          "title": "Brief the team on bookings and events",
+          "frequency": "daily"
+        },
+        {
+          "title": "Respond to guest requests and feedback",
+          "frequency": "daily"
+        },
+        {
+          "title": "Check safety and hygiene",
+          "frequency": "daily"
+        },
+        {
+          "title": "Service and quality review",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Stock and ordering",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Rota and training check",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Review guest feedback",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Maintenance requests",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Guest satisfaction report",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Food, beverage and cost review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Health and safety audit",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Supplier review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Menu and service review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Equipment and facilities plan",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Staff training plan",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Licence and compliance check",
+          "frequency": "quarterly"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "general",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Service checks ok",
+        "Checks needing action",
+        "Feedback logged",
+        "Open tasks",
+        "Risks and recommendations",
+        "Plan for next period"
+      ],
+      "cadenceContent": {
+        "daily": [
+          "Daily checklist results",
+          "Open items and issues",
+          "Escalations",
+          "Plan for tomorrow"
+        ],
+        "weekly": [
+          "Weekly checklist results",
+          "KPI snapshot",
+          "Risks and blockers",
+          "Plan for next week"
+        ],
+        "monthly": [
+          "All KPI sections",
+          "Trends",
+          "Risks and recommendations",
+          "Plan for next month"
+        ]
+      }
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "restricted",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [
+        "guest_feedback"
+      ],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Hospitality from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: service_checks"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Hospitality method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "Detailed checklists, playbook steps and triggers are proposals written from general professional practice, not from a source document: a practitioner must review and adapt them.",
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and register tracking lists are proposals: confirm against local practice and regulations.",
+    "Restricted data: keep personal, patient, employee, account and privileged data out of prompts; use codes only."
+  ]
+}

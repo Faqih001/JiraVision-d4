@@ -1,0 +1,636 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "sales",
+    "label": "Sales",
+    "category": "market",
+    "categoryLabel": "Sales, marketing & customer",
+    "focus": "Pipeline, calls and follow-ups"
+  },
+  "pack": {
+    "key": "sales-marketing",
+    "reportTemplate": "creative",
+    "registerKinds": [
+      "Leads",
+      "Campaigns",
+      "Customers",
+      "Metrics"
+    ],
+    "ladderDiscipline": {
+      "proposed": "sales_marketing",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced sales practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use.",
+    "detailLevel": "detailed"
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "deals_won",
+          "label": "Deals won",
+          "source": "pipeline_updates",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "leads_in_pipeline",
+          "label": "Leads in pipeline",
+          "source": "pipeline_updates",
+          "sourceType": "log",
+          "aggregation": "open_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "calls_logged",
+          "label": "Calls logged",
+          "source": "sales_calls",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "follow_ups_overdue",
+          "label": "Follow-ups overdue",
+          "source": "pipeline_updates",
+          "sourceType": "log",
+          "aggregation": "overdue_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "lead_with_no_next_step",
+          "when": "lead with no next step",
+          "suggest": "set one",
+          "deterministic": true
+        },
+        {
+          "id": "proposal_open_over_14_days",
+          "when": "proposal open over 14 days",
+          "suggest": "follow up",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "pipeline_updates",
+          "label": "Pipeline updates",
+          "fields": [
+            {
+              "key": "update_date",
+              "type": "date"
+            },
+            {
+              "key": "lead_ref",
+              "type": "text"
+            },
+            {
+              "key": "stage",
+              "type": "enum",
+              "values": [
+                "new",
+                "qualified",
+                "proposal",
+                "won",
+                "lost"
+              ]
+            },
+            {
+              "key": "next_step_date",
+              "type": "date"
+            }
+          ]
+        },
+        {
+          "key": "sales_calls",
+          "label": "Sales calls",
+          "fields": [
+            {
+              "key": "call_date",
+              "type": "date"
+            },
+            {
+              "key": "customer_ref",
+              "type": "text"
+            },
+            {
+              "key": "outcome",
+              "type": "text"
+            }
+          ]
+        },
+        {
+          "key": "daily_checklist",
+          "label": "Daily checklist",
+          "fields": [
+            {
+              "key": "date",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "review_pipeline_and_priorities",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review pipeline and priorities"
+            },
+            {
+              "key": "make_calls_and_follow_ups",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Make calls and follow-ups"
+            },
+            {
+              "key": "update_the_crm_after_every_contact",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Update the CRM after every contact"
+            },
+            {
+              "key": "prepare_quotes_and_proposals",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Prepare quotes and proposals"
+            },
+            {
+              "key": "respond_to_customer_queries",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Respond to customer queries"
+            },
+            {
+              "key": "check_approvals_needed",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check approvals needed"
+            }
+          ]
+        },
+        {
+          "key": "weekly_checklist",
+          "label": "Weekly checklist",
+          "fields": [
+            {
+              "key": "week_starting",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "pipeline_review",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Pipeline review"
+            },
+            {
+              "key": "forecast_update",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Forecast update"
+            },
+            {
+              "key": "review_lost_and_won_deals",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review lost and won deals"
+            },
+            {
+              "key": "account_planning",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Account planning"
+            },
+            {
+              "key": "team_sales_meeting",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Team sales meeting"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Leads",
+          "track": [
+            "prospects"
+          ]
+        },
+        {
+          "kind": "Campaigns",
+          "track": [
+            "sales campaigns"
+          ]
+        },
+        {
+          "kind": "Customers",
+          "track": [
+            "accounts"
+          ]
+        },
+        {
+          "kind": "Metrics",
+          "track": [
+            "sales metrics"
+          ]
+        }
+      ],
+      "documentationCategories": [
+        "CRM records",
+        "Quotes and proposals",
+        "Contracts and orders",
+        "Account plans",
+        "Forecasts",
+        "Win-loss notes"
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "lead_qualification",
+          "title": "Lead qualification",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Capture the lead and source",
+                "Check need, budget, authority and timing",
+                "Qualify or disqualify",
+                "Assign the next step",
+                "Update the CRM"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "proposal_and_quote",
+          "title": "Proposal and quote",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Confirm requirements",
+                "Prepare scope and price",
+                "Check approvals",
+                "Send and walk through",
+                "Follow up on a set date"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "pipeline_review",
+          "title": "Pipeline review",
+          "frequency": "weekly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "List deals by stage",
+                "Check next steps and dates",
+                "Remove stale deals",
+                "Update the forecast",
+                "Agree actions"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "win_loss_review",
+          "title": "Win-loss review",
+          "frequency": "quarterly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Collect deal facts",
+                "Ask the customer why",
+                "Identify patterns",
+                "Share lessons",
+                "Update the playbook"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "escalation",
+          "title": "Escalation",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "triggers": [
+            "Major deal at risk",
+            "Discount beyond authority requested",
+            "Complaint from a key customer",
+            "Contract term dispute",
+            "Competitor price move"
+          ],
+          "recordFields": [
+            "date_time",
+            "affected_area_or_system",
+            "people_affected_by_code_or_count",
+            "description",
+            "actions_taken",
+            "evidence_or_logs",
+            "impact",
+            "person_or_party_contacted",
+            "current_status"
+          ],
+          "rules": [
+            "Record facts; escalate promptly when a trigger is met"
+          ]
+        },
+        {
+          "key": "role_handover",
+          "title": "Role handover",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Handover",
+              "steps": [
+                "Transfer Leads: prospects",
+                "Transfer Campaigns: sales campaigns",
+                "Transfer Customers: accounts",
+                "Transfer Metrics: sales metrics",
+                "List open work, deadlines and commitments",
+                "Share trackers, templates and contacts",
+                "Transfer accounts and access only through the approved secure process, never in documents",
+                "Brief the successor and confirm access",
+                "Review progress after one week"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Review pipeline and priorities",
+          "frequency": "daily"
+        },
+        {
+          "title": "Make calls and follow-ups",
+          "frequency": "daily"
+        },
+        {
+          "title": "Update the CRM after every contact",
+          "frequency": "daily"
+        },
+        {
+          "title": "Prepare quotes and proposals",
+          "frequency": "daily"
+        },
+        {
+          "title": "Respond to customer queries",
+          "frequency": "daily"
+        },
+        {
+          "title": "Check approvals needed",
+          "frequency": "daily"
+        },
+        {
+          "title": "Pipeline review",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Forecast update",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Review lost and won deals",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Account planning",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Team sales meeting",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Target versus actual review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Pipeline clean-up",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Customer visit and review plan",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Pricing and discount review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Territory and account plan",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Sales training and skills",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Win-loss analysis",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Forecast reset",
+          "frequency": "quarterly"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "creative",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Deals won",
+        "Leads in pipeline",
+        "Calls logged",
+        "Follow-ups overdue",
+        "Risks and recommendations",
+        "Plan for next period"
+      ],
+      "cadenceContent": {
+        "daily": [
+          "Daily checklist results",
+          "Open items and issues",
+          "Escalations",
+          "Plan for tomorrow"
+        ],
+        "weekly": [
+          "Weekly checklist results",
+          "KPI snapshot",
+          "Risks and blockers",
+          "Plan for next week"
+        ],
+        "monthly": [
+          "All KPI sections",
+          "Trends",
+          "Risks and recommendations",
+          "Plan for next month"
+        ]
+      }
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "standard",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Sales from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: pipeline_updates, sales_calls"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Sales method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "Detailed checklists, playbook steps and triggers are proposals written from general professional practice, not from a source document: a practitioner must review and adapt them.",
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and register tracking lists are proposals: confirm against local practice and regulations."
+  ]
+}

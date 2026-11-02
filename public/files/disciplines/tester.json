@@ -1,0 +1,659 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "tester",
+    "label": "Tester",
+    "category": "technology",
+    "categoryLabel": "Software, IT & digital",
+    "focus": "Test runs, defects and release sign-off"
+  },
+  "pack": {
+    "key": "developer",
+    "reportTemplate": "engineering",
+    "registerKinds": [
+      "Code repositories",
+      "Pull requests",
+      "Technical debt",
+      "Sprint backlog"
+    ],
+    "ladderDiscipline": {
+      "proposed": "developer",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced tester practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use.",
+    "detailLevel": "detailed"
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": [
+      "Plan",
+      "Design",
+      "Execute",
+      "Report",
+      "Verify",
+      "Close"
+    ],
+    "documentedIn": "roles doc section 4.7 (verify in code)"
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "test_runs_completed",
+          "label": "Test runs completed",
+          "source": "test_runs",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "defects_open",
+          "label": "Defects open",
+          "source": "defect_reports",
+          "sourceType": "log",
+          "aggregation": "open_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "defects_reopened",
+          "label": "Defects reopened",
+          "source": "defect_reports",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "test_debt_items",
+          "label": "Test debt items",
+          "source": "technical_debt",
+          "sourceType": "register",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "critical_defect_open_over_1_day",
+          "when": "critical defect open over 1 day",
+          "suggest": "escalate",
+          "deterministic": true
+        },
+        {
+          "id": "suite_failing_3_runs",
+          "when": "suite failing 3 runs",
+          "suggest": "investigate",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "test_runs",
+          "label": "Test runs",
+          "fields": [
+            {
+              "key": "run_date",
+              "type": "date"
+            },
+            {
+              "key": "suite",
+              "type": "text"
+            },
+            {
+              "key": "passed_count",
+              "type": "number"
+            },
+            {
+              "key": "failed_count",
+              "type": "number"
+            },
+            {
+              "key": "blocked_count",
+              "type": "number"
+            }
+          ]
+        },
+        {
+          "key": "defect_reports",
+          "label": "Defect reports",
+          "fields": [
+            {
+              "key": "found_date",
+              "type": "date"
+            },
+            {
+              "key": "severity",
+              "type": "enum",
+              "values": [
+                "low",
+                "medium",
+                "high",
+                "critical"
+              ]
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "open",
+                "verified",
+                "closed"
+              ]
+            },
+            {
+              "key": "reopened",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "daily_checklist",
+          "label": "Daily checklist",
+          "fields": [
+            {
+              "key": "date",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "run_regression_or_smoke_tests",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Run regression or smoke tests"
+            },
+            {
+              "key": "review_new_builds_and_tickets_for_testing",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review new builds and tickets for testing"
+            },
+            {
+              "key": "triage_failures_and_flaky_tests",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Triage failures and flaky tests"
+            },
+            {
+              "key": "log_defects_with_evidence",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Log defects with evidence"
+            },
+            {
+              "key": "retest_fixed_defects",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Retest fixed defects"
+            },
+            {
+              "key": "update_test_status",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Update test status"
+            }
+          ]
+        },
+        {
+          "key": "weekly_checklist",
+          "label": "Weekly checklist",
+          "fields": [
+            {
+              "key": "week_starting",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "test_plan_and_coverage_review",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Test plan and coverage review"
+            },
+            {
+              "key": "defect_review_meeting",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Defect review meeting"
+            },
+            {
+              "key": "release_readiness_and_sign_off",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Release readiness and sign-off"
+            },
+            {
+              "key": "update_test_cases",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Update test cases"
+            },
+            {
+              "key": "review_automation_failures",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review automation failures"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Code repositories",
+          "track": [
+            "test suites"
+          ]
+        },
+        {
+          "kind": "Technical debt",
+          "track": [
+            "test debt"
+          ]
+        },
+        {
+          "kind": "Pull requests",
+          "track": [
+            "changes under test"
+          ]
+        },
+        {
+          "kind": "Sprint backlog",
+          "track": [
+            "test work"
+          ]
+        }
+      ],
+      "documentationCategories": [
+        "Test plans and cases",
+        "Test run results",
+        "Defect log",
+        "Test environment notes",
+        "Release sign-offs",
+        "Automation scripts index"
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "regression_run",
+          "title": "Regression run",
+          "frequency": "daily",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Confirm build and environment",
+                "Run the suite",
+                "Triage failures",
+                "Log defects",
+                "Report results"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "defect_report",
+          "title": "Defect report",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Reproduce the issue",
+                "Capture steps, expected and actual results",
+                "Add logs and screenshots",
+                "Set severity and priority",
+                "Assign and track"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "release_sign_off",
+          "title": "Release sign-off",
+          "frequency": "weekly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Review coverage and open defects",
+                "Check critical paths passed",
+                "Confirm no blocking defects",
+                "Record sign-off or conditions",
+                "Share the summary"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "test_case_design",
+          "title": "Test case design",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Review requirements",
+                "Identify scenarios and edge cases",
+                "Write cases with data",
+                "Review with peers",
+                "Add to the suite"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "escalation",
+          "title": "Escalation",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "triggers": [
+            "Critical defect found late",
+            "Test environment unavailable",
+            "Release pressure to skip tests",
+            "Flaky tests hiding failures",
+            "Data privacy issue in test data"
+          ],
+          "recordFields": [
+            "date_time",
+            "affected_area_or_system",
+            "people_affected_by_code_or_count",
+            "description",
+            "actions_taken",
+            "evidence_or_logs",
+            "impact",
+            "person_or_party_contacted",
+            "current_status"
+          ],
+          "rules": [
+            "Record facts; escalate promptly when a trigger is met"
+          ]
+        },
+        {
+          "key": "role_handover",
+          "title": "Role handover",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Handover",
+              "steps": [
+                "Transfer Code repositories: test suites",
+                "Transfer Technical debt: test debt",
+                "Transfer Pull requests: changes under test",
+                "Transfer Sprint backlog: test work",
+                "List open work, deadlines and commitments",
+                "Share trackers, templates and contacts",
+                "Transfer accounts and access only through the approved secure process, never in documents",
+                "Brief the successor and confirm access",
+                "Review progress after one week"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Run regression or smoke tests",
+          "frequency": "daily"
+        },
+        {
+          "title": "Review new builds and tickets for testing",
+          "frequency": "daily"
+        },
+        {
+          "title": "Triage failures and flaky tests",
+          "frequency": "daily"
+        },
+        {
+          "title": "Log defects with evidence",
+          "frequency": "daily"
+        },
+        {
+          "title": "Retest fixed defects",
+          "frequency": "daily"
+        },
+        {
+          "title": "Update test status",
+          "frequency": "daily"
+        },
+        {
+          "title": "Test plan and coverage review",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Defect review meeting",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Release readiness and sign-off",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Update test cases",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Review automation failures",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Test debt review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Defect trend analysis",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Test environment and data review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Automation maintenance",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Test strategy review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Performance and security test round",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Tooling review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Skills plan",
+          "frequency": "quarterly"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "engineering",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Test runs completed",
+        "Defects open",
+        "Defects reopened",
+        "Test debt items",
+        "Risks and recommendations",
+        "Plan for next period"
+      ],
+      "cadenceContent": {
+        "daily": [
+          "Daily checklist results",
+          "Open items and issues",
+          "Escalations",
+          "Plan for tomorrow"
+        ],
+        "weekly": [
+          "Weekly checklist results",
+          "KPI snapshot",
+          "Risks and blockers",
+          "Plan for next week"
+        ],
+        "monthly": [
+          "All KPI sections",
+          "Trends",
+          "Risks and recommendations",
+          "Plan for next month"
+        ]
+      }
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "standard",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Tester from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: test_runs, defect_reports"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Tester method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "Detailed checklists, playbook steps and triggers are proposals written from general professional practice, not from a source document: a practitioner must review and adapt them.",
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and register tracking lists are proposals: confirm against local practice and regulations."
+  ]
+}

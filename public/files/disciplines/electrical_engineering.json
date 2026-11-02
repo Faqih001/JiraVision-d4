@@ -1,0 +1,643 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "electrical_engineering",
+    "label": "Electrical engineer",
+    "category": "engineering",
+    "categoryLabel": "Engineering & built works",
+    "focus": "Testing, faults and certification"
+  },
+  "pack": {
+    "key": "engineering",
+    "reportTemplate": "engineering",
+    "registerKinds": [
+      "Projects",
+      "Specifications",
+      "Inspections",
+      "Compliance"
+    ],
+    "ladderDiscipline": {
+      "proposed": "engineering",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "licensed electrical engineer",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use.",
+    "detailLevel": "detailed"
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "tests_passed",
+          "label": "Tests passed",
+          "source": "test_certificates",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "tests_failed",
+          "label": "Tests failed",
+          "source": "test_certificates",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "faults_open",
+          "label": "Faults open",
+          "source": "fault_reports",
+          "sourceType": "log",
+          "aggregation": "open_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "certificates_held",
+          "label": "Certificates held",
+          "source": "compliance",
+          "sourceType": "register",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "failed_test_not_retested_in_7_days",
+          "when": "failed test not retested in 7 days",
+          "suggest": "retest",
+          "deterministic": true
+        },
+        {
+          "id": "fault_open_over_3_days",
+          "when": "fault open over 3 days",
+          "suggest": "escalate",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "test_certificates",
+          "label": "Test certificates",
+          "fields": [
+            {
+              "key": "test_date",
+              "type": "date"
+            },
+            {
+              "key": "installation_ref",
+              "type": "text"
+            },
+            {
+              "key": "test_type",
+              "type": "text"
+            },
+            {
+              "key": "result",
+              "type": "enum",
+              "values": [
+                "pass",
+                "fail"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "fault_reports",
+          "label": "Fault reports",
+          "fields": [
+            {
+              "key": "received_date",
+              "type": "date"
+            },
+            {
+              "key": "location",
+              "type": "text"
+            },
+            {
+              "key": "fault",
+              "type": "text"
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "open",
+                "fixed"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "daily_checklist",
+          "label": "Daily checklist",
+          "fields": [
+            {
+              "key": "date",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "review_job_list_and_permits",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review job list and permits"
+            },
+            {
+              "key": "isolate_test_and_verify_dead_before_work",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Isolate, test and verify dead before work"
+            },
+            {
+              "key": "carry_out_installation_or_repair",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Carry out installation or repair"
+            },
+            {
+              "key": "record_tests_and_results",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Record tests and results"
+            },
+            {
+              "key": "check_tools_and_instruments",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check tools and instruments"
+            },
+            {
+              "key": "handle_faults_and_calls",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Handle faults and calls"
+            }
+          ]
+        },
+        {
+          "key": "weekly_checklist",
+          "label": "Weekly checklist",
+          "fields": [
+            {
+              "key": "week_starting",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "inspection_and_testing_round",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Inspection and testing round"
+            },
+            {
+              "key": "review_fault_reports_and_trends",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review fault reports and trends"
+            },
+            {
+              "key": "check_stock_of_components",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check stock of components"
+            },
+            {
+              "key": "calibration_status_check",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Calibration status check"
+            },
+            {
+              "key": "update_drawings_and_records",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Update drawings and records"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Projects",
+          "track": [
+            "electrical works"
+          ]
+        },
+        {
+          "kind": "Specifications",
+          "track": [
+            "circuit and equipment specs"
+          ]
+        },
+        {
+          "kind": "Inspections",
+          "track": [
+            "test and inspection"
+          ]
+        },
+        {
+          "kind": "Compliance",
+          "track": [
+            "standards and certificates"
+          ]
+        }
+      ],
+      "documentationCategories": [
+        "Drawings and schematics",
+        "Test and inspection certificates",
+        "Fault reports",
+        "Calibration records",
+        "Permits and isolation records",
+        "Standards references"
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "safe_isolation",
+          "title": "Safe isolation",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Identify supply and circuit",
+                "Switch off and lock off",
+                "Prove the tester on a known source",
+                "Test dead",
+                "Re-prove the tester",
+                "Start work"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "installation_test_and_certificate",
+          "title": "Installation test and certificate",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Visual inspection",
+                "Dead tests",
+                "Live tests",
+                "Record results",
+                "Issue the certificate",
+                "Retain records"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "fault_finding",
+          "title": "Fault finding",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Gather symptoms",
+                "Check supply and protection",
+                "Isolate sections",
+                "Locate and repair",
+                "Test and record"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "periodic_inspection",
+          "title": "Periodic inspection",
+          "frequency": "quarterly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Plan scope and access",
+                "Inspect and test",
+                "Record observations",
+                "Classify defects",
+                "Report and follow up"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "escalation",
+          "title": "Escalation",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "triggers": [
+            "Electric shock or fire",
+            "Failed insulation or earth test",
+            "Unsafe installation found",
+            "Repeated tripping or overload",
+            "Instrument out of calibration"
+          ],
+          "recordFields": [
+            "date_time",
+            "affected_area_or_system",
+            "people_affected_by_code_or_count",
+            "description",
+            "actions_taken",
+            "evidence_or_logs",
+            "impact",
+            "person_or_party_contacted",
+            "current_status"
+          ],
+          "rules": [
+            "Record facts; escalate promptly when a trigger is met"
+          ]
+        },
+        {
+          "key": "role_handover",
+          "title": "Role handover",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Handover",
+              "steps": [
+                "Transfer Projects: electrical works",
+                "Transfer Specifications: circuit and equipment specs",
+                "Transfer Inspections: test and inspection",
+                "Transfer Compliance: standards and certificates",
+                "List open work, deadlines and commitments",
+                "Share trackers, templates and contacts",
+                "Transfer accounts and access only through the approved secure process, never in documents",
+                "Brief the successor and confirm access",
+                "Review progress after one week"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Review job list and permits",
+          "frequency": "daily"
+        },
+        {
+          "title": "Isolate, test and verify dead before work",
+          "frequency": "daily"
+        },
+        {
+          "title": "Carry out installation or repair",
+          "frequency": "daily"
+        },
+        {
+          "title": "Record tests and results",
+          "frequency": "daily"
+        },
+        {
+          "title": "Check tools and instruments",
+          "frequency": "daily"
+        },
+        {
+          "title": "Handle faults and calls",
+          "frequency": "daily"
+        },
+        {
+          "title": "Inspection and testing round",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Review fault reports and trends",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Check stock of components",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Calibration status check",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Update drawings and records",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Test and inspection schedule",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Protective device and earthing checks",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Energy and load review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Safety review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Standards and regulations review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Thermal or condition survey",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Certificate and compliance review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Training update",
+          "frequency": "quarterly"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "engineering",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Tests passed",
+        "Tests failed",
+        "Faults open",
+        "Certificates held",
+        "Risks and recommendations",
+        "Plan for next period"
+      ],
+      "cadenceContent": {
+        "daily": [
+          "Daily checklist results",
+          "Open items and issues",
+          "Escalations",
+          "Plan for tomorrow"
+        ],
+        "weekly": [
+          "Weekly checklist results",
+          "KPI snapshot",
+          "Risks and blockers",
+          "Plan for next week"
+        ],
+        "monthly": [
+          "All KPI sections",
+          "Trends",
+          "Risks and recommendations",
+          "Plan for next month"
+        ]
+      }
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "standard",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Electrical engineer from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: test_certificates, fault_reports"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Electrical engineer method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "Detailed checklists, playbook steps and triggers are proposals written from general professional practice, not from a source document: a practitioner must review and adapt them.",
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and register tracking lists are proposals: confirm against local practice and regulations."
+  ]
+}

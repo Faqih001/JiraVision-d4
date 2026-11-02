@@ -1,0 +1,631 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "product",
+    "label": "Product",
+    "category": "delivery",
+    "categoryLabel": "Management & project delivery",
+    "focus": "Roadmap, requirements and releases"
+  },
+  "pack": {
+    "key": "management",
+    "reportTemplate": "general",
+    "registerKinds": [
+      "Initiatives",
+      "Stakeholders",
+      "Risks",
+      "Reports"
+    ],
+    "ladderDiscipline": {
+      "proposed": "coordinator",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced product practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use.",
+    "detailLevel": "detailed"
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "requests_triaged",
+          "label": "Requests triaged",
+          "source": "feature_requests",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "roadmap_items_delivered",
+          "label": "Roadmap items delivered",
+          "source": "initiatives",
+          "sourceType": "register",
+          "aggregation": "rate",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "open_high_priority_requests",
+          "label": "Open high-priority requests",
+          "source": "feature_requests",
+          "sourceType": "log",
+          "aggregation": "open_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "go_no_go_decisions_logged",
+          "label": "Go/no-go decisions logged",
+          "source": "release_decisions",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "high_priority_request_untriaged_for_7_days",
+          "when": "high-priority request untriaged for 7 days",
+          "suggest": "triage it",
+          "deterministic": true
+        },
+        {
+          "id": "release_without_go_no_go_record",
+          "when": "release without go/no-go record",
+          "suggest": "record decision",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "feature_requests",
+          "label": "Feature requests",
+          "fields": [
+            {
+              "key": "received_date",
+              "type": "date"
+            },
+            {
+              "key": "source",
+              "type": "text"
+            },
+            {
+              "key": "request",
+              "type": "text"
+            },
+            {
+              "key": "priority",
+              "type": "enum",
+              "values": [
+                "low",
+                "medium",
+                "high"
+              ]
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "new",
+                "planned",
+                "shipped",
+                "declined"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "release_decisions",
+          "label": "Release decisions",
+          "fields": [
+            {
+              "key": "decision_date",
+              "type": "date"
+            },
+            {
+              "key": "release",
+              "type": "text"
+            },
+            {
+              "key": "go_no_go",
+              "type": "enum",
+              "values": [
+                "go",
+                "no_go"
+              ]
+            },
+            {
+              "key": "reason",
+              "type": "text"
+            }
+          ]
+        },
+        {
+          "key": "daily_checklist",
+          "label": "Daily checklist",
+          "fields": [
+            {
+              "key": "date",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "review_new_feedback_and_requests",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review new feedback and requests"
+            },
+            {
+              "key": "check_delivery_status_with_engineering",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check delivery status with engineering"
+            },
+            {
+              "key": "answer_open_product_questions",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Answer open product questions"
+            },
+            {
+              "key": "review_key_product_metrics",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review key product metrics"
+            },
+            {
+              "key": "update_backlog_priorities_if_needed",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Update backlog priorities if needed"
+            }
+          ]
+        },
+        {
+          "key": "weekly_checklist",
+          "label": "Weekly checklist",
+          "fields": [
+            {
+              "key": "week_starting",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "backlog_grooming_session",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Backlog grooming session"
+            },
+            {
+              "key": "sprint_or_release_planning",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Sprint or release planning"
+            },
+            {
+              "key": "review_customer_feedback_themes",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review customer feedback themes"
+            },
+            {
+              "key": "stakeholder_update",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Stakeholder update"
+            },
+            {
+              "key": "review_experiment_or_launch_results",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review experiment or launch results"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Initiatives",
+          "track": [
+            "roadmap items"
+          ]
+        },
+        {
+          "kind": "Stakeholders",
+          "track": [
+            "customers and sponsors"
+          ]
+        },
+        {
+          "kind": "Risks",
+          "track": [
+            "product risks"
+          ]
+        }
+      ],
+      "documentationCategories": [
+        "Product roadmap",
+        "Requirements and acceptance criteria",
+        "Feature request log",
+        "Release notes",
+        "Experiment results",
+        "Customer research notes"
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "backlog_grooming",
+          "title": "Backlog grooming",
+          "frequency": "weekly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Collect new requests and feedback",
+                "Remove duplicates and stale items",
+                "Clarify value and acceptance criteria",
+                "Estimate with the team",
+                "Prioritise and order"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "release_readiness_check",
+          "title": "Release readiness check",
+          "frequency": "weekly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Confirm scope and acceptance criteria are met",
+                "Check test and sign-off status",
+                "Confirm documentation and support are ready",
+                "Agree go or no-go",
+                "Record the decision"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "feature_discovery",
+          "title": "Feature discovery",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Define the problem and target users",
+                "Gather evidence from users and data",
+                "Explore options",
+                "Test the riskiest assumption",
+                "Decide whether to build"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "post_launch_review",
+          "title": "Post-launch review",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Compare results to goals",
+                "Collect user feedback",
+                "Review defects and incidents",
+                "Decide follow-up",
+                "Record learnings"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "escalation",
+          "title": "Escalation",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "triggers": [
+            "Launch blocker found",
+            "Data privacy concern",
+            "Major customer churn risk",
+            "Scope change affecting commitments",
+            "Conflicting stakeholder demands"
+          ],
+          "recordFields": [
+            "date_time",
+            "affected_area_or_system",
+            "people_affected_by_code_or_count",
+            "description",
+            "actions_taken",
+            "evidence_or_logs",
+            "impact",
+            "person_or_party_contacted",
+            "current_status"
+          ],
+          "rules": [
+            "Record facts; escalate promptly when a trigger is met"
+          ]
+        },
+        {
+          "key": "role_handover",
+          "title": "Role handover",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Handover",
+              "steps": [
+                "Transfer Initiatives: roadmap items",
+                "Transfer Stakeholders: customers and sponsors",
+                "Transfer Risks: product risks",
+                "List open work, deadlines and commitments",
+                "Share trackers, templates and contacts",
+                "Transfer accounts and access only through the approved secure process, never in documents",
+                "Brief the successor and confirm access",
+                "Review progress after one week"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Review new feedback and requests",
+          "frequency": "daily"
+        },
+        {
+          "title": "Check delivery status with engineering",
+          "frequency": "daily"
+        },
+        {
+          "title": "Answer open product questions",
+          "frequency": "daily"
+        },
+        {
+          "title": "Review key product metrics",
+          "frequency": "daily"
+        },
+        {
+          "title": "Update backlog priorities if needed",
+          "frequency": "daily"
+        },
+        {
+          "title": "Backlog grooming session",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Sprint or release planning",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Review customer feedback themes",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Stakeholder update",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Review experiment or launch results",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Roadmap review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Metrics and OKR review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Competitor and market scan",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Release retrospective",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Strategy and roadmap reset",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Customer research round",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Pricing and packaging review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Deprecation and debt review",
+          "frequency": "quarterly"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "general",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Requests triaged",
+        "Roadmap items delivered",
+        "Open high-priority requests",
+        "Go/no-go decisions logged",
+        "Risks and recommendations",
+        "Plan for next period"
+      ],
+      "cadenceContent": {
+        "daily": [
+          "Daily checklist results",
+          "Open items and issues",
+          "Escalations",
+          "Plan for tomorrow"
+        ],
+        "weekly": [
+          "Weekly checklist results",
+          "KPI snapshot",
+          "Risks and blockers",
+          "Plan for next week"
+        ],
+        "monthly": [
+          "All KPI sections",
+          "Trends",
+          "Risks and recommendations",
+          "Plan for next month"
+        ]
+      }
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "standard",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Product from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: feature_requests, release_decisions"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Product method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "Detailed checklists, playbook steps and triggers are proposals written from general professional practice, not from a source document: a practitioner must review and adapt them.",
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and register tracking lists are proposals: confirm against local practice and regulations."
+  ]
+}

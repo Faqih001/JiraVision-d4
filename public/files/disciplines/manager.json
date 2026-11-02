@@ -1,0 +1,637 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "manager",
+    "label": "Manager",
+    "category": "delivery",
+    "categoryLabel": "Management & project delivery",
+    "focus": "Team delivery, people and performance"
+  },
+  "pack": {
+    "key": "management",
+    "reportTemplate": "general",
+    "registerKinds": [
+      "Initiatives",
+      "Stakeholders",
+      "Risks",
+      "Reports"
+    ],
+    "ladderDiscipline": {
+      "proposed": "coordinator",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced manager practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use.",
+    "detailLevel": "detailed"
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "one_to_ones_held",
+          "label": "One-to-ones held",
+          "source": "one_to_ones",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "open_team_issues",
+          "label": "Open team issues",
+          "source": "team_issues",
+          "sourceType": "log",
+          "aggregation": "open_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "objectives_on_track",
+          "label": "Objectives on track",
+          "source": "initiatives",
+          "sourceType": "register",
+          "aggregation": "rate",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "actions_overdue",
+          "label": "Actions overdue",
+          "source": "one_to_ones",
+          "sourceType": "log",
+          "aggregation": "overdue_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "no_one_to_one_logged_for_a_team_member_in_30_day",
+          "when": "no one-to-one logged for a team member in 30 days",
+          "suggest": "schedule one",
+          "deterministic": true
+        },
+        {
+          "id": "team_issue_open_over_14_days",
+          "when": "team issue open over 14 days",
+          "suggest": "escalate",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "one_to_ones",
+          "label": "One to ones",
+          "fields": [
+            {
+              "key": "meeting_date",
+              "type": "date"
+            },
+            {
+              "key": "person_ref",
+              "type": "text"
+            },
+            {
+              "key": "topics",
+              "type": "text"
+            },
+            {
+              "key": "actions_due",
+              "type": "text"
+            }
+          ]
+        },
+        {
+          "key": "team_issues",
+          "label": "Team issues",
+          "fields": [
+            {
+              "key": "raised_date",
+              "type": "date"
+            },
+            {
+              "key": "issue",
+              "type": "text"
+            },
+            {
+              "key": "severity",
+              "type": "enum",
+              "values": [
+                "low",
+                "medium",
+                "high"
+              ]
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "open",
+                "in_progress",
+                "resolved"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "daily_checklist",
+          "label": "Daily checklist",
+          "fields": [
+            {
+              "key": "date",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "check_team_availability_and_priorities",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check team availability and priorities"
+            },
+            {
+              "key": "unblock_urgent_issues",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Unblock urgent issues"
+            },
+            {
+              "key": "review_overdue_tasks",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review overdue tasks"
+            },
+            {
+              "key": "respond_to_approvals_and_requests",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Respond to approvals and requests"
+            },
+            {
+              "key": "recognise_or_coach_where_needed",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Recognise or coach where needed"
+            }
+          ]
+        },
+        {
+          "key": "weekly_checklist",
+          "label": "Weekly checklist",
+          "fields": [
+            {
+              "key": "week_starting",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "team_meeting_on_priorities_and_risks",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Team meeting on priorities and risks"
+            },
+            {
+              "key": "one_to_ones_with_team_members",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "One-to-ones with team members"
+            },
+            {
+              "key": "review_workload_balance",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review workload balance"
+            },
+            {
+              "key": "review_task_and_deliverable_status",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review task and deliverable status"
+            },
+            {
+              "key": "send_status_update_to_your_manager",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Send status update to your manager"
+            },
+            {
+              "key": "update_the_team_issues_log",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Update the team issues log"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Initiatives",
+          "track": [
+            "team objectives"
+          ]
+        },
+        {
+          "kind": "Stakeholders",
+          "track": [
+            "key stakeholders"
+          ]
+        },
+        {
+          "kind": "Reports",
+          "track": [
+            "team reports"
+          ]
+        }
+      ],
+      "documentationCategories": [
+        "One-to-one notes",
+        "Objectives and reviews",
+        "Team roster and skills",
+        "Leave and capacity plan",
+        "Team issues log",
+        "Decision and action log"
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "one_to_one_meeting",
+          "title": "One-to-one meeting",
+          "frequency": "weekly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Review previous actions",
+                "Discuss wins and blockers",
+                "Give specific feedback",
+                "Agree next actions with dates",
+                "Record notes in the log"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "performance_review",
+          "title": "Performance review",
+          "frequency": "monthly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Gather evidence of outcomes and behaviours",
+                "Compare against objectives",
+                "Draft balanced feedback",
+                "Hold the conversation",
+                "Agree development actions",
+                "Record the outcome"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "onboarding_a_team_member",
+          "title": "Onboarding a team member",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Prepare access, equipment and plan",
+                "Introduce team and stakeholders",
+                "Set 30, 60 and 90 day goals",
+                "Assign a buddy",
+                "Check in weekly for the first month"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "handling_underperformance",
+          "title": "Handling underperformance",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Describe the gap with examples",
+                "Agree support and timeline",
+                "Document conversations",
+                "Review progress at set dates",
+                "Escalate to HR if there is no improvement"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "escalation",
+          "title": "Escalation",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "triggers": [
+            "Safety or conduct concern",
+            "Resignation of a key person",
+            "Missed deliverable affecting a client",
+            "Repeated underperformance",
+            "Grievance raised"
+          ],
+          "recordFields": [
+            "date_time",
+            "affected_area_or_system",
+            "people_affected_by_code_or_count",
+            "description",
+            "actions_taken",
+            "evidence_or_logs",
+            "impact",
+            "person_or_party_contacted",
+            "current_status"
+          ],
+          "rules": [
+            "Record facts; escalate promptly when a trigger is met"
+          ]
+        },
+        {
+          "key": "role_handover",
+          "title": "Role handover",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Handover",
+              "steps": [
+                "Transfer Initiatives: team objectives",
+                "Transfer Stakeholders: key stakeholders",
+                "Transfer Reports: team reports",
+                "List open work, deadlines and commitments",
+                "Share trackers, templates and contacts",
+                "Transfer accounts and access only through the approved secure process, never in documents",
+                "Brief the successor and confirm access",
+                "Review progress after one week"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Check team availability and priorities",
+          "frequency": "daily"
+        },
+        {
+          "title": "Unblock urgent issues",
+          "frequency": "daily"
+        },
+        {
+          "title": "Review overdue tasks",
+          "frequency": "daily"
+        },
+        {
+          "title": "Respond to approvals and requests",
+          "frequency": "daily"
+        },
+        {
+          "title": "Recognise or coach where needed",
+          "frequency": "daily"
+        },
+        {
+          "title": "Team meeting on priorities and risks",
+          "frequency": "weekly"
+        },
+        {
+          "title": "One-to-ones with team members",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Review workload balance",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Review task and deliverable status",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Send status update to your manager",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Update the team issues log",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Performance and objectives check-in",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Review leave and capacity forecast",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Review budget or resource position",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Team health and morale check",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Objectives and goals review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Development and promotion discussions",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Process improvement review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Succession and cover check",
+          "frequency": "quarterly"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "general",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "One-to-ones held",
+        "Open team issues",
+        "Objectives on track",
+        "Actions overdue",
+        "Risks and recommendations",
+        "Plan for next period"
+      ],
+      "cadenceContent": {
+        "daily": [
+          "Daily checklist results",
+          "Open items and issues",
+          "Escalations",
+          "Plan for tomorrow"
+        ],
+        "weekly": [
+          "Weekly checklist results",
+          "KPI snapshot",
+          "Risks and blockers",
+          "Plan for next week"
+        ],
+        "monthly": [
+          "All KPI sections",
+          "Trends",
+          "Risks and recommendations",
+          "Plan for next month"
+        ]
+      }
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "standard",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Manager from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: one_to_ones, team_issues"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Manager method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "Detailed checklists, playbook steps and triggers are proposals written from general professional practice, not from a source document: a practitioner must review and adapt them.",
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and register tracking lists are proposals: confirm against local practice and regulations."
+  ]
+}

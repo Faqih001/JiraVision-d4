@@ -1,0 +1,632 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "learning_development",
+    "label": "Learning and development",
+    "category": "people",
+    "categoryLabel": "People, administration & governance",
+    "focus": "Courses, needs and completion"
+  },
+  "pack": {
+    "key": "hr",
+    "reportTemplate": "general",
+    "registerKinds": [
+      "Employee records",
+      "Policies",
+      "Training",
+      "Compliance"
+    ],
+    "ladderDiscipline": {
+      "proposed": "hr",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced learning and development practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use.",
+    "detailLevel": "detailed"
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "sessions_delivered",
+          "label": "Sessions delivered",
+          "source": "training_sessions",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "needs_open",
+          "label": "Needs open",
+          "source": "training_needs",
+          "sourceType": "log",
+          "aggregation": "open_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "needs_met",
+          "label": "Needs met",
+          "source": "training_needs",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "courses_listed",
+          "label": "Courses listed",
+          "source": "training",
+          "sourceType": "register",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "mandatory_training_overdue",
+          "when": "mandatory training overdue",
+          "suggest": "remind",
+          "deterministic": true
+        },
+        {
+          "id": "need_open_over_90_days",
+          "when": "need open over 90 days",
+          "suggest": "plan",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "training_sessions",
+          "label": "Training sessions",
+          "fields": [
+            {
+              "key": "session_date",
+              "type": "date"
+            },
+            {
+              "key": "course",
+              "type": "text"
+            },
+            {
+              "key": "attendee_count",
+              "type": "number"
+            },
+            {
+              "key": "completion_status",
+              "type": "enum",
+              "values": [
+                "complete",
+                "partial"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "training_needs",
+          "label": "Training needs",
+          "fields": [
+            {
+              "key": "raised_date",
+              "type": "date"
+            },
+            {
+              "key": "team",
+              "type": "text"
+            },
+            {
+              "key": "need",
+              "type": "text"
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "open",
+                "planned",
+                "done"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "daily_checklist",
+          "label": "Daily checklist",
+          "fields": [
+            {
+              "key": "date",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "respond_to_learning_requests",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Respond to learning requests"
+            },
+            {
+              "key": "schedule_and_confirm_sessions",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Schedule and confirm sessions"
+            },
+            {
+              "key": "check_enrolment_and_attendance",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check enrolment and attendance"
+            },
+            {
+              "key": "update_learning_records",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Update learning records"
+            },
+            {
+              "key": "support_trainers_and_learners",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Support trainers and learners"
+            }
+          ]
+        },
+        {
+          "key": "weekly_checklist",
+          "label": "Weekly checklist",
+          "fields": [
+            {
+              "key": "week_starting",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "session_delivery_and_feedback_review",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Session delivery and feedback review"
+            },
+            {
+              "key": "learning_needs_triage",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Learning needs triage"
+            },
+            {
+              "key": "plan_next_sessions",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Plan next sessions"
+            },
+            {
+              "key": "update_course_content",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Update course content"
+            },
+            {
+              "key": "report_completion",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Report completion"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Employee records",
+          "track": [
+            "learning records (codes only)"
+          ]
+        },
+        {
+          "kind": "Policies",
+          "track": [
+            "learning policy"
+          ]
+        },
+        {
+          "kind": "Training",
+          "track": [
+            "course catalogue"
+          ]
+        },
+        {
+          "kind": "Compliance",
+          "track": [
+            "mandatory training"
+          ]
+        }
+      ],
+      "documentationCategories": [
+        "Course catalogue",
+        "Attendance and completion records (restricted)",
+        "Needs analysis",
+        "Evaluation results",
+        "Trainer and vendor records",
+        "Learning plans"
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "training_session",
+          "title": "Training session",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Confirm objectives and audience",
+                "Prepare materials and venue",
+                "Deliver",
+                "Collect feedback and attendance",
+                "Record completion"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "learning_needs_analysis",
+          "title": "Learning needs analysis",
+          "frequency": "quarterly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Gather data from managers and staff",
+                "Identify skills gaps",
+                "Prioritise",
+                "Plan interventions",
+                "Agree budget"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "mandatory_training",
+          "title": "Mandatory training",
+          "frequency": "monthly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "List who is due",
+                "Send reminders",
+                "Track completion",
+                "Escalate overdue",
+                "Report"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "evaluation",
+          "title": "Evaluation",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Define measures",
+                "Collect reaction and learning data",
+                "Check behaviour or results later",
+                "Report",
+                "Improve"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "escalation",
+          "title": "Escalation",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "triggers": [
+            "Mandatory training overdue for many",
+            "Safety-critical competence gap",
+            "Trainer or provider unavailable",
+            "Complaint about training",
+            "Budget cut"
+          ],
+          "recordFields": [
+            "date_time",
+            "affected_area_or_system",
+            "people_affected_by_code_or_count",
+            "description",
+            "actions_taken",
+            "evidence_or_logs",
+            "impact",
+            "person_or_party_contacted",
+            "current_status"
+          ],
+          "rules": [
+            "Record facts only; no personal identifiers in free text"
+          ]
+        },
+        {
+          "key": "role_handover",
+          "title": "Role handover",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Handover",
+              "steps": [
+                "Transfer Employee records: learning records (codes only)",
+                "Transfer Policies: learning policy",
+                "Transfer Training: course catalogue",
+                "Transfer Compliance: mandatory training",
+                "List open work, deadlines and commitments",
+                "Share trackers, templates and contacts",
+                "Transfer accounts and access only through the approved secure process, never in documents",
+                "Brief the successor and confirm access",
+                "Review progress after one week"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Respond to learning requests",
+          "frequency": "daily"
+        },
+        {
+          "title": "Schedule and confirm sessions",
+          "frequency": "daily"
+        },
+        {
+          "title": "Check enrolment and attendance",
+          "frequency": "daily"
+        },
+        {
+          "title": "Update learning records",
+          "frequency": "daily"
+        },
+        {
+          "title": "Support trainers and learners",
+          "frequency": "daily"
+        },
+        {
+          "title": "Session delivery and feedback review",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Learning needs triage",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Plan next sessions",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Update course content",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Report completion",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Completion and compliance report",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Evaluation of training impact",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Budget and vendor review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Content refresh",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Learning needs analysis",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Curriculum and plan review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Skills gap review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Mandatory training audit",
+          "frequency": "quarterly"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "general",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Sessions delivered",
+        "Needs open",
+        "Needs met",
+        "Courses listed",
+        "Risks and recommendations",
+        "Plan for next period"
+      ],
+      "cadenceContent": {
+        "daily": [
+          "Daily checklist results",
+          "Open items and issues",
+          "Escalations",
+          "Plan for tomorrow"
+        ],
+        "weekly": [
+          "Weekly checklist results",
+          "KPI snapshot",
+          "Risks and blockers",
+          "Plan for next week"
+        ],
+        "monthly": [
+          "All KPI sections",
+          "Trends",
+          "Risks and recommendations",
+          "Plan for next month"
+        ]
+      }
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "restricted",
+      "neverSendRegisterKinds": [
+        "Employee records"
+      ],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers",
+        "amounts and balances"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Learning and development from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: training_sessions, training_needs"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Learning and development method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "Detailed checklists, playbook steps and triggers are proposals written from general professional practice, not from a source document: a practitioner must review and adapt them.",
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and register tracking lists are proposals: confirm against local practice and regulations.",
+    "Restricted data: keep personal, patient, employee, account and privileged data out of prompts; use codes only."
+  ]
+}

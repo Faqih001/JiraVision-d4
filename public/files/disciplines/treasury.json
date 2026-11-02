@@ -1,0 +1,622 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "treasury",
+    "label": "Treasury",
+    "category": "finance",
+    "categoryLabel": "Finance, audit & commercial",
+    "focus": "Cash, funding and exposure management"
+  },
+  "pack": {
+    "key": "finance",
+    "reportTemplate": "assurance",
+    "registerKinds": [
+      "Accounts",
+      "Audits",
+      "Compliance",
+      "Financial reports"
+    ],
+    "ladderDiscipline": {
+      "proposed": "finance",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "qualified accountant",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use.",
+    "detailLevel": "detailed"
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "positions_reconciled",
+          "label": "Positions reconciled",
+          "source": "cash_positions",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "forecast_variances",
+          "label": "Forecast variances",
+          "source": "cash_positions",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "funding_reviews",
+          "label": "Funding reviews",
+          "source": "funding_reviews",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "policy_items",
+          "label": "Policy items",
+          "source": "compliance",
+          "sourceType": "register",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "position_unreconciled",
+          "when": "position unreconciled",
+          "suggest": "reconcile",
+          "deterministic": true
+        },
+        {
+          "id": "forecast_variance_over_threshold",
+          "when": "forecast variance over threshold",
+          "suggest": "review",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "cash_positions",
+          "label": "Cash positions",
+          "fields": [
+            {
+              "key": "position_date",
+              "type": "date"
+            },
+            {
+              "key": "account_ref",
+              "type": "number"
+            },
+            {
+              "key": "reconciled",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no"
+              ]
+            },
+            {
+              "key": "forecast_variance_flag",
+              "type": "enum",
+              "values": [
+                "within",
+                "over"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "funding_reviews",
+          "label": "Funding reviews",
+          "fields": [
+            {
+              "key": "review_date",
+              "type": "date"
+            },
+            {
+              "key": "exposure_ref",
+              "type": "text"
+            },
+            {
+              "key": "action",
+              "type": "text"
+            }
+          ]
+        },
+        {
+          "key": "daily_checklist",
+          "label": "Daily checklist",
+          "fields": [
+            {
+              "key": "date",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "check_bank_balances_and_cash_position",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check bank balances and cash position"
+            },
+            {
+              "key": "approve_and_release_payments",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Approve and release payments"
+            },
+            {
+              "key": "review_forecast_versus_actual",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review forecast versus actual"
+            },
+            {
+              "key": "check_exposures_and_limits",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check exposures and limits"
+            },
+            {
+              "key": "log_funding_actions",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Log funding actions"
+            }
+          ]
+        },
+        {
+          "key": "weekly_checklist",
+          "label": "Weekly checklist",
+          "fields": [
+            {
+              "key": "week_starting",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "cash_flow_forecast_update",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Cash flow forecast update"
+            },
+            {
+              "key": "bank_and_counterparty_review",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Bank and counterparty review"
+            },
+            {
+              "key": "review_investments_and_deposits",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review investments and deposits"
+            },
+            {
+              "key": "check_covenants_and_limits",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check covenants and limits"
+            },
+            {
+              "key": "report_to_management",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Report to management"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Accounts",
+          "track": [
+            "bank and funding accounts"
+          ]
+        },
+        {
+          "kind": "Compliance",
+          "track": [
+            "treasury policy limits"
+          ]
+        },
+        {
+          "kind": "Financial reports",
+          "track": [
+            "cash reports"
+          ]
+        }
+      ],
+      "documentationCategories": [
+        "Cash forecast",
+        "Bank account register",
+        "Funding and investment records",
+        "Policy and limits",
+        "Counterparty reviews",
+        "Treasury reports"
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "daily_cash_position",
+          "title": "Daily cash position",
+          "frequency": "daily",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Collect bank balances",
+                "Compare to forecast",
+                "Identify shortfalls or surpluses",
+                "Decide action",
+                "Record the position"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "forecast_update",
+          "title": "Forecast update",
+          "frequency": "weekly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Collect inflow and outflow inputs",
+                "Update assumptions",
+                "Compare to the previous forecast",
+                "Explain variances",
+                "Share"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "payment_release",
+          "title": "Payment release",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Verify instruction and approvals",
+                "Check beneficiary details by an independent means",
+                "Release",
+                "Confirm receipt",
+                "Record"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "limit_breach",
+          "title": "Limit breach",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Identify the breach",
+                "Notify the authority",
+                "Decide corrective action",
+                "Record",
+                "Review the policy"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "escalation",
+          "title": "Escalation",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "triggers": [
+            "Cash shortfall forecast",
+            "Payment fraud suspected",
+            "Covenant or limit breach",
+            "Bank or counterparty failure",
+            "Significant FX movement"
+          ],
+          "recordFields": [
+            "date_time",
+            "affected_area_or_system",
+            "people_affected_by_code_or_count",
+            "description",
+            "actions_taken",
+            "evidence_or_logs",
+            "impact",
+            "person_or_party_contacted",
+            "current_status"
+          ],
+          "rules": [
+            "Record facts only; no personal identifiers in free text"
+          ]
+        },
+        {
+          "key": "role_handover",
+          "title": "Role handover",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Handover",
+              "steps": [
+                "Transfer Accounts: bank and funding accounts",
+                "Transfer Compliance: treasury policy limits",
+                "Transfer Financial reports: cash reports",
+                "List open work, deadlines and commitments",
+                "Share trackers, templates and contacts",
+                "Transfer accounts and access only through the approved secure process, never in documents",
+                "Brief the successor and confirm access",
+                "Review progress after one week"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Check bank balances and cash position",
+          "frequency": "daily"
+        },
+        {
+          "title": "Approve and release payments",
+          "frequency": "daily"
+        },
+        {
+          "title": "Review forecast versus actual",
+          "frequency": "daily"
+        },
+        {
+          "title": "Check exposures and limits",
+          "frequency": "daily"
+        },
+        {
+          "title": "Log funding actions",
+          "frequency": "daily"
+        },
+        {
+          "title": "Cash flow forecast update",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Bank and counterparty review",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Review investments and deposits",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Check covenants and limits",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Report to management",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Liquidity and funding review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Foreign exchange exposure review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Bank fee and account review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Treasury report",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Funding plan review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Policy and limits review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Counterparty risk review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Bank relationship review",
+          "frequency": "quarterly"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "assurance",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Positions reconciled",
+        "Forecast variances",
+        "Funding reviews",
+        "Policy items",
+        "Risks and recommendations",
+        "Plan for next period"
+      ],
+      "cadenceContent": {
+        "daily": [
+          "Daily checklist results",
+          "Open items and issues",
+          "Escalations",
+          "Plan for tomorrow"
+        ],
+        "weekly": [
+          "Weekly checklist results",
+          "KPI snapshot",
+          "Risks and blockers",
+          "Plan for next week"
+        ],
+        "monthly": [
+          "All KPI sections",
+          "Trends",
+          "Risks and recommendations",
+          "Plan for next month"
+        ]
+      }
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "restricted",
+      "neverSendRegisterKinds": [
+        "Accounts"
+      ],
+      "neverSendEntities": [
+        "cash_positions"
+      ],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers",
+        "amounts and balances"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Treasury from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: funding_reviews"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Treasury method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "Detailed checklists, playbook steps and triggers are proposals written from general professional practice, not from a source document: a practitioner must review and adapt them.",
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and register tracking lists are proposals: confirm against local practice and regulations.",
+    "Restricted data: keep personal, patient, employee, account and privileged data out of prompts; use codes only."
+  ]
+}

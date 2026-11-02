@@ -1,0 +1,624 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "public_health",
+    "label": "Public health",
+    "category": "science",
+    "categoryLabel": "Health, science & specialist services",
+    "focus": "Surveillance, outreach and reporting"
+  },
+  "pack": {
+    "key": "healthcare-science",
+    "reportTemplate": "technical",
+    "registerKinds": [
+      "Patients",
+      "Clinical protocols",
+      "Research",
+      "Compliance"
+    ],
+    "ladderDiscipline": {
+      "proposed": "healthcare_science",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "public-health professional",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use.",
+    "detailLevel": "detailed"
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "reports_submitted",
+          "label": "Reports submitted",
+          "source": "surveillance_reports",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "reports_missed",
+          "label": "Reports missed",
+          "source": "surveillance_reports",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "outreach_activities",
+          "label": "Outreach activities",
+          "source": "outreach_activities",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "reach",
+          "label": "Reach",
+          "source": "outreach_activities",
+          "sourceType": "log",
+          "aggregation": "sum",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "weekly_report_not_submitted",
+          "when": "weekly report not submitted",
+          "suggest": "submit",
+          "deterministic": true
+        },
+        {
+          "id": "outreach_reach_below_plan",
+          "when": "outreach reach below plan",
+          "suggest": "review approach",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "surveillance_reports",
+          "label": "Surveillance reports",
+          "fields": [
+            {
+              "key": "report_week",
+              "type": "date"
+            },
+            {
+              "key": "condition_category",
+              "type": "text"
+            },
+            {
+              "key": "report_submitted",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "outreach_activities",
+          "label": "Outreach activities",
+          "fields": [
+            {
+              "key": "activity_date",
+              "type": "date"
+            },
+            {
+              "key": "community",
+              "type": "text"
+            },
+            {
+              "key": "topic",
+              "type": "text"
+            },
+            {
+              "key": "reach_count",
+              "type": "number"
+            }
+          ]
+        },
+        {
+          "key": "daily_checklist",
+          "label": "Daily checklist",
+          "fields": [
+            {
+              "key": "date",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "check_surveillance_and_reports",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check surveillance and reports"
+            },
+            {
+              "key": "follow_up_on_alerts",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Follow up on alerts"
+            },
+            {
+              "key": "support_field_teams",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Support field teams"
+            },
+            {
+              "key": "update_trackers_and_data",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Update trackers and data"
+            },
+            {
+              "key": "respond_to_partner_requests",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Respond to partner requests"
+            }
+          ]
+        },
+        {
+          "key": "weekly_checklist",
+          "label": "Weekly checklist",
+          "fields": [
+            {
+              "key": "week_starting",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "weekly_surveillance_report",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Weekly surveillance report"
+            },
+            {
+              "key": "outreach_planning_and_review",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Outreach planning and review"
+            },
+            {
+              "key": "data_quality_check",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Data quality check"
+            },
+            {
+              "key": "team_and_partner_meeting",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Team and partner meeting"
+            },
+            {
+              "key": "update_dashboards",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Update dashboards"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Patients",
+          "track": [
+            "none: aggregate counts only"
+          ]
+        },
+        {
+          "kind": "Clinical protocols",
+          "track": [
+            "programme guidelines"
+          ]
+        },
+        {
+          "kind": "Research",
+          "track": [
+            "studies and surveys"
+          ]
+        },
+        {
+          "kind": "Compliance",
+          "track": [
+            "reporting obligations"
+          ]
+        }
+      ],
+      "documentationCategories": [
+        "Surveillance reports (aggregate)",
+        "Outreach records",
+        "Programme plans",
+        "Training records",
+        "Supply records",
+        "Partner agreements"
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "weekly_surveillance_report",
+          "title": "Weekly surveillance report",
+          "frequency": "weekly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Collect reports from sites",
+                "Validate and clean",
+                "Aggregate counts",
+                "Compare to thresholds",
+                "Submit and file"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "outbreak_response",
+          "title": "Outbreak response",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Verify the signal",
+                "Define cases and scope",
+                "Notify authorities",
+                "Implement control measures",
+                "Communicate with the community",
+                "Review"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "community_outreach",
+          "title": "Community outreach",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Define audience and message",
+                "Plan with local leaders",
+                "Deliver the session",
+                "Record reach and feedback",
+                "Follow up"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "data_quality_check",
+          "title": "Data quality check",
+          "frequency": "monthly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Sample records",
+                "Compare to source",
+                "Rate completeness and timeliness",
+                "Agree fixes",
+                "Report"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "escalation",
+          "title": "Escalation",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "triggers": [
+            "Cluster of cases above threshold",
+            "Stock-out of essential supplies",
+            "Safety concern for field staff",
+            "Misinformation spreading",
+            "Reporting deadline at risk"
+          ],
+          "recordFields": [
+            "date_time",
+            "affected_area_or_system",
+            "people_affected_by_code_or_count",
+            "description",
+            "actions_taken",
+            "evidence_or_logs",
+            "impact",
+            "person_or_party_contacted",
+            "current_status"
+          ],
+          "rules": [
+            "Record facts only; no personal identifiers in free text"
+          ]
+        },
+        {
+          "key": "role_handover",
+          "title": "Role handover",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Handover",
+              "steps": [
+                "Transfer Patients: none: aggregate counts only",
+                "Transfer Clinical protocols: programme guidelines",
+                "Transfer Research: studies and surveys",
+                "Transfer Compliance: reporting obligations",
+                "List open work, deadlines and commitments",
+                "Share trackers, templates and contacts",
+                "Transfer accounts and access only through the approved secure process, never in documents",
+                "Brief the successor and confirm access",
+                "Review progress after one week"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Check surveillance and reports",
+          "frequency": "daily"
+        },
+        {
+          "title": "Follow up on alerts",
+          "frequency": "daily"
+        },
+        {
+          "title": "Support field teams",
+          "frequency": "daily"
+        },
+        {
+          "title": "Update trackers and data",
+          "frequency": "daily"
+        },
+        {
+          "title": "Respond to partner requests",
+          "frequency": "daily"
+        },
+        {
+          "title": "Weekly surveillance report",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Outreach planning and review",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Data quality check",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Team and partner meeting",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Update dashboards",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Programme performance report",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Community feedback review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Supply and logistics check",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Training and supervision visits",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Programme review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Evaluation and learning",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Funding and reporting",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Preparedness exercise",
+          "frequency": "quarterly"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "technical",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Reports submitted",
+        "Reports missed",
+        "Outreach activities",
+        "Reach",
+        "Risks and recommendations",
+        "Plan for next period"
+      ],
+      "cadenceContent": {
+        "daily": [
+          "Daily checklist results",
+          "Open items and issues",
+          "Escalations",
+          "Plan for tomorrow"
+        ],
+        "weekly": [
+          "Weekly checklist results",
+          "KPI snapshot",
+          "Risks and blockers",
+          "Plan for next week"
+        ],
+        "monthly": [
+          "All KPI sections",
+          "Trends",
+          "Risks and recommendations",
+          "Plan for next month"
+        ]
+      }
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "restricted",
+      "neverSendRegisterKinds": [
+        "Patients"
+      ],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers",
+        "amounts and balances"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Public health from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: surveillance_reports, outreach_activities"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Public health method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "Detailed checklists, playbook steps and triggers are proposals written from general professional practice, not from a source document: a practitioner must review and adapt them.",
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and register tracking lists are proposals: confirm against local practice and regulations.",
+    "Restricted data: keep personal, patient, employee, account and privileged data out of prompts; use codes only."
+  ]
+}

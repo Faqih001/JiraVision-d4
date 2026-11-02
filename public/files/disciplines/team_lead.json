@@ -1,0 +1,613 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "team_lead",
+    "label": "Team lead",
+    "category": "delivery",
+    "categoryLabel": "Management & project delivery",
+    "focus": "Day-to-day direction, unblocking and team health"
+  },
+  "pack": {
+    "key": "management",
+    "reportTemplate": "general",
+    "registerKinds": [
+      "Initiatives",
+      "Stakeholders",
+      "Risks",
+      "Reports"
+    ],
+    "ladderDiscipline": {
+      "proposed": "coordinator",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced team lead practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use.",
+    "detailLevel": "detailed"
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "blockers_cleared",
+          "label": "Blockers cleared",
+          "source": "blockers",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "open_blockers",
+          "label": "Open blockers",
+          "source": "blockers",
+          "sourceType": "log",
+          "aggregation": "open_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "stand_ups_held",
+          "label": "Stand-ups held",
+          "source": "standups",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "goals_on_track",
+          "label": "Goals on track",
+          "source": "initiatives",
+          "sourceType": "register",
+          "aggregation": "rate",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "blocker_open_over_2_days",
+          "when": "blocker open over 2 days",
+          "suggest": "escalate",
+          "deterministic": true
+        },
+        {
+          "id": "no_stand_up_logged_this_week",
+          "when": "no stand-up logged this week",
+          "suggest": "log one",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "blockers",
+          "label": "Blockers",
+          "fields": [
+            {
+              "key": "raised_date",
+              "type": "date"
+            },
+            {
+              "key": "blocker",
+              "type": "text"
+            },
+            {
+              "key": "owner_ref",
+              "type": "text"
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "open",
+                "escalated",
+                "cleared"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "standups",
+          "label": "Standups",
+          "fields": [
+            {
+              "key": "standup_date",
+              "type": "date"
+            },
+            {
+              "key": "attendee_count",
+              "type": "number"
+            },
+            {
+              "key": "notes",
+              "type": "text"
+            }
+          ]
+        },
+        {
+          "key": "daily_checklist",
+          "label": "Daily checklist",
+          "fields": [
+            {
+              "key": "date",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "run_stand_up",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Run stand-up"
+            },
+            {
+              "key": "unblock_team_members",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Unblock team members"
+            },
+            {
+              "key": "review_work_in_review",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review work in review"
+            },
+            {
+              "key": "check_the_sprint_or_team_board",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check the sprint or team board"
+            },
+            {
+              "key": "triage_urgent_requests",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Triage urgent requests"
+            }
+          ]
+        },
+        {
+          "key": "weekly_checklist",
+          "label": "Weekly checklist",
+          "fields": [
+            {
+              "key": "week_starting",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "sprint_planning_or_weekly_plan",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Sprint planning or weekly plan"
+            },
+            {
+              "key": "retrospective",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Retrospective"
+            },
+            {
+              "key": "one_to_ones",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "One-to-ones"
+            },
+            {
+              "key": "review_workload_and_capacity",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review workload and capacity"
+            },
+            {
+              "key": "update_stakeholders",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Update stakeholders"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Initiatives",
+          "track": [
+            "sprint or team goals"
+          ]
+        },
+        {
+          "kind": "Stakeholders",
+          "track": [
+            "team and partner contacts"
+          ]
+        },
+        {
+          "kind": "Risks",
+          "track": [
+            "blockers"
+          ]
+        }
+      ],
+      "documentationCategories": [
+        "Sprint or team board",
+        "Stand-up notes",
+        "Retrospective actions",
+        "Capacity plan",
+        "Team agreements",
+        "Blocker log"
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "daily_stand_up",
+          "title": "Daily stand-up",
+          "frequency": "daily",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Each person shares progress, plan and blockers",
+                "Note blockers and owners",
+                "Agree same-day help",
+                "Update the board",
+                "Keep to time"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "retrospective",
+          "title": "Retrospective",
+          "frequency": "weekly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Gather what went well and what did not",
+                "Group themes",
+                "Vote on top issues",
+                "Agree actions with owners",
+                "Review last actions"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "sprint_planning",
+          "title": "Sprint planning",
+          "frequency": "weekly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Confirm goal and capacity",
+                "Review and size backlog items",
+                "Commit to scope",
+                "Identify risks and dependencies",
+                "Publish the plan"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "escalating_a_blocker",
+          "title": "Escalating a blocker",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Describe the blocker and impact",
+                "State what you tried",
+                "Name who can unblock",
+                "Set a response deadline",
+                "Record the outcome"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "escalation",
+          "title": "Escalation",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "triggers": [
+            "Blocker open over 2 days",
+            "Sprint goal at risk",
+            "Conflict within the team",
+            "Quality issue reaching production",
+            "Key person absence"
+          ],
+          "recordFields": [
+            "date_time",
+            "affected_area_or_system",
+            "people_affected_by_code_or_count",
+            "description",
+            "actions_taken",
+            "evidence_or_logs",
+            "impact",
+            "person_or_party_contacted",
+            "current_status"
+          ],
+          "rules": [
+            "Record facts; escalate promptly when a trigger is met"
+          ]
+        },
+        {
+          "key": "role_handover",
+          "title": "Role handover",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Handover",
+              "steps": [
+                "Transfer Initiatives: sprint or team goals",
+                "Transfer Stakeholders: team and partner contacts",
+                "Transfer Risks: blockers",
+                "List open work, deadlines and commitments",
+                "Share trackers, templates and contacts",
+                "Transfer accounts and access only through the approved secure process, never in documents",
+                "Brief the successor and confirm access",
+                "Review progress after one week"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Run stand-up",
+          "frequency": "daily"
+        },
+        {
+          "title": "Unblock team members",
+          "frequency": "daily"
+        },
+        {
+          "title": "Review work in review",
+          "frequency": "daily"
+        },
+        {
+          "title": "Check the sprint or team board",
+          "frequency": "daily"
+        },
+        {
+          "title": "Triage urgent requests",
+          "frequency": "daily"
+        },
+        {
+          "title": "Sprint planning or weekly plan",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Retrospective",
+          "frequency": "weekly"
+        },
+        {
+          "title": "One-to-ones",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Review workload and capacity",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Update stakeholders",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Team health check",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Review delivery metrics",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Review learning and development goals",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Review process improvements",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Goals and objectives review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Skills gap review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Hiring and capacity needs",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Team recognition",
+          "frequency": "quarterly"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "general",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Blockers cleared",
+        "Open blockers",
+        "Stand-ups held",
+        "Goals on track",
+        "Risks and recommendations",
+        "Plan for next period"
+      ],
+      "cadenceContent": {
+        "daily": [
+          "Daily checklist results",
+          "Open items and issues",
+          "Escalations",
+          "Plan for tomorrow"
+        ],
+        "weekly": [
+          "Weekly checklist results",
+          "KPI snapshot",
+          "Risks and blockers",
+          "Plan for next week"
+        ],
+        "monthly": [
+          "All KPI sections",
+          "Trends",
+          "Risks and recommendations",
+          "Plan for next month"
+        ]
+      }
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "standard",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Team lead from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: blockers, standups"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Team lead method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "Detailed checklists, playbook steps and triggers are proposals written from general professional practice, not from a source document: a practitioner must review and adapt them.",
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and register tracking lists are proposals: confirm against local practice and regulations."
+  ]
+}

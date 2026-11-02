@@ -1,0 +1,634 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "tax",
+    "label": "Tax",
+    "category": "finance",
+    "categoryLabel": "Finance, audit & commercial",
+    "focus": "Filings, deadlines and tax queries"
+  },
+  "pack": {
+    "key": "finance",
+    "reportTemplate": "assurance",
+    "registerKinds": [
+      "Accounts",
+      "Audits",
+      "Compliance",
+      "Financial reports"
+    ],
+    "ladderDiscipline": {
+      "proposed": "finance",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "licensed tax practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use.",
+    "detailLevel": "detailed"
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "filings_on_time",
+          "label": "Filings on time",
+          "source": "tax_filings",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "filings_late",
+          "label": "Filings late",
+          "source": "tax_filings",
+          "sourceType": "log",
+          "aggregation": "overdue_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "queries_open",
+          "label": "Queries open",
+          "source": "tax_queries",
+          "sourceType": "log",
+          "aggregation": "open_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "compliance_items",
+          "label": "Compliance items",
+          "source": "compliance",
+          "sourceType": "register",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "filing_due_in_14_days",
+          "when": "filing due in 14 days",
+          "suggest": "start preparation",
+          "deterministic": true
+        },
+        {
+          "id": "authority_query_response_due_in_3_days",
+          "when": "authority query response due in 3 days",
+          "suggest": "respond",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "tax_filings",
+          "label": "Tax filings",
+          "fields": [
+            {
+              "key": "tax_type",
+              "type": "text"
+            },
+            {
+              "key": "period",
+              "type": "text"
+            },
+            {
+              "key": "due_date",
+              "type": "date"
+            },
+            {
+              "key": "filed_date",
+              "type": "date"
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "due",
+                "filed",
+                "late"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "tax_queries",
+          "label": "Tax queries",
+          "fields": [
+            {
+              "key": "received_date",
+              "type": "date"
+            },
+            {
+              "key": "authority",
+              "type": "text"
+            },
+            {
+              "key": "subject",
+              "type": "text"
+            },
+            {
+              "key": "response_due",
+              "type": "text"
+            }
+          ]
+        },
+        {
+          "key": "daily_checklist",
+          "label": "Daily checklist",
+          "fields": [
+            {
+              "key": "date",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "check_tax_correspondence",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check tax correspondence"
+            },
+            {
+              "key": "review_transactions_for_tax_treatment",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review transactions for tax treatment"
+            },
+            {
+              "key": "respond_to_tax_queries",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Respond to tax queries"
+            },
+            {
+              "key": "update_the_filing_tracker",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Update the filing tracker"
+            },
+            {
+              "key": "check_regulatory_updates",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check regulatory updates"
+            }
+          ]
+        },
+        {
+          "key": "weekly_checklist",
+          "label": "Weekly checklist",
+          "fields": [
+            {
+              "key": "week_starting",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "review_upcoming_deadlines",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review upcoming deadlines"
+            },
+            {
+              "key": "reconcile_tax_accounts",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Reconcile tax accounts"
+            },
+            {
+              "key": "prepare_returns_in_progress",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Prepare returns in progress"
+            },
+            {
+              "key": "review_withholding_and_vat_items",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review withholding and VAT items"
+            },
+            {
+              "key": "update_the_tax_log",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Update the tax log"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Accounts",
+          "track": [
+            "tax accounts"
+          ]
+        },
+        {
+          "kind": "Compliance",
+          "track": [
+            "filing calendar"
+          ]
+        },
+        {
+          "kind": "Financial reports",
+          "track": [
+            "tax computations"
+          ]
+        },
+        {
+          "kind": "Audits",
+          "track": [
+            "tax reviews"
+          ]
+        }
+      ],
+      "documentationCategories": [
+        "Filing calendar",
+        "Returns and computations",
+        "Correspondence with the tax authority",
+        "Tax reconciliations",
+        "Tax policies and positions",
+        "Supporting evidence"
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "periodic_return",
+          "title": "Periodic return",
+          "frequency": "monthly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Collect and verify source data",
+                "Compute the return",
+                "Review by a second person",
+                "Approve",
+                "File and pay by the deadline",
+                "Archive evidence"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "tax_query_response",
+          "title": "Tax query response",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Log the query and deadline",
+                "Gather records",
+                "Draft the response",
+                "Review and approve",
+                "Submit and log"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "tax_reconciliation",
+          "title": "Tax reconciliation",
+          "frequency": "monthly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Compare ledger to returns",
+                "Investigate differences",
+                "Correct or explain",
+                "Sign off"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "annual_tax_return",
+          "title": "Annual tax return",
+          "frequency": "quarterly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Collect year-end figures",
+                "Prepare the computation",
+                "Review adjustments",
+                "Obtain sign-off",
+                "File and retain"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "escalation",
+          "title": "Escalation",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "triggers": [
+            "Deadline will be missed",
+            "Authority audit or enquiry",
+            "Significant error found in a filed return",
+            "Tax law change with material effect",
+            "Unexplained tax difference"
+          ],
+          "recordFields": [
+            "date_time",
+            "affected_area_or_system",
+            "people_affected_by_code_or_count",
+            "description",
+            "actions_taken",
+            "evidence_or_logs",
+            "impact",
+            "person_or_party_contacted",
+            "current_status"
+          ],
+          "rules": [
+            "Record facts only; no personal identifiers in free text"
+          ]
+        },
+        {
+          "key": "role_handover",
+          "title": "Role handover",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Handover",
+              "steps": [
+                "Transfer Accounts: tax accounts",
+                "Transfer Compliance: filing calendar",
+                "Transfer Financial reports: tax computations",
+                "Transfer Audits: tax reviews",
+                "List open work, deadlines and commitments",
+                "Share trackers, templates and contacts",
+                "Transfer accounts and access only through the approved secure process, never in documents",
+                "Brief the successor and confirm access",
+                "Review progress after one week"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Check tax correspondence",
+          "frequency": "daily"
+        },
+        {
+          "title": "Review transactions for tax treatment",
+          "frequency": "daily"
+        },
+        {
+          "title": "Respond to tax queries",
+          "frequency": "daily"
+        },
+        {
+          "title": "Update the filing tracker",
+          "frequency": "daily"
+        },
+        {
+          "title": "Check regulatory updates",
+          "frequency": "daily"
+        },
+        {
+          "title": "Review upcoming deadlines",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Reconcile tax accounts",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Prepare returns in progress",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Review withholding and VAT items",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Update the tax log",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Prepare and file periodic returns",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Reconcile tax ledgers",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Review payments made",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Brief management on the position",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Estimated tax review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Tax risk review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Update provisions and disclosures",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Review law changes",
+          "frequency": "quarterly"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "assurance",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Filings on time",
+        "Filings late",
+        "Queries open",
+        "Compliance items",
+        "Risks and recommendations",
+        "Plan for next period"
+      ],
+      "cadenceContent": {
+        "daily": [
+          "Daily checklist results",
+          "Open items and issues",
+          "Escalations",
+          "Plan for tomorrow"
+        ],
+        "weekly": [
+          "Weekly checklist results",
+          "KPI snapshot",
+          "Risks and blockers",
+          "Plan for next week"
+        ],
+        "monthly": [
+          "All KPI sections",
+          "Trends",
+          "Risks and recommendations",
+          "Plan for next month"
+        ]
+      }
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "restricted",
+      "neverSendRegisterKinds": [
+        "Accounts"
+      ],
+      "neverSendEntities": [
+        "tax_queries"
+      ],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers",
+        "amounts and balances"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Tax from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: tax_filings"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Tax method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "Detailed checklists, playbook steps and triggers are proposals written from general professional practice, not from a source document: a practitioner must review and adapt them.",
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and register tracking lists are proposals: confirm against local practice and regulations.",
+    "Restricted data: keep personal, patient, employee, account and privileged data out of prompts; use codes only."
+  ]
+}

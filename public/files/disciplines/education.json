@@ -1,0 +1,645 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "education",
+    "label": "Education",
+    "category": "science",
+    "categoryLabel": "Health, science & specialist services",
+    "focus": "Lesson planning, assessment and learner progress"
+  },
+  "pack": {
+    "key": "healthcare-science",
+    "reportTemplate": "technical",
+    "registerKinds": [
+      "Patients",
+      "Clinical protocols",
+      "Research",
+      "Compliance"
+    ],
+    "ladderDiscipline": {
+      "proposed": "healthcare_science",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "qualified teacher",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use.",
+    "detailLevel": "detailed"
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "lessons_taught",
+          "label": "Lessons taught",
+          "source": "lesson_plans",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "assessments_complete",
+          "label": "Assessments complete",
+          "source": "assessment_records",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "lessons_planned_not_taught",
+          "label": "Lessons planned not taught",
+          "source": "lesson_plans",
+          "sourceType": "log",
+          "aggregation": "open_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "safeguarding_items",
+          "label": "Safeguarding items",
+          "source": "compliance",
+          "sourceType": "register",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "lesson_planned_but_not_taught",
+          "when": "lesson planned but not taught",
+          "suggest": "reschedule",
+          "deterministic": true
+        },
+        {
+          "id": "assessment_partly_complete",
+          "when": "assessment partly complete",
+          "suggest": "finish",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "lesson_plans",
+          "label": "Lesson plans",
+          "fields": [
+            {
+              "key": "lesson_date",
+              "type": "date"
+            },
+            {
+              "key": "class",
+              "type": "text"
+            },
+            {
+              "key": "topic",
+              "type": "text"
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "planned",
+                "taught"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "assessment_records",
+          "label": "Assessment records",
+          "fields": [
+            {
+              "key": "assessment_date",
+              "type": "date"
+            },
+            {
+              "key": "class",
+              "type": "text"
+            },
+            {
+              "key": "assessment",
+              "type": "text"
+            },
+            {
+              "key": "completion_status",
+              "type": "enum",
+              "values": [
+                "complete",
+                "partial"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "daily_checklist",
+          "label": "Daily checklist",
+          "fields": [
+            {
+              "key": "date",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "prepare_and_teach_lessons",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Prepare and teach lessons"
+            },
+            {
+              "key": "take_attendance",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Take attendance"
+            },
+            {
+              "key": "mark_and_give_feedback",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Mark and give feedback"
+            },
+            {
+              "key": "monitor_learner_wellbeing_and_behaviour",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Monitor learner wellbeing and behaviour"
+            },
+            {
+              "key": "communicate_with_parents_or_guardians_as_needed",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Communicate with parents or guardians as needed"
+            },
+            {
+              "key": "update_records",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Update records"
+            }
+          ]
+        },
+        {
+          "key": "weekly_checklist",
+          "label": "Weekly checklist",
+          "fields": [
+            {
+              "key": "week_starting",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "weekly_lesson_plan",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Weekly lesson plan"
+            },
+            {
+              "key": "assessment_and_marking",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Assessment and marking"
+            },
+            {
+              "key": "department_or_team_meeting",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Department or team meeting"
+            },
+            {
+              "key": "review_learner_progress",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review learner progress"
+            },
+            {
+              "key": "resource_preparation",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Resource preparation"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Patients",
+          "track": [
+            "none"
+          ]
+        },
+        {
+          "kind": "Clinical protocols",
+          "track": [
+            "teaching protocols"
+          ]
+        },
+        {
+          "kind": "Research",
+          "track": [
+            "pedagogy research"
+          ]
+        },
+        {
+          "kind": "Compliance",
+          "track": [
+            "curriculum and safeguarding"
+          ]
+        }
+      ],
+      "documentationCategories": [
+        "Schemes of work and lesson plans",
+        "Assessment records",
+        "Attendance records (restricted)",
+        "Learner support plans (restricted)",
+        "Curriculum documents",
+        "Safeguarding records (restricted)"
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "lesson_plan",
+          "title": "Lesson plan",
+          "frequency": "daily",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Set objectives",
+                "Plan activities and resources",
+                "Plan assessment",
+                "Teach and adapt",
+                "Reflect and record"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "assessment_cycle",
+          "title": "Assessment cycle",
+          "frequency": "weekly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Set the task and criteria",
+                "Collect work",
+                "Mark consistently",
+                "Give feedback",
+                "Record results"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "learner_support",
+          "title": "Learner support",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Identify the need",
+                "Discuss with the learner and guardian",
+                "Plan support",
+                "Review progress",
+                "Record"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "safeguarding_concern",
+          "title": "Safeguarding concern",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Listen and do not promise confidentiality",
+                "Record facts",
+                "Report to the designated person",
+                "Follow their instructions",
+                "Record the outcome"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "escalation",
+          "title": "Escalation",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "triggers": [
+            "Safeguarding concern",
+            "Serious behaviour or safety incident",
+            "Learner at risk of dropping out",
+            "Assessment integrity issue",
+            "Learner medical emergency"
+          ],
+          "recordFields": [
+            "date_time",
+            "affected_area_or_system",
+            "people_affected_by_code_or_count",
+            "description",
+            "actions_taken",
+            "evidence_or_logs",
+            "impact",
+            "person_or_party_contacted",
+            "current_status"
+          ],
+          "rules": [
+            "Record facts only; no personal identifiers in free text"
+          ]
+        },
+        {
+          "key": "role_handover",
+          "title": "Role handover",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Handover",
+              "steps": [
+                "Transfer Patients: none",
+                "Transfer Clinical protocols: teaching protocols",
+                "Transfer Research: pedagogy research",
+                "Transfer Compliance: curriculum and safeguarding",
+                "List open work, deadlines and commitments",
+                "Share trackers, templates and contacts",
+                "Transfer accounts and access only through the approved secure process, never in documents",
+                "Brief the successor and confirm access",
+                "Review progress after one week"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Prepare and teach lessons",
+          "frequency": "daily"
+        },
+        {
+          "title": "Take attendance",
+          "frequency": "daily"
+        },
+        {
+          "title": "Mark and give feedback",
+          "frequency": "daily"
+        },
+        {
+          "title": "Monitor learner wellbeing and behaviour",
+          "frequency": "daily"
+        },
+        {
+          "title": "Communicate with parents or guardians as needed",
+          "frequency": "daily"
+        },
+        {
+          "title": "Update records",
+          "frequency": "daily"
+        },
+        {
+          "title": "Weekly lesson plan",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Assessment and marking",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Department or team meeting",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Review learner progress",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Resource preparation",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Progress and attendance report",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Curriculum coverage check",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Learner support planning",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Professional development",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Term or semester review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Assessment moderation",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Curriculum and resource review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Safeguarding and policy refresh",
+          "frequency": "quarterly"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "technical",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Lessons taught",
+        "Assessments complete",
+        "Lessons planned not taught",
+        "Safeguarding items",
+        "Risks and recommendations",
+        "Plan for next period"
+      ],
+      "cadenceContent": {
+        "daily": [
+          "Daily checklist results",
+          "Open items and issues",
+          "Escalations",
+          "Plan for tomorrow"
+        ],
+        "weekly": [
+          "Weekly checklist results",
+          "KPI snapshot",
+          "Risks and blockers",
+          "Plan for next week"
+        ],
+        "monthly": [
+          "All KPI sections",
+          "Trends",
+          "Risks and recommendations",
+          "Plan for next month"
+        ]
+      }
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "restricted",
+      "neverSendRegisterKinds": [
+        "Patients"
+      ],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers",
+        "amounts and balances"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Education from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: lesson_plans, assessment_records"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Education method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "Detailed checklists, playbook steps and triggers are proposals written from general professional practice, not from a source document: a practitioner must review and adapt them.",
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and register tracking lists are proposals: confirm against local practice and regulations.",
+    "Restricted data: keep personal, patient, employee, account and privileged data out of prompts; use codes only."
+  ]
+}

@@ -1,0 +1,645 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "logistics",
+    "label": "Logistics",
+    "category": "operations",
+    "categoryLabel": "Operations & supply chain",
+    "focus": "Shipments, routes and delivery exceptions"
+  },
+  "pack": {
+    "key": "operations",
+    "reportTemplate": "technical",
+    "registerKinds": [
+      "Processes",
+      "Inventory",
+      "Logistics",
+      "Quality control"
+    ],
+    "ladderDiscipline": {
+      "proposed": "operations",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced logistics practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use.",
+    "detailLevel": "detailed"
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "shipments_delivered_on_time",
+          "label": "Shipments delivered on time",
+          "source": "shipments",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "shipments_late",
+          "label": "Shipments late",
+          "source": "shipments",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "open_exceptions",
+          "label": "Open exceptions",
+          "source": "delivery_exceptions",
+          "sourceType": "log",
+          "aggregation": "open_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "routes_documented",
+          "label": "Routes documented",
+          "source": "logistics",
+          "sourceType": "register",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "shipment_undelivered_past_due_date",
+          "when": "shipment undelivered past due date",
+          "suggest": "trace",
+          "deterministic": true
+        },
+        {
+          "id": "exception_open_over_2_days",
+          "when": "exception open over 2 days",
+          "suggest": "escalate",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "shipments",
+          "label": "Shipments",
+          "fields": [
+            {
+              "key": "dispatch_date",
+              "type": "date"
+            },
+            {
+              "key": "reference",
+              "type": "text"
+            },
+            {
+              "key": "destination",
+              "type": "text"
+            },
+            {
+              "key": "delivered_date",
+              "type": "date"
+            },
+            {
+              "key": "on_time",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "delivery_exceptions",
+          "label": "Delivery exceptions",
+          "fields": [
+            {
+              "key": "exception_date",
+              "type": "date"
+            },
+            {
+              "key": "shipment_ref",
+              "type": "text"
+            },
+            {
+              "key": "cause",
+              "type": "text"
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "open",
+                "resolved"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "daily_checklist",
+          "label": "Daily checklist",
+          "fields": [
+            {
+              "key": "date",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "plan_and_confirm_dispatches",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Plan and confirm dispatches"
+            },
+            {
+              "key": "track_shipments_in_transit",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Track shipments in transit"
+            },
+            {
+              "key": "handle_delivery_exceptions",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Handle delivery exceptions"
+            },
+            {
+              "key": "update_proof_of_delivery",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Update proof of delivery"
+            },
+            {
+              "key": "check_vehicles_and_carrier_status",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check vehicles and carrier status"
+            },
+            {
+              "key": "update_the_logistics_log",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Update the logistics log"
+            }
+          ]
+        },
+        {
+          "key": "weekly_checklist",
+          "label": "Weekly checklist",
+          "fields": [
+            {
+              "key": "week_starting",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "carrier_performance_review",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Carrier performance review"
+            },
+            {
+              "key": "route_and_load_planning",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Route and load planning"
+            },
+            {
+              "key": "review_delays_and_claims",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review delays and claims"
+            },
+            {
+              "key": "review_costs",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review costs"
+            },
+            {
+              "key": "update_schedules",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Update schedules"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Processes",
+          "track": [
+            "dispatch processes"
+          ]
+        },
+        {
+          "kind": "Inventory",
+          "track": [
+            "goods in transit"
+          ]
+        },
+        {
+          "kind": "Logistics",
+          "track": [
+            "routes and carriers"
+          ]
+        },
+        {
+          "kind": "Quality control",
+          "track": [
+            "delivery checks"
+          ]
+        }
+      ],
+      "documentationCategories": [
+        "Shipment register",
+        "Delivery and POD records",
+        "Carrier contracts and scorecards",
+        "Route plans",
+        "Claims log",
+        "Compliance documents"
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "dispatch",
+          "title": "Dispatch",
+          "frequency": "daily",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Confirm orders and load plan",
+                "Check documents and labels",
+                "Load and secure",
+                "Record departure",
+                "Share tracking"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "delivery_exception",
+          "title": "Delivery exception",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Record the exception",
+                "Contact driver and customer",
+                "Decide re-delivery or return",
+                "Update records",
+                "Note the root cause"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "carrier_review",
+          "title": "Carrier review",
+          "frequency": "weekly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Collect on-time and damage data",
+                "Compare to targets",
+                "Discuss with the carrier",
+                "Agree actions",
+                "Record"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "proof_of_delivery",
+          "title": "Proof of delivery",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Obtain signature or confirmation",
+                "Check goods condition",
+                "Upload and file",
+                "Trigger invoicing",
+                "Close the shipment"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "escalation",
+          "title": "Escalation",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "triggers": [
+            "Shipment lost or damaged",
+            "Delivery failure to a key customer",
+            "Vehicle accident",
+            "Regulatory or customs hold",
+            "Carrier failure"
+          ],
+          "recordFields": [
+            "date_time",
+            "affected_area_or_system",
+            "people_affected_by_code_or_count",
+            "description",
+            "actions_taken",
+            "evidence_or_logs",
+            "impact",
+            "person_or_party_contacted",
+            "current_status"
+          ],
+          "rules": [
+            "Record facts; escalate promptly when a trigger is met"
+          ]
+        },
+        {
+          "key": "role_handover",
+          "title": "Role handover",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Handover",
+              "steps": [
+                "Transfer Processes: dispatch processes",
+                "Transfer Inventory: goods in transit",
+                "Transfer Logistics: routes and carriers",
+                "Transfer Quality control: delivery checks",
+                "List open work, deadlines and commitments",
+                "Share trackers, templates and contacts",
+                "Transfer accounts and access only through the approved secure process, never in documents",
+                "Brief the successor and confirm access",
+                "Review progress after one week"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Plan and confirm dispatches",
+          "frequency": "daily"
+        },
+        {
+          "title": "Track shipments in transit",
+          "frequency": "daily"
+        },
+        {
+          "title": "Handle delivery exceptions",
+          "frequency": "daily"
+        },
+        {
+          "title": "Update proof of delivery",
+          "frequency": "daily"
+        },
+        {
+          "title": "Check vehicles and carrier status",
+          "frequency": "daily"
+        },
+        {
+          "title": "Update the logistics log",
+          "frequency": "daily"
+        },
+        {
+          "title": "Carrier performance review",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Route and load planning",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Review delays and claims",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Review costs",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Update schedules",
+          "frequency": "weekly"
+        },
+        {
+          "title": "On-time delivery report",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Cost per delivery review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Carrier and route review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Damage and loss review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Carrier contract review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Network and route optimisation",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Safety and compliance review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Fleet or equipment plan",
+          "frequency": "quarterly"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "technical",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Shipments delivered on time",
+        "Shipments late",
+        "Open exceptions",
+        "Routes documented",
+        "Risks and recommendations",
+        "Plan for next period"
+      ],
+      "cadenceContent": {
+        "daily": [
+          "Daily checklist results",
+          "Open items and issues",
+          "Escalations",
+          "Plan for tomorrow"
+        ],
+        "weekly": [
+          "Weekly checklist results",
+          "KPI snapshot",
+          "Risks and blockers",
+          "Plan for next week"
+        ],
+        "monthly": [
+          "All KPI sections",
+          "Trends",
+          "Risks and recommendations",
+          "Plan for next month"
+        ]
+      }
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "standard",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Logistics from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: shipments, delivery_exceptions"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Logistics method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "Detailed checklists, playbook steps and triggers are proposals written from general professional practice, not from a source document: a practitioner must review and adapt them.",
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and register tracking lists are proposals: confirm against local practice and regulations."
+  ]
+}

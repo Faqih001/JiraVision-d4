@@ -1,0 +1,628 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "creative",
+    "label": "Creative",
+    "category": "services",
+    "categoryLabel": "Creative, service & industry work",
+    "focus": "Creative briefs, production and approvals"
+  },
+  "pack": {
+    "key": "designer",
+    "reportTemplate": "creative",
+    "registerKinds": [
+      "Design files",
+      "Brand assets",
+      "User research",
+      "Design system"
+    ],
+    "ladderDiscipline": {
+      "proposed": "designer",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced creative practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use.",
+    "detailLevel": "detailed"
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "briefs_delivered",
+          "label": "Briefs delivered",
+          "source": "creative_briefs",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "revision_rounds",
+          "label": "Revision rounds",
+          "source": "revision_rounds",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "briefs_past_due",
+          "label": "Briefs past due",
+          "source": "creative_briefs",
+          "sourceType": "log",
+          "aggregation": "overdue_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "brand_assets",
+          "label": "Brand assets",
+          "source": "brand_assets",
+          "sourceType": "register",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "brief_past_due",
+          "when": "brief past due",
+          "suggest": "replan",
+          "deterministic": true
+        },
+        {
+          "id": "more_than_3_revision_rounds",
+          "when": "more than 3 revision rounds",
+          "suggest": "clarify brief",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "creative_briefs",
+          "label": "Creative briefs",
+          "fields": [
+            {
+              "key": "received_date",
+              "type": "date"
+            },
+            {
+              "key": "brief",
+              "type": "text"
+            },
+            {
+              "key": "due_date",
+              "type": "date"
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "briefed",
+                "in_progress",
+                "delivered",
+                "approved"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "revision_rounds",
+          "label": "Revision rounds",
+          "fields": [
+            {
+              "key": "deliverable",
+              "type": "text"
+            },
+            {
+              "key": "round",
+              "type": "number"
+            },
+            {
+              "key": "feedback_date",
+              "type": "date"
+            }
+          ]
+        },
+        {
+          "key": "daily_checklist",
+          "label": "Daily checklist",
+          "fields": [
+            {
+              "key": "date",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "review_briefs_and_feedback",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review briefs and feedback"
+            },
+            {
+              "key": "work_on_planned_creative_tasks",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Work on planned creative tasks"
+            },
+            {
+              "key": "save_and_version_work",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Save and version work"
+            },
+            {
+              "key": "share_work_in_progress",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Share work in progress"
+            },
+            {
+              "key": "respond_to_approvals",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Respond to approvals"
+            },
+            {
+              "key": "back_up_files",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Back up files"
+            }
+          ]
+        },
+        {
+          "key": "weekly_checklist",
+          "label": "Weekly checklist",
+          "fields": [
+            {
+              "key": "week_starting",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "creative_review",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Creative review"
+            },
+            {
+              "key": "brief_intake_and_planning",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Brief intake and planning"
+            },
+            {
+              "key": "asset_library_update",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Asset library update"
+            },
+            {
+              "key": "production_schedule_check",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Production schedule check"
+            },
+            {
+              "key": "client_or_stakeholder_update",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Client or stakeholder update"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Design files",
+          "track": [
+            "creative assets"
+          ]
+        },
+        {
+          "kind": "Brand assets",
+          "track": [
+            "brand library"
+          ]
+        },
+        {
+          "kind": "User research",
+          "track": [
+            "audience insight"
+          ]
+        }
+      ],
+      "documentationCategories": [
+        "Briefs and approvals",
+        "Project files and versions",
+        "Asset library",
+        "Licences and usage rights",
+        "Feedback log",
+        "Portfolio"
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "brief_intake",
+          "title": "Brief intake",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Capture goal, audience and deadline",
+                "Clarify deliverables and constraints",
+                "Confirm budget and approvals",
+                "Plan stages",
+                "Agree the sign-off route"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "creative_review",
+          "title": "Creative review",
+          "frequency": "weekly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Show work against the brief",
+                "Collect feedback by theme",
+                "Agree changes",
+                "Update the schedule",
+                "Record decisions"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "asset_handover",
+          "title": "Asset handover",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Package final files and formats",
+                "Name and version consistently",
+                "Document usage rights",
+                "Share and archive",
+                "Record"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "revision_management",
+          "title": "Revision management",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Log feedback",
+                "Check against brief scope",
+                "Agree changes and time",
+                "Deliver",
+                "Record approval"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "escalation",
+          "title": "Escalation",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "triggers": [
+            "Copyright or licensing issue",
+            "Brand conflict",
+            "Deadline at risk",
+            "Client dispute over scope",
+            "Source files lost"
+          ],
+          "recordFields": [
+            "date_time",
+            "affected_area_or_system",
+            "people_affected_by_code_or_count",
+            "description",
+            "actions_taken",
+            "evidence_or_logs",
+            "impact",
+            "person_or_party_contacted",
+            "current_status"
+          ],
+          "rules": [
+            "Record facts; escalate promptly when a trigger is met"
+          ]
+        },
+        {
+          "key": "role_handover",
+          "title": "Role handover",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Handover",
+              "steps": [
+                "Transfer Design files: creative assets",
+                "Transfer Brand assets: brand library",
+                "Transfer User research: audience insight",
+                "List open work, deadlines and commitments",
+                "Share trackers, templates and contacts",
+                "Transfer accounts and access only through the approved secure process, never in documents",
+                "Brief the successor and confirm access",
+                "Review progress after one week"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Review briefs and feedback",
+          "frequency": "daily"
+        },
+        {
+          "title": "Work on planned creative tasks",
+          "frequency": "daily"
+        },
+        {
+          "title": "Save and version work",
+          "frequency": "daily"
+        },
+        {
+          "title": "Share work in progress",
+          "frequency": "daily"
+        },
+        {
+          "title": "Respond to approvals",
+          "frequency": "daily"
+        },
+        {
+          "title": "Back up files",
+          "frequency": "daily"
+        },
+        {
+          "title": "Creative review",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Brief intake and planning",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Asset library update",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Production schedule check",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Client or stakeholder update",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Project review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Brand consistency check",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Tools and templates update",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Portfolio update",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Creative direction review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Skills and trends review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Asset library audit",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Process improvement",
+          "frequency": "quarterly"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "creative",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Briefs delivered",
+        "Revision rounds",
+        "Briefs past due",
+        "Brand assets",
+        "Risks and recommendations",
+        "Plan for next period"
+      ],
+      "cadenceContent": {
+        "daily": [
+          "Daily checklist results",
+          "Open items and issues",
+          "Escalations",
+          "Plan for tomorrow"
+        ],
+        "weekly": [
+          "Weekly checklist results",
+          "KPI snapshot",
+          "Risks and blockers",
+          "Plan for next week"
+        ],
+        "monthly": [
+          "All KPI sections",
+          "Trends",
+          "Risks and recommendations",
+          "Plan for next month"
+        ]
+      }
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "standard",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Creative from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: creative_briefs, revision_rounds"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Creative method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "Detailed checklists, playbook steps and triggers are proposals written from general professional practice, not from a source document: a practitioner must review and adapt them.",
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and register tracking lists are proposals: confirm against local practice and regulations."
+  ]
+}

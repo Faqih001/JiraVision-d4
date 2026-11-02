@@ -1,0 +1,655 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "networking",
+    "label": "Networking",
+    "category": "technology",
+    "categoryLabel": "Software, IT & digital",
+    "focus": "Network design, changes and link health"
+  },
+  "pack": {
+    "key": "it-technician",
+    "reportTemplate": "technical",
+    "registerKinds": [
+      "Infrastructure",
+      "Accounts and systems",
+      "Equipment",
+      "Outstanding work"
+    ],
+    "ladderDiscipline": {
+      "proposed": "technician",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced networking practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use.",
+    "detailLevel": "detailed"
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": [
+      "Design",
+      "Configure",
+      "Test",
+      "Monitor",
+      "Troubleshoot",
+      "Document"
+    ],
+    "documentedIn": "roles doc section 4.7 (verify in code)"
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "changes_successful",
+          "label": "Changes successful",
+          "source": "network_changes",
+          "sourceType": "log",
+          "aggregation": "rate",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "links_degraded_or_down",
+          "label": "Links degraded or down",
+          "source": "link_checks",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "link_checks_done",
+          "label": "Link checks done",
+          "source": "link_checks",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "devices_tracked",
+          "label": "Devices tracked",
+          "source": "equipment",
+          "sourceType": "register",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "link_down_over_15_minutes",
+          "when": "link down over 15 minutes",
+          "suggest": "escalate",
+          "deterministic": true
+        },
+        {
+          "id": "device_firmware_behind",
+          "when": "device firmware behind",
+          "suggest": "schedule update",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "network_changes",
+          "label": "Network changes",
+          "fields": [
+            {
+              "key": "change_date",
+              "type": "date"
+            },
+            {
+              "key": "device",
+              "type": "text"
+            },
+            {
+              "key": "change",
+              "type": "text"
+            },
+            {
+              "key": "result",
+              "type": "enum",
+              "values": [
+                "success",
+                "failed"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "link_checks",
+          "label": "Link checks",
+          "fields": [
+            {
+              "key": "check_date",
+              "type": "date"
+            },
+            {
+              "key": "link",
+              "type": "text"
+            },
+            {
+              "key": "latency_status",
+              "type": "enum",
+              "values": [
+                "normal",
+                "high"
+              ]
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "ok",
+                "degraded",
+                "down"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "daily_checklist",
+          "label": "Daily checklist",
+          "fields": [
+            {
+              "key": "date",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "check_link_device_and_wi_fi_status",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check link, device and Wi-Fi status"
+            },
+            {
+              "key": "review_network_alerts_and_logs",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review network alerts and logs"
+            },
+            {
+              "key": "check_bandwidth_and_latency_headlines",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check bandwidth and latency headlines"
+            },
+            {
+              "key": "respond_to_connectivity_tickets",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Respond to connectivity tickets"
+            },
+            {
+              "key": "verify_vpn_and_remote_access_health",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Verify VPN and remote access health"
+            },
+            {
+              "key": "confirm_configuration_backups_ran",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Confirm configuration backups ran"
+            }
+          ]
+        },
+        {
+          "key": "weekly_checklist",
+          "label": "Weekly checklist",
+          "fields": [
+            {
+              "key": "week_starting",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "back_up_device_configurations",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Back up device configurations"
+            },
+            {
+              "key": "review_firewall_and_access_rule_changes",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review firewall and access rule changes"
+            },
+            {
+              "key": "review_wireless_coverage_and_interference",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review wireless coverage and interference"
+            },
+            {
+              "key": "check_firmware_and_patch_advisories",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check firmware and patch advisories"
+            },
+            {
+              "key": "update_the_network_diagram",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Update the network diagram"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Infrastructure",
+          "track": [
+            "network topology and links"
+          ]
+        },
+        {
+          "kind": "Accounts and systems",
+          "track": [
+            "network management tools (references only)"
+          ]
+        },
+        {
+          "kind": "Equipment",
+          "track": [
+            "switches",
+            "routers and access points"
+          ]
+        },
+        {
+          "kind": "Outstanding work",
+          "track": [
+            "network changes"
+          ]
+        }
+      ],
+      "documentationCategories": [
+        "Network diagram and IP plan",
+        "Device inventory",
+        "Configuration backups",
+        "Firewall rule register",
+        "Change log",
+        "Vendor and ISP contacts"
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "network_change",
+          "title": "Network change",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Document the change and rollback",
+                "Back up configuration",
+                "Apply in the window",
+                "Test connectivity and services",
+                "Update diagram and log"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "link_or_wi_fi_fault",
+          "title": "Link or Wi-Fi fault",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Identify scope and symptoms",
+                "Check physical layer and power",
+                "Check configuration and logs",
+                "Isolate the faulty segment or device",
+                "Fix or replace",
+                "Verify and document"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "configuration_backup",
+          "title": "Configuration backup",
+          "frequency": "weekly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "List devices",
+                "Export configurations",
+                "Verify files are readable",
+                "Store securely",
+                "Record the run"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "firmware_update",
+          "title": "Firmware update",
+          "frequency": "monthly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Check vendor advisories",
+                "Test on one device",
+                "Schedule a window",
+                "Update devices in order",
+                "Verify and record"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "escalation",
+          "title": "Escalation",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "triggers": [
+            "Core link or switch down",
+            "Suspected intrusion on the network",
+            "Several sites offline",
+            "Guest isolation failure",
+            "Configuration lost without backup"
+          ],
+          "recordFields": [
+            "date_time",
+            "affected_area_or_system",
+            "people_affected_by_code_or_count",
+            "description",
+            "actions_taken",
+            "evidence_or_logs",
+            "impact",
+            "person_or_party_contacted",
+            "current_status"
+          ],
+          "rules": [
+            "Record facts; escalate promptly when a trigger is met"
+          ]
+        },
+        {
+          "key": "role_handover",
+          "title": "Role handover",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Handover",
+              "steps": [
+                "Transfer Infrastructure: network topology and links",
+                "Transfer Accounts and systems: network management tools (references only)",
+                "Transfer Equipment: switches, routers and access points",
+                "Transfer Outstanding work: network changes",
+                "List open work, deadlines and commitments",
+                "Share trackers, templates and contacts",
+                "Transfer accounts and access only through the approved secure process, never in documents",
+                "Brief the successor and confirm access",
+                "Review progress after one week"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Check link, device and Wi-Fi status",
+          "frequency": "daily"
+        },
+        {
+          "title": "Review network alerts and logs",
+          "frequency": "daily"
+        },
+        {
+          "title": "Check bandwidth and latency headlines",
+          "frequency": "daily"
+        },
+        {
+          "title": "Respond to connectivity tickets",
+          "frequency": "daily"
+        },
+        {
+          "title": "Verify VPN and remote access health",
+          "frequency": "daily"
+        },
+        {
+          "title": "Confirm configuration backups ran",
+          "frequency": "daily"
+        },
+        {
+          "title": "Back up device configurations",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Review firewall and access rule changes",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Review wireless coverage and interference",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Check firmware and patch advisories",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Update the network diagram",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Firmware and patch window",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Capacity and utilisation review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Review guest and VLAN isolation",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Review IP address and DHCP usage",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Topology and redundancy review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Security rule audit",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Disaster recovery for the network",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Lifecycle and replacement plan",
+          "frequency": "quarterly"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "technical",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Changes successful",
+        "Links degraded or down",
+        "Link checks done",
+        "Devices tracked",
+        "Risks and recommendations",
+        "Plan for next period"
+      ],
+      "cadenceContent": {
+        "daily": [
+          "Daily checklist results",
+          "Open items and issues",
+          "Escalations",
+          "Plan for tomorrow"
+        ],
+        "weekly": [
+          "Weekly checklist results",
+          "KPI snapshot",
+          "Risks and blockers",
+          "Plan for next week"
+        ],
+        "monthly": [
+          "All KPI sections",
+          "Trends",
+          "Risks and recommendations",
+          "Plan for next month"
+        ]
+      }
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "standard",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Networking from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: network_changes, link_checks"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Networking method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "Detailed checklists, playbook steps and triggers are proposals written from general professional practice, not from a source document: a practitioner must review and adapt them.",
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and register tracking lists are proposals: confirm against local practice and regulations."
+  ]
+}

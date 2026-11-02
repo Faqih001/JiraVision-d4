@@ -1,0 +1,701 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "developer",
+    "label": "Developer",
+    "category": "technology",
+    "categoryLabel": "Software, IT & digital",
+    "focus": "Build, review, release and maintain software"
+  },
+  "pack": {
+    "key": "developer",
+    "reportTemplate": "engineering",
+    "registerKinds": [
+      "Code repositories",
+      "Pull requests",
+      "Technical debt",
+      "Sprint backlog"
+    ],
+    "ladderDiscipline": {
+      "proposed": "developer",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced developer practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use.",
+    "detailLevel": "detailed"
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": [
+      "Plan",
+      "Code",
+      "Review",
+      "Test",
+      "Deploy",
+      "Monitor"
+    ],
+    "documentedIn": "roles doc section 4.7 (verify in code)"
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "release_success_rate",
+          "label": "Release success rate",
+          "source": "releases",
+          "sourceType": "log",
+          "aggregation": "rate",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "escaped_defects",
+          "label": "Escaped defects",
+          "source": "defects",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "open_critical_defects",
+          "label": "Open critical defects",
+          "source": "defects",
+          "sourceType": "log",
+          "aggregation": "open_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "technical_debt_items",
+          "label": "Technical debt items",
+          "source": "technical_debt",
+          "sourceType": "register",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "pr_open_over_3_days",
+          "when": "PR open over 3 days",
+          "suggest": "nudge reviewer",
+          "deterministic": true
+        },
+        {
+          "id": "release_rolled_back",
+          "when": "release rolled back",
+          "suggest": "add post-mortem",
+          "deterministic": true
+        },
+        {
+          "id": "repo_without_ci_status",
+          "when": "repo without CI status",
+          "suggest": "record",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "releases",
+          "label": "Releases",
+          "fields": [
+            {
+              "key": "release_date",
+              "type": "date"
+            },
+            {
+              "key": "version",
+              "type": "text"
+            },
+            {
+              "key": "environment",
+              "type": "enum",
+              "values": [
+                "dev",
+                "staging",
+                "production"
+              ]
+            },
+            {
+              "key": "result",
+              "type": "enum",
+              "values": [
+                "success",
+                "failed",
+                "rolled_back"
+              ]
+            },
+            {
+              "key": "rollback_reason",
+              "type": "text"
+            }
+          ]
+        },
+        {
+          "key": "defects",
+          "label": "Defects",
+          "fields": [
+            {
+              "key": "found_date",
+              "type": "date"
+            },
+            {
+              "key": "severity",
+              "type": "enum",
+              "values": [
+                "low",
+                "medium",
+                "high",
+                "critical"
+              ]
+            },
+            {
+              "key": "escaped",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no"
+              ]
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "open",
+                "fixed",
+                "wont_fix"
+              ]
+            },
+            {
+              "key": "fixed_date",
+              "type": "date"
+            }
+          ]
+        },
+        {
+          "key": "daily_checklist",
+          "label": "Daily checklist",
+          "fields": [
+            {
+              "key": "date",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "pull_latest_changes_and_check_ci_status",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Pull latest changes and check CI status"
+            },
+            {
+              "key": "review_assigned_pull_requests",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review assigned pull requests"
+            },
+            {
+              "key": "work_planned_tasks_and_update_the_board",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Work planned tasks and update the board"
+            },
+            {
+              "key": "respond_to_review_comments",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Respond to review comments"
+            },
+            {
+              "key": "check_error_and_monitoring_alerts",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check error and monitoring alerts"
+            },
+            {
+              "key": "update_ticket_status",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Update ticket status"
+            }
+          ]
+        },
+        {
+          "key": "weekly_checklist",
+          "label": "Weekly checklist",
+          "fields": [
+            {
+              "key": "week_starting",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "sprint_planning_or_refinement",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Sprint planning or refinement"
+            },
+            {
+              "key": "dependency_and_security_alerts_review",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Dependency and security alerts review"
+            },
+            {
+              "key": "clean_up_branches_and_stale_prs",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Clean up branches and stale PRs"
+            },
+            {
+              "key": "demo_or_share_progress",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Demo or share progress"
+            },
+            {
+              "key": "update_documentation_for_changes",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Update documentation for changes"
+            },
+            {
+              "key": "back_up_local_work_and_notes",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Back up local work and notes"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Code repositories",
+          "track": [
+            "repo owner",
+            "default branch",
+            "CI status"
+          ]
+        },
+        {
+          "kind": "Pull requests",
+          "track": [
+            "open PRs",
+            "reviewers"
+          ]
+        },
+        {
+          "kind": "Technical debt",
+          "track": [
+            "debt items",
+            "impact"
+          ]
+        },
+        {
+          "kind": "Sprint backlog",
+          "track": [
+            "sprint items"
+          ]
+        }
+      ],
+      "documentationCategories": [
+        "Repository inventory",
+        "Release log and changelog",
+        "Defect log",
+        "Architecture notes",
+        "Runbooks",
+        "Post-mortems"
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "code_review",
+          "title": "Code review",
+          "frequency": "daily",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Read the description and linked ticket",
+                "Check for correctness and edge cases",
+                "Check tests and coverage",
+                "Check security and performance",
+                "Leave clear comments",
+                "Approve or request changes"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "release_checklist",
+          "title": "Release checklist",
+          "frequency": "weekly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Confirm all tickets are merged and tested",
+                "Update version and changelog",
+                "Run the full test suite",
+                "Deploy to staging and smoke test",
+                "Deploy to production",
+                "Monitor and be ready to roll back",
+                "Record the release"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "incident_response",
+          "title": "Incident response",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Acknowledge and assess impact",
+                "Mitigate or roll back",
+                "Communicate status",
+                "Find the root cause",
+                "Fix and test",
+                "Write the post-mortem"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "dependency_and_security_update",
+          "title": "Dependency and security update",
+          "frequency": "monthly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "List outdated and vulnerable packages",
+                "Prioritise by risk",
+                "Update in small batches",
+                "Run tests",
+                "Deploy and monitor"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "escalation",
+          "title": "Escalation",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "triggers": [
+            "Production outage",
+            "Security vulnerability in production",
+            "Data loss or corruption",
+            "Failed release that cannot be rolled back",
+            "Credential leak"
+          ],
+          "recordFields": [
+            "date_time",
+            "affected_area_or_system",
+            "people_affected_by_code_or_count",
+            "description",
+            "actions_taken",
+            "evidence_or_logs",
+            "impact",
+            "person_or_party_contacted",
+            "current_status"
+          ],
+          "rules": [
+            "Record facts; escalate promptly when a trigger is met"
+          ]
+        },
+        {
+          "key": "role_handover",
+          "title": "Role handover",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Handover",
+              "steps": [
+                "Transfer Code repositories: repo owner, default branch, CI status",
+                "Transfer Pull requests: open PRs, reviewers",
+                "Transfer Technical debt: debt items, impact",
+                "Transfer Sprint backlog: sprint items",
+                "List open work, deadlines and commitments",
+                "Share trackers, templates and contacts",
+                "Transfer accounts and access only through the approved secure process, never in documents",
+                "Brief the successor and confirm access",
+                "Review progress after one week"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Pull latest changes and check CI status",
+          "frequency": "daily"
+        },
+        {
+          "title": "Review assigned pull requests",
+          "frequency": "daily"
+        },
+        {
+          "title": "Work planned tasks and update the board",
+          "frequency": "daily"
+        },
+        {
+          "title": "Respond to review comments",
+          "frequency": "daily"
+        },
+        {
+          "title": "Check error and monitoring alerts",
+          "frequency": "daily"
+        },
+        {
+          "title": "Update ticket status",
+          "frequency": "daily"
+        },
+        {
+          "title": "Sprint planning or refinement",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Dependency and security alerts review",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Clean up branches and stale PRs",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Demo or share progress",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Update documentation for changes",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Back up local work and notes",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Dependency and security updates",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Technical debt review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Performance and cost review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Review incidents and post-mortems",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Architecture and tooling review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Test coverage review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Disaster recovery or rollback drill",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Skills and learning plan",
+          "frequency": "quarterly"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "engineering",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Release success rate",
+        "Escaped defects",
+        "Open critical defects",
+        "Technical debt items",
+        "Risks and recommendations",
+        "Plan for next period"
+      ],
+      "cadenceContent": {
+        "daily": [
+          "Daily checklist results",
+          "Open items and issues",
+          "Escalations",
+          "Plan for tomorrow"
+        ],
+        "weekly": [
+          "Weekly checklist results",
+          "KPI snapshot",
+          "Risks and blockers",
+          "Plan for next week"
+        ],
+        "monthly": [
+          "All KPI sections",
+          "Trends",
+          "Risks and recommendations",
+          "Plan for next month"
+        ]
+      }
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "standard",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Developer from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: releases, defects"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Developer method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "Detailed checklists, playbook steps and triggers are proposals written from general professional practice, not from a source document: a practitioner must review and adapt them.",
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and register tracking lists are proposals: confirm against local practice and regulations."
+  ]
+}

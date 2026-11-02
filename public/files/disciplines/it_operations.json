@@ -1,0 +1,661 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "it_operations",
+    "label": "IT operations",
+    "category": "technology",
+    "categoryLabel": "Software, IT & digital",
+    "focus": "Monitoring, alerts, change records and service health"
+  },
+  "pack": {
+    "key": "it-technician",
+    "reportTemplate": "technical",
+    "registerKinds": [
+      "Infrastructure",
+      "Accounts and systems",
+      "Equipment",
+      "Outstanding work"
+    ],
+    "ladderDiscipline": {
+      "proposed": "technician",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced it operations practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use.",
+    "detailLevel": "detailed"
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": [
+      "Monitor",
+      "Alert",
+      "Triage",
+      "Resolve",
+      "Document",
+      "Review"
+    ],
+    "documentedIn": "roles doc section 4.7 (verify in code)"
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "alerts_resolved",
+          "label": "Alerts resolved",
+          "source": "service_alerts",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "critical_alerts_open",
+          "label": "Critical alerts open",
+          "source": "service_alerts",
+          "sourceType": "log",
+          "aggregation": "open_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "changes_successful",
+          "label": "Changes successful",
+          "source": "change_records",
+          "sourceType": "log",
+          "aggregation": "rate",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "services_monitored",
+          "label": "Services monitored",
+          "source": "infrastructure",
+          "sourceType": "register",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "critical_alert_unacknowledged",
+          "when": "critical alert unacknowledged",
+          "suggest": "escalate",
+          "deterministic": true
+        },
+        {
+          "id": "change_rolled_back",
+          "when": "change rolled back",
+          "suggest": "post-incident review",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "service_alerts",
+          "label": "Service alerts",
+          "fields": [
+            {
+              "key": "alert_date",
+              "type": "date"
+            },
+            {
+              "key": "service",
+              "type": "text"
+            },
+            {
+              "key": "severity",
+              "type": "enum",
+              "values": [
+                "low",
+                "medium",
+                "high",
+                "critical"
+              ]
+            },
+            {
+              "key": "acknowledged",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no"
+              ]
+            },
+            {
+              "key": "resolved_date",
+              "type": "date"
+            }
+          ]
+        },
+        {
+          "key": "change_records",
+          "label": "Change records",
+          "fields": [
+            {
+              "key": "change_date",
+              "type": "date"
+            },
+            {
+              "key": "change",
+              "type": "text"
+            },
+            {
+              "key": "approver",
+              "type": "text"
+            },
+            {
+              "key": "result",
+              "type": "enum",
+              "values": [
+                "success",
+                "failed",
+                "rolled_back"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "daily_checklist",
+          "label": "Daily checklist",
+          "fields": [
+            {
+              "key": "date",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "review_monitoring_dashboards_and_alerts",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review monitoring dashboards and alerts"
+            },
+            {
+              "key": "check_backup_and_job_results",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check backup and job results"
+            },
+            {
+              "key": "review_open_incidents_and_tickets",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review open incidents and tickets"
+            },
+            {
+              "key": "check_capacity_and_performance_headlines",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check capacity and performance headlines"
+            },
+            {
+              "key": "confirm_scheduled_changes_and_windows",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Confirm scheduled changes and windows"
+            },
+            {
+              "key": "write_handover_notes_for_the_next_shift",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Write handover notes for the next shift"
+            }
+          ]
+        },
+        {
+          "key": "weekly_checklist",
+          "label": "Weekly checklist",
+          "fields": [
+            {
+              "key": "week_starting",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "change_review_and_calendar",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Change review and calendar"
+            },
+            {
+              "key": "patch_status_review",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Patch status review"
+            },
+            {
+              "key": "problem_review_of_repeated_incidents",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Problem review of repeated incidents"
+            },
+            {
+              "key": "capacity_trend_check",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Capacity trend check"
+            },
+            {
+              "key": "update_service_documentation",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Update service documentation"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Infrastructure",
+          "track": [
+            "servers and services"
+          ]
+        },
+        {
+          "kind": "Accounts and systems",
+          "track": [
+            "monitoring and ticketing tools (references only)"
+          ]
+        },
+        {
+          "kind": "Equipment",
+          "track": [
+            "hardware"
+          ]
+        },
+        {
+          "kind": "Outstanding work",
+          "track": [
+            "open incidents and changes"
+          ]
+        }
+      ],
+      "documentationCategories": [
+        "Service catalogue",
+        "Incident and problem log",
+        "Change records",
+        "Monitoring configuration",
+        "Runbooks",
+        "Capacity reports"
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "monitor_and_triage_alerts",
+          "title": "Monitor and triage alerts",
+          "frequency": "daily",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Review new alerts",
+                "Classify severity",
+                "Check for known issues",
+                "Assign an owner",
+                "Acknowledge within target",
+                "Track to resolution"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "change_implementation",
+          "title": "Change implementation",
+          "frequency": "weekly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Check approval and rollback plan",
+                "Notify affected users",
+                "Take a backup or snapshot",
+                "Implement in the window",
+                "Test",
+                "Close the change record"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "major_incident",
+          "title": "Major incident",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Declare and assign an incident lead",
+                "Communicate status",
+                "Contain and restore",
+                "Capture the timeline",
+                "Hold a post-incident review"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "service_health_report",
+          "title": "Service health report",
+          "frequency": "monthly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Collect availability and incident data",
+                "Compare to targets",
+                "Explain breaches",
+                "Propose improvements",
+                "Publish"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "escalation",
+          "title": "Escalation",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "triggers": [
+            "Critical service unavailable",
+            "Security incident suspected",
+            "Data loss possible",
+            "Change failure with no rollback",
+            "Vendor outage affecting several services"
+          ],
+          "recordFields": [
+            "date_time",
+            "affected_area_or_system",
+            "people_affected_by_code_or_count",
+            "description",
+            "actions_taken",
+            "evidence_or_logs",
+            "impact",
+            "person_or_party_contacted",
+            "current_status"
+          ],
+          "rules": [
+            "Record facts; escalate promptly when a trigger is met"
+          ]
+        },
+        {
+          "key": "role_handover",
+          "title": "Role handover",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Handover",
+              "steps": [
+                "Transfer Infrastructure: servers and services",
+                "Transfer Accounts and systems: monitoring and ticketing tools (references only)",
+                "Transfer Equipment: hardware",
+                "Transfer Outstanding work: open incidents and changes",
+                "List open work, deadlines and commitments",
+                "Share trackers, templates and contacts",
+                "Transfer accounts and access only through the approved secure process, never in documents",
+                "Brief the successor and confirm access",
+                "Review progress after one week"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Review monitoring dashboards and alerts",
+          "frequency": "daily"
+        },
+        {
+          "title": "Check backup and job results",
+          "frequency": "daily"
+        },
+        {
+          "title": "Review open incidents and tickets",
+          "frequency": "daily"
+        },
+        {
+          "title": "Check capacity and performance headlines",
+          "frequency": "daily"
+        },
+        {
+          "title": "Confirm scheduled changes and windows",
+          "frequency": "daily"
+        },
+        {
+          "title": "Write handover notes for the next shift",
+          "frequency": "daily"
+        },
+        {
+          "title": "Change review and calendar",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Patch status review",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Problem review of repeated incidents",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Capacity trend check",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Update service documentation",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Availability and SLA report",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Patch and update cycle",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Disaster recovery test sample",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Access and account review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Capacity and growth plan",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Major incident review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Disaster recovery exercise",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Service catalogue review",
+          "frequency": "quarterly"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "technical",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Alerts resolved",
+        "Critical alerts open",
+        "Changes successful",
+        "Services monitored",
+        "Risks and recommendations",
+        "Plan for next period"
+      ],
+      "cadenceContent": {
+        "daily": [
+          "Daily checklist results",
+          "Open items and issues",
+          "Escalations",
+          "Plan for tomorrow"
+        ],
+        "weekly": [
+          "Weekly checklist results",
+          "KPI snapshot",
+          "Risks and blockers",
+          "Plan for next week"
+        ],
+        "monthly": [
+          "All KPI sections",
+          "Trends",
+          "Risks and recommendations",
+          "Plan for next month"
+        ]
+      }
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "standard",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for IT operations from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: service_alerts, change_records"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the IT operations method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "Detailed checklists, playbook steps and triggers are proposals written from general professional practice, not from a source document: a practitioner must review and adapt them.",
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and register tracking lists are proposals: confirm against local practice and regulations."
+  ]
+}

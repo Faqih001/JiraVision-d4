@@ -1,0 +1,641 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "laboratory",
+    "label": "Laboratory",
+    "category": "science",
+    "categoryLabel": "Health, science & specialist services",
+    "focus": "Calibration, quality control and records"
+  },
+  "pack": {
+    "key": "healthcare-science",
+    "reportTemplate": "technical",
+    "registerKinds": [
+      "Patients",
+      "Clinical protocols",
+      "Research",
+      "Compliance"
+    ],
+    "ladderDiscipline": {
+      "proposed": "healthcare_science",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "laboratory supervisor",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use.",
+    "detailLevel": "detailed"
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "calibrations_passed",
+          "label": "Calibrations passed",
+          "source": "equipment_calibrations",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "calibrations_overdue",
+          "label": "Calibrations overdue",
+          "source": "equipment_calibrations",
+          "sourceType": "log",
+          "aggregation": "overdue_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "qc_runs_within_range",
+          "label": "QC runs within range",
+          "source": "qc_runs",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "qc_runs_outside_range",
+          "label": "QC runs outside range",
+          "source": "qc_runs",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "calibration_past_due",
+          "when": "calibration past due",
+          "suggest": "calibrate",
+          "deterministic": true
+        },
+        {
+          "id": "qc_outside_range",
+          "when": "QC outside range",
+          "suggest": "stop and investigate",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "equipment_calibrations",
+          "label": "Equipment calibrations",
+          "fields": [
+            {
+              "key": "calibration_date",
+              "type": "date"
+            },
+            {
+              "key": "equipment_ref",
+              "type": "text"
+            },
+            {
+              "key": "result",
+              "type": "enum",
+              "values": [
+                "pass",
+                "fail"
+              ]
+            },
+            {
+              "key": "next_due",
+              "type": "text"
+            }
+          ]
+        },
+        {
+          "key": "qc_runs",
+          "label": "Qc runs",
+          "fields": [
+            {
+              "key": "run_date",
+              "type": "date"
+            },
+            {
+              "key": "assay",
+              "type": "text"
+            },
+            {
+              "key": "result",
+              "type": "enum",
+              "values": [
+                "within_range",
+                "outside_range"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "daily_checklist",
+          "label": "Daily checklist",
+          "fields": [
+            {
+              "key": "date",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "check_equipment_status_and_temperatures",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check equipment status and temperatures"
+            },
+            {
+              "key": "run_quality_control_samples",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Run quality control samples"
+            },
+            {
+              "key": "process_and_record_samples_by_code",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Process and record samples by code"
+            },
+            {
+              "key": "check_reagents_and_expiry",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check reagents and expiry"
+            },
+            {
+              "key": "clean_and_decontaminate",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Clean and decontaminate"
+            },
+            {
+              "key": "record_results_and_reviews",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Record results and reviews"
+            }
+          ]
+        },
+        {
+          "key": "weekly_checklist",
+          "label": "Weekly checklist",
+          "fields": [
+            {
+              "key": "week_starting",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "equipment_maintenance_checks",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Equipment maintenance checks"
+            },
+            {
+              "key": "qc_trend_review",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "QC trend review"
+            },
+            {
+              "key": "waste_and_safety_checks",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Waste and safety checks"
+            },
+            {
+              "key": "inventory_and_reorder",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Inventory and reorder"
+            },
+            {
+              "key": "review_nonconformances",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review nonconformances"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Patients",
+          "track": [
+            "none: sample codes only"
+          ]
+        },
+        {
+          "kind": "Clinical protocols",
+          "track": [
+            "standard operating procedures"
+          ]
+        },
+        {
+          "kind": "Research",
+          "track": [
+            "experiments and methods"
+          ]
+        },
+        {
+          "kind": "Compliance",
+          "track": [
+            "accreditation and safety"
+          ]
+        }
+      ],
+      "documentationCategories": [
+        "Equipment and calibration records",
+        "QC records",
+        "Standard operating procedures",
+        "Reagent and stock records",
+        "Nonconformance log",
+        "Accreditation documents"
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "daily_qc",
+          "title": "Daily QC",
+          "frequency": "daily",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Prepare control material",
+                "Run controls",
+                "Compare to limits",
+                "Accept or reject the run",
+                "Record and act on failures"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "sample_handling",
+          "title": "Sample handling",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Check labels and condition",
+                "Log with a code",
+                "Store correctly",
+                "Process",
+                "Dispose safely"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "equipment_calibration",
+          "title": "Equipment calibration",
+          "frequency": "monthly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Check the due list",
+                "Calibrate with standards",
+                "Record results",
+                "Tag or remove if failed",
+                "Notify users"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "nonconformance",
+          "title": "Nonconformance",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Record and stop affected work",
+                "Find the cause",
+                "Correct and verify",
+                "Review earlier results",
+                "Close"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "escalation",
+          "title": "Escalation",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "triggers": [
+            "QC failure",
+            "Equipment failure or calibration fail",
+            "Sample mix-up or contamination",
+            "Biohazard exposure",
+            "Critical result not communicated"
+          ],
+          "recordFields": [
+            "date_time",
+            "affected_area_or_system",
+            "people_affected_by_code_or_count",
+            "description",
+            "actions_taken",
+            "evidence_or_logs",
+            "impact",
+            "person_or_party_contacted",
+            "current_status"
+          ],
+          "rules": [
+            "Record facts only; no personal identifiers in free text"
+          ]
+        },
+        {
+          "key": "role_handover",
+          "title": "Role handover",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Handover",
+              "steps": [
+                "Transfer Patients: none: sample codes only",
+                "Transfer Clinical protocols: standard operating procedures",
+                "Transfer Research: experiments and methods",
+                "Transfer Compliance: accreditation and safety",
+                "List open work, deadlines and commitments",
+                "Share trackers, templates and contacts",
+                "Transfer accounts and access only through the approved secure process, never in documents",
+                "Brief the successor and confirm access",
+                "Review progress after one week"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Check equipment status and temperatures",
+          "frequency": "daily"
+        },
+        {
+          "title": "Run quality control samples",
+          "frequency": "daily"
+        },
+        {
+          "title": "Process and record samples by code",
+          "frequency": "daily"
+        },
+        {
+          "title": "Check reagents and expiry",
+          "frequency": "daily"
+        },
+        {
+          "title": "Clean and decontaminate",
+          "frequency": "daily"
+        },
+        {
+          "title": "Record results and reviews",
+          "frequency": "daily"
+        },
+        {
+          "title": "Equipment maintenance checks",
+          "frequency": "weekly"
+        },
+        {
+          "title": "QC trend review",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Waste and safety checks",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Inventory and reorder",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Review nonconformances",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Calibration schedule check",
+          "frequency": "monthly"
+        },
+        {
+          "title": "QC and proficiency report",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Safety audit",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Document control review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Method validation review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Internal audit",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Competency assessments",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Accreditation preparation",
+          "frequency": "quarterly"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "technical",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Calibrations passed",
+        "Calibrations overdue",
+        "QC runs within range",
+        "QC runs outside range",
+        "Risks and recommendations",
+        "Plan for next period"
+      ],
+      "cadenceContent": {
+        "daily": [
+          "Daily checklist results",
+          "Open items and issues",
+          "Escalations",
+          "Plan for tomorrow"
+        ],
+        "weekly": [
+          "Weekly checklist results",
+          "KPI snapshot",
+          "Risks and blockers",
+          "Plan for next week"
+        ],
+        "monthly": [
+          "All KPI sections",
+          "Trends",
+          "Risks and recommendations",
+          "Plan for next month"
+        ]
+      }
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "restricted",
+      "neverSendRegisterKinds": [
+        "Patients"
+      ],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers",
+        "amounts and balances"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Laboratory from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: equipment_calibrations, qc_runs"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Laboratory method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "Detailed checklists, playbook steps and triggers are proposals written from general professional practice, not from a source document: a practitioner must review and adapt them.",
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and register tracking lists are proposals: confirm against local practice and regulations.",
+    "Restricted data: keep personal, patient, employee, account and privileged data out of prompts; use codes only."
+  ]
+}

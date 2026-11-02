@@ -1,0 +1,622 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "coordinator",
+    "label": "Coordinator",
+    "category": "delivery",
+    "categoryLabel": "Management & project delivery",
+    "focus": "Scheduling, follow-ups and cross-team coordination"
+  },
+  "pack": {
+    "key": "management",
+    "reportTemplate": "general",
+    "registerKinds": [
+      "Initiatives",
+      "Stakeholders",
+      "Risks",
+      "Reports"
+    ],
+    "ladderDiscipline": {
+      "proposed": "coordinator",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced coordinator practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use.",
+    "detailLevel": "detailed"
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "follow_ups_closed",
+          "label": "Follow-ups closed",
+          "source": "follow_ups",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "overdue_follow_ups",
+          "label": "Overdue follow-ups",
+          "source": "follow_ups",
+          "sourceType": "log",
+          "aggregation": "overdue_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "meetings_with_actions_recorded",
+          "label": "Meetings with actions recorded",
+          "source": "coordination_meetings",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "reports_delivered",
+          "label": "Reports delivered",
+          "source": "reports",
+          "sourceType": "register",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "follow_up_overdue_3_days",
+          "when": "follow-up overdue 3 days",
+          "suggest": "chase",
+          "deterministic": true
+        },
+        {
+          "id": "meeting_without_recorded_actions",
+          "when": "meeting without recorded actions",
+          "suggest": "add actions",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "follow_ups",
+          "label": "Follow ups",
+          "fields": [
+            {
+              "key": "created_date",
+              "type": "date"
+            },
+            {
+              "key": "with_whom",
+              "type": "text"
+            },
+            {
+              "key": "topic",
+              "type": "text"
+            },
+            {
+              "key": "due_date",
+              "type": "date"
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "open",
+                "done",
+                "overdue"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "coordination_meetings",
+          "label": "Coordination meetings",
+          "fields": [
+            {
+              "key": "meeting_date",
+              "type": "date"
+            },
+            {
+              "key": "attendees",
+              "type": "text"
+            },
+            {
+              "key": "decisions",
+              "type": "text"
+            },
+            {
+              "key": "actions",
+              "type": "text"
+            }
+          ]
+        },
+        {
+          "key": "daily_checklist",
+          "label": "Daily checklist",
+          "fields": [
+            {
+              "key": "date",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "review_today_s_schedule_and_logistics",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review today's schedule and logistics"
+            },
+            {
+              "key": "send_reminders_and_confirmations",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Send reminders and confirmations"
+            },
+            {
+              "key": "chase_overdue_actions",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Chase overdue actions"
+            },
+            {
+              "key": "update_trackers",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Update trackers"
+            },
+            {
+              "key": "handle_incoming_requests",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Handle incoming requests"
+            }
+          ]
+        },
+        {
+          "key": "weekly_checklist",
+          "label": "Weekly checklist",
+          "fields": [
+            {
+              "key": "week_starting",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "coordination_meeting_and_minutes",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Coordination meeting and minutes"
+            },
+            {
+              "key": "update_action_tracker",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Update action tracker"
+            },
+            {
+              "key": "confirm_next_week_s_schedule",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Confirm next week's schedule"
+            },
+            {
+              "key": "send_weekly_summary",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Send weekly summary"
+            },
+            {
+              "key": "review_supplier_or_venue_bookings",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review supplier or venue bookings"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Initiatives",
+          "track": [
+            "work packages"
+          ]
+        },
+        {
+          "kind": "Stakeholders",
+          "track": [
+            "contacts"
+          ]
+        },
+        {
+          "kind": "Reports",
+          "track": [
+            "coordination reports"
+          ]
+        }
+      ],
+      "documentationCategories": [
+        "Action tracker",
+        "Meeting minutes",
+        "Contact list",
+        "Schedules and calendars",
+        "Booking confirmations",
+        "Status reports"
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "event_or_meeting_coordination",
+          "title": "Event or meeting coordination",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Confirm purpose and attendees",
+                "Book venue, tools and catering",
+                "Send invitations and agenda",
+                "Prepare materials",
+                "Run the event",
+                "Send minutes and actions"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "follow_up_sweep",
+          "title": "Follow-up sweep",
+          "frequency": "daily",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "List open actions",
+                "Check due dates",
+                "Message owners",
+                "Escalate overdue items",
+                "Update the tracker"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "weekly_status_report",
+          "title": "Weekly status report",
+          "frequency": "weekly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Gather updates",
+                "Compare to plan",
+                "Summarise risks and blockers",
+                "Draft the report",
+                "Send and file"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "handover_of_coordination_duties",
+          "title": "Handover of coordination duties",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "List active items and contacts",
+                "Share trackers and templates",
+                "Brief the successor",
+                "Confirm access",
+                "Review at one week"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "escalation",
+          "title": "Escalation",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "triggers": [
+            "Key person unavailable",
+            "Deadline will be missed",
+            "Budget overrun",
+            "Supplier cancels",
+            "Conflicting bookings"
+          ],
+          "recordFields": [
+            "date_time",
+            "affected_area_or_system",
+            "people_affected_by_code_or_count",
+            "description",
+            "actions_taken",
+            "evidence_or_logs",
+            "impact",
+            "person_or_party_contacted",
+            "current_status"
+          ],
+          "rules": [
+            "Record facts; escalate promptly when a trigger is met"
+          ]
+        },
+        {
+          "key": "role_handover",
+          "title": "Role handover",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Handover",
+              "steps": [
+                "Transfer Initiatives: work packages",
+                "Transfer Stakeholders: contacts",
+                "Transfer Reports: coordination reports",
+                "List open work, deadlines and commitments",
+                "Share trackers, templates and contacts",
+                "Transfer accounts and access only through the approved secure process, never in documents",
+                "Brief the successor and confirm access",
+                "Review progress after one week"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Review today's schedule and logistics",
+          "frequency": "daily"
+        },
+        {
+          "title": "Send reminders and confirmations",
+          "frequency": "daily"
+        },
+        {
+          "title": "Chase overdue actions",
+          "frequency": "daily"
+        },
+        {
+          "title": "Update trackers",
+          "frequency": "daily"
+        },
+        {
+          "title": "Handle incoming requests",
+          "frequency": "daily"
+        },
+        {
+          "title": "Coordination meeting and minutes",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Update action tracker",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Confirm next week's schedule",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Send weekly summary",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Review supplier or venue bookings",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Status report to manager",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Review recurring commitments",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Review budget and expenses",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Update contact lists",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Process improvement review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Calendar and events planning",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Stakeholder contact audit",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Archive completed work",
+          "frequency": "quarterly"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "general",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Follow-ups closed",
+        "Overdue follow-ups",
+        "Meetings with actions recorded",
+        "Reports delivered",
+        "Risks and recommendations",
+        "Plan for next period"
+      ],
+      "cadenceContent": {
+        "daily": [
+          "Daily checklist results",
+          "Open items and issues",
+          "Escalations",
+          "Plan for tomorrow"
+        ],
+        "weekly": [
+          "Weekly checklist results",
+          "KPI snapshot",
+          "Risks and blockers",
+          "Plan for next week"
+        ],
+        "monthly": [
+          "All KPI sections",
+          "Trends",
+          "Risks and recommendations",
+          "Plan for next month"
+        ]
+      }
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "standard",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Coordinator from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: follow_ups, coordination_meetings"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Coordinator method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "Detailed checklists, playbook steps and triggers are proposals written from general professional practice, not from a source document: a practitioner must review and adapt them.",
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and register tracking lists are proposals: confirm against local practice and regulations."
+  ]
+}

@@ -1,0 +1,658 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "devops",
+    "label": "DevOps",
+    "category": "technology",
+    "categoryLabel": "Software, IT & digital",
+    "focus": "Pipelines, deployments and infrastructure automation"
+  },
+  "pack": {
+    "key": "it-technician",
+    "reportTemplate": "technical",
+    "registerKinds": [
+      "Infrastructure",
+      "Accounts and systems",
+      "Equipment",
+      "Outstanding work"
+    ],
+    "ladderDiscipline": {
+      "proposed": "technician",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced devops practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use.",
+    "detailLevel": "detailed"
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": [
+      "Plan",
+      "Automate",
+      "Deploy",
+      "Monitor",
+      "Optimize",
+      "Document"
+    ],
+    "documentedIn": "roles doc section 4.7 (verify in code)"
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "deployment_success_rate",
+          "label": "Deployment success rate",
+          "source": "deployments",
+          "sourceType": "log",
+          "aggregation": "rate",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "rollbacks",
+          "label": "Rollbacks",
+          "source": "deployments",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "pipeline_failures_open",
+          "label": "Pipeline failures open",
+          "source": "pipeline_failures",
+          "sourceType": "log",
+          "aggregation": "open_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "environments_tracked",
+          "label": "Environments tracked",
+          "source": "infrastructure",
+          "sourceType": "register",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "pipeline_failing_over_1_day",
+          "when": "pipeline failing over 1 day",
+          "suggest": "fix",
+          "deterministic": true
+        },
+        {
+          "id": "rollback",
+          "when": "rollback",
+          "suggest": "add to post-mortem",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "deployments",
+          "label": "Deployments",
+          "fields": [
+            {
+              "key": "deploy_date",
+              "type": "date"
+            },
+            {
+              "key": "service",
+              "type": "text"
+            },
+            {
+              "key": "environment",
+              "type": "enum",
+              "values": [
+                "dev",
+                "staging",
+                "production"
+              ]
+            },
+            {
+              "key": "result",
+              "type": "enum",
+              "values": [
+                "success",
+                "failed"
+              ]
+            },
+            {
+              "key": "rollback",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "pipeline_failures",
+          "label": "Pipeline failures",
+          "fields": [
+            {
+              "key": "failure_date",
+              "type": "date"
+            },
+            {
+              "key": "pipeline",
+              "type": "text"
+            },
+            {
+              "key": "cause",
+              "type": "text"
+            },
+            {
+              "key": "fixed_date",
+              "type": "date"
+            }
+          ]
+        },
+        {
+          "key": "daily_checklist",
+          "label": "Daily checklist",
+          "fields": [
+            {
+              "key": "date",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "check_pipeline_and_deployment_status",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check pipeline and deployment status"
+            },
+            {
+              "key": "review_infrastructure_alerts",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review infrastructure alerts"
+            },
+            {
+              "key": "review_failed_jobs_and_flaky_tests",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review failed jobs and flaky tests"
+            },
+            {
+              "key": "check_cost_and_resource_anomalies",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check cost and resource anomalies"
+            },
+            {
+              "key": "respond_to_developer_requests",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Respond to developer requests"
+            },
+            {
+              "key": "check_secret_and_certificate_expiry_alerts",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check secret and certificate expiry alerts"
+            }
+          ]
+        },
+        {
+          "key": "weekly_checklist",
+          "label": "Weekly checklist",
+          "fields": [
+            {
+              "key": "week_starting",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "deployment_and_rollback_review",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Deployment and rollback review"
+            },
+            {
+              "key": "infrastructure_as_code_review",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Infrastructure as code review"
+            },
+            {
+              "key": "security_scan_results_review",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Security scan results review"
+            },
+            {
+              "key": "backup_and_snapshot_verification",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Backup and snapshot verification"
+            },
+            {
+              "key": "clean_up_unused_resources",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Clean up unused resources"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Infrastructure",
+          "track": [
+            "environments"
+          ]
+        },
+        {
+          "kind": "Accounts and systems",
+          "track": [
+            "CI/CD and cloud accounts (references only)"
+          ]
+        },
+        {
+          "kind": "Equipment",
+          "track": [
+            "build agents"
+          ]
+        },
+        {
+          "kind": "Outstanding work",
+          "track": [
+            "automation backlog"
+          ]
+        }
+      ],
+      "documentationCategories": [
+        "Pipeline configurations",
+        "Infrastructure as code repositories",
+        "Environment inventory",
+        "Deployment log",
+        "Runbooks",
+        "Cost reports"
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "pipeline_health_check",
+          "title": "Pipeline health check",
+          "frequency": "daily",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Review failures since the last check",
+                "Group by cause",
+                "Fix or quarantine flaky steps",
+                "Notify owners",
+                "Record fixes"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "deployment",
+          "title": "Deployment",
+          "frequency": "weekly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Confirm the build passed and approvals",
+                "Deploy to staging and verify",
+                "Deploy to production with a safe strategy",
+                "Watch metrics and logs",
+                "Roll back if thresholds breach",
+                "Record the deployment"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "infrastructure_change",
+          "title": "Infrastructure change",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Write the change in code",
+                "Review and plan",
+                "Apply to non-production",
+                "Apply to production",
+                "Verify and record"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "secret_and_certificate_rotation",
+          "title": "Secret and certificate rotation",
+          "frequency": "monthly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "List expiring items",
+                "Rotate and update consumers",
+                "Test connections",
+                "Revoke old values",
+                "Record the rotation"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "escalation",
+          "title": "Escalation",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "triggers": [
+            "Production deployment failing",
+            "Pipeline compromised or secret leaked",
+            "Cloud cost spike",
+            "Backup or snapshot failure",
+            "Infrastructure drift in production"
+          ],
+          "recordFields": [
+            "date_time",
+            "affected_area_or_system",
+            "people_affected_by_code_or_count",
+            "description",
+            "actions_taken",
+            "evidence_or_logs",
+            "impact",
+            "person_or_party_contacted",
+            "current_status"
+          ],
+          "rules": [
+            "Record facts; escalate promptly when a trigger is met"
+          ]
+        },
+        {
+          "key": "role_handover",
+          "title": "Role handover",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Handover",
+              "steps": [
+                "Transfer Infrastructure: environments",
+                "Transfer Accounts and systems: CI/CD and cloud accounts (references only)",
+                "Transfer Equipment: build agents",
+                "Transfer Outstanding work: automation backlog",
+                "List open work, deadlines and commitments",
+                "Share trackers, templates and contacts",
+                "Transfer accounts and access only through the approved secure process, never in documents",
+                "Brief the successor and confirm access",
+                "Review progress after one week"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Check pipeline and deployment status",
+          "frequency": "daily"
+        },
+        {
+          "title": "Review infrastructure alerts",
+          "frequency": "daily"
+        },
+        {
+          "title": "Review failed jobs and flaky tests",
+          "frequency": "daily"
+        },
+        {
+          "title": "Check cost and resource anomalies",
+          "frequency": "daily"
+        },
+        {
+          "title": "Respond to developer requests",
+          "frequency": "daily"
+        },
+        {
+          "title": "Check secret and certificate expiry alerts",
+          "frequency": "daily"
+        },
+        {
+          "title": "Deployment and rollback review",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Infrastructure as code review",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Security scan results review",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Backup and snapshot verification",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Clean up unused resources",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Cost optimisation review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Dependency and base image updates",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Access and key rotation review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Resilience and failover test",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Disaster recovery exercise",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Toolchain and platform review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Capacity planning",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Compliance evidence review",
+          "frequency": "quarterly"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "technical",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Deployment success rate",
+        "Rollbacks",
+        "Pipeline failures open",
+        "Environments tracked",
+        "Risks and recommendations",
+        "Plan for next period"
+      ],
+      "cadenceContent": {
+        "daily": [
+          "Daily checklist results",
+          "Open items and issues",
+          "Escalations",
+          "Plan for tomorrow"
+        ],
+        "weekly": [
+          "Weekly checklist results",
+          "KPI snapshot",
+          "Risks and blockers",
+          "Plan for next week"
+        ],
+        "monthly": [
+          "All KPI sections",
+          "Trends",
+          "Risks and recommendations",
+          "Plan for next month"
+        ]
+      }
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "standard",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for DevOps from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: deployments, pipeline_failures"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the DevOps method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "Detailed checklists, playbook steps and triggers are proposals written from general professional practice, not from a source document: a practitioner must review and adapt them.",
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and register tracking lists are proposals: confirm against local practice and regulations."
+  ]
+}

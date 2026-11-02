@@ -1,0 +1,635 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "inventory",
+    "label": "Inventory",
+    "category": "operations",
+    "categoryLabel": "Operations & supply chain",
+    "focus": "Stock counts, reorder and variances"
+  },
+  "pack": {
+    "key": "operations",
+    "reportTemplate": "technical",
+    "registerKinds": [
+      "Processes",
+      "Inventory",
+      "Logistics",
+      "Quality control"
+    ],
+    "ladderDiscipline": {
+      "proposed": "operations",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced inventory practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use.",
+    "detailLevel": "detailed"
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "counts_completed",
+          "label": "Counts completed",
+          "source": "stock_counts",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "major_variances",
+          "label": "Major variances",
+          "source": "stock_counts",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "reorders_pending",
+          "label": "Reorders pending",
+          "source": "reorder_alerts",
+          "sourceType": "log",
+          "aggregation": "open_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "items_tracked",
+          "label": "Items tracked",
+          "source": "inventory",
+          "sourceType": "register",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "item_at_reorder_level",
+          "when": "item at reorder level",
+          "suggest": "raise order",
+          "deterministic": true
+        },
+        {
+          "id": "major_variance",
+          "when": "major variance",
+          "suggest": "recount",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "stock_counts",
+          "label": "Stock counts",
+          "fields": [
+            {
+              "key": "count_date",
+              "type": "date"
+            },
+            {
+              "key": "location",
+              "type": "text"
+            },
+            {
+              "key": "variance",
+              "type": "enum",
+              "values": [
+                "none",
+                "minor",
+                "major"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "reorder_alerts",
+          "label": "Reorder alerts",
+          "fields": [
+            {
+              "key": "alert_date",
+              "type": "date"
+            },
+            {
+              "key": "item",
+              "type": "text"
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "raised",
+                "ordered",
+                "received"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "daily_checklist",
+          "label": "Daily checklist",
+          "fields": [
+            {
+              "key": "date",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "receive_and_book_in_goods",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Receive and book in goods"
+            },
+            {
+              "key": "issue_stock_against_requests",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Issue stock against requests"
+            },
+            {
+              "key": "check_low_stock_items",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check low-stock items"
+            },
+            {
+              "key": "cycle_count_assigned_items",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Cycle count assigned items"
+            },
+            {
+              "key": "resolve_discrepancies",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Resolve discrepancies"
+            },
+            {
+              "key": "update_stock_records",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Update stock records"
+            }
+          ]
+        },
+        {
+          "key": "weekly_checklist",
+          "label": "Weekly checklist",
+          "fields": [
+            {
+              "key": "week_starting",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "cycle_count_programme",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Cycle count programme"
+            },
+            {
+              "key": "reorder_review",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Reorder review"
+            },
+            {
+              "key": "review_slow_moving_and_expiring_stock",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review slow-moving and expiring stock"
+            },
+            {
+              "key": "check_storage_and_labelling",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check storage and labelling"
+            },
+            {
+              "key": "reconcile_to_the_system",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Reconcile to the system"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Processes",
+          "track": [
+            "stock processes"
+          ]
+        },
+        {
+          "kind": "Inventory",
+          "track": [
+            "stock items"
+          ]
+        },
+        {
+          "kind": "Logistics",
+          "track": [
+            "receiving and issuing"
+          ]
+        },
+        {
+          "kind": "Quality control",
+          "track": [
+            "stock quality"
+          ]
+        }
+      ],
+      "documentationCategories": [
+        "Stock register",
+        "Receipts and issues",
+        "Count sheets",
+        "Adjustment approvals",
+        "Reorder levels",
+        "Storage plan"
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "goods_receipt",
+          "title": "Goods receipt",
+          "frequency": "daily",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Compare delivery to order",
+                "Count and inspect",
+                "Record in the system",
+                "Label and put away",
+                "Report discrepancies"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "cycle_count",
+          "title": "Cycle count",
+          "frequency": "weekly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Select items or locations",
+                "Count blind",
+                "Compare to the system",
+                "Investigate variances",
+                "Adjust with approval"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "reorder",
+          "title": "Reorder",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Check stock and demand",
+                "Calculate order quantity",
+                "Raise a requisition",
+                "Follow up delivery",
+                "Update levels"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "stock_adjustment",
+          "title": "Stock adjustment",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Record reason and evidence",
+                "Get approval",
+                "Post the adjustment",
+                "Review the cause",
+                "Prevent repeat"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "escalation",
+          "title": "Escalation",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "triggers": [
+            "Major stock variance",
+            "Suspected theft",
+            "Stock-out of a critical item",
+            "Expired or damaged stock found",
+            "System and physical records disagree"
+          ],
+          "recordFields": [
+            "date_time",
+            "affected_area_or_system",
+            "people_affected_by_code_or_count",
+            "description",
+            "actions_taken",
+            "evidence_or_logs",
+            "impact",
+            "person_or_party_contacted",
+            "current_status"
+          ],
+          "rules": [
+            "Record facts; escalate promptly when a trigger is met"
+          ]
+        },
+        {
+          "key": "role_handover",
+          "title": "Role handover",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Handover",
+              "steps": [
+                "Transfer Processes: stock processes",
+                "Transfer Inventory: stock items",
+                "Transfer Logistics: receiving and issuing",
+                "Transfer Quality control: stock quality",
+                "List open work, deadlines and commitments",
+                "Share trackers, templates and contacts",
+                "Transfer accounts and access only through the approved secure process, never in documents",
+                "Brief the successor and confirm access",
+                "Review progress after one week"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Receive and book in goods",
+          "frequency": "daily"
+        },
+        {
+          "title": "Issue stock against requests",
+          "frequency": "daily"
+        },
+        {
+          "title": "Check low-stock items",
+          "frequency": "daily"
+        },
+        {
+          "title": "Cycle count assigned items",
+          "frequency": "daily"
+        },
+        {
+          "title": "Resolve discrepancies",
+          "frequency": "daily"
+        },
+        {
+          "title": "Update stock records",
+          "frequency": "daily"
+        },
+        {
+          "title": "Cycle count programme",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Reorder review",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Review slow-moving and expiring stock",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Check storage and labelling",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Reconcile to the system",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Stock variance report",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Full location audit sample",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Reorder levels review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Obsolete stock review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Full stock take",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "ABC classification review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Storage layout review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Policy and process review",
+          "frequency": "quarterly"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "technical",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Counts completed",
+        "Major variances",
+        "Reorders pending",
+        "Items tracked",
+        "Risks and recommendations",
+        "Plan for next period"
+      ],
+      "cadenceContent": {
+        "daily": [
+          "Daily checklist results",
+          "Open items and issues",
+          "Escalations",
+          "Plan for tomorrow"
+        ],
+        "weekly": [
+          "Weekly checklist results",
+          "KPI snapshot",
+          "Risks and blockers",
+          "Plan for next week"
+        ],
+        "monthly": [
+          "All KPI sections",
+          "Trends",
+          "Risks and recommendations",
+          "Plan for next month"
+        ]
+      }
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "standard",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Inventory from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: stock_counts, reorder_alerts"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Inventory method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "Detailed checklists, playbook steps and triggers are proposals written from general professional practice, not from a source document: a practitioner must review and adapt them.",
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and register tracking lists are proposals: confirm against local practice and regulations."
+  ]
+}

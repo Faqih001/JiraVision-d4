@@ -1,0 +1,630 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "mechanical_engineering",
+    "label": "Mechanical engineer",
+    "category": "engineering",
+    "categoryLabel": "Engineering & built works",
+    "focus": "Equipment servicing and design review"
+  },
+  "pack": {
+    "key": "engineering",
+    "reportTemplate": "engineering",
+    "registerKinds": [
+      "Projects",
+      "Specifications",
+      "Inspections",
+      "Compliance"
+    ],
+    "ladderDiscipline": {
+      "proposed": "engineering",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "registered engineer",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use.",
+    "detailLevel": "detailed"
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "services_completed",
+          "label": "Services completed",
+          "source": "equipment_services",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "services_overdue",
+          "label": "Services overdue",
+          "source": "equipment_services",
+          "sourceType": "log",
+          "aggregation": "overdue_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "design_reviews",
+          "label": "Design reviews",
+          "source": "design_reviews",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "specifications",
+          "label": "Specifications",
+          "source": "specifications",
+          "sourceType": "register",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "service_past_next_due_date",
+          "when": "service past next due date",
+          "suggest": "schedule",
+          "deterministic": true
+        },
+        {
+          "id": "design_review_with_open_findings",
+          "when": "design review with open findings",
+          "suggest": "close",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "equipment_services",
+          "label": "Equipment services",
+          "fields": [
+            {
+              "key": "service_date",
+              "type": "date"
+            },
+            {
+              "key": "equipment_ref",
+              "type": "text"
+            },
+            {
+              "key": "service_type",
+              "type": "text"
+            },
+            {
+              "key": "next_due",
+              "type": "text"
+            }
+          ]
+        },
+        {
+          "key": "design_reviews",
+          "label": "Design reviews",
+          "fields": [
+            {
+              "key": "review_date",
+              "type": "date"
+            },
+            {
+              "key": "component",
+              "type": "text"
+            },
+            {
+              "key": "findings",
+              "type": "text"
+            }
+          ]
+        },
+        {
+          "key": "daily_checklist",
+          "label": "Daily checklist",
+          "fields": [
+            {
+              "key": "date",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "check_equipment_status_and_readings",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check equipment status and readings"
+            },
+            {
+              "key": "carry_out_planned_jobs",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Carry out planned jobs"
+            },
+            {
+              "key": "review_design_or_drawing_queries",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review design or drawing queries"
+            },
+            {
+              "key": "record_tests_and_findings",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Record tests and findings"
+            },
+            {
+              "key": "check_tools_and_measuring_equipment",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check tools and measuring equipment"
+            },
+            {
+              "key": "respond_to_maintenance_requests",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Respond to maintenance requests"
+            }
+          ]
+        },
+        {
+          "key": "weekly_checklist",
+          "label": "Weekly checklist",
+          "fields": [
+            {
+              "key": "week_starting",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "service_and_inspection_schedule",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Service and inspection schedule"
+            },
+            {
+              "key": "design_review_meeting",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Design review meeting"
+            },
+            {
+              "key": "review_failures_and_trends",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review failures and trends"
+            },
+            {
+              "key": "spare_parts_check",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Spare parts check"
+            },
+            {
+              "key": "update_drawings_and_records",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Update drawings and records"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Projects",
+          "track": [
+            "mechanical projects"
+          ]
+        },
+        {
+          "kind": "Specifications",
+          "track": [
+            "equipment specifications"
+          ]
+        },
+        {
+          "kind": "Inspections",
+          "track": [
+            "service inspections"
+          ]
+        },
+        {
+          "kind": "Compliance",
+          "track": [
+            "standards and safety"
+          ]
+        }
+      ],
+      "documentationCategories": [
+        "Equipment register",
+        "Service records",
+        "Drawings and specifications",
+        "Failure reports",
+        "Calibration records",
+        "Safety certificates"
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "equipment_service",
+          "title": "Equipment service",
+          "frequency": "weekly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Isolate and make safe",
+                "Inspect, clean and lubricate",
+                "Measure wear and alignment",
+                "Replace parts",
+                "Test run",
+                "Record and set the next due date"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "design_review",
+          "title": "Design review",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Share requirements and drawings",
+                "Check loads, materials and tolerances",
+                "Check safety and standards",
+                "Record findings",
+                "Approve or revise"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "failure_investigation",
+          "title": "Failure investigation",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Preserve evidence",
+                "Collect data",
+                "Identify the cause",
+                "Define the fix",
+                "Verify and record"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "commissioning",
+          "title": "Commissioning",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Check installation",
+                "Run function tests",
+                "Record readings",
+                "Fix issues",
+                "Hand over with documents"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "escalation",
+          "title": "Escalation",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "triggers": [
+            "Pressure equipment or lifting failure",
+            "Injury",
+            "Repeated failure",
+            "Out-of-tolerance critical component",
+            "Design error found after manufacture"
+          ],
+          "recordFields": [
+            "date_time",
+            "affected_area_or_system",
+            "people_affected_by_code_or_count",
+            "description",
+            "actions_taken",
+            "evidence_or_logs",
+            "impact",
+            "person_or_party_contacted",
+            "current_status"
+          ],
+          "rules": [
+            "Record facts; escalate promptly when a trigger is met"
+          ]
+        },
+        {
+          "key": "role_handover",
+          "title": "Role handover",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Handover",
+              "steps": [
+                "Transfer Projects: mechanical projects",
+                "Transfer Specifications: equipment specifications",
+                "Transfer Inspections: service inspections",
+                "Transfer Compliance: standards and safety",
+                "List open work, deadlines and commitments",
+                "Share trackers, templates and contacts",
+                "Transfer accounts and access only through the approved secure process, never in documents",
+                "Brief the successor and confirm access",
+                "Review progress after one week"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Check equipment status and readings",
+          "frequency": "daily"
+        },
+        {
+          "title": "Carry out planned jobs",
+          "frequency": "daily"
+        },
+        {
+          "title": "Review design or drawing queries",
+          "frequency": "daily"
+        },
+        {
+          "title": "Record tests and findings",
+          "frequency": "daily"
+        },
+        {
+          "title": "Check tools and measuring equipment",
+          "frequency": "daily"
+        },
+        {
+          "title": "Respond to maintenance requests",
+          "frequency": "daily"
+        },
+        {
+          "title": "Service and inspection schedule",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Design review meeting",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Review failures and trends",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Spare parts check",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Update drawings and records",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Equipment reliability review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Service completion report",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Efficiency and energy review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Safety review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Condition assessment",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Design standards review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Lifecycle and replacement plan",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Calibration and compliance",
+          "frequency": "quarterly"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "engineering",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Services completed",
+        "Services overdue",
+        "Design reviews",
+        "Specifications",
+        "Risks and recommendations",
+        "Plan for next period"
+      ],
+      "cadenceContent": {
+        "daily": [
+          "Daily checklist results",
+          "Open items and issues",
+          "Escalations",
+          "Plan for tomorrow"
+        ],
+        "weekly": [
+          "Weekly checklist results",
+          "KPI snapshot",
+          "Risks and blockers",
+          "Plan for next week"
+        ],
+        "monthly": [
+          "All KPI sections",
+          "Trends",
+          "Risks and recommendations",
+          "Plan for next month"
+        ]
+      }
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "standard",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Mechanical engineer from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: equipment_services, design_reviews"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Mechanical engineer method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "Detailed checklists, playbook steps and triggers are proposals written from general professional practice, not from a source document: a practitioner must review and adapt them.",
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and register tracking lists are proposals: confirm against local practice and regulations."
+  ]
+}

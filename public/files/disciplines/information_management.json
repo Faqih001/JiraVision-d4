@@ -1,0 +1,618 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "information_management",
+    "label": "Information management",
+    "category": "information",
+    "categoryLabel": "Analysis, research & information",
+    "focus": "Records, access and information governance"
+  },
+  "pack": {
+    "key": "analyst",
+    "reportTemplate": "assurance",
+    "registerKinds": [
+      "Data sources",
+      "Analysis reports",
+      "Dashboards",
+      "Methodology"
+    ],
+    "ladderDiscipline": {
+      "proposed": "analyst",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced information management practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use.",
+    "detailLevel": "detailed"
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "records_reviews_done",
+          "label": "Records reviews done",
+          "source": "records_reviews",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "access_requests_pending",
+          "label": "Access requests pending",
+          "source": "access_requests",
+          "sourceType": "log",
+          "aggregation": "open_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "requests_decided",
+          "label": "Requests decided",
+          "source": "access_requests",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "information_assets_listed",
+          "label": "Information assets listed",
+          "source": "data_sources",
+          "sourceType": "register",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "access_request_pending_over_3_days",
+          "when": "access request pending over 3 days",
+          "suggest": "decide",
+          "deterministic": true
+        },
+        {
+          "id": "collection_not_reviewed_in_12_months",
+          "when": "collection not reviewed in 12 months",
+          "suggest": "review",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "records_reviews",
+          "label": "Records reviews",
+          "fields": [
+            {
+              "key": "review_date",
+              "type": "date"
+            },
+            {
+              "key": "collection",
+              "type": "text"
+            },
+            {
+              "key": "retention_action",
+              "type": "enum",
+              "values": [
+                "keep",
+                "archive",
+                "dispose"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "access_requests",
+          "label": "Access requests",
+          "fields": [
+            {
+              "key": "received_date",
+              "type": "date"
+            },
+            {
+              "key": "requester",
+              "type": "text"
+            },
+            {
+              "key": "resource",
+              "type": "text"
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "pending",
+                "granted",
+                "denied"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "daily_checklist",
+          "label": "Daily checklist",
+          "fields": [
+            {
+              "key": "date",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "process_access_and_records_requests",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Process access and records requests"
+            },
+            {
+              "key": "check_document_and_records_systems",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check document and records systems"
+            },
+            {
+              "key": "handle_classification_and_retention_queries",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Handle classification and retention queries"
+            },
+            {
+              "key": "check_permissions_changes",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check permissions changes"
+            },
+            {
+              "key": "back_up_key_repositories",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Back up key repositories"
+            }
+          ]
+        },
+        {
+          "key": "weekly_checklist",
+          "label": "Weekly checklist",
+          "fields": [
+            {
+              "key": "week_starting",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "access_request_review",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Access request review"
+            },
+            {
+              "key": "records_filing_and_clean_up",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Records filing and clean-up"
+            },
+            {
+              "key": "metadata_quality_check",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Metadata quality check"
+            },
+            {
+              "key": "review_information_incidents",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review information incidents"
+            },
+            {
+              "key": "update_policies_as_needed",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Update policies as needed"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Data sources",
+          "track": [
+            "information assets"
+          ]
+        },
+        {
+          "kind": "Analysis reports",
+          "track": [
+            "information reports"
+          ]
+        },
+        {
+          "kind": "Methodology",
+          "track": [
+            "classification and retention rules"
+          ]
+        }
+      ],
+      "documentationCategories": [
+        "Information asset register",
+        "Retention schedule",
+        "Access request log",
+        "Classification scheme",
+        "Disposal certificates",
+        "Incident log"
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "access_request",
+          "title": "Access request",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Confirm requester and need",
+                "Check authority and sensitivity",
+                "Grant or decline",
+                "Record the decision",
+                "Review at expiry"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "records_review",
+          "title": "Records review",
+          "frequency": "quarterly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "List collections due",
+                "Check retention rules",
+                "Decide keep, archive or dispose",
+                "Get approval",
+                "Execute and record"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "information_incident",
+          "title": "Information incident",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Contain exposure",
+                "Assess data and impact",
+                "Notify as required",
+                "Fix the cause",
+                "Record and learn"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "classification_guidance",
+          "title": "Classification guidance",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Define classes",
+                "Map examples",
+                "Train users",
+                "Audit samples",
+                "Update guidance"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "escalation",
+          "title": "Escalation",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "triggers": [
+            "Personal or confidential data exposed",
+            "Records lost",
+            "Unauthorised access",
+            "Legal hold issued",
+            "Retention breach"
+          ],
+          "recordFields": [
+            "date_time",
+            "affected_area_or_system",
+            "people_affected_by_code_or_count",
+            "description",
+            "actions_taken",
+            "evidence_or_logs",
+            "impact",
+            "person_or_party_contacted",
+            "current_status"
+          ],
+          "rules": [
+            "Record facts; escalate promptly when a trigger is met"
+          ]
+        },
+        {
+          "key": "role_handover",
+          "title": "Role handover",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Handover",
+              "steps": [
+                "Transfer Data sources: information assets",
+                "Transfer Analysis reports: information reports",
+                "Transfer Methodology: classification and retention rules",
+                "List open work, deadlines and commitments",
+                "Share trackers, templates and contacts",
+                "Transfer accounts and access only through the approved secure process, never in documents",
+                "Brief the successor and confirm access",
+                "Review progress after one week"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Process access and records requests",
+          "frequency": "daily"
+        },
+        {
+          "title": "Check document and records systems",
+          "frequency": "daily"
+        },
+        {
+          "title": "Handle classification and retention queries",
+          "frequency": "daily"
+        },
+        {
+          "title": "Check permissions changes",
+          "frequency": "daily"
+        },
+        {
+          "title": "Back up key repositories",
+          "frequency": "daily"
+        },
+        {
+          "title": "Access request review",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Records filing and clean-up",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Metadata quality check",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Review information incidents",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Update policies as needed",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Access and permissions review sample",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Retention and disposal review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Usage and storage report",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Training reminders",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Records audit",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Information risk review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Policy review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Archive and disposal run",
+          "frequency": "quarterly"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "assurance",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Records reviews done",
+        "Access requests pending",
+        "Requests decided",
+        "Information assets listed",
+        "Risks and recommendations",
+        "Plan for next period"
+      ],
+      "cadenceContent": {
+        "daily": [
+          "Daily checklist results",
+          "Open items and issues",
+          "Escalations",
+          "Plan for tomorrow"
+        ],
+        "weekly": [
+          "Weekly checklist results",
+          "KPI snapshot",
+          "Risks and blockers",
+          "Plan for next week"
+        ],
+        "monthly": [
+          "All KPI sections",
+          "Trends",
+          "Risks and recommendations",
+          "Plan for next month"
+        ]
+      }
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "standard",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Information management from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: records_reviews, access_requests"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Information management method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "Detailed checklists, playbook steps and triggers are proposals written from general professional practice, not from a source document: a practitioner must review and adapt them.",
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and register tracking lists are proposals: confirm against local practice and regulations."
+  ]
+}

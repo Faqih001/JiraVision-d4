@@ -1,0 +1,633 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "content",
+    "label": "Content",
+    "category": "information",
+    "categoryLabel": "Analysis, research & information",
+    "focus": "Content planning, production and publishing"
+  },
+  "pack": {
+    "key": "designer",
+    "reportTemplate": "creative",
+    "registerKinds": [
+      "Design files",
+      "Brand assets",
+      "User research",
+      "Design system"
+    ],
+    "ladderDiscipline": {
+      "proposed": "designer",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced content practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use.",
+    "detailLevel": "detailed"
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "pieces_published",
+          "label": "Pieces published",
+          "source": "content_calendar",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "pieces_overdue",
+          "label": "Pieces overdue",
+          "source": "content_calendar",
+          "sourceType": "log",
+          "aggregation": "overdue_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "audit_actions_completed",
+          "label": "Audit actions completed",
+          "source": "content_audits",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "style_guides",
+          "label": "Style guides",
+          "source": "brand_assets",
+          "sourceType": "register",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "piece_in_review_over_5_days",
+          "when": "piece in review over 5 days",
+          "suggest": "chase",
+          "deterministic": true
+        },
+        {
+          "id": "section_not_audited_in_6_months",
+          "when": "section not audited in 6 months",
+          "suggest": "audit",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "content_calendar",
+          "label": "Content calendar",
+          "fields": [
+            {
+              "key": "publish_date",
+              "type": "date"
+            },
+            {
+              "key": "piece",
+              "type": "text"
+            },
+            {
+              "key": "channel",
+              "type": "text"
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "draft",
+                "review",
+                "scheduled",
+                "published"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "content_audits",
+          "label": "Content audits",
+          "fields": [
+            {
+              "key": "audit_date",
+              "type": "date"
+            },
+            {
+              "key": "section",
+              "type": "text"
+            },
+            {
+              "key": "action",
+              "type": "enum",
+              "values": [
+                "keep",
+                "update",
+                "retire"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "daily_checklist",
+          "label": "Daily checklist",
+          "fields": [
+            {
+              "key": "date",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "check_the_editorial_calendar",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check the editorial calendar"
+            },
+            {
+              "key": "write_and_edit_planned_pieces",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Write and edit planned pieces"
+            },
+            {
+              "key": "review_and_approve_drafts",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review and approve drafts"
+            },
+            {
+              "key": "schedule_or_publish_content",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Schedule or publish content"
+            },
+            {
+              "key": "monitor_comments_and_engagement",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Monitor comments and engagement"
+            },
+            {
+              "key": "back_up_drafts",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Back up drafts"
+            }
+          ]
+        },
+        {
+          "key": "weekly_checklist",
+          "label": "Weekly checklist",
+          "fields": [
+            {
+              "key": "week_starting",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "editorial_meeting",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Editorial meeting"
+            },
+            {
+              "key": "performance_review_of_published_content",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Performance review of published content"
+            },
+            {
+              "key": "plan_next_week",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Plan next week"
+            },
+            {
+              "key": "update_style_guide_notes",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Update style guide notes"
+            },
+            {
+              "key": "check_links_and_accuracy",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check links and accuracy"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Design files",
+          "track": [
+            "content drafts"
+          ]
+        },
+        {
+          "kind": "Brand assets",
+          "track": [
+            "style and tone guides"
+          ]
+        },
+        {
+          "kind": "User research",
+          "track": [
+            "audience research"
+          ]
+        }
+      ],
+      "documentationCategories": [
+        "Editorial calendar",
+        "Content library",
+        "Style guide",
+        "Approvals log",
+        "Analytics reports",
+        "Corrections log"
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "publishing_checklist",
+          "title": "Publishing checklist",
+          "frequency": "weekly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Check facts, names and figures",
+                "Check tone and style guide",
+                "Check links, images and accessibility",
+                "Get approval",
+                "Schedule or publish",
+                "Record in the calendar"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "content_brief",
+          "title": "Content brief",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Define audience and goal",
+                "Set key message and keywords",
+                "Outline structure",
+                "Set length and deadline",
+                "Agree reviewers"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "content_audit",
+          "title": "Content audit",
+          "frequency": "monthly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "List pieces and metrics",
+                "Mark keep, update or retire",
+                "Assign updates",
+                "Redirect or remove retired pages",
+                "Record"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "correction",
+          "title": "Correction",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Verify the error",
+                "Correct with a note",
+                "Inform stakeholders",
+                "Record in the log"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "escalation",
+          "title": "Escalation",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "triggers": [
+            "Factual error published",
+            "Legal or copyright concern",
+            "Brand or reputation risk",
+            "Personal information shown",
+            "Deadline missed on key content"
+          ],
+          "recordFields": [
+            "date_time",
+            "affected_area_or_system",
+            "people_affected_by_code_or_count",
+            "description",
+            "actions_taken",
+            "evidence_or_logs",
+            "impact",
+            "person_or_party_contacted",
+            "current_status"
+          ],
+          "rules": [
+            "Record facts; escalate promptly when a trigger is met"
+          ]
+        },
+        {
+          "key": "role_handover",
+          "title": "Role handover",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Handover",
+              "steps": [
+                "Transfer Design files: content drafts",
+                "Transfer Brand assets: style and tone guides",
+                "Transfer User research: audience research",
+                "List open work, deadlines and commitments",
+                "Share trackers, templates and contacts",
+                "Transfer accounts and access only through the approved secure process, never in documents",
+                "Brief the successor and confirm access",
+                "Review progress after one week"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Check the editorial calendar",
+          "frequency": "daily"
+        },
+        {
+          "title": "Write and edit planned pieces",
+          "frequency": "daily"
+        },
+        {
+          "title": "Review and approve drafts",
+          "frequency": "daily"
+        },
+        {
+          "title": "Schedule or publish content",
+          "frequency": "daily"
+        },
+        {
+          "title": "Monitor comments and engagement",
+          "frequency": "daily"
+        },
+        {
+          "title": "Back up drafts",
+          "frequency": "daily"
+        },
+        {
+          "title": "Editorial meeting",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Performance review of published content",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Plan next week",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Update style guide notes",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Check links and accuracy",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Content audit",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Analytics report",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Update keyword and topic plan",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Archive or retire old content",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Content strategy review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Audience research",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Style guide review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Tools and workflow review",
+          "frequency": "quarterly"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "creative",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Pieces published",
+        "Pieces overdue",
+        "Audit actions completed",
+        "Style guides",
+        "Risks and recommendations",
+        "Plan for next period"
+      ],
+      "cadenceContent": {
+        "daily": [
+          "Daily checklist results",
+          "Open items and issues",
+          "Escalations",
+          "Plan for tomorrow"
+        ],
+        "weekly": [
+          "Weekly checklist results",
+          "KPI snapshot",
+          "Risks and blockers",
+          "Plan for next week"
+        ],
+        "monthly": [
+          "All KPI sections",
+          "Trends",
+          "Risks and recommendations",
+          "Plan for next month"
+        ]
+      }
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "standard",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Content from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: content_calendar, content_audits"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Content method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "Detailed checklists, playbook steps and triggers are proposals written from general professional practice, not from a source document: a practitioner must review and adapt them.",
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and register tracking lists are proposals: confirm against local practice and regulations."
+  ]
+}

@@ -1,0 +1,645 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "agriculture",
+    "label": "Agriculture",
+    "category": "science",
+    "categoryLabel": "Health, science & specialist services",
+    "focus": "Plots, activities and crop monitoring"
+  },
+  "pack": {
+    "key": "healthcare-science",
+    "reportTemplate": "technical",
+    "registerKinds": [
+      "Patients",
+      "Clinical protocols",
+      "Research",
+      "Compliance"
+    ],
+    "ladderDiscipline": {
+      "proposed": "healthcare_science",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "agronomist",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use.",
+    "detailLevel": "detailed"
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "activities_logged",
+          "label": "Activities logged",
+          "source": "field_activities",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "plots_with_issues",
+          "label": "Plots with issues",
+          "source": "crop_monitoring",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "monitoring_visits",
+          "label": "Monitoring visits",
+          "source": "crop_monitoring",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "trials_listed",
+          "label": "Trials listed",
+          "source": "research",
+          "sourceType": "register",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "issue_found_on_plot",
+          "when": "issue found on plot",
+          "suggest": "treatment plan",
+          "deterministic": true
+        },
+        {
+          "id": "activity_without_inputs_recorded",
+          "when": "activity without inputs recorded",
+          "suggest": "record",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "field_activities",
+          "label": "Field activities",
+          "fields": [
+            {
+              "key": "activity_date",
+              "type": "date"
+            },
+            {
+              "key": "plot",
+              "type": "text"
+            },
+            {
+              "key": "activity",
+              "type": "text"
+            },
+            {
+              "key": "inputs_recorded",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "crop_monitoring",
+          "label": "Crop monitoring",
+          "fields": [
+            {
+              "key": "monitor_date",
+              "type": "date"
+            },
+            {
+              "key": "plot",
+              "type": "text"
+            },
+            {
+              "key": "growth_stage",
+              "type": "text"
+            },
+            {
+              "key": "issue_found",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "daily_checklist",
+          "label": "Daily checklist",
+          "fields": [
+            {
+              "key": "date",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "walk_plots_and_check_crops_and_animals",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Walk plots and check crops and animals"
+            },
+            {
+              "key": "record_weather_and_field_activities",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Record weather and field activities"
+            },
+            {
+              "key": "check_irrigation_and_equipment",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check irrigation and equipment"
+            },
+            {
+              "key": "record_inputs_used",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Record inputs used"
+            },
+            {
+              "key": "check_labour_and_tasks",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check labour and tasks"
+            },
+            {
+              "key": "note_pests_disease_and_issues",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Note pests, disease and issues"
+            }
+          ]
+        },
+        {
+          "key": "weekly_checklist",
+          "label": "Weekly checklist",
+          "fields": [
+            {
+              "key": "week_starting",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "crop_monitoring_round",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Crop monitoring round"
+            },
+            {
+              "key": "input_and_stock_check",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Input and stock check"
+            },
+            {
+              "key": "plan_next_week_s_activities",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Plan next week's activities"
+            },
+            {
+              "key": "review_labour_and_machinery",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review labour and machinery"
+            },
+            {
+              "key": "update_farm_records",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Update farm records"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Patients",
+          "track": [
+            "none"
+          ]
+        },
+        {
+          "kind": "Clinical protocols",
+          "track": [
+            "agronomy protocols"
+          ]
+        },
+        {
+          "kind": "Research",
+          "track": [
+            "trials and observations"
+          ]
+        },
+        {
+          "kind": "Compliance",
+          "track": [
+            "certifications and input rules"
+          ]
+        }
+      ],
+      "documentationCategories": [
+        "Plot and crop records",
+        "Input and chemical records",
+        "Harvest and yield records",
+        "Weather and irrigation logs",
+        "Equipment records",
+        "Certification documents"
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "field_walk",
+          "title": "Field walk",
+          "frequency": "daily",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Walk assigned plots",
+                "Check growth stage and condition",
+                "Note pests and diseases",
+                "Record weather and activities",
+                "Plan actions"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "input_application",
+          "title": "Input application",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Check the recommendation and label",
+                "Calibrate and prepare",
+                "Apply safely",
+                "Record product, rate and area",
+                "Observe waiting periods"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "harvest_and_storage",
+          "title": "Harvest and storage",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Check maturity",
+                "Harvest and handle",
+                "Grade and record",
+                "Store correctly",
+                "Record yield"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "pest_and_disease_response",
+          "title": "Pest and disease response",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Identify and confirm",
+                "Choose control options",
+                "Apply and record",
+                "Monitor",
+                "Review"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "escalation",
+          "title": "Escalation",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "triggers": [
+            "Pest or disease outbreak",
+            "Extreme weather event",
+            "Contamination or residue risk",
+            "Animal or crop loss",
+            "Safety incident with chemicals or machinery"
+          ],
+          "recordFields": [
+            "date_time",
+            "affected_area_or_system",
+            "people_affected_by_code_or_count",
+            "description",
+            "actions_taken",
+            "evidence_or_logs",
+            "impact",
+            "person_or_party_contacted",
+            "current_status"
+          ],
+          "rules": [
+            "Record facts only; no personal identifiers in free text"
+          ]
+        },
+        {
+          "key": "role_handover",
+          "title": "Role handover",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Handover",
+              "steps": [
+                "Transfer Patients: none",
+                "Transfer Clinical protocols: agronomy protocols",
+                "Transfer Research: trials and observations",
+                "Transfer Compliance: certifications and input rules",
+                "List open work, deadlines and commitments",
+                "Share trackers, templates and contacts",
+                "Transfer accounts and access only through the approved secure process, never in documents",
+                "Brief the successor and confirm access",
+                "Review progress after one week"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Walk plots and check crops and animals",
+          "frequency": "daily"
+        },
+        {
+          "title": "Record weather and field activities",
+          "frequency": "daily"
+        },
+        {
+          "title": "Check irrigation and equipment",
+          "frequency": "daily"
+        },
+        {
+          "title": "Record inputs used",
+          "frequency": "daily"
+        },
+        {
+          "title": "Check labour and tasks",
+          "frequency": "daily"
+        },
+        {
+          "title": "Note pests, disease and issues",
+          "frequency": "daily"
+        },
+        {
+          "title": "Crop monitoring round",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Input and stock check",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Plan next week's activities",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Review labour and machinery",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Update farm records",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Yield and growth review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Input and cost review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Soil and water check",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Market and sales review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Season plan review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Soil testing",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Equipment and storage review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Compliance and certification check",
+          "frequency": "quarterly"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "technical",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Activities logged",
+        "Plots with issues",
+        "Monitoring visits",
+        "Trials listed",
+        "Risks and recommendations",
+        "Plan for next period"
+      ],
+      "cadenceContent": {
+        "daily": [
+          "Daily checklist results",
+          "Open items and issues",
+          "Escalations",
+          "Plan for tomorrow"
+        ],
+        "weekly": [
+          "Weekly checklist results",
+          "KPI snapshot",
+          "Risks and blockers",
+          "Plan for next week"
+        ],
+        "monthly": [
+          "All KPI sections",
+          "Trends",
+          "Risks and recommendations",
+          "Plan for next month"
+        ]
+      }
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "restricted",
+      "neverSendRegisterKinds": [
+        "Patients"
+      ],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers",
+        "amounts and balances"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Agriculture from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: field_activities, crop_monitoring"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Agriculture method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "Detailed checklists, playbook steps and triggers are proposals written from general professional practice, not from a source document: a practitioner must review and adapt them.",
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and register tracking lists are proposals: confirm against local practice and regulations.",
+    "Restricted data: keep personal, patient, employee, account and privileged data out of prompts; use codes only."
+  ]
+}

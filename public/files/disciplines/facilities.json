@@ -1,0 +1,624 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "facilities",
+    "label": "Facilities",
+    "category": "operations",
+    "categoryLabel": "Operations & supply chain",
+    "focus": "Buildings, services and requests"
+  },
+  "pack": {
+    "key": "operations",
+    "reportTemplate": "technical",
+    "registerKinds": [
+      "Processes",
+      "Inventory",
+      "Logistics",
+      "Quality control"
+    ],
+    "ladderDiscipline": {
+      "proposed": "operations",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced facilities practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use.",
+    "detailLevel": "detailed"
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "inspections_done",
+          "label": "Inspections done",
+          "source": "facility_inspections",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "areas_needing_action",
+          "label": "Areas needing action",
+          "source": "facility_inspections",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "requests_open",
+          "label": "Requests open",
+          "source": "service_requests",
+          "sourceType": "log",
+          "aggregation": "open_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "requests_done",
+          "label": "Requests done",
+          "source": "service_requests",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "request_open_over_5_days",
+          "when": "request open over 5 days",
+          "suggest": "escalate",
+          "deterministic": true
+        },
+        {
+          "id": "area_needing_action_twice",
+          "when": "area needing action twice",
+          "suggest": "plan repair",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "facility_inspections",
+          "label": "Facility inspections",
+          "fields": [
+            {
+              "key": "inspection_date",
+              "type": "date"
+            },
+            {
+              "key": "area",
+              "type": "text"
+            },
+            {
+              "key": "result",
+              "type": "enum",
+              "values": [
+                "ok",
+                "action_needed"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "service_requests",
+          "label": "Service requests",
+          "fields": [
+            {
+              "key": "received_date",
+              "type": "date"
+            },
+            {
+              "key": "location",
+              "type": "text"
+            },
+            {
+              "key": "issue",
+              "type": "text"
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "open",
+                "in_progress",
+                "done"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "daily_checklist",
+          "label": "Daily checklist",
+          "fields": [
+            {
+              "key": "date",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "walk_round_buildings_and_common_areas",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Walk round buildings and common areas"
+            },
+            {
+              "key": "check_safety_and_security_systems",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check safety and security systems"
+            },
+            {
+              "key": "handle_service_requests",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Handle service requests"
+            },
+            {
+              "key": "check_cleaning_and_consumables",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check cleaning and consumables"
+            },
+            {
+              "key": "log_faults_and_contractors_on_site",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Log faults and contractors on site"
+            }
+          ]
+        },
+        {
+          "key": "weekly_checklist",
+          "label": "Weekly checklist",
+          "fields": [
+            {
+              "key": "week_starting",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "inspect_plant_and_services",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Inspect plant and services"
+            },
+            {
+              "key": "review_service_request_backlog",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review service request backlog"
+            },
+            {
+              "key": "check_fire_and_safety_equipment",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check fire and safety equipment"
+            },
+            {
+              "key": "review_contractor_schedules",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review contractor schedules"
+            },
+            {
+              "key": "update_the_facilities_log",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Update the facilities log"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Processes",
+          "track": [
+            "facility processes"
+          ]
+        },
+        {
+          "kind": "Inventory",
+          "track": [
+            "consumables"
+          ]
+        },
+        {
+          "kind": "Logistics",
+          "track": [
+            "service access"
+          ]
+        },
+        {
+          "kind": "Quality control",
+          "track": [
+            "inspections"
+          ]
+        }
+      ],
+      "documentationCategories": [
+        "Asset and plant register",
+        "Maintenance schedules",
+        "Inspection records",
+        "Contractor records",
+        "Safety certificates",
+        "Service request log"
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "daily_walk_round",
+          "title": "Daily walk-round",
+          "frequency": "daily",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Check entrances and security",
+                "Check lighting, HVAC and water",
+                "Check hazards and cleanliness",
+                "Record faults",
+                "Raise requests"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "service_request",
+          "title": "Service request",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Log the request and urgency",
+                "Assign to team or contractor",
+                "Update the requester",
+                "Complete and verify",
+                "Close"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "contractor_management",
+          "title": "Contractor management",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Check approvals and insurance",
+                "Issue a permit to work",
+                "Brief on site rules",
+                "Inspect the work",
+                "Record and sign off"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "emergency_drill",
+          "title": "Emergency drill",
+          "frequency": "quarterly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Plan the scenario",
+                "Notify as appropriate",
+                "Run the drill",
+                "Review timings and issues",
+                "Record and fix"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "escalation",
+          "title": "Escalation",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "triggers": [
+            "Fire or safety hazard",
+            "Loss of power, water or security system",
+            "Injury on site",
+            "Contractor non-compliance",
+            "Urgent repair affecting operations"
+          ],
+          "recordFields": [
+            "date_time",
+            "affected_area_or_system",
+            "people_affected_by_code_or_count",
+            "description",
+            "actions_taken",
+            "evidence_or_logs",
+            "impact",
+            "person_or_party_contacted",
+            "current_status"
+          ],
+          "rules": [
+            "Record facts; escalate promptly when a trigger is met"
+          ]
+        },
+        {
+          "key": "role_handover",
+          "title": "Role handover",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Handover",
+              "steps": [
+                "Transfer Processes: facility processes",
+                "Transfer Inventory: consumables",
+                "Transfer Logistics: service access",
+                "Transfer Quality control: inspections",
+                "List open work, deadlines and commitments",
+                "Share trackers, templates and contacts",
+                "Transfer accounts and access only through the approved secure process, never in documents",
+                "Brief the successor and confirm access",
+                "Review progress after one week"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Walk round buildings and common areas",
+          "frequency": "daily"
+        },
+        {
+          "title": "Check safety and security systems",
+          "frequency": "daily"
+        },
+        {
+          "title": "Handle service requests",
+          "frequency": "daily"
+        },
+        {
+          "title": "Check cleaning and consumables",
+          "frequency": "daily"
+        },
+        {
+          "title": "Log faults and contractors on site",
+          "frequency": "daily"
+        },
+        {
+          "title": "Inspect plant and services",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Review service request backlog",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Check fire and safety equipment",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Review contractor schedules",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Update the facilities log",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Planned preventive maintenance",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Utilities review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Health and safety inspection",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Space and occupancy review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Lease and contract review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Emergency drill",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Asset and lifecycle review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Budget review",
+          "frequency": "quarterly"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "technical",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Inspections done",
+        "Areas needing action",
+        "Requests open",
+        "Requests done",
+        "Risks and recommendations",
+        "Plan for next period"
+      ],
+      "cadenceContent": {
+        "daily": [
+          "Daily checklist results",
+          "Open items and issues",
+          "Escalations",
+          "Plan for tomorrow"
+        ],
+        "weekly": [
+          "Weekly checklist results",
+          "KPI snapshot",
+          "Risks and blockers",
+          "Plan for next week"
+        ],
+        "monthly": [
+          "All KPI sections",
+          "Trends",
+          "Risks and recommendations",
+          "Plan for next month"
+        ]
+      }
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "standard",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Facilities from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: facility_inspections, service_requests"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Facilities method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "Detailed checklists, playbook steps and triggers are proposals written from general professional practice, not from a source document: a practitioner must review and adapt them.",
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and register tracking lists are proposals: confirm against local practice and regulations."
+  ]
+}

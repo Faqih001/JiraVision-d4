@@ -1,0 +1,636 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "supply_chain",
+    "label": "Supply chain",
+    "category": "operations",
+    "categoryLabel": "Operations & supply chain",
+    "focus": "Suppliers, deliveries and supply risk"
+  },
+  "pack": {
+    "key": "operations",
+    "reportTemplate": "technical",
+    "registerKinds": [
+      "Processes",
+      "Inventory",
+      "Logistics",
+      "Quality control"
+    ],
+    "ladderDiscipline": {
+      "proposed": "operations",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced supply chain practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use.",
+    "detailLevel": "detailed"
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "deliveries_on_time",
+          "label": "Deliveries on time",
+          "source": "supplier_deliveries",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "shortfalls",
+          "label": "Shortfalls",
+          "source": "supplier_deliveries",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "open_supply_risks",
+          "label": "Open supply risks",
+          "source": "supply_risks",
+          "sourceType": "log",
+          "aggregation": "open_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "suppliers_tracked",
+          "label": "Suppliers tracked",
+          "source": "logistics",
+          "sourceType": "register",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "delivery_late_twice",
+          "when": "delivery late twice",
+          "suggest": "escalate to supplier",
+          "deterministic": true
+        },
+        {
+          "id": "supply_risk_open_30_days",
+          "when": "supply risk open 30 days",
+          "suggest": "mitigate",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "supplier_deliveries",
+          "label": "Supplier deliveries",
+          "fields": [
+            {
+              "key": "expected_date",
+              "type": "date"
+            },
+            {
+              "key": "supplier",
+              "type": "text"
+            },
+            {
+              "key": "received_date",
+              "type": "date"
+            },
+            {
+              "key": "on_time",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no"
+              ]
+            },
+            {
+              "key": "shortfall",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "supply_risks",
+          "label": "Supply risks",
+          "fields": [
+            {
+              "key": "raised_date",
+              "type": "date"
+            },
+            {
+              "key": "risk",
+              "type": "text"
+            },
+            {
+              "key": "mitigation",
+              "type": "text"
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "open",
+                "mitigated"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "daily_checklist",
+          "label": "Daily checklist",
+          "fields": [
+            {
+              "key": "date",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "check_inbound_deliveries_and_delays",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check inbound deliveries and delays"
+            },
+            {
+              "key": "review_stock_and_demand_signals",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review stock and demand signals"
+            },
+            {
+              "key": "respond_to_supplier_issues",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Respond to supplier issues"
+            },
+            {
+              "key": "update_orders_and_trackers",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Update orders and trackers"
+            },
+            {
+              "key": "review_transport_status",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review transport status"
+            }
+          ]
+        },
+        {
+          "key": "weekly_checklist",
+          "label": "Weekly checklist",
+          "fields": [
+            {
+              "key": "week_starting",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "supplier_performance_review",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Supplier performance review"
+            },
+            {
+              "key": "demand_and_supply_plan_review",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Demand and supply plan review"
+            },
+            {
+              "key": "review_open_purchase_orders",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review open purchase orders"
+            },
+            {
+              "key": "review_inventory_levels",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review inventory levels"
+            },
+            {
+              "key": "report_exceptions",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Report exceptions"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Processes",
+          "track": [
+            "sourcing processes"
+          ]
+        },
+        {
+          "kind": "Inventory",
+          "track": [
+            "stock policy"
+          ]
+        },
+        {
+          "kind": "Logistics",
+          "track": [
+            "lanes and carriers"
+          ]
+        },
+        {
+          "kind": "Quality control",
+          "track": [
+            "supplier quality"
+          ]
+        }
+      ],
+      "documentationCategories": [
+        "Supplier list and scorecards",
+        "Purchase orders",
+        "Demand and supply plans",
+        "Lead-time data",
+        "Supply risk register",
+        "Contracts"
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "inbound_check",
+          "title": "Inbound check",
+          "frequency": "daily",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "List expected deliveries",
+                "Confirm arrivals and quantities",
+                "Inspect for damage",
+                "Record shortfalls",
+                "Notify suppliers"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "supplier_review",
+          "title": "Supplier review",
+          "frequency": "weekly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Collect delivery and quality data",
+                "Compare to targets",
+                "Discuss issues",
+                "Agree actions",
+                "Record"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "supply_risk_review",
+          "title": "Supply risk review",
+          "frequency": "monthly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "List single-source and long lead-time items",
+                "Rate risks",
+                "Plan mitigations",
+                "Assign owners",
+                "Track"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "shortage_response",
+          "title": "Shortage response",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Identify affected items",
+                "Check alternatives",
+                "Prioritise customers",
+                "Expedite or substitute",
+                "Communicate",
+                "Review the cause"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "escalation",
+          "title": "Escalation",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "triggers": [
+            "Critical item shortage",
+            "Supplier failure",
+            "Major transport disruption",
+            "Quality failure from a supplier",
+            "Price spike"
+          ],
+          "recordFields": [
+            "date_time",
+            "affected_area_or_system",
+            "people_affected_by_code_or_count",
+            "description",
+            "actions_taken",
+            "evidence_or_logs",
+            "impact",
+            "person_or_party_contacted",
+            "current_status"
+          ],
+          "rules": [
+            "Record facts; escalate promptly when a trigger is met"
+          ]
+        },
+        {
+          "key": "role_handover",
+          "title": "Role handover",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Handover",
+              "steps": [
+                "Transfer Processes: sourcing processes",
+                "Transfer Inventory: stock policy",
+                "Transfer Logistics: lanes and carriers",
+                "Transfer Quality control: supplier quality",
+                "List open work, deadlines and commitments",
+                "Share trackers, templates and contacts",
+                "Transfer accounts and access only through the approved secure process, never in documents",
+                "Brief the successor and confirm access",
+                "Review progress after one week"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Check inbound deliveries and delays",
+          "frequency": "daily"
+        },
+        {
+          "title": "Review stock and demand signals",
+          "frequency": "daily"
+        },
+        {
+          "title": "Respond to supplier issues",
+          "frequency": "daily"
+        },
+        {
+          "title": "Update orders and trackers",
+          "frequency": "daily"
+        },
+        {
+          "title": "Review transport status",
+          "frequency": "daily"
+        },
+        {
+          "title": "Supplier performance review",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Demand and supply plan review",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Review open purchase orders",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Review inventory levels",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Report exceptions",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Supplier scorecards",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Inventory and service level review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Risk review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Cost and lead-time review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Sourcing strategy review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Network and routes review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Supply risk assessment",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Contract review",
+          "frequency": "quarterly"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "technical",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Deliveries on time",
+        "Shortfalls",
+        "Open supply risks",
+        "Suppliers tracked",
+        "Risks and recommendations",
+        "Plan for next period"
+      ],
+      "cadenceContent": {
+        "daily": [
+          "Daily checklist results",
+          "Open items and issues",
+          "Escalations",
+          "Plan for tomorrow"
+        ],
+        "weekly": [
+          "Weekly checklist results",
+          "KPI snapshot",
+          "Risks and blockers",
+          "Plan for next week"
+        ],
+        "monthly": [
+          "All KPI sections",
+          "Trends",
+          "Risks and recommendations",
+          "Plan for next month"
+        ]
+      }
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "standard",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Supply chain from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: supplier_deliveries, supply_risks"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Supply chain method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "Detailed checklists, playbook steps and triggers are proposals written from general professional practice, not from a source document: a practitioner must review and adapt them.",
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and register tracking lists are proposals: confirm against local practice and regulations."
+  ]
+}

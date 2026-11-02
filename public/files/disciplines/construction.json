@@ -1,0 +1,643 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "construction",
+    "label": "Construction",
+    "category": "engineering",
+    "categoryLabel": "Engineering & built works",
+    "focus": "Daily site reports, safety and progress"
+  },
+  "pack": {
+    "key": "engineering",
+    "reportTemplate": "engineering",
+    "registerKinds": [
+      "Projects",
+      "Specifications",
+      "Inspections",
+      "Compliance"
+    ],
+    "ladderDiscipline": {
+      "proposed": "engineering",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "site safety officer or registered engineer",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use.",
+    "detailLevel": "detailed"
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "site_reports_filed",
+          "label": "Site reports filed",
+          "source": "daily_site_reports",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "hazards_logged",
+          "label": "Hazards logged",
+          "source": "safety_observations",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "incidents_logged",
+          "label": "Incidents logged",
+          "source": "safety_observations",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "inspections",
+          "label": "Inspections",
+          "source": "inspections",
+          "sourceType": "register",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "hazard_without_action",
+          "when": "hazard without action",
+          "suggest": "assign",
+          "deterministic": true
+        },
+        {
+          "id": "no_site_report_for_a_working_day",
+          "when": "no site report for a working day",
+          "suggest": "file",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "daily_site_reports",
+          "label": "Daily site reports",
+          "fields": [
+            {
+              "key": "report_date",
+              "type": "date"
+            },
+            {
+              "key": "site",
+              "type": "text"
+            },
+            {
+              "key": "workforce_count",
+              "type": "number"
+            },
+            {
+              "key": "weather",
+              "type": "text"
+            },
+            {
+              "key": "progress_notes",
+              "type": "text"
+            }
+          ]
+        },
+        {
+          "key": "safety_observations",
+          "label": "Safety observations",
+          "fields": [
+            {
+              "key": "observed_date",
+              "type": "date"
+            },
+            {
+              "key": "site",
+              "type": "text"
+            },
+            {
+              "key": "type",
+              "type": "enum",
+              "values": [
+                "positive",
+                "hazard",
+                "incident"
+              ]
+            },
+            {
+              "key": "action",
+              "type": "text"
+            }
+          ]
+        },
+        {
+          "key": "daily_checklist",
+          "label": "Daily checklist",
+          "fields": [
+            {
+              "key": "date",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "hold_a_toolbox_talk",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Hold a toolbox talk"
+            },
+            {
+              "key": "complete_the_daily_site_report",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Complete the daily site report"
+            },
+            {
+              "key": "check_site_safety_and_permits",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check site safety and permits"
+            },
+            {
+              "key": "inspect_work_and_supervise_crews",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Inspect work and supervise crews"
+            },
+            {
+              "key": "check_deliveries_and_materials",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check deliveries and materials"
+            },
+            {
+              "key": "record_workforce_and_progress",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Record workforce and progress"
+            }
+          ]
+        },
+        {
+          "key": "weekly_checklist",
+          "label": "Weekly checklist",
+          "fields": [
+            {
+              "key": "week_starting",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "progress_meeting",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Progress meeting"
+            },
+            {
+              "key": "safety_inspection",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Safety inspection"
+            },
+            {
+              "key": "review_programme_and_lookahead",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review programme and lookahead"
+            },
+            {
+              "key": "subcontractor_review",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Subcontractor review"
+            },
+            {
+              "key": "update_cost_and_variation_log",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Update cost and variation log"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Projects",
+          "track": [
+            "construction projects"
+          ]
+        },
+        {
+          "kind": "Specifications",
+          "track": [
+            "work specifications"
+          ]
+        },
+        {
+          "kind": "Inspections",
+          "track": [
+            "quality inspections"
+          ]
+        },
+        {
+          "kind": "Compliance",
+          "track": [
+            "safety and permits"
+          ]
+        }
+      ],
+      "documentationCategories": [
+        "Daily site reports",
+        "Programme and lookahead",
+        "Safety records and permits",
+        "Variations and instructions",
+        "Delivery and material records",
+        "Inspection records"
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "daily_site_report",
+          "title": "Daily site report",
+          "frequency": "daily",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Record date, weather and workforce",
+                "Record work done and plant",
+                "Record deliveries and visitors",
+                "Record delays and instructions",
+                "Record safety observations",
+                "File and share"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "toolbox_talk",
+          "title": "Toolbox talk",
+          "frequency": "weekly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Choose a topic from current risks",
+                "Brief the crew",
+                "Record attendance",
+                "Collect questions",
+                "Follow up actions"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "variation_order",
+          "title": "Variation order",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Describe the change and instruction",
+                "Price and time impact",
+                "Obtain approval",
+                "Record",
+                "Update the programme"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "permit_to_work",
+          "title": "Permit to work",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Describe the task and hazards",
+                "Define controls",
+                "Issue the permit",
+                "Monitor",
+                "Close the permit"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "escalation",
+          "title": "Escalation",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "triggers": [
+            "Injury or serious near miss",
+            "Structural or stability concern",
+            "Work stopped by an authority",
+            "Subcontractor default",
+            "Major weather or ground issue"
+          ],
+          "recordFields": [
+            "date_time",
+            "affected_area_or_system",
+            "people_affected_by_code_or_count",
+            "description",
+            "actions_taken",
+            "evidence_or_logs",
+            "impact",
+            "person_or_party_contacted",
+            "current_status"
+          ],
+          "rules": [
+            "Record facts; escalate promptly when a trigger is met"
+          ]
+        },
+        {
+          "key": "role_handover",
+          "title": "Role handover",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Handover",
+              "steps": [
+                "Transfer Projects: construction projects",
+                "Transfer Specifications: work specifications",
+                "Transfer Inspections: quality inspections",
+                "Transfer Compliance: safety and permits",
+                "List open work, deadlines and commitments",
+                "Share trackers, templates and contacts",
+                "Transfer accounts and access only through the approved secure process, never in documents",
+                "Brief the successor and confirm access",
+                "Review progress after one week"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Hold a toolbox talk",
+          "frequency": "daily"
+        },
+        {
+          "title": "Complete the daily site report",
+          "frequency": "daily"
+        },
+        {
+          "title": "Check site safety and permits",
+          "frequency": "daily"
+        },
+        {
+          "title": "Inspect work and supervise crews",
+          "frequency": "daily"
+        },
+        {
+          "title": "Check deliveries and materials",
+          "frequency": "daily"
+        },
+        {
+          "title": "Record workforce and progress",
+          "frequency": "daily"
+        },
+        {
+          "title": "Progress meeting",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Safety inspection",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Review programme and lookahead",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Subcontractor review",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Update cost and variation log",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Progress and valuation report",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Safety and quality review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Subcontractor payments check",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Equipment and plant review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Programme re-baseline",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Safety audit",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Lessons learned",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Handover readiness",
+          "frequency": "quarterly"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "engineering",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Site reports filed",
+        "Hazards logged",
+        "Incidents logged",
+        "Inspections",
+        "Risks and recommendations",
+        "Plan for next period"
+      ],
+      "cadenceContent": {
+        "daily": [
+          "Daily checklist results",
+          "Open items and issues",
+          "Escalations",
+          "Plan for tomorrow"
+        ],
+        "weekly": [
+          "Weekly checklist results",
+          "KPI snapshot",
+          "Risks and blockers",
+          "Plan for next week"
+        ],
+        "monthly": [
+          "All KPI sections",
+          "Trends",
+          "Risks and recommendations",
+          "Plan for next month"
+        ]
+      }
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "standard",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Construction from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: daily_site_reports, safety_observations"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Construction method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "Detailed checklists, playbook steps and triggers are proposals written from general professional practice, not from a source document: a practitioner must review and adapt them.",
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and register tracking lists are proposals: confirm against local practice and regulations."
+  ]
+}

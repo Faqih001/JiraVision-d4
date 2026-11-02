@@ -1,0 +1,623 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "community_development",
+    "label": "Community development",
+    "category": "services",
+    "categoryLabel": "Creative, service & industry work",
+    "focus": "Outreach, participants and follow-up (beneficiary data: restricted)"
+  },
+  "pack": {
+    "key": "general",
+    "reportTemplate": "general",
+    "registerKinds": [
+      "Responsibilities",
+      "Records and documents",
+      "Assets and equipment",
+      "Outstanding work"
+    ],
+    "ladderDiscipline": {
+      "proposed": null,
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "experienced community development practitioner",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use.",
+    "detailLevel": "detailed"
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "sessions_held",
+          "label": "Sessions held",
+          "source": "outreach_sessions",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "participants_reached",
+          "label": "Participants reached",
+          "source": "outreach_sessions",
+          "sourceType": "log",
+          "aggregation": "sum",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "follow_ups_open",
+          "label": "Follow-ups open",
+          "source": "beneficiary_followups",
+          "sourceType": "log",
+          "aggregation": "open_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "open_actions",
+          "label": "Open actions",
+          "source": "outstanding_work",
+          "sourceType": "register",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "follow_up_open_over_14_days",
+          "when": "follow-up open over 14 days",
+          "suggest": "contact",
+          "deterministic": true
+        },
+        {
+          "id": "session_without_attendance_recorded",
+          "when": "session without attendance recorded",
+          "suggest": "record",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "outreach_sessions",
+          "label": "Outreach sessions",
+          "fields": [
+            {
+              "key": "session_date",
+              "type": "date"
+            },
+            {
+              "key": "community",
+              "type": "text"
+            },
+            {
+              "key": "topic",
+              "type": "text"
+            },
+            {
+              "key": "participant_count",
+              "type": "number"
+            }
+          ]
+        },
+        {
+          "key": "beneficiary_followups",
+          "label": "Beneficiary followups",
+          "fields": [
+            {
+              "key": "followup_date",
+              "type": "date"
+            },
+            {
+              "key": "case_ref",
+              "type": "text"
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "open",
+                "done"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "daily_checklist",
+          "label": "Daily checklist",
+          "fields": [
+            {
+              "key": "date",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "plan_and_run_field_activities",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Plan and run field activities"
+            },
+            {
+              "key": "record_participation_and_notes_codes_only",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Record participation and notes (codes only)"
+            },
+            {
+              "key": "follow_up_with_partners_and_leaders",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Follow up with partners and leaders"
+            },
+            {
+              "key": "check_safety_and_logistics",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check safety and logistics"
+            },
+            {
+              "key": "update_the_activity_tracker",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Update the activity tracker"
+            }
+          ]
+        },
+        {
+          "key": "weekly_checklist",
+          "label": "Weekly checklist",
+          "fields": [
+            {
+              "key": "week_starting",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "team_meeting_and_planning",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Team meeting and planning"
+            },
+            {
+              "key": "follow_ups_on_cases_or_participants",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Follow-ups on cases or participants"
+            },
+            {
+              "key": "partner_coordination",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Partner coordination"
+            },
+            {
+              "key": "review_progress_and_risks",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review progress and risks"
+            },
+            {
+              "key": "report_to_supervisor",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Report to supervisor"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Responsibilities",
+          "track": [
+            "programme duties"
+          ]
+        },
+        {
+          "kind": "Records and documents",
+          "track": [
+            "programme records"
+          ]
+        },
+        {
+          "kind": "Assets and equipment",
+          "track": [
+            "programme equipment"
+          ]
+        },
+        {
+          "kind": "Outstanding work",
+          "track": [
+            "open actions"
+          ]
+        }
+      ],
+      "documentationCategories": [
+        "Activity and attendance records (coded)",
+        "Partner agreements",
+        "Programme plans",
+        "Reports and learning",
+        "Beneficiary data (restricted)",
+        "Consents and permissions"
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "community_session",
+          "title": "Community session",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Agree topic and place with local leaders",
+                "Prepare materials",
+                "Run the session",
+                "Record attendance by code",
+                "Collect feedback",
+                "Follow up"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "participant_follow_up",
+          "title": "Participant follow-up",
+          "frequency": "weekly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "List follow-ups due",
+                "Contact participants",
+                "Record the outcome by code",
+                "Refer if needed",
+                "Update the tracker"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "safeguarding_concern",
+          "title": "Safeguarding concern",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Listen and keep safe",
+                "Record facts",
+                "Report to the designated lead",
+                "Follow their instructions",
+                "Record the outcome"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "programme_review",
+          "title": "Programme review",
+          "frequency": "quarterly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Compare results to plan",
+                "Gather community views",
+                "Identify lessons",
+                "Adjust the plan",
+                "Report"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "escalation",
+          "title": "Escalation",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "triggers": [
+            "Safeguarding concern",
+            "Safety risk to staff or participants",
+            "Conflict in the community",
+            "Misuse of resources",
+            "Funder reporting deadline at risk"
+          ],
+          "recordFields": [
+            "date_time",
+            "affected_area_or_system",
+            "people_affected_by_code_or_count",
+            "description",
+            "actions_taken",
+            "evidence_or_logs",
+            "impact",
+            "person_or_party_contacted",
+            "current_status"
+          ],
+          "rules": [
+            "Record facts only; no personal identifiers in free text"
+          ]
+        },
+        {
+          "key": "role_handover",
+          "title": "Role handover",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Handover",
+              "steps": [
+                "Transfer Responsibilities: programme duties",
+                "Transfer Records and documents: programme records",
+                "Transfer Assets and equipment: programme equipment",
+                "Transfer Outstanding work: open actions",
+                "List open work, deadlines and commitments",
+                "Share trackers, templates and contacts",
+                "Transfer accounts and access only through the approved secure process, never in documents",
+                "Brief the successor and confirm access",
+                "Review progress after one week"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Plan and run field activities",
+          "frequency": "daily"
+        },
+        {
+          "title": "Record participation and notes (codes only)",
+          "frequency": "daily"
+        },
+        {
+          "title": "Follow up with partners and leaders",
+          "frequency": "daily"
+        },
+        {
+          "title": "Check safety and logistics",
+          "frequency": "daily"
+        },
+        {
+          "title": "Update the activity tracker",
+          "frequency": "daily"
+        },
+        {
+          "title": "Team meeting and planning",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Follow-ups on cases or participants",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Partner coordination",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Review progress and risks",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Report to supervisor",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Progress report",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Participation and results review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Community feedback session",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Budget and resources check",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Programme review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Learning and adaptation",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Donor or funder reporting",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Safeguarding and risk review",
+          "frequency": "quarterly"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "general",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Sessions held",
+        "Participants reached",
+        "Follow-ups open",
+        "Open actions",
+        "Risks and recommendations",
+        "Plan for next period"
+      ],
+      "cadenceContent": {
+        "daily": [
+          "Daily checklist results",
+          "Open items and issues",
+          "Escalations",
+          "Plan for tomorrow"
+        ],
+        "weekly": [
+          "Weekly checklist results",
+          "KPI snapshot",
+          "Risks and blockers",
+          "Plan for next week"
+        ],
+        "monthly": [
+          "All KPI sections",
+          "Trends",
+          "Risks and recommendations",
+          "Plan for next month"
+        ]
+      }
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "restricted",
+      "neverSendRegisterKinds": [],
+      "neverSendEntities": [
+        "beneficiary_followups"
+      ],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Community development from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G4",
+        "page": "/dashboard/ops/logs",
+        "flavour": "read pasted text into: outreach_sessions"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Community development method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "Detailed checklists, playbook steps and triggers are proposals written from general professional practice, not from a source document: a practitioner must review and adapt them.",
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and register tracking lists are proposals: confirm against local practice and regulations.",
+    "Restricted data: keep personal, patient, employee, account and privileged data out of prompts; use codes only."
+  ]
+}

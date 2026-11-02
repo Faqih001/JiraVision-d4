@@ -1,0 +1,636 @@
+{
+  "schemaVersion": 1,
+  "discipline": {
+    "key": "legal",
+    "label": "Legal",
+    "category": "people",
+    "categoryLabel": "People, administration & governance",
+    "focus": "Contract review, queries and obligations (privileged: restricted)"
+  },
+  "pack": {
+    "key": "hr",
+    "reportTemplate": "general",
+    "registerKinds": [
+      "Employee records",
+      "Policies",
+      "Training",
+      "Compliance"
+    ],
+    "ladderDiscipline": {
+      "proposed": "hr",
+      "verifyIn": "lib/auto-populate.ts"
+    }
+  },
+  "provenance": {
+    "type": "proposed-seed",
+    "sourceDocument": null,
+    "reviewRequired": true,
+    "reviewerRole": "qualified lawyer",
+    "note": "Starting seed written without a source document. Not professional, clinical, legal, financial or safety advice. A practitioner must review before use.",
+    "detailLevel": "detailed"
+  },
+  "method": {
+    "resolveAtRuntime": "getMethodForDiscipline(pack, discipline)",
+    "documentedSequence": null,
+    "documentedIn": null
+  },
+  "surfaces": {
+    "overview": {
+      "path": "/dashboard/ops",
+      "kpis": [
+        {
+          "id": "contracts_reviewed",
+          "label": "Contracts reviewed",
+          "source": "contract_reviews",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "queries_answered",
+          "label": "Queries answered",
+          "source": "legal_queries",
+          "sourceType": "log",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "queries_overdue",
+          "label": "Queries overdue",
+          "source": "legal_queries",
+          "sourceType": "log",
+          "aggregation": "overdue_count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        },
+        {
+          "id": "obligations_tracked",
+          "label": "Obligations tracked",
+          "source": "compliance",
+          "sourceType": "register",
+          "aggregation": "count",
+          "defaultTarget": null,
+          "computedBy": "code"
+        }
+      ],
+      "recommendRules": [
+        {
+          "id": "query_past_due_date",
+          "when": "query past due date",
+          "suggest": "respond",
+          "deterministic": true
+        },
+        {
+          "id": "high_risk_contract_unreviewed_3_days",
+          "when": "high-risk contract unreviewed 3 days",
+          "suggest": "prioritise",
+          "deterministic": true
+        }
+      ]
+    },
+    "logs": {
+      "path": "/dashboard/ops/logs",
+      "entities": [
+        {
+          "key": "contract_reviews",
+          "label": "Contract reviews",
+          "fields": [
+            {
+              "key": "received_date",
+              "type": "date"
+            },
+            {
+              "key": "contract_ref",
+              "type": "text"
+            },
+            {
+              "key": "risk_level",
+              "type": "enum",
+              "values": [
+                "low",
+                "medium",
+                "high"
+              ]
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "received",
+                "in_review",
+                "returned"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "legal_queries",
+          "label": "Legal queries",
+          "fields": [
+            {
+              "key": "received_date",
+              "type": "date"
+            },
+            {
+              "key": "topic",
+              "type": "text"
+            },
+            {
+              "key": "due_date",
+              "type": "date"
+            },
+            {
+              "key": "status",
+              "type": "enum",
+              "values": [
+                "open",
+                "answered"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "daily_checklist",
+          "label": "Daily checklist",
+          "fields": [
+            {
+              "key": "date",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "review_incoming_legal_requests",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review incoming legal requests"
+            },
+            {
+              "key": "draft_and_review_documents",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Draft and review documents"
+            },
+            {
+              "key": "respond_to_queries",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Respond to queries"
+            },
+            {
+              "key": "check_deadlines_and_court_or_regulator_dates",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check deadlines and court or regulator dates"
+            },
+            {
+              "key": "update_the_matter_log",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Update the matter log"
+            }
+          ]
+        },
+        {
+          "key": "weekly_checklist",
+          "label": "Weekly checklist",
+          "fields": [
+            {
+              "key": "week_starting",
+              "type": "date"
+            },
+            {
+              "key": "completed_by",
+              "type": "text"
+            },
+            {
+              "key": "contract_queue_review",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Contract queue review"
+            },
+            {
+              "key": "matter_status_meeting",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Matter status meeting"
+            },
+            {
+              "key": "review_regulatory_changes",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Review regulatory changes"
+            },
+            {
+              "key": "check_obligations_and_renewals",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Check obligations and renewals"
+            },
+            {
+              "key": "report_to_management",
+              "type": "enum",
+              "values": [
+                "yes",
+                "no",
+                "n_a"
+              ],
+              "label": "Report to management"
+            }
+          ]
+        }
+      ]
+    },
+    "registers": {
+      "path": "/dashboard/registers",
+      "items": [
+        {
+          "kind": "Employee records",
+          "track": [
+            "none held in JiraVision"
+          ]
+        },
+        {
+          "kind": "Policies",
+          "track": [
+            "legal policies"
+          ]
+        },
+        {
+          "kind": "Training",
+          "track": [
+            "legal training"
+          ]
+        },
+        {
+          "kind": "Compliance",
+          "track": [
+            "legal obligations"
+          ]
+        }
+      ],
+      "documentationCategories": [
+        "Matter log (restricted)",
+        "Contract register",
+        "Legal advice records (privileged)",
+        "Policies and templates",
+        "Regulatory tracker",
+        "Deadlines calendar"
+      ]
+    },
+    "playbooks": {
+      "path": "/dashboard/playbooks",
+      "seeds": [
+        {
+          "key": "contract_review",
+          "title": "Contract review",
+          "frequency": "weekly",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Read the whole contract",
+                "Check key terms, liability and exit",
+                "Mark risks and proposed changes",
+                "Negotiate",
+                "Approve",
+                "Sign and store"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "legal_query",
+          "title": "Legal query",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Log the question and deadline",
+                "Clarify facts",
+                "Research and advise",
+                "Record the advice",
+                "Follow up"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "dispute_or_claim",
+          "title": "Dispute or claim",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Preserve documents",
+                "Assess the position",
+                "Decide strategy",
+                "Communicate with the other side",
+                "Record and report"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "policy_update",
+          "title": "Policy update",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Steps",
+              "steps": [
+                "Identify the law change",
+                "Draft the change",
+                "Consult",
+                "Approve",
+                "Communicate and train"
+              ]
+            }
+          ],
+          "methodTagging": "work-log entries may be tagged with a phase from getMethodForDiscipline"
+        },
+        {
+          "key": "escalation",
+          "title": "Escalation",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "triggers": [
+            "Litigation or regulator notice",
+            "Contract breach with high exposure",
+            "Legal deadline at risk",
+            "Conflict of interest",
+            "Privileged material exposed"
+          ],
+          "recordFields": [
+            "date_time",
+            "affected_area_or_system",
+            "people_affected_by_code_or_count",
+            "description",
+            "actions_taken",
+            "evidence_or_logs",
+            "impact",
+            "person_or_party_contacted",
+            "current_status"
+          ],
+          "rules": [
+            "Record facts only; no personal identifiers in free text"
+          ]
+        },
+        {
+          "key": "role_handover",
+          "title": "Role handover",
+          "frequency": "as_needed",
+          "phasesFrom": "custom",
+          "phases": [
+            {
+              "name": "Handover",
+              "steps": [
+                "Transfer Employee records: none held in JiraVision",
+                "Transfer Policies: legal policies",
+                "Transfer Training: legal training",
+                "Transfer Compliance: legal obligations",
+                "List open work, deadlines and commitments",
+                "Share trackers, templates and contacts",
+                "Transfer accounts and access only through the approved secure process, never in documents",
+                "Brief the successor and confirm access",
+                "Review progress after one week"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "tasks": {
+      "path": "/dashboard/tasks",
+      "recurringTemplates": [
+        {
+          "title": "Review incoming legal requests",
+          "frequency": "daily"
+        },
+        {
+          "title": "Draft and review documents",
+          "frequency": "daily"
+        },
+        {
+          "title": "Respond to queries",
+          "frequency": "daily"
+        },
+        {
+          "title": "Check deadlines and court or regulator dates",
+          "frequency": "daily"
+        },
+        {
+          "title": "Update the matter log",
+          "frequency": "daily"
+        },
+        {
+          "title": "Contract queue review",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Matter status meeting",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Review regulatory changes",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Check obligations and renewals",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Report to management",
+          "frequency": "weekly"
+        },
+        {
+          "title": "Contract and obligation review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Dispute and claims review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Policy and compliance review",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Legal budget check",
+          "frequency": "monthly"
+        },
+        {
+          "title": "Legal risk review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Contract template review",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Training for staff",
+          "frequency": "quarterly"
+        },
+        {
+          "title": "Outside counsel review",
+          "frequency": "quarterly"
+        }
+      ]
+    },
+    "reports": {
+      "path": "/dashboard/reports-work",
+      "template": "general",
+      "cadences": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "sections": [
+        "Summary",
+        "Contracts reviewed",
+        "Queries answered",
+        "Queries overdue",
+        "Obligations tracked",
+        "Risks and recommendations",
+        "Plan for next period"
+      ],
+      "cadenceContent": {
+        "daily": [
+          "Daily checklist results",
+          "Open items and issues",
+          "Escalations",
+          "Plan for tomorrow"
+        ],
+        "weekly": [
+          "Weekly checklist results",
+          "KPI snapshot",
+          "Risks and blockers",
+          "Plan for next week"
+        ],
+        "monthly": [
+          "All KPI sections",
+          "Trends",
+          "Risks and recommendations",
+          "Plan for next month"
+        ]
+      }
+    }
+  },
+  "ai": {
+    "policy": {
+      "level": "restricted",
+      "neverSendRegisterKinds": [
+        "Employee records"
+      ],
+      "neverSendEntities": [
+        "contract_reviews",
+        "legal_queries"
+      ],
+      "neverSendFields": [
+        "passwords",
+        "keys",
+        "tokens",
+        "personal identifiers",
+        "amounts and balances"
+      ],
+      "numbers": "never produced or altered by the model; computed in code"
+    },
+    "agents": [
+      {
+        "id": "G0",
+        "page": "/onboarding",
+        "flavour": "classify an unmapped job title into this discipline (enum-validated; deterministic map wins)"
+      },
+      {
+        "id": "G1",
+        "page": "/dashboard/agent",
+        "flavour": "extract register rows and playbook drafts for Legal from a pasted procedure or handover"
+      },
+      {
+        "id": "G2",
+        "page": "/dashboard/tasks",
+        "flavour": "triage a free-text request into task fields"
+      },
+      {
+        "id": "G3",
+        "page": "/dashboard/worklog",
+        "flavour": "turn rough notes into work-log entries tagged to a method phase"
+      },
+      {
+        "id": "G5",
+        "page": "/dashboard/reports-work",
+        "flavour": "draft summary and recommendation text only; numbers come from the server"
+      },
+      {
+        "id": "G6",
+        "page": "/dashboard/automation",
+        "flavour": "draft rules from plain language; dry-run before enabling"
+      },
+      {
+        "id": "G8",
+        "page": "/dashboard/ops",
+        "flavour": "turn deterministic rule facts into recommendation text"
+      },
+      {
+        "id": "G11",
+        "page": "/dashboard/playbooks",
+        "flavour": "draft playbook phases from procedure text using the Legal method"
+      }
+    ]
+  },
+  "needsConfirmation": [
+    "Detailed checklists, playbook steps and triggers are proposals written from general professional practice, not from a source document: a practitioner must review and adapt them.",
+    "KPI targets are unset (defaultTarget null): the owner and their manager must set them.",
+    "Field names, enums and register tracking lists are proposals: confirm against local practice and regulations.",
+    "Restricted data: keep personal, patient, employee, account and privileged data out of prompts; use codes only."
+  ]
+}
