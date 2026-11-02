@@ -31,12 +31,34 @@ export async function PATCH(
       return NextResponse.json({ success: false, message: "Instance not found" }, { status: 404 })
     }
 
+    // Ownership check: user must be assignee of the parent task
+    const taskResults = await db
+      .select({ assigneeId: tasks.assigneeId })
+      .from(tasks)
+      .where(eq(tasks.id, instance.taskId))
+      .limit(1)
+    const taskAssigneeId = taskResults[0]?.assigneeId
+
+    if (session && taskAssigneeId !== session.id) {
+      return NextResponse.json(
+        { success: false, message: "You can only modify instances assigned to you" },
+        { status: 403 },
+      )
+    }
+
     const body = await request.json()
     const { status, notes, checklistResponses } = body
 
     const updateData: Record<string, unknown> = {}
 
-    if (status) {
+    if (status !== undefined) {
+      const validStatuses = ["todo", "in_progress", "done", "skipped"]
+      if (!validStatuses.includes(status)) {
+        return NextResponse.json(
+          { success: false, message: `Invalid status. Must be one of: ${validStatuses.join(", ")}` },
+          { status: 400 },
+        )
+      }
       updateData.status = status
       if (status === "done") {
         updateData.completedAt = new Date().toISOString()

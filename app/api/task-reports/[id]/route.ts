@@ -54,6 +54,24 @@ export async function PATCH(
     const { id } = await params
     const reportId = parseInt(id, 10)
 
+    // Ownership check: user must be the author of the report
+    const existing = await db
+      .select({ authorId: taskReports.authorId })
+      .from(taskReports)
+      .where(eq(taskReports.id, reportId))
+      .limit(1)
+
+    if (existing.length === 0) {
+      return NextResponse.json({ success: false, message: "Report not found" }, { status: 404 })
+    }
+
+    if (session && existing[0].authorId !== session.id) {
+      return NextResponse.json(
+        { success: false, message: "You can only edit reports you authored" },
+        { status: 403 },
+      )
+    }
+
     const body = await request.json()
     const { content, status } = body
 

@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server"
 import { db } from "@/lib/db"
-import { calendarEvents, users, tasks } from "@/drizzle/schema"
+import { calendarEvents, users, tasks, taskInstances } from "@/drizzle/schema"
 import { and, desc, eq, or, gte, lte, sql } from "drizzle-orm"
 import { getSession } from "@/lib/auth-actions"
 import { createNotification } from "@/lib/notifications"
-import { getTaskInstances } from "@/lib/data-access-task-instances"
 
 export const dynamic = "force-dynamic"
 
@@ -199,13 +198,25 @@ export async function GET(request: Request) {
       )
     }
 
-    // Fetch task instances for cadence-based views
-    let taskInstancesList: any[] = []
+    // Fetch task instances for cadence-based views (JOIN with tasks for titles)
+    let instancesWithTasks: any[] = []
     if (viewMode === "cadence" || viewMode === "both" || viewMode === "range") {
-      taskInstancesList = await getTaskInstances({
-        startDate: startDate || undefined,
-        endDate: endDate || undefined,
-      })
+      const instanceConditions = []
+      if (startDate && !Number.isNaN(Date.parse(startDate))) {
+        instanceConditions.push(gte(taskInstances.instanceDate, startDate))
+      }
+      if (endDate && !Number.isNaN(Date.parse(endDate))) {
+        instanceConditions.push(lte(taskInstances.instanceDate, endDate))
+      }
+
+      instancesWithTasks = await db
+        .select({
+          instance: taskInstances,
+          taskTitle: tasks.title,
+        })
+        .from(taskInstances)
+        .leftJoin(tasks, eq(taskInstances.taskId, tasks.id))
+        .where(instanceConditions.length > 0 ? and(...instanceConditions) : sql`true`)
     }
 
     // Fetch recurring template tasks for "due" and "both" views
@@ -225,16 +236,16 @@ export async function GET(request: Request) {
     }
 
     // Convert task instances to calendar event format
-    const instanceEvents = taskInstancesList.map((instance: any) => ({
-      id: `instance-${instance.id}`,
-      title: `Task #${instance.taskId} (Instance)`,
-      startTime: `${instance.instanceDate}T00:00:00Z`,
-      endTime: `${instance.instanceDate}T23:59:59Z`,
+    const instanceEvents = instancesWithTasks.map((row: any) => ({
+      id: `instance-${row.instance.id}`,
+      title: row.taskTitle ?? `Task #${row.instance.taskId}`,
+      startTime: `${row.instance.instanceDate}T00:00:00Z`,
+      endTime: `${row.instance.instanceDate}T23:59:59Z`,
       eventType: "task_instance",
       isRecurring: true,
-      instanceStatus: instance.status,
-      instanceId: instance.id,
-      taskId: instance.taskId,
+      instanceStatus: row.instance.status,
+      instanceId: row.instance.id,
+      taskId: row.instance.taskId,
       isAllDay: true,
       description: null,
       location: null,
@@ -242,8 +253,8 @@ export async function GET(request: Request) {
       recurringPattern: {},
       attendees: [],
       color: "green",
-      createdAt: instance.createdAt?.toISOString() || new Date().toISOString(),
-      updatedAt: instance.createdAt?.toISOString() || new Date().toISOString(),
+      createdAt: row.instance.createdAt?.toISOString?.() || row.instance.createdAt || new Date().toISOString(),
+      updatedAt: row.instance.createdAt?.toISOString?.() || row.instance.createdAt || new Date().toISOString(),
     }))
 
     // Convert recurring tasks to calendar event format
