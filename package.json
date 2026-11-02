@@ -34,6 +34,7 @@
     "db:ops:seed": "node scripts/seed-ops-config.mjs",
     "db:ops:rollback": "node scripts/rollback-ops-tables.mjs",
     "db:purge:demo": "node scripts/purge-demo-data.mjs",
+    "db:clean:seed": "node scripts/clean-seed-data.mjs",
     "db:apply": "node -r dotenv/config ./drizzle/apply-schema.js",
     "db:fix": "node -r dotenv/config ./drizzle/create-missing-tables.js",
     "db:seed": "node -r dotenv/config ./drizzle/add-sample-data.js",
