@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
 import {
   ArrowLeft,
@@ -195,6 +195,10 @@ export function OnboardingWizard({ initial, inviteToken, account }: Props) {
     let cancelled = false
 
     async function loadSeed() {
+      if (!discipline) {
+        setSeedPreview(null)
+        return
+      }
       setSeedLoading(true)
       try {
         const res = await fetch(`/api/onboarding/sample?discipline=${encodeURIComponent(discipline)}`)

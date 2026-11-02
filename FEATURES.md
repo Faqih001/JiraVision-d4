@@ -536,6 +536,19 @@ already working. The phase adds one table, five routes and no `users` column; a 
   retrying the step returns today's plan instead of a second one. Importing a scope document goes through
   the phase-7 `/api/planner/extract` route and stores the returned `planId`. Promote remains the only path
   from a plan item to a task; onboarding never inserts into `tasks`.
+- **The sample is discipline-specific, drawn from the role pack's JSON seed.** `lib/onboarding/sample-seed-reader.ts`
+  reads `public/files/disciplines/<discipline>.json` server-side (guarded by `typeof window !== "undefined"` so
+  the `readFileSync` call never reaches the browser bundle) and extracts register rows, playbook drafts, recurring
+  task templates and KPIs. `sampleForDiscipline` in `lib/onboarding/sample-project.ts` tries the seed first, falls
+  back to the generic three-item pack sample when the JSON is absent or the call runs client-side. `/api/onboarding/sample`
+  is a GET-only route (no auth gate — static seed data, not personal info) that takes `?discipline=X`, validates with
+  `normaliseDiscipline`, and returns `{ success: true, data: DisciplineSeedPreview | null }`. The wizard's step 7
+  preview fetches the route when `projectMode === "sample"` and the discipline changes, then renders register rows as
+  cards in a two-column grid with kind badges, playbook drafts with frequency and step-count badges, recurring tasks
+  as a list with frequency badges, and KPIs as badge chips. A `needsConfirmation` flag on the seed surfaces an amber
+  panel listing the items that require the member's sign-off before they become live. The plan items written to
+  `agent_plans` are derived from the seed (up to 3 register items, 2 playbook items, 3 task items, 1 KPI item), so
+  the draft plan the member sees in the preview is the plan they get.
 - **The dashboard reads the pack.** `/dashboard` fetches `/api/onboarding` as a failure-tolerant fifth
   read — a 401 or a slow DB can only drop a banner, never block the page. When a pack is resolved, a strip
   lists its sections (filtered to the five the dashboard actually has) in the pack's order; when the
@@ -553,8 +566,14 @@ already working. The phase adds one table, five routes and no `users` column; a 
   `onboarding-invitation.test.ts`, `onboarding-schema.test.ts`, `onboarding-routes.test.ts`,
   `onboarding-checks.test.ts` (the owner's seventeen checks, each naming its scenario) and
   `onboarding-gate.test.ts` (the gate rules, skip/restart, the layout wiring, the page's no-redirect rule
-  and the three scripts) — seven files, 97 tests — plus four onboarding guards in `worklog-reports.test.ts`.
-  Suite: 121 files / 1981 tests.
+  and the three scripts) — seven files, 97 tests — plus four onboarding guards in `worklog-reports.test.ts`,
+  `tests/unit/onboarding-sample-project.test.ts` (the seed-based sample: all 75 disciplines get a usable bounded
+  sample, discipline-specific content, method drawn from the authored pack, null-discipline fallback) and
+  `tests/integration/onboarding-sample-seed.test.ts` (20 source-guards: the route is GET-only with a discipline
+  query param and no Gemini key, the reader guards against browser execution and extracts registers/playbooks/tasks/KPIs,
+  the sample module tries the seed first and falls back to the pack, the wizard fetches from the API and renders all
+  four preview sections plus the needs-confirmation panel).
+  Suite: 156 files / 2596 tests.
 
 
 ## 23. Agent entry (phase 18, 2026-10-27)

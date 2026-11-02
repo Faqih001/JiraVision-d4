@@ -91,7 +91,7 @@ describe("the onboarding wizard preview after the seed-based rewrite", () => {
 
   it("fetches the seed preview from the API route", () => {
     expect(wizard).toContain("/api/onboarding/sample")
-    expect(wizard).toContain("fetchSeedPreview")
+    expect(wizard).toContain("loadSeed")
   })
 
   it("shows register rows in the preview", () => {
