@@ -8,6 +8,39 @@ const ENABLE_TEST_MODE =
   process.env.NODE_ENV !== "production" &&
   (process.env.NODE_ENV === "development" || process.env.ENABLE_TEST_MODE === "true")
 
+export async function GET(
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await getSession()
+    if (!session && !ENABLE_TEST_MODE) {
+      return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 })
+    }
+
+    const { id } = await params
+    const reportId = parseInt(id, 10)
+
+    const reports = await db
+      .select()
+      .from(taskReports)
+      .where(eq(taskReports.id, reportId))
+      .limit(1)
+
+    if (reports.length === 0) {
+      return NextResponse.json({ success: false, message: "Report not found" }, { status: 404 })
+    }
+
+    return NextResponse.json({ success: true, data: reports[0] })
+  } catch (error) {
+    console.error("Error fetching task report:", error)
+    return NextResponse.json(
+      { success: false, message: "Failed to fetch report", error: (error as Error).message },
+      { status: 500 }
+    )
+  }
+}
+
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }

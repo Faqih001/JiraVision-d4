@@ -229,6 +229,25 @@ export default function ReportsPage() {
 
   /* ------------------------------------------------------------- fetching */
 
+  const loadTaskReports = useCallback(async () => {
+    try {
+      const [tmplRes, repRes] = await Promise.all([
+        fetch("/api/task-report-templates"),
+        fetch("/api/task-reports"),
+      ])
+      if (tmplRes.ok) {
+        const j = await tmplRes.json()
+        setTemplates(j.data ?? [])
+      }
+      if (repRes.ok) {
+        const j = await repRes.json()
+        setTaskReports(j.data ?? [])
+      }
+    } catch {
+      // silent – task reports are additive to the existing schedule page
+    }
+  }, [])
+
   const load = useCallback(async (quiet = false) => {
     try {
       const [repRes, memRes] = await Promise.all([
@@ -250,13 +269,14 @@ export default function ReportsPage() {
           })),
         )
       }
+      await loadTaskReports()
       setError(null)
     } catch (e) {
       if (!quiet) setError((e as Error).message)
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [loadTaskReports])
 
   useEffect(() => {
     void load()
@@ -538,25 +558,6 @@ export default function ReportsPage() {
     }
   }
 
-  const loadTaskReports = useCallback(async () => {
-    try {
-      const [tmplRes, repRes] = await Promise.all([
-        fetch("/api/task-report-templates"),
-        fetch("/api/task-reports"),
-      ])
-      if (tmplRes.ok) {
-        const j = await tmplRes.json()
-        setTemplates(j.data ?? [])
-      }
-      if (repRes.ok) {
-        const j = await repRes.json()
-        setTaskReports(j.data ?? [])
-      }
-    } catch {
-      // silent – task reports are additive to the existing schedule page
-    }
-  }, [])
-
   useEffect(() => {
     void loadTaskReports()
   }, [loadTaskReports])
@@ -613,9 +614,10 @@ export default function ReportsPage() {
 
   const openEditor = async (report: TaskReport) => {
     try {
-      const res = await fetch(`/api/task-reports?templateId=${report.templateId}`)
+      const res = await fetch(`/api/task-reports/${report.id}`)
       const j = await res.json().catch(() => null)
-      const full = (j?.data as TaskReport[] | undefined)?.find((r) => r.id === report.id) ?? report
+      if (!res.ok || !j?.success) throw new Error(j?.message ?? `Fetch failed (${res.status})`)
+      const full = j.data as TaskReport
       const contents: Record<string, string> = {}
       for (const section of full.content ?? []) {
         if (section.data === null) {
