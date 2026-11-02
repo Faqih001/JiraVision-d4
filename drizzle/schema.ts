@@ -924,3 +924,29 @@ export const taskInstances = pgTable(
     index("idx_task_instances_status").on(table.status),
   ],
 )
+
+export const taskReportTemplates = pgTable("task_report_templates", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  cadence: varchar("cadence", { length: 20 }).notNull().default("monthly"),
+  discipline: varchar("discipline", { length: 40 }),
+  sections: jsonb("sections").notNull().default([]),
+  dataSources: jsonb("data_sources").notNull().default({}),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+})
+
+export const taskReports = pgTable("task_reports", {
+  id: serial("id").primaryKey(),
+  templateId: integer("template_id").notNull().references(() => taskReportTemplates.id, { onDelete: "cascade" }),
+  title: varchar("title", { length: 255 }).notNull(),
+  periodStart: date("period_start").notNull(),
+  periodEnd: date("period_end").notNull(),
+  content: jsonb("content").notNull().default({}),
+  status: varchar("status", { length: 20 }).notNull().default("draft"),
+  authorId: integer("author_id").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+})
