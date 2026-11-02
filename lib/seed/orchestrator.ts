@@ -49,14 +49,3 @@ export async function seedComprehensiveData(): Promise<SeedResult[]> {
 
   return results;
 }
-
-  const elapsed = Date.now() - startTime;
-  console.log(`Comprehensive seed completed in ${elapsed}ms`);
-  console.log(
-    `Results: ${results.filter((r) => r.status === "seeded").length} seeded, ` +
-      `${results.filter((r) => r.status === "skipped").length} skipped, ` +
-      `${results.filter((r) => r.status === "failed").length} failed`
-  );
-
-  return results;
-}
