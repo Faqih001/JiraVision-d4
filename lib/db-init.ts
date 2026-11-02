@@ -234,6 +234,14 @@ export async function initializeDatabase() {
     // Seed team members
     await seedTeamMembers()
 
+    // Seed comprehensive data (IT Technician role data)
+    try {
+      const { seedComprehensiveData } = await import("./seed/orchestrator")
+      await seedComprehensiveData()
+    } catch (e) {
+      console.warn("Comprehensive seed failed:", e)
+    }
+
     console.log("Database initialization completed successfully!")
     return true
   } catch (error) {
