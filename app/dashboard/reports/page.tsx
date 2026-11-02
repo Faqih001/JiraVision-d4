@@ -146,10 +146,6 @@ type ScheduleDraft = {
 
 /* ----------------------------------------- task report types (TT-8) */
 
-type ManualSectionContent = {
-  manualContent: string
-}
-
 type TaskReportTemplate = {
   id: number
   name: string
