@@ -188,6 +188,7 @@ describe("no anonymous route leaks the schema or relays mail", () => {
         "app/api/demo/route.ts",
         "app/api/newsletter/confirm/route.ts",
         "app/api/newsletter/route.ts",
+        "app/api/onboarding/sample/route.ts",
         "app/api/quote/route.ts",
         "app/api/status/route.ts",
       ].sort(),
