@@ -947,7 +947,7 @@ export function OnboardingWizard({ initial, inviteToken, account }: Props) {
                         <Badge variant="outline">Sample</Badge>
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        A first-week draft tailored to {sampleDraft.discipline ? DISCIPLINE_LABEL[sampleDraft.discipline].toLowerCase() : "a general role"}. A labelled draft with three starter items. Never tasks.
+                        A first-week draft tailored to {sampleDraft.discipline ? DISCIPLINE_LABEL[sampleDraft.discipline].toLowerCase() : "a general role"}. Register rows, playbook drafts, recurring tasks and KPIs from the seed data. Never tasks.
                       </p>
                     </div>
                   </div>
@@ -958,29 +958,144 @@ export function OnboardingWizard({ initial, inviteToken, account }: Props) {
                     <CollapsibleTrigger className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm font-medium hover:bg-muted/50">
                       <span className="flex items-center gap-2">
                         <Sparkles className="h-3.5 w-3.5 text-muted-foreground" />
-                        See what you&apos;ll get
+                        {seedPreview ? `Preview: ${seedPreview.discipline.label} sample` : "See what you'll get"}
                       </span>
                       <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${samplePreviewOpen ? "rotate-180" : ""}`} />
                     </CollapsibleTrigger>
-                    <CollapsibleContent className="space-y-3 px-3 pb-3">
-                      <div className="space-y-1">
-                        <p className="text-sm font-medium">{sampleDraft.title}</p>
-                        <p className="text-xs text-muted-foreground">{sampleDraft.summary}</p>
-                      </div>
-                      <ul className="space-y-2">
-                        {sampleDraft.items.map((item) => (
-                          <li key={item.title} className="flex gap-2 rounded-md border bg-background p-2.5">
-                            <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
-                            <div className="space-y-0.5">
-                              <p className="text-sm font-medium">{item.title}</p>
-                              <p className="text-xs text-muted-foreground">{item.description}</p>
+                    <CollapsibleContent className="space-y-4 px-3 pb-3">
+                      {seedLoading ? (
+                        <div className="flex items-center gap-2 py-4 text-sm text-muted-foreground">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Loading seed preview…
+                        </div>
+                      ) : seedPreview ? (
+                        <>
+                          <div className="space-y-1">
+                            <p className="text-sm font-medium">{sampleDraft.title}</p>
+                            <p className="text-xs text-muted-foreground">{seedPreview.discipline.focus}</p>
+                          </div>
+
+                          {seedPreview.registers.length > 0 ? (
+                            <div className="space-y-2">
+                              <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                <Database className="h-3.5 w-3.5" />
+                                Register rows ({seedPreview.registers.length})
+                              </p>
+                              <div className="grid gap-2 sm:grid-cols-2">
+                                {seedPreview.registers.slice(0, 6).map((row, i) => (
+                                  <div key={`${row.kind}-${row.title}-${i}`} className="rounded-md border bg-background p-2.5">
+                                    <div className="flex items-start justify-between gap-2">
+                                      <p className="truncate text-sm font-medium">{row.title}</p>
+                                      <Badge variant="outline" className="shrink-0 text-[10px]">{row.kind}</Badge>
+                                    </div>
+                                    {Object.keys(row.fields).length > 0 && (
+                                      <p className="mt-1 truncate text-xs text-muted-foreground">
+                                        {Object.entries(row.fields).slice(0, 2).map(([k, v]) => `${k}: ${v || "—"}`).join(" · ")}
+                                      </p>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
                             </div>
-                          </li>
-                        ))}
-                      </ul>
-                      <p className="flex items-center gap-1 text-xs text-muted-foreground">
-                        It stays a draft you can rename or delete. Want your own scope? Choose &ldquo;Import a scope document&rdquo; instead.
-                      </p>
+                          ) : null}
+
+                          {seedPreview.playbooks.length > 0 ? (
+                            <div className="space-y-2">
+                              <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                <BookOpen className="h-3.5 w-3.5" />
+                                Playbook drafts ({seedPreview.playbooks.length})
+                              </p>
+                              <div className="grid gap-2 sm:grid-cols-2">
+                                {seedPreview.playbooks.slice(0, 4).map((pb) => (
+                                  <div key={pb.key} className="rounded-md border bg-background p-2.5">
+                                    <p className="truncate text-sm font-medium">{pb.title}</p>
+                                    <div className="mt-1.5 flex flex-wrap gap-1">
+                                      <Badge variant="secondary" className="text-[10px]">{pb.frequency}</Badge>
+                                      {pb.stepCount > 0 && <Badge variant="outline" className="text-[10px]">{pb.stepCount} steps</Badge>}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ) : null}
+
+                          {seedPreview.tasks.length > 0 ? (
+                            <div className="space-y-2">
+                              <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                <ListTodo className="h-3.5 w-3.5" />
+                                Recurring tasks ({seedPreview.tasks.length})
+                              </p>
+                              <ul className="space-y-1">
+                                {seedPreview.tasks.slice(0, 5).map((task, i) => (
+                                  <li key={`${task.title}-${i}`} className="flex items-center gap-2 rounded-md border bg-background px-2.5 py-1.5 text-sm">
+                                    <Badge variant="outline" className="shrink-0 text-[10px]">{task.frequency}</Badge>
+                                    <span className="truncate">{task.title}</span>
+                                  </li>
+                                ))}
+                                {seedPreview.tasks.length > 5 && (
+                                  <li className="px-2.5 text-xs text-muted-foreground">+{seedPreview.tasks.length - 5} more</li>
+                                )}
+                              </ul>
+                            </div>
+                          ) : null}
+
+                          {seedPreview.kpis.length > 0 ? (
+                            <div className="space-y-2">
+                              <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                <BarChart3 className="h-3.5 w-3.5" />
+                                KPIs ({seedPreview.kpis.length})
+                              </p>
+                              <div className="flex flex-wrap gap-1.5">
+                                {seedPreview.kpis.slice(0, 6).map((kpi) => (
+                                  <Badge key={kpi.id} variant="secondary" className="text-xs">{kpi.label}</Badge>
+                                ))}
+                                {seedPreview.kpis.length > 6 && (
+                                  <Badge variant="outline" className="text-xs">+{seedPreview.kpis.length - 6} more</Badge>
+                                )}
+                              </div>
+                            </div>
+                          ) : null}
+
+                          {seedPreview.needsConfirmation.length > 0 ? (
+                            <div className="rounded-md border border-amber-200 bg-amber-50 p-2.5 dark:border-amber-900 dark:bg-amber-950/30">
+                              <p className="text-xs font-medium text-amber-800 dark:text-amber-300">Needs your confirmation</p>
+                              <ul className="mt-1 space-y-0.5">
+                                {seedPreview.needsConfirmation.slice(0, 2).map((note, i) => (
+                                  <li key={i} className="text-xs text-amber-700 dark:text-amber-400">• {note}</li>
+                                ))}
+                                {seedPreview.needsConfirmation.length > 2 && (
+                                  <li className="text-xs text-amber-600 dark:text-amber-500">+{seedPreview.needsConfirmation.length - 2} more items to confirm</li>
+                                )}
+                              </ul>
+                            </div>
+                          ) : null}
+
+                          <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                            It stays a draft you can rename or delete. Want your own scope? Choose &ldquo;Import a scope document&rdquo; instead.
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <div className="space-y-1">
+                            <p className="text-sm font-medium">{sampleDraft.title}</p>
+                            <p className="text-xs text-muted-foreground">{sampleDraft.summary}</p>
+                          </div>
+                          <ul className="space-y-2">
+                            {sampleDraft.items.map((item) => (
+                              <li key={item.title} className="flex gap-2 rounded-md border bg-background p-2.5">
+                                <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+                                <div className="space-y-0.5">
+                                  <p className="text-sm font-medium">{item.title}</p>
+                                  <p className="text-xs text-muted-foreground">{item.description}</p>
+                                </div>
+                              </li>
+                            ))}
+                          </ul>
+                          <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                            It stays a draft you can rename or delete. Want your own scope? Choose &ldquo;Import a scope document&rdquo; instead.
+                          </p>
+                        </>
+                      )}
                     </CollapsibleContent>
                   </Collapsible>
                 ) : null}
