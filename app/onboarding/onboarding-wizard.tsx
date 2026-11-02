@@ -188,32 +188,37 @@ export function OnboardingWizard({ initial, inviteToken, account }: Props) {
   const [seedPreview, setSeedPreview] = useState<SeedPreview | null>(null)
   const [seedLoading, setSeedLoading] = useState(false)
 
-  const fetchSeedPreview = useCallback(async (discipline: string | null) => {
-    if (!discipline) {
-      setSeedPreview(null)
-      return
-    }
-    setSeedLoading(true)
-    try {
-      const res = await fetch(`/api/onboarding/sample?discipline=${encodeURIComponent(discipline)}`)
-      const json = await res.json().catch(() => null)
-      if (res.ok && json?.success && json?.data) {
-        setSeedPreview(json.data as SeedPreview)
-      } else {
-        setSeedPreview(null)
-      }
-    } catch {
-      setSeedPreview(null)
-    } finally {
-      setSeedLoading(false)
-    }
-  }, [])
-
   useEffect(() => {
-    if (projectMode === "sample") {
-      void fetchSeedPreview(autoPopulated.discipline)
+    if (projectMode !== "sample") return
+
+    const discipline = autoPopulated.discipline
+    let cancelled = false
+
+    async function loadSeed() {
+      setSeedLoading(true)
+      try {
+        const res = await fetch(`/api/onboarding/sample?discipline=${encodeURIComponent(discipline)}`)
+        const json = await res.json().catch(() => null)
+        if (!cancelled) {
+          if (res.ok && json?.success && json?.data) {
+            setSeedPreview(json.data as SeedPreview)
+          } else {
+            setSeedPreview(null)
+          }
+        }
+      } catch {
+        if (!cancelled) setSeedPreview(null)
+      } finally {
+        if (!cancelled) setSeedLoading(false)
+      }
     }
-  }, [projectMode, autoPopulated.discipline, fetchSeedPreview])
+
+    void loadSeed()
+
+    return () => {
+      cancelled = true
+    }
+  }, [projectMode, autoPopulated.discipline])
 
   const current = ONBOARDING_STEPS[step]
   const identity: OnboardingData["profile"] = useMemo(
