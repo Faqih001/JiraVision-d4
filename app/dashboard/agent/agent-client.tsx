@@ -159,12 +159,6 @@ export default function AgentClient() {
   const [playbookEditor, setPlaybookEditor] = useState<EditablePlaybook | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [errorDebug, setErrorDebug] = useState<{
-    kind: string
-    tag?: string
-    message: string
-    timestamp: string
-  } | null>(null)
 
   const [rules, setRules] = useState<Recommendation[]>([])
   const [ai, setAi] = useState<Recommendation[]>([])
@@ -203,7 +197,6 @@ export default function AgentClient() {
   const loadRules = useCallback(async () => {
     setBusy(true)
     setError(null)
-    setErrorDebug(null)
     const result = await fetch("/api/agent/recommendations", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -231,14 +224,8 @@ export default function AgentClient() {
     }
     if (file.type !== "application/pdf") {
       setError("Choose a PDF file.")
-      setErrorDebug(null)
       return
     }
-    if (file.size > MAX_PDF_BYTES) {
-      setError("The PDF is larger than 15 MB.")
-      setErrorDebug(null)
-      return
-    } }
     if (file.size > MAX_PDF_BYTES) {
       setError("The PDF is larger than 15 MB.")
       return
@@ -253,7 +240,6 @@ export default function AgentClient() {
   const extract = async () => {
     setBusy(true)
     setError(null)
-    setErrorDebug(null)
     setPreview(null)
     setRegSel([])
     setPbSel([])
@@ -270,7 +256,6 @@ export default function AgentClient() {
     setBusy(false)
     if (!result.ok) {
       setError(json?.error ?? "The handover could not be read.")
-      if (json?.debug) setErrorDebug(json.debug)
       return
     }
     const data = json.data as HandoverPreview
@@ -283,7 +268,6 @@ export default function AgentClient() {
     if (!preview) return
     setBusy(true)
     setError(null)
-    setErrorDebug(null)
     const registers = preview.registers.filter((_, index) => regSel[index])
     const playbooks = preview.playbooks.filter((_, index) => pbSel[index])
     const result = await fetch("/api/agent/handover/commit", {
@@ -466,31 +450,7 @@ export default function AgentClient() {
 
       {error ? (
         <Alert variant="destructive" role="alert">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>
-            <p className="font-medium">{error}</p>
-            {errorDebug ? (
-              <details className="mt-2 text-xs">
-                <summary className="cursor-pointer font-medium">Debug info</summary>
-                <div className="mt-1 space-y-1 font-mono">
-                  <p>
-                    <span className="font-semibold">Kind:</span> {errorDebug.kind}
-                  </p>
-                  {errorDebug.tag ? (
-                    <p>
-                      <span className="font-semibold">Tag:</span> {errorDebug.tag}
-                    </p>
-                  ) : null}
-                  <p>
-                    <span className="font-semibold">Message:</span> {errorDebug.message}
-                  </p>
-                  <p>
-                    <span className="font-semibold">Time:</span> {errorDebug.timestamp}
-                  </p>
-                </div>
-              </details>
-            ) : null}
-          </AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       ) : null}
 
