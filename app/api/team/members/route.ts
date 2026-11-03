@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { gamification, tasks, users, wellbeingMetrics } from "@/drizzle/schema";
-import { asc, desc, eq, ne, sql, type InferSelectModel } from "drizzle-orm";
+import { asc, desc, eq, inArray, ne, sql, type InferSelectModel } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { v4 as uuidv4 } from "uuid";
 import { getSession } from "@/lib/auth-actions";
 import { createNotification } from "@/lib/notifications";
+import { loadUserOrgId, loadVisibleMemberIds } from "@/lib/organizations";
 import { readTeamSettings, teamNotifyEnabled } from "@/lib/team-settings";
 
 export const dynamic = "force-dynamic";

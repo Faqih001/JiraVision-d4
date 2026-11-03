@@ -121,6 +121,7 @@ export type InvitationRecord = {
   email: string
   role: string
   invitedBy: number | null
+  organizationId: number | null
   acceptedAt: string | null
   expiresAt: string
 }
@@ -132,6 +133,7 @@ export async function readInvitationByToken(tokenHash: string): Promise<Invitati
       email: workspaceInvitations.email,
       role: workspaceInvitations.role,
       invitedBy: workspaceInvitations.invitedBy,
+      organizationId: workspaceInvitations.organizationId,
       acceptedAt: workspaceInvitations.acceptedAt,
       expiresAt: workspaceInvitations.expiresAt,
     })
@@ -145,6 +147,7 @@ export async function readInvitationByToken(tokenHash: string): Promise<Invitati
     email: row.email,
     role: row.role,
     invitedBy: row.invitedBy,
+    organizationId: row.organizationId,
     acceptedAt: row.acceptedAt ? row.acceptedAt.toISOString() : null,
     expiresAt: row.expiresAt.toISOString(),
   }

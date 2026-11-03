@@ -4,6 +4,7 @@ import { db } from "@/lib/db"
 import { users, workspaceInvitations } from "@/drizzle/schema"
 import { getSession } from "@/lib/auth-actions"
 import { isSuperAdmin } from "@/lib/roles"
+import { loadUserOrgId } from "@/lib/organizations"
 import { createInvitation, readInvitationInput } from "@/lib/onboarding/invitation"
 import { listPendingInvitations } from "@/lib/onboarding/read"
 
@@ -34,6 +35,9 @@ export async function POST(request: Request) {
     email: parsed.value.email,
     tokenHash: invitation.tokenHash,
     role: parsed.value.role,
+    // The invitation carries the inviter's organization; accepting it is the only
+    // way a member gains membership.
+    organizationId: await loadUserOrgId(session.id),
     invitedBy: session.id,
     expiresAt: invitation.expiresAt,
   })

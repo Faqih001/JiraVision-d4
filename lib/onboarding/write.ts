@@ -31,7 +31,12 @@ export async function acceptInvitation(args: { userId: number; email: string; to
       .where(and(eq(workspaceInvitations.id, row.id), isNull(workspaceInvitations.acceptedAt)))
       .returning({ id: workspaceInvitations.id })
     if (!claimedRow) return false
-    await tx.update(users).set({ role, updatedAt: new Date() }).where(eq(users.id, userId))
+    // Accepting an org invitation is the join: membership and role land together in
+    // the same transaction. A null-org invitation changes only the role.
+    await tx
+      .update(users)
+      .set({ role, ...(row.organizationId !== null ? { organizationId: row.organizationId } : {}), updatedAt: new Date() })
+      .where(eq(users.id, userId))
     return true
   })
   if (!claimed) return { ok: false, status: 409, error: "That invitation has already been used." }
