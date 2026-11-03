@@ -739,7 +739,7 @@ export default function SprintsWorkspace() {
               <p className="text-[11px] text-muted-foreground">tasks open</p>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 lg:flex-col">
             <Button size="sm" variant="outline" className="flex-1" onClick={() => openEdit(activeSprint)}>
               <Pencil className="mr-1 h-3.5 w-3.5" /> Edit
             </Button>
