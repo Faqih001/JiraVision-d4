@@ -1,0 +1,71 @@
+{
+  "source": "IT Technician – Sprint Import List (owner document, 2026-11-03)",
+  "sprints": [
+    {
+      "seq": 1,
+      "name": "IT Operations Foundation and Daily Support",
+      "description": "Establish reliable daily IT operations. Monitor critical systems, servers, network connectivity, backups, support tickets and security alerts. Address urgent user issues and organise the IT support backlog.",
+      "startDate": "2026-11-03",
+      "endDate": "2026-11-17",
+      "status": "active",
+      "taskSeqs": [1, 2, 3, 4, 5, 6, 7, 12, 23, 24, 26, 27, 30]
+    },
+    {
+      "seq": 2,
+      "name": "Backup, Maintenance and Asset Management",
+      "description": "Complete weekly and monthly IT maintenance activities. Verify backup status and logs, review storage capacity, perform preventive maintenance, update the IT asset register, review software inventory and licensing, and document maintenance activities.",
+      "startDate": "2026-11-18",
+      "endDate": "2026-12-02",
+      "status": "planned",
+      "taskSeqs": [8, 9, 11, 13, 14, 15, 16, 17, 18, 19, 21, 25]
+    },
+    {
+      "seq": 3,
+      "name": "IT Security, Documentation and Recovery Readiness",
+      "description": "Review IT security controls, access permissions, user onboarding and offboarding procedures, incident escalation processes, backup restoration procedures and disaster recovery readiness. Improve technical documentation and resolve recurring IT support issues.",
+      "startDate": "2026-12-03",
+      "endDate": "2026-12-16",
+      "status": "planned",
+      "taskSeqs": [10, 28, 29, 31, 32, 33, 34, 35, 36]
+    },
+    {
+      "seq": 4,
+      "name": "IT Review, Reporting and Handover Completion",
+      "description": "Complete outstanding IT maintenance and documentation tasks. Review hardware and software inventory, licensing, equipment accountability, recurring incidents and system capacity. Complete IT operations reporting, handover documentation and outstanding Q4 objectives.",
+      "startDate": "2026-12-17",
+      "endDate": "2026-12-31",
+      "status": "planned",
+      "taskSeqs": [20, 22, 37, 38, 39, 40, 41]
+    }
+  ],
+  "retros": [
+    {
+      "seq": 1,
+      "sprintSeq": 1,
+      "title": "IT Operations Foundation and Daily Support Retrospective",
+      "date": "2026-11-17",
+      "status": "draft"
+    },
+    {
+      "seq": 2,
+      "sprintSeq": 2,
+      "title": "Backup, Maintenance and Asset Management Retrospective",
+      "date": "2026-12-02",
+      "status": "draft"
+    },
+    {
+      "seq": 3,
+      "sprintSeq": 3,
+      "title": "IT Security, Documentation and Recovery Readiness Retrospective",
+      "date": "2026-12-16",
+      "status": "draft"
+    },
+    {
+      "seq": 4,
+      "sprintSeq": 4,
+      "title": "IT Review, Reporting and Handover Completion Retrospective",
+      "date": "2026-12-31",
+      "status": "draft"
+    }
+  ]
+}
