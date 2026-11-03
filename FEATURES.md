@@ -1106,3 +1106,48 @@ default, expanding on demand.
   asserting the comparison UI is a client component, fetches the compare route, shows status badges for each
   diff item, renders an empty state when there are no customizations, and is mounted in the config client for
   admins only.
+
+## 39. Organization membership: teammates see each other, strangers see no one (2026-11-03)
+
+Before this, "team" meant the whole user table: a second sign-up from a different company would see the first
+company's member directory, assignee picker and workload aggregates. Membership is now the visibility boundary,
+following the Slack-workspace / Notion-membership model — one organization per company, joined only through an
+accepted invitation, and nothing crosses organizations.
+
+- **Schema.** `organizations` (`id`, `name` ≤ 120, `owner_id → users`, `created_at`) and
+  `users.organization_id` (nullable, `ON DELETE SET NULL`). The forward reference needs an explicit
+  `(): AnyPgColumn =>` return type because users ↔ organizations is circular (drizzle/schema.ts).
+  Migration is additive-only via `scripts/create-organizations-table.mjs` (`--dry-run` / `--apply`; rollback
+  guarded by `ORGANIZATIONS_ROLLBACK=yes`) — **not yet applied to live Neon**, that needs an owner checkpoint.
+- **The module (`lib/organizations.ts`).** `validateOrgName` is the single name rule shared by API and form.
+  `visibleIdsFor(orgId, viewerId, memberIds)` is the pure boundary: null org → `[viewerId]` only; an org with a
+  roster → the roster; a stale org id with an empty roster still returns the viewer, so their own data can never
+  hide from them. `loadVisibleMemberIds(userId)` is the one-roundtrip loader every scoped read uses.
+  `createOrganization` refuses a second membership.
+- **What it scopes.** `/api/team/members` filters on the organization roster, and the two dashboard aggregates
+  (workload/mood/leaderboard in `lib/dashboard-data.ts`) now read `loadVisibleMemberIds` instead of every user.
+  A member with no organization sees empty team surfaces with two doors: invite someone or create an organization.
+- **Tests.** `tests/unit/organizations.test.ts` (5 tests: name trim/empty/non-string/120-char boundary; the
+  three `visibleIdsFor` cases).
+
+## 40. shadcn calendar range picker: working days, weekend opt-in, opens below (2026-11-03)
+
+Native `<input type="date">` gave no range selection, no team-aware weekends, and a browser-chrome dropdown that
+opens wherever the engine likes. The replacement is the app's own shadcn Popover + Calendar pair, matching the
+existing design tokens and always opening below the trigger.
+
+- **Components (`components/ui/date-range-picker.tsx`).** `DateRangePicker` — `mode="range"`, `numberOfMonths=2`,
+  selected range highlighted, working-day count under the calendar. Weekends are muted (`text-muted-foreground/40`)
+  and non-selectable via the react-day-picker v8 matcher `{ dayOfWeek: [0, 6] }` styled through
+  `modifiersClassNames` (v8 rejects custom keys in `classNames`). "I am needed this weekend" flips the matcher off
+  without closing the popover. `DateField` is the single-date sibling for form fields, with `min`/`max` matchers
+  merged alongside the weekend rule. Both use `PopoverContent side="bottom" align="start"`.
+- **Pure math (`lib/working-days.ts`).** `toIsoDate` / `fromIsoDate` (strict `YYYY-MM-DD`, rejects rollovers like
+  2026-02-30), `isWeekend`, `workingDaysBetween` (inclusive Mon–Fri, swaps reversed ranges, null on invalid),
+  `formatDay`. ISO strings are the wire format everywhere, so existing URL state and API filters are unchanged.
+- **Wired.** Worklog custom range, reports-work custom period (commit-on-complete: a half-picked range never
+  ships to the URL; clearing falls back to the anchor day), sprint filter + sprint create dialog, task dialog due
+  date, dashboard quick-draft, add-task modal, calendar event date. Native date inputs left deliberately: the
+  anchor field on reports and filter fields on pages not in scope.
+- **Tests.** `tests/unit/working-days.test.ts` (11 tests: round-trips, malformed rejects, Mon–Fri = 5,
+  weekend-skip, weekend-only = 0, reversed range, null endpoints, two weeks = 10, `formatDay` copy).

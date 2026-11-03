@@ -255,15 +255,17 @@ describe("footer wordmark gleam", () => {
 })
 
 describe("accessibility entry point", () => {
-  // The right-edge stack, bottom up: launcher, assistant pill, then the assistant
-  // panel / cookie bar. One geometry at every width — and it starts 80px up, because the
+  // The dashboard opens the panel from a header button that dispatches the same event
+  // the floating launcher used; the right-edge stack (assistant pill, then the panel /
+  // cookie bar) keeps one geometry at every width — and it starts 80px up, because the
   // footer's Back-to-top button ends 64px above the page bottom in the same corner.
   const launcherStep = "bottom-[calc(5rem+env(safe-area-inset-bottom))]"
   const pillStep = "bottom-[calc(9.25rem+env(safe-area-inset-bottom))]"
   const panelStep = "bottom-[calc(13.25rem+env(safe-area-inset-bottom))]"
 
-  it("is the foot of the stack, with the assistant pill above it", () => {
-    expect(layout).toContain("<AccessibilityLauncher")
+  it("opens from the header, with the assistant pill above the old launcher slot", () => {
+    expect(layout).not.toContain("<AccessibilityLauncher")
+    expect(layout).toContain("OPEN_A11Y_EVENT")
     expect(launcher).toContain(launcherStep)
     expect(widget).toContain(launcherStep)
     expect(chatbot).toContain(pillStep)
