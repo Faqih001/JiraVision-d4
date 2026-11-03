@@ -175,29 +175,18 @@ export function PeriodSection({
         </div>
 
         {state.periodType === "custom" ? (
-          <div className="grid grid-cols-2 gap-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="report-from">From</Label>
-              <Input
-                id="report-from"
-                type="date"
-                value={state.customFrom}
-                onChange={(event) => {
-                  if (event.target.value) patch({ customFrom: event.target.value })
-                }}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="report-to">To</Label>
-              <Input
-                id="report-to"
-                type="date"
-                value={state.customTo}
-                onChange={(event) => {
-                  if (event.target.value) patch({ customTo: event.target.value })
-                }}
-              />
-            </div>
+          <div className="space-y-1.5">
+            <Label>Custom range</Label>
+            <DateRangePicker
+              from={state.customFrom}
+              to={state.customTo}
+              onChange={(from, to) => {
+                if (from && to) patch({ customFrom: from, customTo: to })
+                else if (from) patch({ customFrom: from, customTo: from })
+                else patch({ customFrom: state.anchor, customTo: state.anchor })
+              }}
+              className="w-full"
+            />
           </div>
         ) : null}
 
