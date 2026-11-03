@@ -22,9 +22,26 @@ export const users = pgTable("users", {
   status: varchar("status", { length: 20 }).default("offline"),
   // Team member skills
   skills: jsonb("skills").default([]),
+  // Membership is the visibility boundary: a member sees teammates who share this
+  // id. Null means a personal account — every team surface stays dormant, and the
+  // member can create an organization or join one through an accepted invitation.
+  organizationId: integer("organization_id").references(() => organizations.id, {
+    onDelete: "set null",
+  }),
   // Timestamps
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+})
+
+// The tenant boundary (design: org visibility research — Slack workspace / Notion
+// membership model). One row per company or team; created by its first owner, joined
+// through workspace invitations. Nothing crosses organizations: member lists,
+// assignee pickers and team aggregates all filter on this id.
+export const organizations = pgTable("organizations", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 120 }).notNull(),
+  ownerId: integer("owner_id").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 })
 
 // Chat tables
@@ -852,6 +869,12 @@ export const workspaceInvitations = pgTable(
     email: varchar("email", { length: 255 }).notNull(),
     tokenHash: text("token_hash").notNull().unique(),
     role: varchar("role", { length: 32 }).notNull().default("user"),
+    // The organization the invitation belongs to. Accepting sets this id on the
+    // joining user; an invitation minted by an org-less admin carries null and
+    // grants workspace access without membership.
+    organizationId: integer("organization_id").references(() => organizations.id, {
+      onDelete: "set null",
+    }),
     invitedBy: integer("invited_by").references(() => users.id, { onDelete: "set null" }),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
     acceptedAt: timestamp("accepted_at", { withTimezone: true }),
