@@ -1365,3 +1365,32 @@ structurally zero no matter how much work was logged.
   may still contain a `toStatus, "done"` or `to_status = 'done'` literal.
   `tests/unit/career-routes.test.ts` is re-pointed at the new `inArray` shape, and the report tests needed no
   change: nothing outside `lib/tasks/statuses.ts` references the old constant any more.
+
+## 47. The owner is placed on the ladder (2026-11-03)
+
+Two rows on production, one script, no invented history. `/dashboard/career` showed "No placement yet" for
+`fakiiahmad001@gmail.com` because nothing had ever written `career_placement`, and `/admin/career` 403-ed
+because that account's `users.role` was `user` — `organizations.owner_id = 1` says who owns the org, and
+nothing in the app reads it for authority.
+
+- **`scripts/place-ladder-owner.mjs`** writes exactly two things: `users.role` → `superadmin` for the owner
+  account, and one `career_placement` row (technician, rung 1, `placed_by` the same member). It targets the
+  account by email, refuses to run without an explicit `--dry-run`/`--apply`/`--restore`, and confirms the
+  active rung exists before writing. Dry run first, then apply: `1 user update(s), 1 placement insert(s)`.
+- **Backup before write.** `--apply` writes `backups/ladder-owner-<stamp>.json` (the account's prior role,
+  the placement state before it, and the intent) and only then touches the database. Roll back with
+  `node scripts/place-ladder-owner.mjs --restore backups/ladder-owner-<stamp>.json`; `backups/` is gitignored,
+  so the file holding the owner's email stays local.
+- **Rung 1, because the evidence says so.** The ladder itself was already seeded (48 active rungs), and day one
+  is an admin placing staff at their real level. In the last 90 days this account has 26 log entries across 26
+  distinct days; the task-derived signals are still zero because no status events were ever captured for the
+  imported tasks. Junior Technician is the honest rung for that record, and the `note` on the placement row
+  states exactly which evidence counted and which did not.
+- **Read back after writing:** `role=superadmin placement=1 title=Junior Technician`. A second `--dry-run`
+  confirms it from the other direction — `0 user update(s), 0 placement insert(s)`.
+- **Tests.** `tests/unit/ladder-owner-placement.test.ts` (9) guards the script's rails without touching the
+  database: the conflict target matches the `career_placement` primary key, the backup is written before the
+  first `update`, every `delete` stays inside `--restore` and only removes a placement the script inserted, the
+  flags are mandatory, `task_events`/`work_log_entries`/`deliverables` appear nowhere in the code (comments
+  stripped), and the URL the script prints goes through its own masking pattern — which the test applies to a
+  fake credential to prove it still holds.
