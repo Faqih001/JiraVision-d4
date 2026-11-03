@@ -1328,8 +1328,9 @@ guessing, nothing else gets to either. Three private vocabularies were still liv
 - **Rulings.** Planner promote does not invent a discipline for an unclassified item (a plan
   spans disciplines). Handover outstanding-register rows stay `null` for the same reason: the
   pack owns the register, not the discipline. Playbook steps inherit their playbook's.
-- **Tests.** `tests/unit/planner-discipline.test.ts` (15) checks the translation table itself
-  (exactly nine keys, only `other` without a successor, no live id shadowed) and source-guards
-  the six routes: the raw `body.discipline.slice` copy is gone, promote cannot write
+- **Tests.** `tests/unit/planner-discipline.test.ts` (13) checks the translation table itself
+  (exactly nine keys, only `other` without a successor, no live id shadowed) and source-guards the
+  writers: the raw `body.discipline.slice` copy is gone, promote cannot write
   `discipline: item.discipline`, the editor cannot restore its local list, the prompt cannot
-  recite the retired nine, and no task or entry writer references `DEFAULT_DISCIPLINE`.
+  recite the retired nine, the handover stamps its playbook's discipline, and no task or entry
+  create path references `DEFAULT_DISCIPLINE`.
