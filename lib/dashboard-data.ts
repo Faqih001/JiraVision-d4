@@ -20,8 +20,9 @@ import {
   users,
   wellbeingMetrics,
 } from "@/drizzle/schema"
-import { and, asc, desc, eq, gte, lte, or, sql } from "drizzle-orm"
+import { and, asc, desc, eq, gte, inArray, lte, or, sql } from "drizzle-orm"
 import { listNotifications } from "@/lib/notifications"
+import { loadVisibleMemberIds } from "@/lib/organizations"
 
 export interface Kpis {
   myOpenTasks: number
@@ -233,6 +234,10 @@ export async function getDashboardOverview(
   const todayIso = isoDay(now)
   const weekAgo = new Date(now.getTime() - 7 * 86_400_000)
   const weekAhead = new Date(now.getTime() + 7 * 86_400_000)
+
+  // The team-shaped sections (workload, team mood, leaderboard) draw only from the
+  // viewer's organization; a member with none sees just themselves.
+  const memberIds = await loadVisibleMemberIds(userId)
 
   const [
     userRow,

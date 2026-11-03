@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { gamification, tasks, users, wellbeingMetrics } from "@/drizzle/schema";
-import { asc, desc, eq, inArray, ne, sql, type InferSelectModel } from "drizzle-orm";
+import { asc, desc, eq, ne, sql, type InferSelectModel } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { v4 as uuidv4 } from "uuid";
 import { getSession } from "@/lib/auth-actions";
@@ -162,20 +162,25 @@ export async function GET() {
       return NextResponse.json({ success: false, error: "Unauthorized", teamMembers: [] }, { status: 401 });
     }
 
-    const [memberRows, taskAggs, wellbeingMap, gameMap] = await Promise.all([
+    // Membership is the visibility boundary: the roster only ever contains the
+    // viewer's organization. A viewer with no organization sees just themselves.
+    const [visibleIds, memberRows, taskAggs, wellbeingMap, gameMap] = await Promise.all([
+      loadVisibleMemberIds(session.id),
       db.select().from(users).where(ne(users.role, "admin")).orderBy(asc(users.name)),
       loadTaskAggregates(),
       loadLatestWellbeing(),
       loadGamification(),
     ]);
+    const visible = new Set(visibleIds);
+    const scopedRows = memberRows.filter((member) => visible.has(member.id));
 
     const emptyAgg: TaskAgg = { openTasks: 0, doneTasks: 0, blockedTasks: 0, openPoints: 0 };
-    const maxOpenPoints = memberRows.reduce(
+    const maxOpenPoints = scopedRows.reduce(
       (m, u) => Math.max(m, (taskAggs.get(u.id) ?? emptyAgg).openPoints),
       0,
     );
 
-    const teamMembers = memberRows.map((member) =>
+    const teamMembers = scopedRows.map((member) =>
       formatMember(
         member,
         taskAggs.get(member.id) ?? emptyAgg,
@@ -247,7 +252,7 @@ export async function POST(request: Request) {
     const placeholderHash = await bcrypt.hash(uuidv4(), 10);
 
     const settings = await readTeamSettings();
-
+    // A member added from the roster joins the adder's organization.
     const [created] = await db
       .insert(users)
       .values({
@@ -260,6 +265,7 @@ export async function POST(request: Request) {
         location,
         avatar,
         status: "offline",
+        organizationId: await loadUserOrgId(session.id),
       })
       .returning();
 
