@@ -4,6 +4,7 @@
 // refs cannot back it is a bug in this file, and tests/unit/report-aggregate.test.ts says so.
 
 import { DISCIPLINE_LABEL, isWorkDiscipline, type WorkDiscipline } from "@/lib/roles"
+import { isCompletedTaskStatus } from "@/lib/tasks/statuses"
 import {
   DELIVERABLE_LABEL_STATUS,
   KIND_LABEL,
@@ -18,8 +19,8 @@ import type { Period, PeriodBucket, PeriodType } from "./period"
 
 // `tasks.status` is a free varchar(50): no whitelist exists today, and a report must not
 // invent one that would silently reclassify somebody's board. Everything unrecognised is
-// "other" and shown as itself.
-export const COMPLETED_STATUSES = ["done", "completed", "closed"]
+// "other" and shown as itself. The finished words live in lib/tasks/statuses.ts so a report
+// and a career meter cannot disagree about what "done" meant.
 export const IN_PROGRESS_STATUSES = ["in_progress", "doing", "active", "review", "testing"]
 export const BLOCKED_STATUSES = ["blocked"]
 
@@ -35,7 +36,7 @@ export const TASK_BUCKET_LABEL: Record<TaskBucketName, string> = {
 
 export function statusBucket(status: string | null | undefined): TaskBucketName {
   const value = (status ?? "").trim().toLowerCase()
-  if (COMPLETED_STATUSES.includes(value)) return "completed"
+  if (isCompletedTaskStatus(value)) return "completed"
   if (BLOCKED_STATUSES.includes(value)) return "blocked"
   if (IN_PROGRESS_STATUSES.includes(value)) return "in_progress"
   return "other"

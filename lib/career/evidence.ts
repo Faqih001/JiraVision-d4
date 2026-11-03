@@ -7,9 +7,17 @@ import { and, desc, eq, exists, gte, inArray, isNotNull, sql } from "drizzle-orm
 import { db } from "@/lib/db"
 import { deliverables, taskEvents, tasks, workLogEntries, workReports } from "@/drizzle/schema"
 import { dayStartUtc } from "@/lib/worklog/local-day"
+import { COMPLETED_TASK_STATUSES } from "@/lib/tasks/statuses"
 import { CAREER_SIGNAL_KEYS, type CareerSignalKey } from "./signals"
 
 export const MAX_EVIDENCE_ROWS = 200
+
+// Bound parameters, not an interpolated string: the finished words come from
+// lib/tasks/statuses.ts and the raw subquery below needs them as a list.
+const COMPLETED_STATUS_LIST = sql.join(
+  COMPLETED_TASK_STATUSES.map((status) => sql`${status}`),
+  sql`, `,
+)
 
 export type CareerEvidenceRow = { id: number; label: string; date: string | null }
 
@@ -100,7 +108,8 @@ export async function collectCareerEvidence({
 
   if (wanted.has("tasks_completed_90") || wanted.has("points_completed_90")) {
     const completionAt = sql`(select min(e.at) from task_events e
-      where e.task_id = ${tasks.id} and e.to_status = 'done' and e.at >= ${windowStart})`
+      where e.task_id = ${tasks.id} and e.to_status in (${COMPLETED_STATUS_LIST})
+      and e.at >= ${windowStart})`
     const rows = await db
       .select({
         id: tasks.id,
@@ -119,7 +128,7 @@ export async function collectCareerEvidence({
               .where(
                 and(
                   eq(taskEvents.taskId, tasks.id),
-                  eq(taskEvents.toStatus, "done"),
+                  inArray(taskEvents.toStatus, COMPLETED_TASK_STATUSES),
                   gte(taskEvents.at, windowStart),
                 ),
               ),

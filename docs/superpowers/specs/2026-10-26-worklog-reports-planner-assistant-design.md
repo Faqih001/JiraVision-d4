@@ -435,12 +435,20 @@ in `career_levels.signals`:
 | `days_logged_90` | distinct `work_log_entries.worked_on`, rolling 90 days |
 | `actions_logged_90` | `work_log_entries` rows, rolling 90 days |
 | `reviews_logged_90` | `work_log_entries.kind in (review, deliverable)` |
-| `tasks_completed_90` | `task_events.to_status = 'done'` on tasks assigned to the member |
+| `tasks_completed_90` | `task_events.to_status` in the completed list, on tasks assigned to the member |
 | `points_completed_90` | `tasks.story_points` of those tasks |
 | `deliverables_delivered` | `deliverables.status = 'delivered'` in window |
 | `reports_submitted` | `work_reports.status in (submitted, acknowledged)` in window |
 | `disciplines_touched` | distinct `tasks.discipline` over the window |
 | `plan_items_promoted` | `tasks.source_plan_id` set by this member |
+
+"Finished" is not one string. `tasks.status` is a free varchar, so a completed row can read `done` (board),
+`completed` (seed or import) or `closed` (migration), and the event's `to_status` carries whichever word the row
+had. All three live in `COMPLETED_TASK_STATUSES` at `lib/tasks/statuses.ts`, which the report bucket
+(§4) and both career readers (`lib/career/counts.ts`, `lib/career/evidence.ts`) import — a reader that hardcodes
+`'done'` silently drops the work of every member whose rows arrived under another word. Completion stays
+event-sourced: the count needs a `task_events` row, so paths that write tasks without capturing a status change
+contribute nothing, and dates are never backfilled to make a number appear.
 
 `lib/career/readiness.ts` is a **pure, DB-free module** (same discipline as `lib/roles.ts`, whose header at
 `lib/roles.ts:1-3` states why): it takes `{ signals, checklist, signoffs, currentLevel, nextLevel }` and returns

@@ -127,10 +127,12 @@ describe("career signal counting", () => {
   })
 
   it("counts completed tasks once, not once per reopened event", () => {
-    // Completion is read from `tasks` with an EXISTS on the done event, so a task that
-    // was reopened and finished twice still contributes one completion.
+    // Completion is read from `tasks` with an EXISTS on the finished event, so a task that
+    // was reopened and finished twice still contributes one completion. The finished words
+    // come from lib/tasks/statuses.ts, so a row seeded as `completed` counts like a board
+    // row moved to `done`.
     expect(counts).toMatch(/from\(tasks\)[\s\S]{0,400}exists\(/)
-    expect(counts).toMatch(/eq\(taskEvents\.toStatus, "done"\)/)
+    expect(counts).toMatch(/inArray\(taskEvents\.toStatus, COMPLETED_TASK_STATUSES\)/)
     expect(counts).toMatch(/count\(distinct \$\{tasks\.id\}\)/)
   })
 })

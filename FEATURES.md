@@ -1334,3 +1334,34 @@ guessing, nothing else gets to either. Three private vocabularies were still liv
   `discipline: item.discipline`, the editor cannot restore its local list, the prompt cannot
   recite the retired nine, the handover stamps its playbook's discipline, and no task or entry
   create path references `DEFAULT_DISCIPLINE`.
+
+## 46. One list decides when a task is finished (2026-11-03)
+
+`tasks.status` is a free `varchar(50)` with no whitelist, so a finished row arrives wearing
+whatever word the writer used: the board sends `done`, the seeds and the IT Technician import send
+`completed`, and a migration can send `closed`. The reports bucket already accepted all three; the
+career meter matched the literal `"done"` in two places. The owner's account is the cost of that
+drift — the imported tasks say `completed`, so `tasks_completed_90` and `points_completed_90` were
+structurally zero no matter how much work was logged.
+
+- **One home for the vocabulary (`lib/tasks/statuses.ts`, pure).** `COMPLETED_TASK_STATUSES = ["done",
+  "completed", "closed"]` and `isCompletedTaskStatus(value)`, which trims and lowercases first because
+  the column is free text. The module header names its consumers — the report bucket and both career
+  readers — so anything that has to agree about completion reads the same list and cannot disagree.
+- **Reports keeps its behaviour, loses its constant.** `COMPLETED_STATUSES` in
+  `lib/reports/aggregate.ts` is deleted; `statusBucket` now calls `isCompletedTaskStatus`, so the
+  mapping onto the bucket name `completed` is unchanged and the list simply moved.
+- **Career counts stop hardcoding.** `lib/career/counts.ts` wraps the completion `EXISTS` in
+  `inArray(taskEvents.toStatus, COMPLETED_TASK_STATUSES)`. `lib/career/evidence.ts` does the same for
+  its Drizzle branch, and for the raw SQL drill-down subquery it expands the list with `sql.join`, so
+  the literal `e.to_status in ('done')` is gone too.
+- **What this does not do.** Completion is event-sourced, and production `task_events` is empty for
+  these rows — the create, kanban, bulk-delete, agent-handover and import paths write no events. So
+  the two career signals stay at zero until that capture exists. Nothing here invents history: no
+  backfilled dates, and no synthetic events for the older `completed` tasks.
+- **Tests.** `tests/unit/task-statuses.test.ts` (5) pins the list's contents, checks the helper
+  tolerates case and padding and rejects `todo`/`in_progress`/`review`/`blocked`/empty/null, then
+  source-guards the three consumers: each must import `@/lib/tasks/statuses`, and neither career file
+  may still contain a `toStatus, "done"` or `to_status = 'done'` literal.
+  `tests/unit/career-routes.test.ts` is re-pointed at the new `inArray` shape, and the report tests needed no
+  change: nothing outside `lib/tasks/statuses.ts` references the old constant any more.

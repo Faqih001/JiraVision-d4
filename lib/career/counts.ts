@@ -13,6 +13,7 @@ import {
   workReports,
 } from "@/drizzle/schema"
 import { dayStartUtc } from "@/lib/worklog/local-day"
+import { COMPLETED_TASK_STATUSES } from "@/lib/tasks/statuses"
 import { normaliseSignals, type CareerSignals } from "./signals"
 
 export type CareerSignalWindow = {
@@ -43,6 +44,9 @@ export async function countCareerSignals({
     .where(and(eq(workLogEntries.userId, userId), gte(workLogEntries.workedOn, startDay)))
 
   // Distinct tasks, not rows: a task reopened and finished twice is one completion.
+  // Completion is event-sourced, and the event carries whichever finished word the row
+  // arrived with — `done` from the board, `completed` from a seed or import — so the
+  // shared vocabulary is what counts, not one literal.
   const [completed] = await db
     .select({
       tasks: sql<number>`count(*)::int`,
@@ -59,7 +63,7 @@ export async function countCareerSignals({
             .where(
               and(
                 eq(taskEvents.taskId, tasks.id),
-                eq(taskEvents.toStatus, "done"),
+                inArray(taskEvents.toStatus, COMPLETED_TASK_STATUSES),
                 gte(taskEvents.at, windowStart),
               ),
             ),
