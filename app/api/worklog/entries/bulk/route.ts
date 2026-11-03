@@ -11,6 +11,11 @@ import { WORK_LOG_KINDS } from "@/lib/worklog/entries"
 import { readBulkRequest, type BulkRequest } from "@/lib/worklog/bulk"
 import { localDay } from "@/lib/worklog/local-day"
 import {
+  markInstancesLogged,
+  releaseInstancesUnlogged,
+  type WorklogClient,
+} from "@/lib/worklog/instance-capture"
+import {
   badRequest,
   entryColumns,
   deliverableSelect,
@@ -30,6 +35,16 @@ function ownedIds(ids: readonly number[], userId: number) {
   return and(inArray(workLogEntries.id, ids), eq(workLogEntries.userId, userId))
 }
 
+// The task+day pairs a selection currently covers, read from inside the caller's
+// transaction: a bulk re-date or re-task has to release the days it is leaving before the
+// rows are gone and say which day they are now evidence for.
+async function dayPairs(client: WorklogClient, ids: readonly number[], userId: number) {
+  return client
+    .select({ taskId: workLogEntries.taskId, workedOn: workLogEntries.workedOn })
+    .from(workLogEntries)
+    .where(ownedIds(ids, userId))
+}
+
 export async function POST(request: NextRequest) {
   const session = await worklogSession()
   if (!session) return unauthorized()
@@ -41,10 +56,15 @@ export async function POST(request: NextRequest) {
   try {
     switch (body.action) {
       case "delete": {
-        const affected = await db
-          .delete(workLogEntries)
-          .where(ownedIds(body.ids, session.id))
-          .returning({ id: workLogEntries.id })
+        const affected = await db.transaction(async (tx) => {
+          const days = await dayPairs(tx, body.ids, session.id)
+          const rows = await tx
+            .delete(workLogEntries)
+            .where(ownedIds(body.ids, session.id))
+            .returning({ id: workLogEntries.id })
+          if (rows.length > 0) await releaseInstancesUnlogged(tx, days)
+          return rows
+        })
         if (affected.length === 0) return notFound("No matching entries")
         return done(body, affected, [])
       }
@@ -54,11 +74,18 @@ export async function POST(request: NextRequest) {
           const [task] = await db.select({ id: tasks.id }).from(tasks).where(eq(tasks.id, body.taskId)).limit(1)
           if (!task) return badRequest("That task no longer exists.")
         }
-        const affected = await db
-          .update(workLogEntries)
-          .set({ taskId: body.taskId, updatedAt: new Date() })
-          .where(ownedIds(body.ids, session.id))
-          .returning({ id: workLogEntries.id })
+        const affected = await db.transaction(async (tx) => {
+          const days = await dayPairs(tx, body.ids, session.id)
+          const rows = await tx
+            .update(workLogEntries)
+            .set({ taskId: body.taskId, updatedAt: new Date() })
+            .where(ownedIds(body.ids, session.id))
+            .returning({ id: workLogEntries.id })
+          if (rows.length === 0) return rows
+          await releaseInstancesUnlogged(tx, days)
+          await markInstancesLogged(tx, session.id, days.map((day) => ({ taskId: body.taskId, workedOn: day.workedOn })))
+          return rows
+        })
         if (affected.length === 0) return notFound("No matching entries")
         return done(body, affected, await reload(affected.map((r) => r.id), session.id))
       }
@@ -67,12 +94,20 @@ export async function POST(request: NextRequest) {
         // The grammar already guarantees this; the column is NOT NULL and the request field
         // is nullable, so the route narrows rather than handing drizzle a null it would
         // reject at compile time.
-        if (body.workedOn === null) return badRequest("re-date needs workedOn as YYYY-MM-DD")
-        const affected = await db
-          .update(workLogEntries)
-          .set({ workedOn: body.workedOn, redatedAt: new Date(), updatedAt: new Date() })
-          .where(ownedIds(body.ids, session.id))
-          .returning({ id: workLogEntries.id })
+        const workedOn = body.workedOn
+        if (workedOn === null) return badRequest("re-date needs workedOn as YYYY-MM-DD")
+        const affected = await db.transaction(async (tx) => {
+          const days = await dayPairs(tx, body.ids, session.id)
+          const rows = await tx
+            .update(workLogEntries)
+            .set({ workedOn, redatedAt: new Date(), updatedAt: new Date() })
+            .where(ownedIds(body.ids, session.id))
+            .returning({ id: workLogEntries.id })
+          if (rows.length === 0) return rows
+          await releaseInstancesUnlogged(tx, days)
+          await markInstancesLogged(tx, session.id, days.map((day) => ({ taskId: day.taskId, workedOn })))
+          return rows
+        })
         if (affected.length === 0) return notFound("No matching entries")
         return done(body, affected, await reload(affected.map((r) => r.id), session.id))
       }

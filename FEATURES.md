@@ -1256,3 +1256,46 @@ lists them — that scope shows only sprints the member holds tasks in (app/api/
   1–41 exactly once, derived capacities 32/29/35/27 totalling 123, theme placement spot checks, and
   the script's rails (backup before write, one transaction, title-scoped owner updates, no
   hardcoded sprint ids, zero-task predicate on the legacy close, no DELETE outside `--restore`).
+
+## 44. The work log picks your discipline and marks the day (2026-11-03)
+
+Two asks from one dialog: the Work discipline field should arrive already chosen — "I chose IT
+Technician at onboard" — and logging a task should be enough to put that day's row on the task
+grid. Both are code now, and neither needed a production write.
+
+- **The default rule (`lib/worklog/discipline-default.ts`, pure).** Last logged discipline → the
+  discipline mapped from the member's job title → the onboarding preference. The middle rung is
+  what fixes the real account: onboarding wrote *all 75* disciplines into
+  `preferences.settings.workDisciplines` before the mapper existed, so "fall back to onboarding"
+  resolved to `executive` for an IT Technician. A saved list is trusted as a default only when it
+  holds exactly one entry, so a job title is ranked above it; `lib/job-titles.ts` is the same map
+  onboarding uses.
+- **One reader (`lib/worklog/member-discipline.ts`).** The last-logged discipline is the newest
+  non-null `work_log_entries.discipline` for this member, read with
+  `workedOn desc, id desc … limit 1`. A failed read logs and degrades to the job title instead of
+  showing an empty picker.
+- **Delivered to the page.** `GET /api/worklog/entries` returns `defaultDiscipline`; the client
+  holds it in state and seeds both dialogs with it (entry draft and deliverable draft), and
+  `DisciplinePicker` derives its group from the pre-filled value, so the field opens on
+  "Software, IT & digital → Technical Support" rather than "All groups".
+- **Filled on the server as well.** `readEntryCreate(input, defaultDiscipline)` answers a body
+  that never sent the `discipline` key — the quick-add line and any script posting a bare row. A
+  key sent as `null` or `""` still means "leave it unclassified", so a member's explicit choice
+  can never be overwritten by a default.
+- **The day is materialised (`lib/worklog/instance-capture.ts`).** Logging marks that task+day
+  instance `done` with `completedAt`/`completedBy` via `onConflictDoUpdate` on the
+  `idx_task_instances_task_date` key; un-logging reverts it to `todo` only when no log row covers
+  the pair any more. It never writes `notes` or `checklist_responses`, never reverts a status
+  other than `done` (so a deliberate `skipped` survives), never deletes an instance, and never
+  materialises a day for a `one-off` task, which has no grid.
+- **Wired wherever the log changes.** POST creates; PUT releases the day it leaves then marks the
+  day it arrives; DELETE releases; bulk delete / set-task / re-date read the selection's pairs
+  before the write, then release and mark. Every one runs inside the transaction that writes the
+  log row, so the grid and the log are never observable disagreeing. The register and playbook
+  writers need no wiring: those rows carry no `taskId`, and a log with no task materialises
+  nothing.
+- **Tests.** `tests/unit/worklog-member-discipline.test.ts` (14) and
+  `tests/unit/worklog-instance-capture.test.ts` (12) cover the three-rung ordering (including the
+  all-75 list resolving to nothing), the ownership and recency predicates of the member read, the
+  upsert key, the non-clobbering column list, the skip/one-off exclusions, and that no capture
+  call reaches for the pool instead of its caller's `tx`.

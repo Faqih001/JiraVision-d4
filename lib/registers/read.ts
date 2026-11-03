@@ -171,18 +171,24 @@ export async function loadRegistersByIds(ids: readonly number[]): Promise<Regist
   return rows.map(mapRegister)
 }
 
-/** The discipline a member's onboarding saved, used only to pick their default pack. */
-export function defaultDisciplineOf(session: SessionUser): string | null {
+/**
+ * The `workDisciplines` preference as saved. The onboarding wizard writes through
+ * /api/settings, i.e. under preferences.settings; rows written before phase 17 kept the
+ * list at the top level, so both are read.
+ */
+export function workDisciplinesOf(session: SessionUser): readonly unknown[] {
   const preferences = session.preferences
-  if (!preferences || typeof preferences !== "object" || Array.isArray(preferences)) return null
+  if (!preferences || typeof preferences !== "object" || Array.isArray(preferences)) return []
   const prefs = preferences as Record<string, unknown>
-  // The onboarding wizard writes through /api/settings, i.e. under preferences.settings;
-  // rows written before phase 17 kept the list at the top level, so both are read.
   const settings = prefs.settings && typeof prefs.settings === "object" && !Array.isArray(prefs.settings)
     ? (prefs.settings as Record<string, unknown>)
     : {}
   const list = settings.workDisciplines ?? prefs.workDisciplines
-  if (!Array.isArray(list)) return null
-  const first = list.find((entry): entry is string => typeof entry === "string")
+  return Array.isArray(list) ? list : []
+}
+
+/** The discipline a member's onboarding saved, used only to pick their default pack. */
+export function defaultDisciplineOf(session: SessionUser): string | null {
+  const first = workDisciplinesOf(session).find((entry): entry is string => typeof entry === "string")
   return first ?? null
 }

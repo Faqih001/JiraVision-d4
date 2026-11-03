@@ -46,6 +46,7 @@ import type { BulkAction } from "@/lib/worklog/bulk"
 import { exportLogPdf } from "@/lib/export/pdf"
 import { exportLogXlsx } from "@/lib/export/xlsx"
 import type { WorklogSummary } from "@/lib/worklog/summary"
+import type { WorkDiscipline } from "@/lib/roles"
 import {
   PRESET_LABEL,
   RANGE_PRESETS,
@@ -100,6 +101,9 @@ export default function WorklogClient() {
   // answers with users.timezone and every day label is recomputed from it.
   const [timezone, setTimezone] = useState<string | null>(null)
   const [todayIso, setTodayIso] = useState(() => localDay(new Date(), null))
+  // The discipline a new row opens with, decided on the server from what this member last
+  // logged, their job title and their onboarding choice. A browser cannot read those.
+  const [defaultDiscipline, setDefaultDiscipline] = useState<WorkDiscipline | null>(null)
   useEffect(() => {
     setTodayIso(localDay(new Date(), timezone))
   }, [timezone])
@@ -165,6 +169,7 @@ export default function WorklogClient() {
       const serverToday = entriesJson.data.today as string
       setTimezone(entriesJson.data.timezone as string | null)
       setTodayIso(serverToday)
+      setDefaultDiscipline((entriesJson.data.defaultDiscipline as WorkDiscipline | null) ?? null)
       // A day nobody chose follows the server's clock. Left alone, a stale browser guess would
       // be pinned into the URL as `?day=` the moment todayIso moves. Once the day matches, the
       // updater returns the same object; a new one with the same values re-runs this loader.
@@ -231,10 +236,11 @@ export default function WorklogClient() {
 
   const openEntry = useCallback(
     (entry: EntryDto | null) => {
-      // A new row starts on the day the member is looking at, not on the browser's guess of today.
-      setDraft(toDraft(entry, entry?.workedOn ?? state.day))
+      // A new row starts on the day the member is looking at, not on the browser's guess of today,
+      // and with the discipline they keep working in — an existing row always keeps its own.
+      setDraft(toDraft(entry, entry?.workedOn ?? state.day, defaultDiscipline))
     },
-    [state.day],
+    [defaultDiscipline, state.day],
   )
 
   const submitEntry = useCallback(
@@ -520,7 +526,13 @@ export default function WorklogClient() {
       <DeliverablesSection
         deliverables={deliverables}
         loading={loading}
-        onNew={() => setDeliverableDraft({ ...EMPTY_DELIVERABLE, producedOn: state.day })}
+        onNew={() =>
+          setDeliverableDraft({
+            ...EMPTY_DELIVERABLE,
+            producedOn: state.day,
+            discipline: defaultDiscipline ?? "all",
+          })
+        }
         onEdit={(d) => setDeliverableDraft(toDeliverableDraft(d, todayIso))}
         onMove={(d, status) => void moveDeliverable(d, status)}
         onDelete={setPendingDeliverableDelete}

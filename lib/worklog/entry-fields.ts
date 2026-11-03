@@ -203,7 +203,15 @@ function readLink(value: unknown): Read<string | null> {
   return { error: "link must be an http(s) address or a path" }
 }
 
-export function readEntryCreate(input: unknown): Read<{ value: EntryCreateInput }> {
+/**
+ * `defaultDiscipline` fills a row the client did not classify — the quick-add line and any
+ * writer that sends no `discipline` key. An explicit null or "" still means "leave it
+ * unclassified", so the default can never overwrite a choice the member made.
+ */
+export function readEntryCreate(
+  input: unknown,
+  defaultDiscipline: WorkDiscipline | null = null,
+): Read<{ value: EntryCreateInput }> {
   const body = asBody(input)
   if (isFail(body)) return body
 
@@ -236,7 +244,20 @@ export function readEntryCreate(input: unknown): Read<{ value: EntryCreateInput 
     return { error: "A deliverable entry needs a deliverable — create it with Convert to deliverable." }
   }
 
-  return { value: { workedOn, title, kind, body: note, discipline, minutes, taskId, deliverableId } }
+  return {
+    value: {
+      workedOn,
+      title,
+      kind,
+      body: note,
+      // A key that was never sent is the one case the default answers; a key sent as null or
+      // empty is the client asking for an unclassified row.
+      discipline: body.discipline === undefined ? defaultDiscipline : discipline,
+      minutes,
+      taskId,
+      deliverableId,
+    },
+  }
 }
 
 // `undefined` always means "the client did not send this field", so it is skipped; an

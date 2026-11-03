@@ -32,7 +32,9 @@ export function serverError(error: unknown, action: string) {
 export async function worklogSession() {
   const session = await getSession()
   if (!session || typeof session.id !== "number") return null
-  return { id: session.id, timezone: session.timezone ?? null }
+  // `user` is what the discipline default needs (job title and saved preferences); every
+  // write path keeps using `id`, so ownership never comes from the request body.
+  return { id: session.id, timezone: session.timezone ?? null, user: session }
 }
 
 export type EntryRow = {

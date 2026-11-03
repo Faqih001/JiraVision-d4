@@ -106,6 +106,16 @@ describe("readEntryCreate", () => {
     expect(entryValue({ workedOn: "2026-10-26", title: "x", discipline: null }).discipline).toBeNull()
     expect(entryError({ workedOn: "2026-10-26", title: "x", discipline: "plumber" })).toMatch(/discipline/iu)
   })
+
+  it("fills the member's default only when the body says nothing about discipline", () => {
+    // The quick-add line has no discipline control, so an absent key is the member's own
+    // default. A key sent as null is a deliberate "unclassified" and must stay null.
+    const absent = readEntryCreate({ workedOn: "2026-10-26", title: "x" }, "technician")
+    const cleared = readEntryCreate({ workedOn: "2026-10-26", title: "x", discipline: null }, "technician")
+    if ("error" in absent || "error" in cleared) throw new Error("unexpected error")
+    expect(absent.value.discipline).toBe("technician")
+    expect(cleared.value.discipline).toBeNull()
+  })
 })
 
 describe("pickEntryUpdates", () => {

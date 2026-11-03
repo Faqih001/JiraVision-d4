@@ -7,6 +7,7 @@ import { and, eq } from "drizzle-orm"
 import { db } from "@/lib/db"
 import { tasks, workLogEntries } from "@/drizzle/schema"
 import { pickEntryUpdates, type EntryCurrent, type EntryPatch } from "@/lib/worklog/entry-fields"
+import { markInstancesLogged, releaseInstancesUnlogged } from "@/lib/worklog/instance-capture"
 import {
   badRequest,
   entryColumns,
@@ -62,11 +63,27 @@ export async function PUT(request: NextRequest, context: Context) {
     const set: EntryPatch & { updatedAt: Date; redatedAt?: Date } = { ...result.patch, updatedAt: new Date() }
     if (result.redated) set.redatedAt = new Date()
 
-    const updated = await db
-      .update(workLogEntries)
-      .set(set)
-      .where(and(eq(workLogEntries.id, numericId), eq(workLogEntries.userId, session.id)))
-      .returning({ id: workLogEntries.id })
+    // Retargeting the row changes which day's instance the log is evidence for. The old pair
+    // is released only if no other row covers it, and both moves happen in the transaction
+    // writing the row, so the grid and the log cannot be seen disagreeing.
+    const before = { taskId: existing.taskId, workedOn: existing.workedOn }
+    const after = {
+      taskId: result.patch.taskId !== undefined ? result.patch.taskId : existing.taskId,
+      workedOn: result.patch.workedOn !== undefined ? result.patch.workedOn : existing.workedOn,
+    }
+    const moved = after.taskId !== before.taskId || after.workedOn !== before.workedOn
+
+    const updated = await db.transaction(async (tx) => {
+      const rows = await tx
+        .update(workLogEntries)
+        .set(set)
+        .where(and(eq(workLogEntries.id, numericId), eq(workLogEntries.userId, session.id)))
+        .returning({ id: workLogEntries.id })
+      if (rows.length === 0 || !moved) return rows
+      await releaseInstancesUnlogged(tx, [before])
+      await markInstancesLogged(tx, session.id, [after])
+      return rows
+    })
 
     if (updated.length === 0) return notFound("Entry not found")
 
@@ -88,10 +105,24 @@ export async function DELETE(_request: NextRequest, context: Context) {
   if (numericId === null) return badRequest("Entry id must be a positive integer")
 
   try {
-    const deleted = await db
-      .delete(workLogEntries)
+    // Which instance to hand back is read before the row goes: afterwards nothing in the
+    // database says what this log was evidence for.
+    const [row] = await db
+      .select({ taskId: workLogEntries.taskId, workedOn: workLogEntries.workedOn })
+      .from(workLogEntries)
       .where(and(eq(workLogEntries.id, numericId), eq(workLogEntries.userId, session.id)))
-      .returning({ id: workLogEntries.id })
+      .limit(1)
+    if (!row) return notFound("Entry not found")
+
+    const deleted = await db.transaction(async (tx) => {
+      const rows = await tx
+        .delete(workLogEntries)
+        .where(and(eq(workLogEntries.id, numericId), eq(workLogEntries.userId, session.id)))
+        .returning({ id: workLogEntries.id })
+      if (rows.length === 0) return rows
+      await releaseInstancesUnlogged(tx, [row])
+      return rows
+    })
 
     if (deleted.length === 0) return notFound("Entry not found")
     return NextResponse.json({ success: true, data: { id: numericId } })

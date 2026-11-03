@@ -269,8 +269,9 @@ describe("work log dialogs", () => {
   it("gives the log a full-form capture next to quick add", () => {
     expect(client()).toMatch(/onAddDay=\{\(\) => openEntry\(null\)\}/u)
     expect(sections()).toMatch(/Add an entry/u)
-    // The day seeded is the one the member is looking at, not the browser's guess of today.
-    expect(client()).toMatch(/toDraft\(entry, entry\?\.workedOn \?\? state\.day\)/u)
+    // The day seeded is the one the member is looking at, not the browser's guess of today,
+    // and an unclassified new row arrives pre-classified with this member's own default.
+    expect(client()).toMatch(/toDraft\(entry, entry\?\.workedOn \?\? state\.day, defaultDiscipline\)/u)
   })
 
   it("seeds the form by remount and keeps the fetch in the client", () => {

@@ -68,7 +68,11 @@ type FieldErrors = { title?: string; day?: string; minutes?: string; deliverable
 const NONE = "none"
 const MAX_MINUTES = 1440
 
-export function toDraft(entry: EntryDto | null, workedOn: string): EntryDraft {
+export function toDraft(
+  entry: EntryDto | null,
+  workedOn: string,
+  defaultDiscipline: WorkDiscipline | null = null,
+): EntryDraft {
   if (!entry) {
     return {
       id: null,
@@ -77,7 +81,9 @@ export function toDraft(entry: EntryDto | null, workedOn: string): EntryDraft {
       workedOn,
       minutes: "",
       kind: "action",
-      discipline: "all",
+      // The member's own default, from the server. Left as "all" when there is nothing to
+      // inherit, which the field's hint then says out loud instead of hiding.
+      discipline: defaultDiscipline ?? "all",
       taskId: NONE,
       deliverableId: NONE,
     }

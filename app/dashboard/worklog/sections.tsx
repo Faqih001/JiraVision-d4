@@ -211,14 +211,16 @@ export function DisciplinePicker({
   // the dialog wants them side by side inside its own column. Only the spacing differs.
   compact?: boolean
 }) {
-  const [group, setGroup] = useState<DisciplineCategory | "all">(
-    value === "all" ? "all" : DISCIPLINE_CATEGORY[value],
-  )
+  // A discipline decides its own group, so a draft that arrives already classified — the
+  // member's default — opens with its group named instead of "All groups". The stored group
+  // only matters while no discipline is chosen, i.e. it is the browse state of the second select.
+  const [pickedGroup, setPickedGroup] = useState<DisciplineCategory | "all">("all")
+  const group = value === "all" ? pickedGroup : DISCIPLINE_CATEGORY[value]
 
   const options = group === "all" ? [] : disciplinesInCategory(group)
 
   const pickGroup = (next: DisciplineCategory | "all") => {
-    setGroup(next)
+    setPickedGroup(next)
     // Staying on a discipline that just left the list would show one filter and send another.
     if (value !== "all" && DISCIPLINE_CATEGORY[value] !== next) onChange("all")
   }

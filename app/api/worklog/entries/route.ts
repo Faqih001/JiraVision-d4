@@ -9,6 +9,9 @@ import { db } from "@/lib/db"
 import { deliverables, tasks, workLogEntries } from "@/drizzle/schema"
 import { readEntryCreate } from "@/lib/worklog/entry-fields"
 import { localDay } from "@/lib/worklog/local-day"
+import { memberDisciplineDefault } from "@/lib/worklog/member-discipline"
+import { markInstancesLogged } from "@/lib/worklog/instance-capture"
+import type { WorkDiscipline } from "@/lib/roles"
 import { parseViewState, resolveRange } from "@/lib/worklog/view-state"
 import {
   badRequest,
@@ -42,7 +45,13 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: { entries: rows.map(mapEntry), range: { from, to }, today, timezone: session.timezone },
+      data: {
+        entries: rows.map(mapEntry),
+        range: { from, to },
+        today,
+        timezone: session.timezone,
+        defaultDiscipline: await memberDisciplineDefault(session.user),
+      },
     })
   } catch (error) {
     return serverError(error, "fetch work log entries")
@@ -56,7 +65,8 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json().catch(() => null)
     const today = localDay(new Date(), session.timezone)
-    const parsed = readCreateBody(body, today)
+    const defaultDiscipline = await memberDisciplineDefault(session.user)
+    const parsed = readCreateBody(body, today, defaultDiscipline)
     if ("error" in parsed) return badRequest(parsed.error)
     const value = parsed.value
 
@@ -71,10 +81,16 @@ export async function POST(request: NextRequest) {
       if (!mine) return badRequest("deliverableId does not refer to one of your deliverables")
     }
 
-    const [inserted] = await db
-      .insert(workLogEntries)
-      .values({ ...value, userId: session.id, source: "manual" })
-      .returning({ id: workLogEntries.id })
+    // The log row and the day's task instance are one fact, so they commit together: a
+    // failure in either leaves the grid and the log telling the same story as before.
+    const inserted = await db.transaction(async (tx) => {
+      const [row] = await tx
+        .insert(workLogEntries)
+        .values({ ...value, userId: session.id, source: "manual" })
+        .returning({ id: workLogEntries.id })
+      await markInstancesLogged(tx, session.id, [value])
+      return row
+    })
 
     const [row] = await db
       .select(entryColumns)
@@ -95,12 +111,12 @@ export async function POST(request: NextRequest) {
  * honest default at 23:40. A future day is a plan, not a log, so it is refused rather than
  * silently pulled back to today.
  */
-function readCreateBody(body: unknown, today: string) {
+function readCreateBody(body: unknown, today: string, defaultDiscipline: WorkDiscipline | null) {
   const source =
     body && typeof body === "object" && !Array.isArray(body) && (body as Record<string, unknown>).workedOn === undefined
       ? { ...(body as Record<string, unknown>), workedOn: today }
       : body
-  const result = readEntryCreate(source)
+  const result = readEntryCreate(source, defaultDiscipline)
   if ("error" in result) return result
   if (result.value.workedOn > today) return { error: "A work log entry cannot be dated in the future." }
   return result
