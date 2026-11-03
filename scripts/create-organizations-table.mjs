@@ -57,7 +57,7 @@ try {
       WHERE table_name = 'users' AND column_name = 'organization_id'
     `
     const members = await sql`
-      SELECT id, email FROM users WHERE email IN ${sql.array(ORG_EMAILS)} ORDER BY id
+      SELECT id, email FROM users WHERE email = ANY(${ORG_EMAILS}) ORDER BY id
     `
     console.log(`organizations table: ${orgTable ? "exists" : "MISSING (will create)"}`)
     console.log(`users.organization_id: ${userCol.length ? "exists" : "MISSING (will add)"}`)
@@ -82,7 +82,7 @@ try {
     if (orgId) {
       await sql`
         UPDATE users SET organization_id = ${orgId}
-        WHERE email IN ${sql.array(ORG_EMAILS)} AND organization_id IS NULL
+        WHERE email = ANY(${ORG_EMAILS}) AND organization_id IS NULL
       `
     }
 
