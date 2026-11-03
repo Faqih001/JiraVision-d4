@@ -4,7 +4,11 @@ import path from "node:path"
 export default defineConfig({
   test: {
     environment: "node",
-    include: ["tests/unit/**/*.test.ts", "tests/integration/**/*.test.ts", "tests/seed/**/*.test.ts"],
+    // tests/seed/** is deliberately absent: it runs seedComprehensiveData() for real, and
+    // tests/setup.ts loads .env.local, whose DATABASE_URL is production. Every other file here
+    // either mocks @/lib/db or reads source text, so this glob is the only network the default
+    // run makes. Opt in with `npm run test:seed`.
+    include: ["tests/unit/**/*.test.ts", "tests/integration/**/*.test.ts"],
     setupFiles: ["./tests/setup.ts"],
   },
   resolve: {

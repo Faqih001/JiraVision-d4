@@ -235,6 +235,12 @@ printed sheet says the advice was model-drafted.
 component files (with comments stripped) to pin behaviour, so no database is needed. `npm run test:e2e`
 runs the Playwright smoke suite against a running server.
 
+The one live check is kept out of that glob on purpose. `tests/seed/orchestrator.test.ts` calls
+`seedComprehensiveData()` for real, and `tests/setup.ts` loads `.env.local`, whose `DATABASE_URL` is
+production — so `vitest.config.ts` includes only `tests/unit` and `tests/integration`, and
+`npm run test:seed` opts back in through `vitest.seed.config.ts` when a seed run is the thing being
+verified.
+
 The same three gates run before every release: `npm run lint`, `npm run typecheck`, `npm test`.
 
 ## Deployment

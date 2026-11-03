@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:seed": "vitest run --config vitest.seed.config.ts",
     "test:e2e": "playwright test",
     "drizzle:push": "dotenv -e .env -- drizzle-kit push",
     "db:generate": "npx drizzle-kit generate",
