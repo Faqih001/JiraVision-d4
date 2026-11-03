@@ -43,6 +43,7 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { DateField } from "@/components/ui/date-range-picker"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Input } from "@/components/ui/input"
@@ -1361,8 +1362,12 @@ export default function DashboardHome() {
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label htmlFor="tf-due">Due date</Label>
-                <Input id="tf-due" type="date" value={draft.dueDate} onChange={(e) => setDraft({ ...draft, dueDate: e.target.value })} />
+                <Label>Due date</Label>
+                <DateField
+                  value={draft.dueDate || null}
+                  onChange={(iso) => setDraft({ ...draft, dueDate: iso ?? "" })}
+                  placeholder="Pick a due date"
+                />
               </div>
               <div className="space-y-1">
                 <Label htmlFor="tf-points">Story points</Label>

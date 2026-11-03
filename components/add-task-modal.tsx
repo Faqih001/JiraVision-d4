@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
+import { DateField } from "@/components/ui/date-range-picker"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -247,16 +248,14 @@ export default function AddTaskModal({ isOpen, onClose, onAddTask, sprintId }: A
                 
                 {/* Due Date */}
                 <div className="space-y-2">
-                  <Label htmlFor="dueDate" className="text-sm font-medium flex items-center gap-1.5">
+                  <Label className="text-sm font-medium flex items-center gap-1.5">
                     <CalendarIcon className="h-3.5 w-3.5" />
                     Due Date
                   </Label>
-                  <Input
-                    id="dueDate"
-                    name="dueDate"
-                    type="date"
-                    value={task.dueDate}
-                    onChange={handleChange}
+                  <DateField
+                    value={task.dueDate || null}
+                    onChange={(iso) => setTask({ ...task, dueDate: iso ?? "" })}
+                    placeholder="Pick a due date"
                     className="h-10"
                   />
                 </div>

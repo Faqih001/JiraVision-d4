@@ -42,7 +42,7 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { DateRangePicker } from "@/components/ui/date-range-picker"
+import { DateField, DateRangePicker } from "@/components/ui/date-range-picker"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Input } from "@/components/ui/input"
@@ -1288,12 +1288,21 @@ export default function SprintsWorkspace() {
                 <Textarea id="sp-desc" rows={2} value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })} placeholder="What is this sprint about?" />
               </div>
               <div className="space-y-1">
-                <Label htmlFor="sp-start">Start date</Label>
-                <Input id="sp-start" type="date" value={draft.startDate} onChange={(e) => setDraft({ ...draft, startDate: e.target.value })} />
+                <Label>Start date</Label>
+                <DateField
+                  value={draft.startDate || null}
+                  onChange={(iso) => setDraft({ ...draft, startDate: iso ?? "" })}
+                  placeholder="Pick a start date"
+                />
               </div>
               <div className="space-y-1">
-                <Label htmlFor="sp-end">End date</Label>
-                <Input id="sp-end" type="date" value={draft.endDate} onChange={(e) => setDraft({ ...draft, endDate: e.target.value })} />
+                <Label>End date</Label>
+                <DateField
+                  value={draft.endDate || null}
+                  onChange={(iso) => setDraft({ ...draft, endDate: iso ?? "" })}
+                  placeholder="Pick an end date"
+                  min={draft.startDate || null}
+                />
               </div>
               <div className="space-y-1">
                 <Label htmlFor="sp-cap">Capacity (story points)</Label>

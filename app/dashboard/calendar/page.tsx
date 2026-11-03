@@ -65,6 +65,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
+import { DateField } from "@/components/ui/date-range-picker"
 import {
   Dialog,
   DialogContent,
@@ -1414,12 +1415,11 @@ export default function CalendarWorkspace() {
                 </div>
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="event-date">Date</Label>
-                <Input
-                  id="event-date"
-                  type="date"
-                  value={draft.date}
-                  onChange={(e) => setDraft({ ...draft, date: e.target.value })}
+                <Label>Date</Label>
+                <DateField
+                  value={draft.date || null}
+                  onChange={(iso) => setDraft({ ...draft, date: iso ?? draft.date })}
+                  placeholder="Pick a date"
                 />
               </div>
               <label className="flex items-center gap-2 text-sm">
