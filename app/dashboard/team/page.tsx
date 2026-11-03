@@ -325,6 +325,28 @@ export default function TeamWorkspace() {
     load()
   }, [load])
 
+  const createOrg = async () => {
+    const name = newOrgName.trim()
+    if (!name) return
+    setOrgBusy(true)
+    try {
+      const res = await fetch("/api/org", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      })
+      const json = await res.json()
+      if (!res.ok || !json.success) throw new Error(json.error ?? "Failed to create the organization")
+      toast({ title: "Organization created", description: `${name} — invite teammates to fill it.` })
+      setNewOrgName("")
+      await load(true)
+    } catch (err) {
+      toast({ variant: "destructive", title: "Organization", description: (err as Error).message })
+    } finally {
+      setOrgBusy(false)
+    }
+  }
+
   // Quiet: no spinner on the refresh button, no error toast — the roster simply
   // catches up with rows other admins changed.
   useLiveRefresh(
@@ -680,6 +702,48 @@ export default function TeamWorkspace() {
           </Button>
         </div>
       </div>
+
+      {/* 1b · organization: the membership that scopes every team surface below */}
+      {orgResolved ? (
+        org ? (
+          <Card>
+            <CardContent className="flex flex-wrap items-center justify-between gap-2 p-4 text-sm">
+              <div className="flex items-center gap-2">
+                <Users className="h-4 w-4 text-muted-foreground" />
+                <span>
+                  Organization <span className="font-semibold">{org.name}</span> · {org.members}{" "}
+                  {org.members === 1 ? "member" : "members"} — you see these teammates in the roster,
+                  assignee pickers and reports.
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <CardContent className="space-y-3 p-4">
+              <div className="space-y-1">
+                <p className="text-sm font-medium">You are on a personal account — no organization yet.</p>
+                <p className="text-sm text-muted-foreground">
+                  Team surfaces stay empty until you belong to one. Create an organization to build a
+                  team, or join through an invitation link.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Input
+                  value={newOrgName}
+                  onChange={(e) => setNewOrgName(e.target.value)}
+                  placeholder="Organization name"
+                  className="h-9 w-56 text-sm"
+                  aria-label="Organization name"
+                />
+                <Button size="sm" onClick={createOrg} disabled={orgBusy || !newOrgName.trim()}>
+                  Create organization
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )
+      ) : null}
 
       {/* 2 · KPI strip */}
       {loading ? (
