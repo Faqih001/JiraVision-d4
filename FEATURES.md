@@ -1214,3 +1214,45 @@ production Neon. The `goals` table was empty before this, so the import is inser
   `computeProgress` returning 0% for every imported goal, the quarter label and date pair, goal
   8's measurement wording, and the script's rails — insert-only SQL, the double-import guard, one
   transaction, the exact 13-column insert list, and no `sql.unsafe`/`tx.unsafe`.
+
+## 43. IT Technician Q4 sprint plan and retrospectives imported (2026-11-03)
+
+The owner's four-sprint plan and four retrospectives are live on production Neon, and the 41
+imported IT tasks are allocated across those windows so the sprint board's default "Mine" scope
+lists them — that scope shows only sprints the member holds tasks in (app/api/sprints/route.ts).
+
+- **Data (`scripts/data/it-technician-sprints.json`).** The 4 sprints and 4 retros verbatim from
+  the document, plus the task→sprint allocation as data rather than code. Capacity is deliberately
+  absent: the script derives it from the mapping, so a typed number can never disagree with the
+  tasks that actually land in a sprint.
+- **Allocation.** Sprint 1 (13 tasks, 32 pts): §1's daily monitoring plus the ticket review, the
+  urgent incident escalation and the ad-hoc user-issue fixes. Sprint 2 (12, 29): the weekly and
+  monthly backup, maintenance, asset and licence reviews. Sprint 3 (9, 35): §6's four quarterly
+  reviews plus restoration testing, on/offboarding, security-access and documentation habits.
+  Sprint 4 (7, 27): recurring incidents, reporting, infrastructure docs, inventory reconciliation
+  and the final handover. 41 tasks, 123 points, every task in exactly one sprint.
+- **Windows.** 3 Nov – 17 Nov (active), 18 Nov – 2 Dec, 3 Dec – 16 Dec, 17 Dec – 31 Dec (planned) —
+  contiguous, no gap or overlap, and they cover exactly the Q4 window the 12 goals are dated on.
+  Each retro is dated on its sprint's last day and opens as `draft`.
+- **Legacy sprints.** "Sprint 12 — Realtime Foundations" (`active`, ended 30 Oct) and "Sprint 13 —
+  Dashboard Depth" (`planning`) are marked `completed`, so exactly one sprint is active. The close
+  list is read at runtime and only ever includes sprints that hold zero tasks, and their
+  `updated_at` is left alone because the page derives "ended on time" from it.
+- **Script (`scripts/import-it-technician-sprints.mjs`).** `--dry-run` prints the allocation, the
+  derived capacities, the clash list and the exact legacy rows it would close. `--apply` refuses if
+  a planned task is missing, if any planned task already sits in a sprint, or if a sprint name or
+  retro title exists (`GET /api/sprints` also dedupes by name, so a duplicate would disappear),
+  writes `backups/it-sprints-backup-<stamp>.json` with every prior value it is about to overwrite
+  plus the ids it creates, then does all writes in one transaction. `--restore <file>` replays the
+  previous `sprint_id` values, reopens the legacy rows and deletes only the recorded created ids.
+- **Post-apply state.** Sprints #5–#8 (one active), retros #1–#4, 41 tasks allocated 13/12/9/7
+  with each sprint's points matching its capacity, 23 older zero-point tasks still in Backlog, and
+  the 414 task instances and 26 worklog entries untouched. Task linking stamps `updated_at` because
+  the route's own unlink does (app/api/sprints/[id]/route.ts:374).
+- **Tests.** `tests/unit/it-technician-sprints-import.test.ts` (15 guards): the four windows tile
+  3 Nov – 31 Dec with no gap or overlap, exactly one active sprint, statuses read from the route's
+  own `SPRINT_STATUSES` and the retro CHECK list parsed from `scripts/create-retro-tables.mjs`,
+  unique sprint names, every retro dated on its sprint's end day, the allocation covering seqs
+  1–41 exactly once, derived capacities 32/29/35/27 totalling 123, theme placement spot checks, and
+  the script's rails (backup before write, one transaction, title-scoped owner updates, no
+  hardcoded sprint ids, zero-task predicate on the legacy close, no DELETE outside `--restore`).
