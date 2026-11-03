@@ -626,21 +626,20 @@ export default function SprintsWorkspace() {
             <SelectItem value="progress">Most progress</SelectItem>
           </SelectContent>
         </Select>
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <Label htmlFor="sf-from" className="text-[11px]">
-            From
+        <div className="flex items-center gap-1.5">
+          <Label htmlFor="sf-range" className="text-[11px] text-muted-foreground">
+            Dates
           </Label>
-          <Input
-            id="sf-from"
-            type="date"
-            value={dateFrom}
-            onChange={(e) => setDateFrom(e.target.value)}
-            className="h-9 w-36 text-sm"
+          <DateRangePicker
+            from={dateFrom || null}
+            to={dateTo || null}
+            onChange={(from, to) => {
+              setDateFrom(from ?? "")
+              setDateTo(to ?? "")
+            }}
+            placeholder="Any range"
+            className="h-9 w-64 text-sm"
           />
-          <Label htmlFor="sf-to" className="text-[11px]">
-            To
-          </Label>
-          <Input id="sf-to" type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="h-9 w-36 text-sm" />
         </div>
         {(dateFrom || dateTo || search || statusFilter !== "all" || sortBy !== "recent") && (
           <Button
