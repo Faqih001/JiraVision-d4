@@ -6,6 +6,7 @@ import { NextResponse } from "next/server"
 import { getSession } from "@/lib/auth-actions"
 import { db } from "@/lib/db"
 import { agentPlans, planItems, tasks, deliverables, taskEvents } from "@/drizzle/schema"
+import { readLegacyDiscipline } from "@/lib/roles"
 import { eq, and } from "drizzle-orm"
 
 type RouteContext = { params: Promise<{ id: string }> }
@@ -78,7 +79,7 @@ export async function POST(_req: Request, ctx: RouteContext) {
           storyPoints: item.estimatePoints,
           startDate: item.startDate,
           dueDate: item.dueDate,
-          discipline: item.discipline,
+          discipline: readLegacyDiscipline(item.discipline),
           sourcePlanId: planId,
           tags,
         })
@@ -103,7 +104,7 @@ export async function POST(_req: Request, ctx: RouteContext) {
             taskId,
             planItemId: item.id,
             ownerId: session.id,
-            discipline: item.discipline,
+            discipline: readLegacyDiscipline(item.discipline),
             status: "draft",
             createdBy: session.id,
           })

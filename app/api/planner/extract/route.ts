@@ -8,6 +8,7 @@ import { db } from "@/lib/db"
 import { agentPlans, planItems } from "@/drizzle/schema"
 import { geminiJson, GeminiError, type ContentPart } from "@/lib/ai/gemini"
 import { extractPlanSchema, planJsonSchema, type ExtractPlan } from "@/lib/planner/extract"
+import { readLegacyDiscipline, WORK_DISCIPLINES } from "@/lib/roles"
 
 const MAX_PDF_BYTES = 15 * 1024 * 1024
 
@@ -21,7 +22,7 @@ Rules:
   - title: imperative, specific (max 200 chars).
   - description: what the item covers (max 2000 chars).
   - acceptanceCriteria: testable statements (max 10, each max 500 chars).
-  - discipline: one of civil, electrical, mechanical, structural, geotechnical, environmental, planning, management, other (max 40 chars).
+  - discipline: one exact id from this list, nothing else: ${WORK_DISCIPLINES.join(", ")}.
   - estimatePoints: story-point effort 0–100.
   - startDate, dueDate: YYYY-MM-DD when the source implies timing.
   - dependsOnItemIndex: zero-based indices of items that must precede this one. No cycles.
@@ -148,7 +149,7 @@ export async function POST(req: Request) {
         planId: planRow.id,
         title: item.title,
         description: item.description ?? null,
-        discipline: item.discipline ?? null,
+        discipline: readLegacyDiscipline(item.discipline),
         estimatePoints: item.estimatePoints ?? 0,
         startDate: item.startDate ?? null,
         dueDate: item.dueDate ?? null,

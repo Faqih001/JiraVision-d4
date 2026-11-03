@@ -14,6 +14,7 @@ import { readRegisterFields } from "@/lib/registers/fields"
 import { isRegisterCustody } from "@/lib/registers/rules"
 import { loadPacks } from "@/lib/registers/read"
 import { packByKey } from "@/lib/packs/pack"
+import { readLegacyDiscipline } from "@/lib/roles"
 import { agentSession, bad } from "../../_shared"
 
 export const dynamic = "force-dynamic"
@@ -204,6 +205,9 @@ export async function POST(request: Request) {
         if (!playbookTitle) continue
 
         const steps = Array.isArray(row.steps) ? row.steps : []
+        // The playbook carries the discipline its steps are worked under, so a step task
+        // inherits it instead of arriving unclassified.
+        const playbookDiscipline = readLegacyDiscipline(row.discipline)
         for (let i = 0; i < steps.length; i++) {
           const step = steps[i] as Record<string, unknown> | undefined
           if (!step) continue
@@ -223,7 +227,7 @@ export async function POST(request: Request) {
             dueDate: null,
             tags: ["handover", "playbook-step"],
             startDate: null,
-            discipline: null,
+            discipline: playbookDiscipline,
             sourcePlanId: null,
             metadata: { source: "handover", kind: "playbook-step", playbook: playbookTitle, stepIndex: i, phase },
           })

@@ -4,7 +4,7 @@
 // dropping `source: "auto"` would make the log look machine-written from a browser.
 
 import { deliverables, workLogEntries } from "@/drizzle/schema"
-import { DISCIPLINE_HINT, isWorkDiscipline, type WorkDiscipline } from "@/lib/roles"
+import { readDisciplineField, type WorkDiscipline } from "@/lib/roles"
 import {
   DELIVERABLE_LABEL,
   DELIVERABLE_STATUSES,
@@ -165,13 +165,6 @@ function readMinutes(value: unknown): Read<number | null> {
   return n
 }
 
-function readDiscipline(value: unknown): Read<WorkDiscipline | null> {
-  if (value === null || value === undefined || value === "") return null
-  const candidate = typeof value === "string" ? value.trim().toLowerCase() : value
-  if (!isWorkDiscipline(candidate)) return { error: DISCIPLINE_HINT }
-  return candidate
-}
-
 function readRequiredText(value: unknown, field: string, max: number): Read<string> {
   if (typeof value !== "string" || value.trim() === "") return { error: `${field} is required` }
   const trimmed = value.trim()
@@ -230,7 +223,7 @@ export function readEntryCreate(
   const minutes = readMinutes(body.minutes)
   if (isFail(minutes)) return minutes
 
-  const discipline = readDiscipline(body.discipline)
+  const discipline = readDisciplineField(body.discipline, defaultDiscipline)
   if (isFail(discipline)) return discipline
 
   const taskId = readId(body.taskId, "taskId")
@@ -250,9 +243,7 @@ export function readEntryCreate(
       title,
       kind,
       body: note,
-      // A key that was never sent is the one case the default answers; a key sent as null or
-      // empty is the client asking for an unclassified row.
-      discipline: body.discipline === undefined ? defaultDiscipline : discipline,
+      discipline: discipline.value,
       minutes,
       taskId,
       deliverableId,
@@ -290,9 +281,9 @@ export function pickEntryUpdates(
     patch.kind = kind
   }
   if (body.discipline !== undefined) {
-    const discipline = readDiscipline(body.discipline)
+    const discipline = readDisciplineField(body.discipline, null)
     if (isFail(discipline)) return discipline
-    patch.discipline = discipline
+    patch.discipline = discipline.value
   }
   if (body.minutes !== undefined) {
     const minutes = readMinutes(body.minutes)
@@ -365,7 +356,7 @@ export function readDeliverableCreate(input: unknown): Read<{ value: Deliverable
   const taskId = readId(body.taskId, "taskId")
   if (isFail(taskId)) return taskId
 
-  const discipline = readDiscipline(body.discipline)
+  const discipline = readDisciplineField(body.discipline, null)
   if (isFail(discipline)) return discipline
 
   return {
@@ -377,7 +368,7 @@ export function readDeliverableCreate(input: unknown): Read<{ value: Deliverable
       producedOn,
       link,
       evidence,
-      discipline,
+      discipline: discipline.value,
     },
   }
 }
@@ -440,9 +431,9 @@ export function pickDeliverableUpdates(
     patch.taskId = taskId
   }
   if (body.discipline !== undefined) {
-    const discipline = readDiscipline(body.discipline)
+    const discipline = readDisciplineField(body.discipline, null)
     if (isFail(discipline)) return discipline
-    patch.discipline = discipline
+    patch.discipline = discipline.value
   }
 
   if (Object.keys(patch).length === 0) {

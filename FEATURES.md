@@ -1299,3 +1299,37 @@ grid. Both are code now, and neither needed a production write.
   all-75 list resolving to nothing), the ownership and recency predicates of the member read, the
   upsert key, the non-clobbering column list, the skip/one-off exclusions, and that no capture
   call reaches for the pool instead of its caller's `tx`.
+
+## 45. Every discipline write speaks the registry's language (2026-11-03)
+
+The second half of "check any other places not to have generalised": once the work log stops
+guessing, nothing else gets to either. Three private vocabularies were still living beside the
+75-entry registry, each with its own idea of what a discipline is.
+
+- **The planner's retired nine (`lib/roles.ts`).** `plan_items.discipline` predates the registry
+  and could hold `civil`, `structural` or `other` — strings no other screen reads, which promote
+  then copied into `tasks.discipline`. `LEGACY_DISCIPLINE_NAMES` maps each retired name onto the
+  id that covers the same work (`structural`/`geotechnical` → `civil_engineering`, `planning` →
+  `program`, `management` → `manager`) and sends `other` to `null`: a row nobody classified does
+  not become a discipline nobody chose. `readLegacyDiscipline` is one seam — exact registry id
+  first, then the retired name, then `null`, never a guess. It now backs the item insert, the
+  item patch (where an explicit value also clears), the extractor's answer, promote for both
+  tasks and deliverables, and the handover's playbook-step tasks.
+- **The editor shows the registry.** `/dashboard/planner/[id]` offered those nine names; it now
+  offers all 75 in ten `SelectGroup`s, with "Unclassified" first, and the extraction prompt names
+  `WORK_DISCIPLINES` so the model can only answer with an id the app already knows.
+- **One default rule for created tasks (`readDisciplineField`).** `/api/tasks` POST used to store
+  whatever the body sent, and `/dashboard/tasks` has no discipline control at all — so every task
+  made there was unclassified. It now sends the assignee's own member default (last logged → job
+  title → onboarding) when the task is self-assigned and `null` for a colleague's, because
+  stamping the creator's discipline on someone else's work is the same generalisation in a
+  different shirt. `DEFAULT_DISCIPLINE = "coordinator"` — the constant every silent path fell back
+  to — is gone, and no write path imports it any more.
+- **Rulings.** Planner promote does not invent a discipline for an unclassified item (a plan
+  spans disciplines). Handover outstanding-register rows stay `null` for the same reason: the
+  pack owns the register, not the discipline. Playbook steps inherit their playbook's.
+- **Tests.** `tests/unit/planner-discipline.test.ts` (15) checks the translation table itself
+  (exactly nine keys, only `other` without a successor, no live id shadowed) and source-guards
+  the six routes: the raw `body.discipline.slice` copy is gone, promote cannot write
+  `discipline: item.discipline`, the editor cannot restore its local list, the prompt cannot
+  recite the retired nine, and no task or entry writer references `DEFAULT_DISCIPLINE`.

@@ -3,6 +3,8 @@ import { getSession } from "@/lib/auth-actions"
 import { createTask, getPaginatedTasks } from "@/lib/data-access"
 import { createNotification } from "@/lib/notifications"
 import { isCadence } from "@/lib/cadence"
+import { readDisciplineField } from "@/lib/roles"
+import { memberDisciplineDefault } from "@/lib/worklog/member-discipline"
 import { generateInitialInstances } from "@/lib/data-access-task-instances"
 
 // Anonymous access is a convenience for local development and scripted runs only.
@@ -108,7 +110,18 @@ export async function POST(request: Request) {
         { status: 400 }
       )
     }
-    
+
+    // A task the member creates for themselves is classified by the discipline they work in, so
+    // a task made from any screen lands visible to the discipline reports. A task assigned to a
+    // teammate stays unclassified — stamping the creator's discipline onto someone else's work
+    // would put a label on it nobody chose.
+    const assigneeId = data.assigneeId || (session ? session.id : 1) // test mode has no session
+    const defaultDiscipline = session && assigneeId === session.id ? await memberDisciplineDefault(session) : null
+    const discipline = readDisciplineField(data.discipline, defaultDiscipline)
+    if ("error" in discipline) {
+      return NextResponse.json({ success: false, message: discipline.error }, { status: 400 })
+    }
+
     // Prepare task data, ensuring proper date formatting for dueDate
     const taskData = {
       title: data.title,
@@ -116,10 +129,11 @@ export async function POST(request: Request) {
       status: data.status || "todo",
       priority: data.priority || "medium",
       storyPoints: data.storyPoints || 0,
-      assigneeId: data.assigneeId || (session ? session.id : 1), // Default to test user ID 1 if session is null
+      assigneeId,
       sprintId: data.sprintId || null,
       dueDate: data.dueDate ? data.dueDate : null, // Save as string, not Date object
       tags: data.tags || [],
+      discipline: discipline.value,
       cadence,
       checklistItems,
       isTemplate: cadence !== "one-off",

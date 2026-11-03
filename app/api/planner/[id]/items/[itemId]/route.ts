@@ -5,6 +5,7 @@ import { NextResponse } from "next/server"
 import { getSession } from "@/lib/auth-actions"
 import { db } from "@/lib/db"
 import { agentPlans, planItems } from "@/drizzle/schema"
+import { readLegacyDiscipline } from "@/lib/roles"
 import { eq, and } from "drizzle-orm"
 
 type RouteContext = { params: Promise<{ id: string; itemId: string }> }
@@ -65,8 +66,8 @@ export async function PATCH(req: Request, ctx: RouteContext) {
   if (typeof body.description === "string") {
     updates.description = body.description.slice(0, 2000) || null
   }
-  if (typeof body.discipline === "string") {
-    updates.discipline = body.discipline.slice(0, 40) || null
+  if (body.discipline !== undefined) {
+    updates.discipline = readLegacyDiscipline(body.discipline)
   }
   if (typeof body.estimatePoints === "number") {
     updates.estimatePoints = Math.max(0, Math.min(100, body.estimatePoints))

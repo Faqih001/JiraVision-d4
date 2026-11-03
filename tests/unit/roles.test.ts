@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest"
 import { readFileSync } from "node:fs"
 import path from "node:path"
 import {
-  DEFAULT_DISCIPLINE,
   DISCIPLINE_CATEGORIES,
   DISCIPLINE_CATEGORY,
   DISCIPLINE_CATEGORY_COLOUR,
@@ -190,7 +189,6 @@ describe("work disciplines", () => {
   })
 
   it("defaults to the general template so nobody gets an empty report", () => {
-    expect(DEFAULT_DISCIPLINE).toBe("coordinator")
     expect(DISCIPLINE_TEMPLATE.coordinator).toBe("general")
   })
 

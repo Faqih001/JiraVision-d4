@@ -7,12 +7,27 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { SectionCard } from "@/components/dashboard-kit"
 import { useToast } from "@/hooks/use-toast"
 import Gantt from "@/components/planner/gantt"
 import type { GanttItem, GanttZoom, GanttGroupBy } from "@/lib/planner/gantt-data"
+import {
+  DISCIPLINE_CATEGORIES,
+  DISCIPLINE_CATEGORY_LABEL,
+  DISCIPLINE_LABEL,
+  disciplinesInCategory,
+  readLegacyDiscipline,
+} from "@/lib/roles"
 
 type PlanItem = {
   id: number
@@ -42,18 +57,6 @@ type Plan = {
   createdAt: string
   promotedAt: string | null
 }
-
-const DISCIPLINES = [
-  "civil",
-  "electrical",
-  "mechanical",
-  "structural",
-  "geotechnical",
-  "environmental",
-  "planning",
-  "management",
-  "other",
-]
 
 const CADENCES = ["daily", "weekly", "monthly", "quarterly", "yearly"]
 
@@ -450,7 +453,7 @@ export default function PlanEditorClient({ params }: { params: Promise<{ id: str
                     <div className="space-y-2">
                       <Label>Discipline</Label>
                       <Select
-                        value={item.discipline || "none"}
+                        value={readLegacyDiscipline(item.discipline) ?? "none"}
                         onValueChange={(v) => {
                           const discipline = v === "none" ? null : v
                           updateItem(item.id, { discipline })
@@ -462,11 +465,18 @@ export default function PlanEditorClient({ params }: { params: Promise<{ id: str
                           <SelectValue placeholder="Select..." />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="none">None</SelectItem>
-                          {DISCIPLINES.map((d) => (
-                            <SelectItem key={d} value={d}>
-                              {d}
-                            </SelectItem>
+                          <SelectItem value="none">Unclassified</SelectItem>
+                          {DISCIPLINE_CATEGORIES.map((category) => (
+                            <SelectGroup key={category}>
+                              <SelectLabel className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                                {DISCIPLINE_CATEGORY_LABEL[category]}
+                              </SelectLabel>
+                              {disciplinesInCategory(category).map((d) => (
+                                <SelectItem key={d} value={d}>
+                                  {DISCIPLINE_LABEL[d]}
+                                </SelectItem>
+                              ))}
+                            </SelectGroup>
                           ))}
                         </SelectContent>
                       </Select>

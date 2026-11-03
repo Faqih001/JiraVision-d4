@@ -323,8 +323,6 @@ export function disciplinesInCategory(category: DisciplineCategory): WorkDiscipl
 export const DISCIPLINE_HINT =
   "discipline must be a known work discipline (see lib/roles.ts), or null to clear it"
 
-export const DEFAULT_DISCIPLINE: WorkDiscipline = "coordinator"
-
 export function isWorkDiscipline(value: unknown): value is WorkDiscipline {
   return typeof value === "string" && (WORK_DISCIPLINES as readonly string[]).includes(value)
 }
@@ -334,6 +332,50 @@ export function normaliseDiscipline(value: unknown): WorkDiscipline | null {
   if (typeof value !== "string") return null
   const candidate = value.trim().toLowerCase()
   return isWorkDiscipline(candidate) ? candidate : null
+}
+
+/**
+ * The rule every create path shares for a `discipline` key. A body that never sent the key gets
+ * the member's default; a body that sent null or "" is asking for an unclassified row, so a
+ * default can never overwrite a choice; anything off the registry is refused, not stored.
+ */
+export function readDisciplineField(
+  sent: unknown,
+  defaultDiscipline: WorkDiscipline | null,
+): { value: WorkDiscipline | null } | { error: string } {
+  if (sent === undefined) return { value: defaultDiscipline }
+  if (sent === null || sent === "") return { value: null }
+  const candidate = normaliseDiscipline(sent)
+  return candidate ? { value: candidate } : { error: DISCIPLINE_HINT }
+}
+
+/**
+ * Names the planner offered before this registry existed, aimed at the id that covers the same
+ * work. `other` has no successor: a row that was never classified stays unclassified rather than
+ * becoming a discipline nobody chose.
+ */
+export const LEGACY_DISCIPLINE_NAMES: Readonly<Record<string, WorkDiscipline | null>> = {
+  civil: "civil_engineering",
+  electrical: "electrical_engineering",
+  mechanical: "mechanical_engineering",
+  structural: "civil_engineering",
+  geotechnical: "civil_engineering",
+  environmental: "environmental",
+  planning: "program",
+  management: "manager",
+  other: null,
+}
+
+/**
+ * A discipline stored by an older screen, read into the one vocabulary. The exact registry match
+ * runs first, so a name that is both a retired key and a live id (`environmental`) cannot shadow
+ * the real value. Anything the registry does not know is null, never a silent guess.
+ */
+export function readLegacyDiscipline(value: unknown): WorkDiscipline | null {
+  const exact = normaliseDiscipline(value)
+  if (exact) return exact
+  if (typeof value !== "string") return null
+  return LEGACY_DISCIPLINE_NAMES[value.trim().toLowerCase()] ?? null
 }
 
 // ---- Career rungs -----------------------------------------------------------------
