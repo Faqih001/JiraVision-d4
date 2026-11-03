@@ -324,6 +324,7 @@ export async function getDashboardOverview(
       })
       .from(users)
       .leftJoin(tasks, eq(tasks.assigneeId, users.id))
+      .where(inArray(users.id, memberIds))
       .groupBy(users.id, users.name, users.role, users.avatar)
       .orderBy(desc(sql`count(case when ${tasks.status} <> 'done' then 1 end)`)),
 
@@ -386,6 +387,7 @@ export async function getDashboardOverview(
       })
       .from(users)
       .innerJoin(wellbeingMetrics, and(eq(wellbeingMetrics.userId, users.id), sql`${wellbeingMetrics.date} = (SELECT MAX(w2.date) FROM wellbeing_metrics w2 WHERE w2.user_id = ${users.id})`))
+      .where(inArray(users.id, memberIds))
       .orderBy(asc(users.name)),
 
     db
@@ -421,6 +423,7 @@ export async function getDashboardOverview(
       })
       .from(gamification)
       .innerJoin(users, eq(users.id, gamification.userId))
+      .where(inArray(gamification.userId, memberIds))
       .orderBy(desc(gamification.xp))
       .limit(5),
 

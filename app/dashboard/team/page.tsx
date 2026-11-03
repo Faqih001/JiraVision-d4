@@ -260,6 +260,13 @@ export default function TeamWorkspace() {
   const [inviteResult, setInviteResult] = useState<{ email: string; role: string; inviteUrl: string; expiresAt: string } | null>(null)
   const [inviteCopied, setInviteCopied] = useState(false)
 
+  // Organization: the membership that scopes who appears in this roster, the
+  // assignee pickers and every team aggregate. Null means a personal account.
+  const [org, setOrg] = useState<{ name: string; members: number } | null>(null)
+  const [orgResolved, setOrgResolved] = useState(false)
+  const [newOrgName, setNewOrgName] = useState("")
+  const [orgBusy, setOrgBusy] = useState(false)
+
   /* ---- load ---- */
 
   const load = useCallback(async (silent = false) => {
@@ -286,6 +293,22 @@ export default function TeamWorkspace() {
         const notifJson = await notifRes.json()
         if (Array.isArray(notifJson.items)) setNotifications(notifJson.items as NotificationItem[])
       }
+
+      // The organization banner is a quiet read: no organization is a valid state,
+      // so a failure here must not toast over the roster that loaded fine.
+      try {
+        const orgJson = (await fetch("/api/org").then((res) => res.json())) as {
+          success: boolean
+          organization?: { name: string } | null
+          members?: unknown[]
+        }
+        if (orgJson.success) {
+          setOrg(orgJson.organization ? { name: orgJson.organization.name, members: orgJson.members?.length ?? 0 } : null)
+        }
+      } catch {
+        /* banner stays empty */
+      }
+      setOrgResolved(true)
     } catch (err) {
       toast({
         variant: "destructive",
