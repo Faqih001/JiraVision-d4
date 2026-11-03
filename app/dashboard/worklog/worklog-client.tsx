@@ -19,6 +19,7 @@ import {
   Timer,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { DateRangePicker } from "@/components/ui/date-range-picker"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -984,23 +985,14 @@ function ViewToolbarSection({
           ))}
         </div>
         {state.preset === "custom" ? (
-          <div className="flex items-center gap-2">
-            <Input
-              type="date"
-              className="h-8 w-40 text-xs"
-              value={state.from ?? ""}
-              max={todayIso}
-              onChange={(event) => patchState({ from: event.target.value || null })}
-            />
-            <span className="text-xs text-muted-foreground">to</span>
-            <Input
-              type="date"
-              className="h-8 w-40 text-xs"
-              value={state.to ?? ""}
-              max={todayIso}
-              onChange={(event) => patchState({ to: event.target.value || null })}
-            />
-          </div>
+          <DateRangePicker
+            from={state.from}
+            to={state.to}
+            onChange={(from, to) => patchState({ from, to })}
+            max={todayIso}
+            placeholder="Pick a range"
+            className="h-8 w-64 text-xs"
+          />
         ) : null}
       </div>
     </SectionCard>
