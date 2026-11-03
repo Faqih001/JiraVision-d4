@@ -121,4 +121,22 @@ describe("import script", () => {
     expect(source).toMatch(/const SPRINT_ID = null/)
     expect(source).toMatch(/const STATUS = "todo"/)
   })
+
+  it("restores every dumped table with the columns the schema actually has", () => {
+    // The restore branch re-inserts explicit ids, so an invented column would fail only
+    // when the owner needs the backup — too late to discover then.
+    const schema = readFileSync(path.join(repo, "drizzle/schema.ts"), "utf8")
+    const columnsOf = (table: string) => {
+      const start = schema.indexOf(`"${table}",`)
+      const body = schema.slice(start, schema.indexOf("(table) =>", start))
+      return [...body.matchAll(/:\s*\w+\("([a-z_]+)"/g)].map((m) => m[1])
+    }
+    const restored = (table: string) => {
+      const stmt = source.match(new RegExp(`INSERT INTO ${table} \\(([^)]*)\\)`))
+      expect(stmt, `the restore branch never re-inserts ${table}`).not.toBeNull()
+      return stmt![1].split(",").map((c) => c.trim())
+    }
+    expect(restored("task_events").sort()).toEqual(columnsOf("task_events").sort())
+    expect(restored("task_instances").sort()).toEqual(columnsOf("task_instances").sort())
+  })
 })

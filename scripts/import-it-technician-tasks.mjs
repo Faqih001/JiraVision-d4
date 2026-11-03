@@ -111,8 +111,8 @@ async function restore(sql, dump) {
         ${i.notes}, ${tx.json(i.checklist_responses ?? [])}, ${i.created_at})`
     }
     for (const e of dump.task_events) {
-      await tx`INSERT INTO task_events (id, task_id, user_id, event_type, old_value, new_value, created_at)
-        VALUES (${e.id}, ${e.task_id}, ${e.user_id}, ${e.event_type}, ${e.old_value}, ${e.new_value}, ${e.created_at})`
+      await tx`INSERT INTO task_events (id, task_id, actor_id, from_status, to_status, at, source)
+        VALUES (${e.id}, ${e.task_id}, ${e.actor_id}, ${e.from_status}, ${e.to_status}, ${e.at}, ${e.source})`
     }
     await tx`SELECT setval(pg_get_serial_sequence('tasks', 'id'), (SELECT COALESCE(MAX(id), 1) FROM tasks))`
     await tx`SELECT setval(pg_get_serial_sequence('task_instances', 'id'), (SELECT COALESCE(MAX(id), 1) FROM task_instances))`

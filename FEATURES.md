@@ -1151,3 +1151,33 @@ existing design tokens and always opening below the trigger.
   anchor field on reports and filter fields on pages not in scope.
 - **Tests.** `tests/unit/working-days.test.ts` (11 tests: round-trips, malformed rejects, Mon–Fri = 5,
   weekend-skip, weekend-only = 0, reversed range, null endpoints, two weeks = 10, `formatDay` copy).
+
+## 41. IT Technician task list imported as the owner's canonical tasks (2026-11-03)
+
+The owner's 41-task IT Technician import list replaces the 22 older tasks on
+fakiiahmad001@gmail.com (account 1) on production Neon, with a full JSON backup taken first.
+
+- **Data (`scripts/data/it-technician-tasks.json`).** All 41 tasks transcribed verbatim from the
+  document: `seq`, `section` (1–7), title, description, priority, storyPoints, tags, cadence.
+  Cadence distribution is daily 7, weekly 10, monthly 7, one-off 17; one `urgent` task
+  (incident escalation). The document's four quarterly reviews are `one-off` because the task
+  system's cadence vocabulary is one-off/daily/weekly/monthly/yearly — the "repeat this review
+  quarterly" instruction stays in their descriptions.
+- **Script (`scripts/import-it-technician-tasks.mjs`).** `--dry-run` reads and forecasts only.
+  `--apply` writes `backups/it-tasks-backup-<stamp>.json` (tasks, task_instances, task_events,
+  work_log_entries for that account), re-reads it and aborts if the row counts disagree, then
+  runs delete-and-insert inside one `sql.begin` transaction. It refuses to double-import when any
+  of the 41 titles already exist. `--restore <file>` re-inserts with the original ids, resets the
+  sequences and rewires the worklog task links the delete's `ON DELETE SET NULL` dropped.
+- **Recurrence parity.** Instance horizons mirror `lib/tasks/recurrence.ts` (`one-off` 0, daily 30,
+  weekly 12, monthly 12, yearly 4) with the same UTC step math as `lib/cadence.ts`, so imported
+  tasks materialize 414 instances exactly the way app-created ones do.
+- **Untouched.** `work_log_entries` rows survive (26 kept, task links reset to NULL), sprints,
+  deliverables, registers and every other account.
+- **Post-apply state.** 41 tasks / 414 instances / 0 events, all `sprint_id IS NULL` (Backlog),
+  all `status = 'todo'`, all `discipline = 'it_operations'`, 123 story points, no duplicate
+  (task, date) pairs.
+- **Tests.** `tests/unit/it-technician-import.test.ts` (11 guards): the transcription's counts and
+  vocabulary, the backup-before-delete ordering and single-transaction delete+insert, the horizon
+  counts read from `lib/tasks/recurrence.ts`, the Backlog contract, and the restore branch's column
+  lists checked against `drizzle/schema.ts`.
