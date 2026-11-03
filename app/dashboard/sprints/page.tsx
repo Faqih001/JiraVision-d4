@@ -42,6 +42,7 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { DateRangePicker } from "@/components/ui/date-range-picker"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Input } from "@/components/ui/input"
@@ -627,9 +628,7 @@ export default function SprintsWorkspace() {
           </SelectContent>
         </Select>
         <div className="flex items-center gap-1.5">
-          <Label htmlFor="sf-range" className="text-[11px] text-muted-foreground">
-            Dates
-          </Label>
+          <span className="text-[11px] text-muted-foreground">Dates</span>
           <DateRangePicker
             from={dateFrom || null}
             to={dateTo || null}
