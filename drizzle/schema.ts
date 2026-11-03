@@ -25,7 +25,8 @@ export const users = pgTable("users", {
   // Membership is the visibility boundary: a member sees teammates who share this
   // id. Null means a personal account — every team surface stays dormant, and the
   // member can create an organization or join one through an accepted invitation.
-  organizationId: integer("organization_id").references(() => organizations.id, {
+  // The explicit AnyPgColumn return type breaks the users↔organizations circular inference.
+  organizationId: integer("organization_id").references((): AnyPgColumn => organizations.id, {
     onDelete: "set null",
   }),
   // Timestamps

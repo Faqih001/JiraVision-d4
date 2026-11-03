@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 
-const WEEKEND: Matcher = { day: [0, 6] }
+const WEEKEND: Matcher = { dayOfWeek: [0, 6] }
 
 const weekendToggle = (
   allowWeekends: boolean,
@@ -96,8 +96,8 @@ export function DateRangePicker({
             onChange(range?.from ? toIsoDate(range.from) : null, range?.to ? toIsoDate(range.to) : null)
           }}
           disabled={disabledMatchers}
-          modifiers={{ weekend: [WEEKEND] }}
-          classNames={{ weekend: "text-muted-foreground/40" }}
+          modifiers={{ weekend: WEEKEND }}
+          modifiersClassNames={{ weekend: "text-muted-foreground/40" }}
           defaultMonth={fromIsoDate(from) ?? undefined}
         />
         <div className="flex items-center justify-between gap-3 border-t px-3 py-2">
@@ -175,8 +175,8 @@ export function DateField({
           selected={fromIsoDate(value) ?? undefined}
           onSelect={(day: Date | undefined) => onChange(day ? toIsoDate(day) : null)}
           disabled={disabledMatchers}
-          modifiers={{ weekend: [WEEKEND] }}
-          classNames={{ weekend: "text-muted-foreground/40" }}
+          modifiers={{ weekend: WEEKEND }}
+          modifiersClassNames={{ weekend: "text-muted-foreground/40" }}
           defaultMonth={fromIsoDate(value) ?? undefined}
         />
         <div className="flex items-center justify-between gap-3 border-t px-3 py-2">
