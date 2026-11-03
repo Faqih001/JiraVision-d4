@@ -1181,3 +1181,36 @@ fakiiahmad001@gmail.com (account 1) on production Neon, with a full JSON backup 
   vocabulary, the backup-before-delete ordering and single-transaction delete+insert, the horizon
   counts read from `lib/tasks/recurrence.ts`, the Backlog contract, and the restore branch's column
   lists checked against `drizzle/schema.ts`.
+
+## 42. IT Technician Q4-2026 goal list imported into the OKR workspace (2026-11-03)
+
+The owner's 12-goal IT Technician import list is now the content of
+https://jiravision.vercel.app/dashboard/goals for fakiiahmad001@gmail.com (account 1) on
+production Neon. The `goals` table was empty before this, so the import is insert-only.
+
+- **Data (`scripts/data/it-technician-goals.json`).** All 12 goals transcribed verbatim: title,
+  description, `status: "not_started"`, `quarter: "2026-Q4"`, metric type, baseline, target,
+  `current: 0`, `startDate: "2026-11-03"`, `dueDate: "2026-12-31"`, no parent. Ten goals are
+  `percent` with `target: 100` and `baseline: null`; goals 3 and 9 are `number` with
+  `baseline: 0` and targets 1 and 2 (reports/tests per quarter).
+- **Mapping rulings.** "Q4 2026" normalizes to the app's own label format (`currentQuarter()`
+  yields `2026-Q4`). "Baseline/Current: To be established" becomes `baseline = NULL` for percent
+  goals — `computeProgress` reads a percent goal as its `current` value, so an invented baseline
+  would silently change the math — and `current = 0` everywhere, so every goal starts at 0%.
+  Goal 8's target prose ("100% scheduled network monitoring checks completed") is a measurement
+  formula, not a number, so it lives in the description and the metric stays `percent → 100`.
+- **Script (`scripts/import-it-technician-goals.mjs`).** `--dry-run` reports the account, current
+  goal/checkin counts, and the per-goal forecast. `--apply` refuses when any of the 12 titles
+  already exist on that account (delete them in the app first) and inserts all 12 inside one
+  `sql.begin` transaction through postgres-js tagged templates. It never deletes, updates or
+  truncates goals, and there is no `--restore` mode — nothing pre-existing is overwritten, so a
+  backup would have nothing to restore. `created_by` is the owner, matching `owner_id`.
+- **Post-apply state.** 12 goals (ids 6–17), all `not_started`, all top-level, 0 check-ins. The
+  status badge on the page may already suggest "On track": `suggestStatus` compares 0% progress
+  against elapsed time, and only a sliver of the 03 Nov – 31 Dec window has passed.
+- **Tests.** `tests/unit/it-technician-goals-import.test.ts` (13 guards): 12 goals in document
+  order with unique titles, statuses and metric types validated against the vocabularies exported
+  by `app/api/goals/shared.ts`, the percent/number split (10 + 2) and their baselines/targets,
+  `computeProgress` returning 0% for every imported goal, the quarter label and date pair, goal
+  8's measurement wording, and the script's rails — insert-only SQL, the double-import guard, one
+  transaction, the exact 13-column insert list, and no `sql.unsafe`/`tx.unsafe`.
