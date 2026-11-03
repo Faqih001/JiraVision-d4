@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { getSession } from "@/lib/auth-actions"
 import { db } from "@/lib/db"
 import { tasks } from "@/drizzle/schema"
-import { captureStatusChanges } from "@/lib/worklog/capture"
+import { captureStatusChanges, captureTaskBirths } from "@/lib/worklog/capture"
 import { eq, and } from "drizzle-orm"
 
 // tasks.dueDate is a drizzle date() column, which is string-mode: it binds
@@ -92,6 +92,8 @@ export async function POST(request: Request) {
         tags: data.tags || []
       })
       .returning()
+
+    await captureTaskBirths([newTask], { actorId: session.id, source: "route" })
 
     return NextResponse.json({
       success: true,

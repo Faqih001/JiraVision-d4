@@ -5,6 +5,7 @@ import { createNotification } from "@/lib/notifications"
 import { isCadence } from "@/lib/cadence"
 import { readDisciplineField } from "@/lib/roles"
 import { memberDisciplineDefault } from "@/lib/worklog/member-discipline"
+import { captureTaskBirths } from "@/lib/worklog/capture"
 import { generateInitialInstances } from "@/lib/data-access-task-instances"
 
 // Anonymous access is a convenience for local development and scripted runs only.
@@ -141,6 +142,10 @@ export async function POST(request: Request) {
     
     // Create the task
     const newTask = await createTask(taskData)
+
+    // A task created already finished never moves, so this birth row is the only record its
+    // completion will ever have. A task created as todo writes nothing here.
+    await captureTaskBirths([newTask], { actorId: userId, source: "route" })
 
     // Generate initial instances for recurring tasks
     let instanceCount = 0

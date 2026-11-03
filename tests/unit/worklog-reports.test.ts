@@ -67,6 +67,55 @@ describe("task_events capture covers every status-writing route", () => {
   })
 })
 
+// A task written with a finished status never moves, so no captureStatusChanges call will ever
+// see it. These paths must speak for the arrival themselves, or real completed work stays
+// invisible to every count that reads task_events. The counterpart guard below is the half that
+// keeps fiction out of the log: sample and demo rows are invented, so they get no birth row.
+describe("a task that arrives finished records its own birth", () => {
+  const createPaths = [
+    "app/api/tasks/route.ts",
+    "app/api/test/tasks/route.ts",
+    "app/api/dashboard/tasks/route.ts",
+    "app/api/dashboard/kanban/tasks/route.ts",
+    "lib/ops/import/commit.ts",
+  ]
+
+  it.each(createPaths)("%s calls captureTaskBirths", (file) => {
+    expect(codeOnly(src(file))).toMatch(/captureTaskBirths\(/)
+  })
+
+  it("asks the shared completed list, never one literal", () => {
+    const rule = codeOnly(src("lib/worklog/task-events.ts"))
+    expect(rule).toMatch(/import \{ isCompletedTaskStatus \} from "@\/lib\/tasks\/statuses"/u)
+    expect(rule).toMatch(/isCompletedTaskStatus\(/)
+  })
+
+  it("keeps the birth sentinel out of the transition rule", () => {
+    // statusChanges still refuses to invent a move for a creation; only the birth rule speaks
+    // for arrivals, so a task born as todo writes exactly zero rows.
+    const rule = codeOnly(src("lib/worklog/task-events.ts"))
+    expect(rule).toMatch(/export const BIRTH_FROM_STATUS = "none"/)
+    const transitions = rule.slice(
+      rule.indexOf("export function statusChanges"),
+      rule.indexOf("export function bornFinishedChanges"),
+    )
+    expect(transitions).not.toMatch(/BIRTH_FROM_STATUS/)
+    expect(transitions).toMatch(/if \(before\.length === 0 \|\| after\.length === 0\) return \[\]/)
+  })
+
+  it("gives the invented rows no place in the log", () => {
+    for (const file of [
+      "lib/seed-data.ts",
+      "lib/seed/tasks.ts",
+      "lib/onboarding/write.ts",
+      "scripts/seed-tasks.mjs",
+    ]) {
+      const body = codeOnly(src(file))
+      expect(body, file).not.toMatch(/captureTaskBirths|insert\(taskEvents\)/)
+    }
+  })
+})
+
 describe("nothing manufactures history", () => {
   // The hazard is a day *derived* from a touch stamp — `workedOn: tasks.updatedAt`, or
   // `date(tasks.updated_at)` written into worked_on. Phase 2 legitimately writes both

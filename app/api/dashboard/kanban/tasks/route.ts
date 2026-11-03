@@ -4,6 +4,7 @@ import { db } from "@/lib/db"
 import { tasks, users } from "@/drizzle/schema"
 import { getSession } from "@/lib/auth-actions"
 import { createNotification } from "@/lib/notifications"
+import { captureTaskBirths } from "@/lib/worklog/capture"
 
 export const dynamic = "force-dynamic"
 
@@ -104,6 +105,10 @@ export async function POST(request: NextRequest) {
     if (!newTask) {
       throw new Error("Insert did not return a task")
     }
+
+    // A card created in the Done column is finished and never moves, so this row is the only
+    // record that completion gets. The drag-and-drop writers stay out — they hit kanban_tasks.
+    await captureTaskBirths([newTask], { actorId: session.id, source: "route" })
 
     // Fan out an assignment notification like POST /api/tasks does, so the
     // assignee sees it in their bell feed via Neon Realtime.

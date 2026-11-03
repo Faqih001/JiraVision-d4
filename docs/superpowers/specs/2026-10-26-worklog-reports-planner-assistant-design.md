@@ -447,8 +447,13 @@ in `career_levels.signals`:
 had. All three live in `COMPLETED_TASK_STATUSES` at `lib/tasks/statuses.ts`, which the report bucket
 (§4) and both career readers (`lib/career/counts.ts`, `lib/career/evidence.ts`) import — a reader that hardcodes
 `'done'` silently drops the work of every member whose rows arrived under another word. Completion stays
-event-sourced: the count needs a `task_events` row, so paths that write tasks without capturing a status change
-contribute nothing, and dates are never backfilled to make a number appear.
+event-sourced: the count needs a `task_events` row, and dates are never backfilled to make a number appear. A
+task created *already* finished never moves, so no status change will ever be captured for it — `task-events.ts`
+therefore has a second rule, `bornFinishedChanges()`, which writes that completion as a birth row
+(`from_status = 'none' → to_status = <the word it arrived with>`) at the instant of the insert, through
+`captureTaskBirths()` on the create routes and the import commit. An unfinished arrival writes nothing. Seeds,
+onboarding sample rows and the one-off migration scripts stay outside the log: their finished rows are invented
+work, and counting them would put fiction on a real member's ladder.
 
 `lib/career/readiness.ts` is a **pure, DB-free module** (same discipline as `lib/roles.ts`, whose header at
 `lib/roles.ts:1-3` states why): it takes `{ signals, checklist, signoffs, currentLevel, nextLevel }` and returns

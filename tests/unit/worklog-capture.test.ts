@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest"
-import { TASK_EVENT_SOURCES, isTaskEventSource, statusChanges } from "@/lib/worklog/task-events"
+import {
+  BIRTH_FROM_STATUS,
+  TASK_EVENT_SOURCES,
+  bornFinishedChanges,
+  isTaskEventSource,
+  statusChanges,
+} from "@/lib/worklog/task-events"
 
 const at = new Date("2026-10-26T09:00:00.000Z")
 const opts = { actorId: 7, source: "route" as const, at }
@@ -73,5 +79,82 @@ describe("statusChanges", () => {
     expect(TASK_EVENT_SOURCES).toEqual(["route", "bulk", "promote", "agent"])
     expect(isTaskEventSource("bulk")).toBe(true)
     expect(isTaskEventSource("drag")).toBe(false)
+  })
+})
+
+// The other half of the log: a task written already finished never moves, so this birth row is
+// the only record that completion will ever have. Without it the career counts stay 0 on real,
+// completed work — the defect the owner refused to fix with backfilled dates.
+describe("bornFinishedChanges", () => {
+  it("records the arrival of a finished task at the write instant", () => {
+    expect(bornFinishedChanges([{ id: 12, status: "done" }], opts)).toEqual([
+      {
+        taskId: 12,
+        actorId: 7,
+        fromStatus: BIRTH_FROM_STATUS,
+        toStatus: "done",
+        at,
+        source: "route",
+      },
+    ])
+  })
+
+  it("keeps the word the row arrived with, because the shared list decides it counts", () => {
+    const [row] = bornFinishedChanges([{ id: 13, status: "completed" }], opts)
+    expect(row?.toStatus).toBe("completed")
+  })
+
+  it("records a finished status however it was spelled", () => {
+    const rows = bornFinishedChanges(
+      [{ id: 14, status: " Closed " }, { id: 15, status: "DONE" }],
+      opts,
+    )
+    expect(rows.map((r) => [r.taskId, r.toStatus])).toEqual([
+      [14, " Closed "],
+      [15, "DONE"],
+    ])
+  })
+
+  it("writes nothing for an unfinished arrival — creation is tasks.created_at", () => {
+    expect(
+      bornFinishedChanges(
+        [
+          { id: 1, status: "todo" },
+          { id: 2, status: "in_progress" },
+          { id: 3, status: "review" },
+          { id: 4, status: "blocked" },
+        ],
+        opts,
+      ),
+    ).toEqual([])
+  })
+
+  it("treats a missing status as unfinished rather than guessing", () => {
+    expect(bornFinishedChanges([{ id: 5, status: null }, { id: 6, status: undefined }], opts)).toEqual(
+      [],
+    )
+  })
+
+  it("writes nothing when nothing was created", () => {
+    expect(bornFinishedChanges([], opts)).toEqual([])
+  })
+
+  it("takes one timestamp for a whole bulk import", () => {
+    const rows = bornFinishedChanges(
+      [{ id: 1, status: "done" }, { id: 2, status: "completed" }],
+      { actorId: 3, source: "agent" },
+    )
+    expect(rows).toHaveLength(2)
+    expect(rows[1]?.at.getTime()).toBe(rows[0]?.at.getTime())
+  })
+
+  it("is the same shape statusChanges produces, so one insert writes both", () => {
+    const birth = bornFinishedChanges([{ id: 20, status: "done" }], opts)
+    const move = statusChanges([{ id: 21, status: "todo" }], [{ id: 21, status: "done" }], opts)
+    expect(Object.keys(birth[0]!).sort()).toEqual(Object.keys(move[0]!).sort())
+  })
+
+  it("names the birth sentinel once, for the promote route to share", () => {
+    expect(BIRTH_FROM_STATUS).toBe("none")
   })
 })

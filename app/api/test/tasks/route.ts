@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { createTask, getPaginatedTasks } from "@/lib/data-access"
 import { getSession } from "@/lib/auth-actions"
+import { captureTaskBirths } from "@/lib/worklog/capture"
 
 // Development helpers for exercising the task endpoints from a script. They
 // read and mutate real rows, so they require the same session cookie as the
@@ -89,6 +90,8 @@ export async function POST(request: Request) {
     
     // Create the task
     const newTask = await createTask(taskData)
+
+    await captureTaskBirths([newTask], { actorId: session.id, source: "route" })
     
     return NextResponse.json({
       success: true,

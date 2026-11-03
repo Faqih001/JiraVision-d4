@@ -4,6 +4,8 @@
 
 import { db } from "@/lib/db"
 import { opsLogEntries, registerItems, playbooks, tasks } from "@/drizzle/schema"
+import { captureTaskBirths } from "@/lib/worklog/capture"
+import type { CreatedTask } from "@/lib/worklog/task-events"
 import { validateFields } from "@/lib/ops/fields"
 import { readRegisterFields } from "@/lib/registers/fields"
 import { safeTaskStatus, safeTaskPriority } from "./preview"
@@ -176,21 +178,33 @@ async function commitTasks(input: CommitInput, result: CommitResult) {
   const indices = selections?.tasks
   const items = indices ? indices.map((i) => extraction.tasks[i]).filter(Boolean) : extraction.tasks
 
+  // A document import can carry a ticket that was already resolved. Those rows arrive finished
+  // and never move, so without a birth row here the work is real and the log is empty.
+  const created: CreatedTask[] = []
+
   for (const task of items) {
     try {
-      await db.insert(tasks).values({
-        title: task.title,
-        description: task.description,
-        assigneeId: ownerId,
-        status: safeTaskStatus(task.status),
-        priority: safeTaskPriority(task.priority),
-        discipline: discipline ?? null,
-        metadata: { packKey, source: "import" },
-      })
+      const [row] = await db
+        .insert(tasks)
+        .values({
+          title: task.title,
+          description: task.description,
+          assigneeId: ownerId,
+          status: safeTaskStatus(task.status),
+          priority: safeTaskPriority(task.priority),
+          discipline: discipline ?? null,
+          metadata: { packKey, source: "import" },
+        })
+        .returning({ id: tasks.id, status: tasks.status })
+      if (row) created.push(row)
       result.tasks.inserted++
     } catch (error) {
       result.tasks.errors.push(`${task.title}: ${errorMessage(error)}`)
     }
+  }
+
+  if (created.length > 0) {
+    await captureTaskBirths(created, { actorId: ownerId, source: "agent" })
   }
 }
 

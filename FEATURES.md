@@ -1394,3 +1394,35 @@ nothing in the app reads it for authority.
   flags are mandatory, `task_events`/`work_log_entries`/`deliverables` appear nowhere in the code (comments
   stripped), and the URL the script prints goes through its own masking pattern — which the test applies to a
   fake credential to prove it still holds.
+
+## 48. A task that arrives finished records its own birth (2026-11-03)
+
+Completion is event-sourced: `tasks` has no finished-on column, so the career counts, the evidence reader and
+the reports all ask `task_events`. Capture watched every *move* — and a row inserted already finished never
+moves. That is the gap behind the zeros, and it is why the fix is a birth row at the write instant rather
+than a date borrowed from `created_at` or `updated_at`.
+
+- **The rule.** `bornFinishedChanges()` in `lib/worklog/task-events.ts` turns created rows into events, but
+  only the finished ones: `from_status = BIRTH_FROM_STATUS` (`"none"`, the sentinel the planner promote route
+  already wrote), `to_status` = the word the row arrived with, `at` = the instant of the write. An unfinished
+  arrival writes nothing, because creation genuinely is `tasks.created_at`. `statusChanges()` keeps refusing
+  a creation, so the two rules stay one job each.
+- **The writer.** `captureTaskBirths()` in `lib/worklog/capture.ts` sits beside `captureStatusChanges()` and
+  shares its insert-or-log path — same `[task_events] capture failed` line, now with a `kind` of `birth` or
+  `transition`, and the same rule that a capture failure never fails the user's save.
+- **Wired into every path that can land a finished row**: `POST /api/tasks`, `POST /api/test/tasks`,
+  `POST /api/dashboard/tasks`, `POST /api/dashboard/kanban/tasks` (a card created in the Done column) and the
+  document-import commit in `lib/ops/import/commit.ts`, which now reads its insert back with `.returning()` so
+  the birth row describes the status actually stored rather than the one the extractor guessed.
+- **Deliberately not wired.** The seeds, `lib/onboarding/write.ts` sample rows and the one-off
+  `scripts/import-it-technician-*.mjs` migrations write no events. The sample titles are invented ("MCS Server
+  offline", "Wi-Fi down on 2nd floor"), so a birth row for one would put fiction on a real person's ladder —
+  and the migration scripts already record their own rows in a transaction with an explicit status.
+- **What still reads zero, honestly.** Production holds 8 finished rows for the owner account: 4 the member
+  moved today (each with its event, from `route`) and 4 born as `completed` from the onboarding sample seed.
+  Those 4 stay uncounted — they are not the owner's work — and the pre-existing rows from before this change
+  get no backfilled dates. From here on, a task created finished is counted on the day it was created.
+- **Tests.** 9 new behavioural cases in `tests/unit/worklog-capture.test.ts` (18 total) and a new block in
+  `tests/unit/worklog-reports.test.ts` guarding that all five create paths call `captureTaskBirths`, that the
+  birth sentinel never leaks into the transition rule, that the rule asks the shared completed list rather than
+  one literal, and that no seed or sample file writes into `task_events` at all.
