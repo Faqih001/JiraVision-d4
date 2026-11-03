@@ -1,0 +1,412 @@
+[
+  {
+    "seq": 1,
+    "section": 1,
+    "title": "Perform daily server and critical systems health checks",
+    "description": "Check all critical IT systems and confirm that servers and essential services are operational. Check the AAC Kenya Server, MCS Server and Advocates/Insurance Server. Investigate and escalate any outages or unusual system behaviour.",
+    "priority": "high",
+    "storyPoints": 2,
+    "tags": ["IT Support", "Servers", "System Monitoring", "Infrastructure"],
+    "cadence": "daily"
+  },
+  {
+    "seq": 2,
+    "section": 1,
+    "title": "Monitor daily cloud backup operations",
+    "description": "Access the cloud backup console daily and verify that all scheduled incremental backup jobs have completed successfully. Confirm Green/Success status, review warnings and errors, and escalate failures immediately.",
+    "priority": "high",
+    "storyPoints": 2,
+    "tags": ["Cloud Backup", "Data Protection", "Monitoring"],
+    "cadence": "daily"
+  },
+  {
+    "seq": 3,
+    "section": 1,
+    "title": "Check daily server and storage capacity",
+    "description": "Monitor available server storage capacity and identify potential storage constraints. Review utilization and investigate any unusual increases or capacity warnings.",
+    "priority": "high",
+    "storyPoints": 2,
+    "tags": ["Servers", "Storage", "Infrastructure", "Monitoring"],
+    "cadence": "daily"
+  },
+  {
+    "seq": 4,
+    "section": 1,
+    "title": "Review and respond to IT support tickets",
+    "description": "Review new support requests, identify affected users and devices, prioritize issues according to business impact, troubleshoot where possible and update tickets with actions taken. Follow up on unresolved tickets.",
+    "priority": "high",
+    "storyPoints": 2,
+    "tags": ["IT Support", "Helpdesk", "User Support", "Tickets"],
+    "cadence": "daily"
+  },
+  {
+    "seq": 5,
+    "section": 1,
+    "title": "Monitor daily IT security alerts",
+    "description": "Review security and endpoint-protection alerts for malware, suspicious applications, unusual computer behaviour, unauthorized hardware, unexpected account activity and security-update failures. Report suspected incidents immediately.",
+    "priority": "high",
+    "storyPoints": 2,
+    "tags": ["IT Security", "Cybersecurity", "Monitoring"],
+    "cadence": "daily"
+  },
+  {
+    "seq": 6,
+    "section": 1,
+    "title": "Monitor Wi-Fi and network connectivity",
+    "description": "Check the network management dashboard and monitor connected access points, client bandwidth usage and signal interference. Verify staff and guest network availability and investigate connectivity problems.",
+    "priority": "high",
+    "storyPoints": 2,
+    "tags": ["Networking", "Wi-Fi", "Infrastructure", "Monitoring"],
+    "cadence": "daily"
+  },
+  {
+    "seq": 7,
+    "section": 1,
+    "title": "Provide remote and in-person technical support",
+    "description": "Attend to user technical issues involving computers, applications, email, printers, network connectivity, software installation and user accounts. Follow the approved troubleshooting procedure, test solutions with users and document completed work.",
+    "priority": "medium",
+    "storyPoints": 3,
+    "tags": ["IT Support", "Remote Support", "User Support", "Troubleshooting"],
+    "cadence": "one-off"
+  },
+  {
+    "seq": 8,
+    "section": 2,
+    "title": "Verify weekly server backups",
+    "description": "Perform or verify scheduled backups for file servers, application servers, database servers, shared folders, critical configuration files and other business-critical systems. Confirm successful completion and investigate errors.",
+    "priority": "high",
+    "storyPoints": 3,
+    "tags": ["Server Backup", "Data Protection", "Backup Verification"],
+    "cadence": "weekly"
+  },
+  {
+    "seq": 9,
+    "section": 2,
+    "title": "Review weekly backup logs and investigate failures",
+    "description": "Review backup logs for all relevant servers. Confirm backup completion, backup size, destination, integrity status and retention compliance. Investigate warnings and failures and document corrective action.",
+    "priority": "high",
+    "storyPoints": 2,
+    "tags": ["Backup Logs", "Server Maintenance", "Data Protection"],
+    "cadence": "weekly"
+  },
+  {
+    "seq": 10,
+    "section": 2,
+    "title": "Perform scheduled backup restoration testing",
+    "description": "Select an approved non-critical test file or dataset, restore it to an appropriate test location, confirm that it can be opened and read, compare it with the original where appropriate and record the test result. Report restoration failures immediately.",
+    "priority": "high",
+    "storyPoints": 3,
+    "tags": ["Backup Recovery", "Disaster Recovery", "Testing"],
+    "cadence": "monthly"
+  },
+  {
+    "seq": 11,
+    "section": 2,
+    "title": "Review server health and performance",
+    "description": "Review server health, storage utilization, performance and availability. Identify unusual behaviour, capacity constraints and infrastructure issues requiring attention.",
+    "priority": "high",
+    "storyPoints": 2,
+    "tags": ["Server Maintenance", "Infrastructure", "Performance"],
+    "cadence": "weekly"
+  },
+  {
+    "seq": 12,
+    "section": 2,
+    "title": "Review outstanding IT support tickets",
+    "description": "Review unresolved tickets, identify recurring problems, follow up with affected users and determine whether outstanding issues require escalation or vendor intervention.",
+    "priority": "medium",
+    "storyPoints": 2,
+    "tags": ["IT Support", "Helpdesk", "Ticket Management"],
+    "cadence": "weekly"
+  },
+  {
+    "seq": 13,
+    "section": 2,
+    "title": "Review computer updates and security status",
+    "description": "Check important office computers for operating-system updates, security patches, driver updates, application updates, endpoint-protection status and performance problems. Identify devices requiring attention.",
+    "priority": "medium",
+    "storyPoints": 3,
+    "tags": ["Software Updates", "Endpoint Security", "Computer Maintenance"],
+    "cadence": "weekly"
+  },
+  {
+    "seq": 14,
+    "section": 2,
+    "title": "Perform scheduled preventive computer maintenance",
+    "description": "Carry out preventive maintenance on office computers and peripherals. Inspect equipment, clean appropriate components, check ventilation, identify hardware faults and document maintenance activities.",
+    "priority": "medium",
+    "storyPoints": 3,
+    "tags": ["Hardware", "Preventive Maintenance", "Computer Servicing"],
+    "cadence": "weekly"
+  },
+  {
+    "seq": 15,
+    "section": 2,
+    "title": "Update IT asset and support records",
+    "description": "Update IT asset registers, maintenance records, support records and equipment changes. Record devices that have been purchased, assigned, transferred, repaired, replaced or retired.",
+    "priority": "medium",
+    "storyPoints": 2,
+    "tags": ["IT Assets", "Documentation", "Inventory"],
+    "cadence": "weekly"
+  },
+  {
+    "seq": 16,
+    "section": 2,
+    "title": "Prepare weekly IT maintenance report",
+    "description": "Prepare a weekly report covering backup verification, server health, office computer checks, security updates, hardware issues, asset register updates, recurring problems and outstanding vendor issues.",
+    "priority": "medium",
+    "storyPoints": 2,
+    "tags": ["IT Reporting", "Maintenance", "Documentation"],
+    "cadence": "weekly"
+  },
+  {
+    "seq": 17,
+    "section": 3,
+    "title": "Perform and verify monthly server backups",
+    "description": "Perform or verify monthly backups for critical organizational systems. Confirm backup completion, backup size, destination, integrity, available storage capacity and compliance with the organization's retention policy.",
+    "priority": "high",
+    "storyPoints": 3,
+    "tags": ["Server Backup", "Monthly Backup", "Data Protection"],
+    "cadence": "monthly"
+  },
+  {
+    "seq": 18,
+    "section": 3,
+    "title": "Review hardware inventory and equipment condition",
+    "description": "Review the organization's hardware inventory, verify assigned devices and identify equipment requiring repair, replacement or disposal. Ensure asset records reflect the current equipment position.",
+    "priority": "medium",
+    "storyPoints": 2,
+    "tags": ["Hardware Inventory", "IT Assets", "Equipment"],
+    "cadence": "monthly"
+  },
+  {
+    "seq": 19,
+    "section": 3,
+    "title": "Review software inventory and licenses",
+    "description": "Review installed software, approved applications, software inventory and license records. Identify obsolete software, licensing issues, applications requiring updates and software compatibility concerns.",
+    "priority": "medium",
+    "storyPoints": 2,
+    "tags": ["Software Management", "Licensing", "IT Compliance"],
+    "cadence": "monthly"
+  },
+  {
+    "seq": 20,
+    "section": 3,
+    "title": "Review recurring IT incidents and problems",
+    "description": "Analyse recurring technical issues, identify patterns and document recommendations for preventing repeated failures. Review unresolved problems and determine whether specialist or vendor intervention is required.",
+    "priority": "medium",
+    "storyPoints": 3,
+    "tags": ["Incident Management", "Troubleshooting", "IT Support"],
+    "cadence": "monthly"
+  },
+  {
+    "seq": 21,
+    "section": 3,
+    "title": "Review server and storage utilization",
+    "description": "Review server and storage utilization, identify capacity concerns and assess equipment or storage requiring maintenance or replacement. Document any risks identified.",
+    "priority": "high",
+    "storyPoints": 2,
+    "tags": ["Server Management", "Storage", "Capacity Planning"],
+    "cadence": "monthly"
+  },
+  {
+    "seq": 22,
+    "section": 3,
+    "title": "Prepare monthly IT operations report",
+    "description": "Prepare a monthly report covering IT support requests, major incidents, resolved and outstanding issues, backups, restoration tests, hardware repairs, replacements, software installations, updates, maintenance activities and operational risks.",
+    "priority": "medium",
+    "storyPoints": 3,
+    "tags": ["IT Reporting", "Management Report", "Documentation"],
+    "cadence": "monthly"
+  },
+  {
+    "seq": 23,
+    "section": 4,
+    "title": "Troubleshoot and resolve computer hardware problems",
+    "description": "Diagnose hardware issues affecting desktops, laptops, monitors, keyboards, mice, printers, scanners, UPS units, network equipment and other peripherals. Identify symptoms, isolate faults and arrange repairs or replacements where necessary.",
+    "priority": "medium",
+    "storyPoints": 3,
+    "tags": ["Hardware Support", "Troubleshooting", "Repairs"],
+    "cadence": "one-off"
+  },
+  {
+    "seq": 24,
+    "section": 4,
+    "title": "Manage approved software installation and configuration",
+    "description": "Install, configure, update and maintain approved software. Confirm business requirements, licensing, trusted installation sources and system compatibility before installation. Test applications and document completed installations.",
+    "priority": "medium",
+    "storyPoints": 3,
+    "tags": ["Software Installation", "Software Management", "IT Support"],
+    "cadence": "one-off"
+  },
+  {
+    "seq": 25,
+    "section": 4,
+    "title": "Perform computer operating-system maintenance",
+    "description": "Maintain office computer operating systems, security updates, drivers, applications and endpoint protection. Check disk space, system errors and performance. Consider application compatibility and backup status before major updates.",
+    "priority": "medium",
+    "storyPoints": 3,
+    "tags": ["Operating Systems", "Updates", "Computer Maintenance"],
+    "cadence": "weekly"
+  },
+  {
+    "seq": 26,
+    "section": 4,
+    "title": "Service and maintain office printers and peripherals",
+    "description": "Support printer installation, driver configuration, network connectivity, print queues, paper-feed issues, scanner configuration and printer sharing. Record recurring printer faults, error codes, consumables and repair history.",
+    "priority": "medium",
+    "storyPoints": 3,
+    "tags": ["Printers", "Peripherals", "Hardware Support"],
+    "cadence": "one-off"
+  },
+  {
+    "seq": 27,
+    "section": 4,
+    "title": "Diagnose and resolve slow computer performance",
+    "description": "Investigate slow computer performance by checking disk space, CPU and RAM usage, startup applications, background processes, operating-system updates, security alerts, temporary files, hardware health and network performance. Document findings and corrective action.",
+    "priority": "medium",
+    "storyPoints": 3,
+    "tags": ["Computer Performance", "Troubleshooting", "Hardware", "Software"],
+    "cadence": "one-off"
+  },
+  {
+    "seq": 28,
+    "section": 4,
+    "title": "Prepare and configure computers for new users",
+    "description": "Prepare computers for new or existing users. Record asset information, install and update the operating system, configure drivers, approved applications, security tools, network access, email and productivity applications. Test the device, assign it in the asset register and document the handover.",
+    "priority": "medium",
+    "storyPoints": 5,
+    "tags": ["User Onboarding", "Computer Setup", "IT Assets"],
+    "cadence": "one-off"
+  },
+  {
+    "seq": 29,
+    "section": 4,
+    "title": "Complete employee IT equipment offboarding",
+    "description": "Follow the approved employee offboarding procedure. Collect company IT equipment, record returned assets, secure computers, coordinate account deactivation with the appropriate administrator, preserve required business data and prepare equipment for reassignment or secure disposal.",
+    "priority": "high",
+    "storyPoints": 3,
+    "tags": ["User Offboarding", "IT Assets", "Access Management", "Security"],
+    "cadence": "one-off"
+  },
+  {
+    "seq": 30,
+    "section": 5,
+    "title": "Investigate and escalate critical IT incidents",
+    "description": "Escalate server outages, major network problems, data-loss risks, repeated backup failures, suspected cybersecurity incidents, specialist hardware faults and issues requiring vendor intervention. Document the date, affected systems, users, troubleshooting performed, business impact and escalation status.",
+    "priority": "urgent",
+    "storyPoints": 3,
+    "tags": ["Incident Management", "Escalation", "IT Security", "Business Continuity"],
+    "cadence": "one-off"
+  },
+  {
+    "seq": 31,
+    "section": 5,
+    "title": "Maintain IT security and access-control practices",
+    "description": "Ensure approved security practices are followed. Do not share administrator passwords, reuse privileged passwords, install unauthorized software or leave remote-support sessions active. Ensure systems are patched and suspected security incidents are reported immediately.",
+    "priority": "high",
+    "storyPoints": 3,
+    "tags": ["IT Security", "Access Control", "Cybersecurity", "Compliance"],
+    "cadence": "daily"
+  },
+  {
+    "seq": 32,
+    "section": 5,
+    "title": "Maintain IT documentation and maintenance records",
+    "description": "Maintain accurate IT asset registers, hardware maintenance records, software inventories, license records, backup logs, restoration test records, user support tickets, incident reports, server maintenance records, vendor records and network documentation.",
+    "priority": "medium",
+    "storyPoints": 3,
+    "tags": ["IT Documentation", "Asset Management", "Records Management"],
+    "cadence": "weekly"
+  },
+  {
+    "seq": 33,
+    "section": 6,
+    "title": "Review backup and disaster-recovery procedures",
+    "description": "Review backup and recovery procedures, confirm that restoration processes are documented and assess disaster-recovery readiness. Identify gaps requiring corrective action. Repeat this review quarterly.",
+    "priority": "high",
+    "storyPoints": 5,
+    "tags": ["Disaster Recovery", "Backup Management", "Business Continuity"],
+    "cadence": "one-off"
+  },
+  {
+    "seq": 34,
+    "section": 6,
+    "title": "Conduct comprehensive IT hardware inspection",
+    "description": "Conduct broader hardware inspections and review aging equipment. Identify computers, servers, peripherals and other equipment approaching end of life or requiring repair or replacement. Repeat this review quarterly.",
+    "priority": "medium",
+    "storyPoints": 5,
+    "tags": ["Hardware Inspection", "IT Assets", "Preventive Maintenance"],
+    "cadence": "one-off"
+  },
+  {
+    "seq": 35,
+    "section": 6,
+    "title": "Review IT security controls and recurring incidents",
+    "description": "Review IT security controls, recurring incidents, security-update compliance and operational risks. Document identified weaknesses and recommendations for improvement. Repeat this review quarterly.",
+    "priority": "high",
+    "storyPoints": 5,
+    "tags": ["IT Security", "Risk Management", "Incident Review"],
+    "cadence": "one-off"
+  },
+  {
+    "seq": 36,
+    "section": 6,
+    "title": "Review software licensing and compliance",
+    "description": "Conduct a broader review of software licensing, approved applications and compliance requirements. Identify licensing renewals, compatibility issues and software requiring attention. Repeat this review quarterly.",
+    "priority": "medium",
+    "storyPoints": 3,
+    "tags": ["Software Licensing", "Compliance", "IT Management"],
+    "cadence": "one-off"
+  },
+  {
+    "seq": 37,
+    "section": 7,
+    "title": "Update and maintain IT infrastructure documentation",
+    "description": "Ensure server information, network documentation, IP addressing, firewall/router information, Wi-Fi information, printer information and cloud service documentation are current and accessible to authorized personnel.",
+    "priority": "high",
+    "storyPoints": 5,
+    "tags": ["IT Infrastructure", "Documentation", "Network Management"],
+    "cadence": "one-off"
+  },
+  {
+    "seq": 38,
+    "section": 7,
+    "title": "Review and document IT administration systems and access",
+    "description": "Maintain documentation covering IT administration accounts, backup administration, endpoint-security consoles, helpdesk systems, software licensing portals, vendor portals and remote-support systems. Ensure credentials are transferred securely through the approved credential-management process.",
+    "priority": "high",
+    "storyPoints": 5,
+    "tags": ["IT Administration", "Access Management", "Security", "Handover"],
+    "cadence": "one-off"
+  },
+  {
+    "seq": 39,
+    "section": 7,
+    "title": "Reconcile and update IT equipment inventory",
+    "description": "Confirm the current inventory of computers, servers, printers, network equipment, spare equipment, equipment awaiting repair and equipment awaiting disposal. Ensure all company-owned equipment is accounted for.",
+    "priority": "high",
+    "storyPoints": 3,
+    "tags": ["IT Assets", "Inventory", "Handover"],
+    "cadence": "one-off"
+  },
+  {
+    "seq": 40,
+    "section": 7,
+    "title": "Review and document all outstanding IT work",
+    "description": "Review open support tickets, pending repairs, failed backups, scheduled maintenance, pending purchases, vendor issues, software renewals and hardware replacements. Document the current position, responsible parties and required follow-up actions.",
+    "priority": "high",
+    "storyPoints": 3,
+    "tags": ["Outstanding Tasks", "IT Support", "Handover", "Documentation"],
+    "cadence": "one-off"
+  },
+  {
+    "seq": 41,
+    "section": 7,
+    "title": "Complete IT Technician final handover checklist",
+    "description": "Confirm that all IT responsibilities have been explained, server infrastructure documented, backup procedures demonstrated, backup schedules and logs handed over, restoration procedures demonstrated, hardware and software inventories updated, maintenance records current and outstanding issues documented. Confirm that administrative access and company IT equipment have been handed over securely and accounted for.",
+    "priority": "high",
+    "storyPoints": 5,
+    "tags": ["IT Handover", "Documentation", "IT Management", "Infrastructure"],
+    "cadence": "one-off"
+  }
+]
