@@ -61,6 +61,26 @@ Recorded because they are decisions, not discoveries, and an implementer should 
    this wave exists to remove. **Cost if wrong:** a plan author who meant "these items inherit the plan rhythm"
    must set cadence per item.
 
+### Implemented as
+
+Three rulings settled *how* during execution and outlive the line map above; a reader of this spec would
+otherwise re-litigate them.
+
+- **P5 — three SQL forms, because raw statements keep their aliases.** The rule could not ship as one constant:
+  drizzle reads take `completedStatusSql(tasks.status)` / `openStatusSql(tasks.status)`, and the raw statements
+  that already alias the table (`FROM tasks t`) read `sql\`t.status not in (${completedStatusListSql()})\``.
+  Rewriting those aliases to the canonical name was churn with a runtime-error tax and no visible gain, and every
+  form still renders the same `COMPLETED_TASK_STATUSES`.
+- **P7 — counts hide schedules; safety checks and writers do not.** The team-directory aggregates gained
+  `is_template = false` like the dashboard reads, while the account-removal guard deliberately kept schedules in:
+  it answers "would deleting this member dangle a row", and a schedule assigned to them is exactly such a row.
+  The same reasoning left the automation and apply-recommendation queries unswept of the template predicate — they
+  choose a row to write, not a number to publish.
+- **P8 — the career files compare instance status and are pinned, not swept.** `lib/career/counts.ts` and
+  `lib/career/evidence.ts` compare `task_instances.status` to `"done"`, which ruling 1's instance model pins, so
+  the sweep's guard list omits them on purpose rather than by oversight. Naming the exclusion is what stops a
+  later reader from "fixing" a comparison that is correct for a different column.
+
 ## Components
 
 Three new files, each with one job; everything else is an edit to a reader.
@@ -213,36 +233,42 @@ Team-scope reads get the same predicate, otherwise one member's schedules inflat
 
 ### D2 — Occurrences into the strip
 
-One added query, one added field on `DashboardOverview` (:181, alongside `myTasks` at :193):
+One added query, one added field set on `DashboardOverview` (:181, alongside `myTasks` at :193):
 
 ```ts
 dueToday: {
-  instanceId: number
+  id: number          // the instance id — the PATCH address, named `id` like every other row shape here
   taskId: number
   title: string
-  instanceDate: string
-  status: string
   priority: string
+  instanceDate: string
 }[]                    // ≤ 8 rows, ordered by priority then title
 dueTodayCount: number  // every open row dated today
 missedCount: number    // every open row dated before today, for this member
 ```
 
-Predicate: `taskInstances` joined to `tasks` on `assigneeId = session.id`, `instanceDate = localDay(now, tz)`,
-status filtered by `isSettledInstanceStatus()`
+Predicate: `taskInstances` joined to `tasks` on `assigneeId = session.id`, `instanceDate` between
+`shiftDays(localDay(now, tz), -30)` and `localDay(now, tz)`, and the open/closed split made in JS by
+`isSettledInstanceStatus()`
 ([lib/tasks/instance-window.ts:29](../../../lib/tasks/instance-window.ts#L29)) — the same predicate F1's window
-uses, which is what keeps the strip and the tasks page from ever disagreeing about "still open". The counts are
-`count()` queries in the same round trip, not slices of the capped list.
+uses, which is what keeps the strip and the tasks page from ever disagreeing about "still open". One read feeds
+all three numbers: `dueTodayCount` and `missedCount` are counted from the whole 30-day row set, and only the
+*displayed* list is sliced to 8, so "see all 14" can never be contradicted by the list under it. The window is
+30 days rather than unbounded because a member who has never opened the app should not be shown 400 owed days
+as if they were all news.
 
 ### D3 — The strip itself
 
-Inside `TodayStrip` ([app/dashboard/page.tsx:138](../../../app/dashboard/page.tsx#L138)): a row
+Inside `TodayStrip` ([app/dashboard/page.tsx:143](../../../app/dashboard/page.tsx#L143)): a row
 `Due today · N`, each of up to 8 items with a checkbox that
 `PATCH /api/task-instances/[id]` with `{ status: "done" }` and then `reloadQuiet()`. When `dueTodayCount > 8`,
-a "see all" link to `/dashboard/tasks`. When `missedCount > 0`, the F1 wording verbatim — "Missed N days …
-logged in the work log, not repeatable here" — so a missed day is never offered as a checkbox.
+a "see all N" link to `/dashboard/tasks`. When `missedCount > 0`, the header row appends `· N missed` in the
+danger colour — the same word the recurrence panel uses for a past-due occurrence
+([app/dashboard/tasks/page.tsx:1764](../../../app/dashboard/tasks/page.tsx#L1764)), kept to the count because
+the panel's full sentence ("— logged in the work log, not repeatable here.") is an explanation for a row, not a
+header. A missed day is never offered as a checkbox.
 
-No quick-add, no checklist editor here; that is the tasks page's job and the strip's existing comment (:136-137)
+No quick-add, no checklist editor here; that is the tasks page's job and the strip's existing comment (:140-142)
 says so deliberately.
 
 ### D4 — F4 parity on the dashboard's own status menu
@@ -252,6 +278,17 @@ says so deliberately.
 tasks page already combines ([app/dashboard/tasks/page.tsx:195](../../../app/dashboard/tasks/page.tsx#L195)), and
 deliberately not `lib/task-updates.ts`, which pulls in `drizzle/schema` and belongs on the server. The server's
 409 stays as the backstop; the member should never see it.
+
+### Shipped prop set and the timezone argument
+
+`TodayStrip` takes the strip's own three props plus the callback: `dueToday`, `dueTodayCount`, `missedCount`
+and `onToggleInstance(id)`, alongside the `summary`/`loading`/`todayIso`/`staleCount` it already had. The call
+site passes `overview.dueTodayCount` and `overview.missedCount` with no fallbacks, because
+`getDashboardOverview` always returns all three fields and the page's `overview` is typed from that shape.
+`todayIso` comes from the server too — the builder anchors on `localDay(now, timeZone)` and the route passes
+`session.timezone` as `getDashboardOverview(session.id, scope, session.timezone)`, so a member's "today" is
+their today rather than UTC's, and the strip's list and the count agree with the work log's day boundary
+instead of inventing a third one.
 
 ## E — Promote
 

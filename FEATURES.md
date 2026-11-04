@@ -1471,3 +1471,58 @@ today was nowhere to complete, and a template nobody opened for a month handed o
   all four writers refuse with 409 and materialise the grid, the horizon writer never uses the old step-from-tail
   function, the read route checks the assignee, the panel uses the selector and never maps missed dates into rows,
   and every registered signal is both counted and evidenced.
+
+## 50. Every surface reads recurrence the same way (2026-11-04)
+
+The F1–F6 wave fixed the recurrence engine and left its neighbours alone. An audit of every page and route
+that reads `tasks`, `task_instances` or `plan_items` found seven classes of gap, all of them the same mistake
+in different files: a surface written before the model existed, still reading the old shape. On the owner's
+account, that meant schedules drawing calendar markers they were never dated for, a workload bar counting a
+checklist that is unfinished by design, a promoted plan item arriving as a one-off with no grid, and — on
+2 of 63 task rows — work the report bucket (§46) could see and the chart datasets, sprint tiles and KPI
+counters could not, because those read the literal `'done'` and the imported rows say `completed`.
+
+- **The calendar scopes and stops inventing.** Both recurrence branches of `/api/calendar/events` now filter
+  on the visible members, and the template branch is gone: `due` returns one-offs whose `dueDate` falls in the
+  window, `cadence` returns `task_instances` rows, `both` returns the union. The two predicates are complements
+  on `is_template`, so a task cannot appear twice — the double count is impossible by construction, not
+  deduped after the fact.
+- **The grid you look at is the grid you get.** `horizonOccurrencesForWindow(cadence, start, end)` converts the
+  requested window into an occurrence count (42 days of a daily schedule is 43 rows, not the 7 the panel
+  keeps), and the calendar read tops up each schedule it is about to draw through the writer that already
+  existed. Bounded by 90 occurrences per task and 25 tasks per request, and the coverage early-return means the
+  steady-state path issues one `count()` and no inserts. A read that writes never fails the read.
+- **One cadence vocabulary.** `lib/cadence.ts` is the only place the words live: `SCHEDULE_CADENCES` for the
+  recurring subset, `cadenceOrNone(value)` for reading a column that a seed or an import may have left `null`,
+  and `isCadence` for validation. The planner's item schema, the plan-item PATCH and the plan editor all
+  consume it, so `quarterly` and `yearly` cannot be valid in one door and silently dropped in another.
+- **Promote carries the cadence.** `promoteTaskValues(item, sessionUserId)` is a pure mapping — cadence,
+  `is_template` derived from it, the assignee — and the grid is materialised *after* the transaction commits,
+  not inside it. Before, a plan item titled "weekly drive check" became a one-off task with no occurrences and
+  no way to notice.
+- **Schedules are counted out of workload.** The report dataset, both team-directory aggregates and the five
+  dashboard reads add `is_template = false`: a recurring template is open forever by design, so leaving it in
+  inflated every department bar by the number of checklists the owner imported.
+- **The day's occurrences, on the dashboard.** `getDashboardOverview` takes the member's timezone and anchors on
+  `localDay(new Date(), session.timezone)`, and the Today strip now lists the occurrences due today — up to 8,
+  priority-ordered, each with a checkbox that closes that instance and a "Missed N days" line, in the same
+  wording the recurrence panel uses.
+- **The finish doors are guarded everywhere.** A recurring row no longer offers Done on the dashboard, the tasks
+  page's two quick-complete doors, or the AI Scrum Master's card, so the server's 409 stays the backstop instead
+  of the member's first notice. The status dropdown filters the finished words out for a schedule.
+- **One list decides when a task is finished, on both sides of the wire.** `lib/tasks/statuses-sql.ts` renders
+  `COMPLETED_TASK_STATUSES` as SQL — `completedStatusSql(column)` and `openStatusSql(column)` for drizzle reads,
+  `completedStatusListSql()` for the raw statements that already aliased the table — and the twelve client pages
+  read the JS helper for the same list. The sweep covers 12 server files and 12 pages, including the five
+  surfaces nobody had audited (the team directory, automation's candidate query, and both ethical-metrics
+  reads). Sprint aggregates deliberately keep counting templates: placing a recurring task in a sprint is the
+  owner's choice, and hiding it would mask the mistake.
+- **Measured, not assumed.** `scripts/measure-task-statuses.mjs` is a read-only census of the words production
+  actually holds, run before the merge: 33 → 35 finished rows, so the tiles that move are named in advance.
+- **Tests.** `tests/unit/task-recurrence.test.ts` (the `horizonOccurrencesForWindow` cases), `cadence.test.ts`
+  (`cadenceOrNone` round-trips), `planner-promote-values.test.ts`, `statuses-sql.test.ts` (the fragments bind
+  every word in the list, so a fourth word arrives automatically) and
+  `tests/unit/recurrence-cross-surface-guards.test.ts` — one guard file per wave, holding the calendar scoping,
+  the deleted template branch, the cadence vocabulary, the grid-after-transaction order, the template predicate
+  on every count surface, the status-menu doors, and a per-file assertion that no swept file still compares a
+  `tasks.status` to `"done"`.
