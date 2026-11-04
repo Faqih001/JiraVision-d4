@@ -33,9 +33,11 @@ Discovered while writing this plan; the spec could not know them. Each is decide
 - **P1 — two more F4 doors, both handled in Task 8.** `app/dashboard/tasks/page.tsx:1423` ("Blocked or overdue" → Complete) and `:1457` ("Due this week" → Complete) call `setTaskStatus(t, "done")` on every row, recurring included, so the tasks page still hands a member the raw 409 the dialog avoids. Ruling: the same `isRecurringTask` guard the dialog already uses hides the button on a recurring row, on both pages. **Why:** Ruling 2 and §D4 already decided the member should never see that 409; only its location was unknown. **Cost if wrong:** two buttons missing on a schedule card.
 - **P2 — §D1's line map is stale; the reads are named here.** The five reads the spec's table describes are, in today's file: `statusCounts` member/team `lib/dashboard-data.ts:291-300`; `myTasksRows` `:302-307` (which feeds `deadlines` at `:584` and the KPIs at `:548-569`); `myOpenPriorityCounts` `:309-313`; `workloadRows` `:315-329`; the KPI case-when fragments are inside `workloadRows` at `:321-323` and its `orderBy` at `:329`. **Not excluded** from the template predicate: `throughputRows` `:331-340`, `velocityRows` `:439-451` and `sprintTaskRows` `:483-497` — a recurring row deliberately placed in a sprint is the owner's choice, and hiding it would mask the mistake (the same reasoning §G4 applies to sprint aggregates).
 - **P3 — `task_instances.status` comparisons stay pinned to `"done"`.** `lib/career/counts.ts:125`, `lib/career/evidence.ts:244` and `lib/worklog/instance-capture.ts:49,55,86` are not swept. **Why:** the instance PATCH whitelist is `["todo","in_progress","done","skipped"]` ([app/api/task-instances/[id]/route.ts:56](../../app/api/task-instances/%5Bid%5D/route.ts)); instance rows cannot hold `completed` or `closed`, and the completed-status list exists for `tasks.status`, a free `varchar(50)`. **Cost if wrong:** an import that writes `"completed"` onto an instance is invisible to the career day count.
-- **P4 — the sweep is bigger than ~20, and splits into two tasks.** Four more server readers carry the literal: [app/api/sprints/route.ts:106,108](../../app/api/sprints/route.ts), [app/api/analytics/route.ts:183,184](../../app/api/analytics/route.ts), [app/api/activity/route.ts:203,204](../../app/api/activity/route.ts), [app/api/settings/[key]/route.ts:157](../../app/api/settings/%5Bkey%5D/route.ts); plus `lib/dashboard-data.ts:338` (throughput) and `:444` (velocity). Task 6 takes the server side, Task 7 the client side. **Why:** ruling 4 said "every surface, raw SQL included", and one 25-file commit is not reviewable. **Cost if wrong:** a half-swept surface, which the per-file guard in Task 7 catches.
-- **P5 — `completedStatusSql` / `openStatusSql` take the column.** The spec showed them as constants. They are `completedStatusSql(tasks.status)` / `openStatusSql(tasks.status)` because the sites reference the column two ways (drizzle's `tasks.status`, and a raw SQL `t.status` alias), and a constant bound to one cannot serve the other. The two raw `db.execute` sites drop their `t` alias so the fragment renders `"tasks"."status"`. The list still lives in exactly one place: `COMPLETED_TASK_STATUSES`.
+- **P4 — the sweep is bigger than ~20, and splits into two tasks.** The exhaustive inventory, from `grep -rn 'status [!=]==? .done.' app lib components` plus `grep -rn "= 'done'\|<> 'done'" `: four more server readers than the spec's table listed — [app/api/sprints/route.ts:106,108](../../app/api/sprints/route.ts), [app/api/analytics/route.ts:183,184](../../app/api/analytics/route.ts), [app/api/activity/route.ts:203,204](../../app/api/activity/route.ts), [app/api/settings/[key]/route.ts:157](../../app/api/settings/%5Bkey%5D/route.ts); plus `lib/dashboard-data.ts:338` (throughput), `:444` (velocity) and the `neqDone` helper at `:716-718`; and five further files the spec never named — [app/api/team/members/route.ts:59-63](../../app/api/team/members/route.ts), [app/api/team/members/[id]/route.ts:33-37](../../app/api/team/members/%5Bid%5D/route.ts), [app/api/automation/_shared.ts:293](../../app/api/automation/_shared.ts), [app/api/ethical-metrics/route.ts:539](../../app/api/ethical-metrics/route.ts), [app/api/ethical-metrics/apply-recommendation/route.ts:190](../../app/api/ethical-metrics/apply-recommendation/route.ts). Task 6 takes the server side, Task 7 the client side. **Why:** ruling 4 said "every surface, raw SQL included", and one 25-file commit is not reviewable. **Cost if wrong:** a half-swept surface, which the per-file guard in Task 6 catches for the server and Task 7's guard catches for the client.
+- **P5 — the fragments take the column, and one helper takes nothing.** The spec showed the rule as a constant. It cannot be, because the sites reach `tasks.status` three ways: drizzle's `tasks.status` inside a `.where()`/`.select()`, a raw `db.execute` statement that aliased the table (`FROM tasks t`), and plain JS on a fetched row. So Task 6 ships `completedStatusSql(column)` / `openStatusSql(column)` for the first, `isCompletedTaskStatus(status)` (already exists) for the third, and **`completedStatusListSql()`** for the second: it returns only the bound value list, so an already-aliased fragment reads `` sql`t.status not in (${completedStatusListSql()})` ``. **The aliases are kept, not dropped** — `app/api/automation/_shared.ts` projects 40+ `t.` columns across seven trigger queries and `app/api/reports/_shared.ts` joins `tasks t` twice; rewriting those to the unaliased name is churn with a runtime-error tax and no user-visible gain. Nothing about the single source changes: every fragment still renders `COMPLETED_TASK_STATUSES`.
 - **P6 — top-up candidates order by `tasks.id`, not "soonest missing occurrence".** §C3 asked for soonest-missing, which is a per-task aggregate over `task_instances` (a lateral join) inside a read path. With the 25-task bound the deferred set is arbitrary either way, so `asc(tasks.id)` is used: stable, no extra aggregate, earliest-created schedules catch up first.
+- **P7 — which new server counts also exclude schedules.** §G4 says counting surfaces hide templates. Applied to the five files P4 adds: the team-directory workload counts (`loadTaskAggregates`, `loadMemberRow`) are member workload, so they get `eq(tasks.isTemplate, false)` like the dashboard reads; the account-removal guard in `app/api/team/members/[id]/route.ts:277-279` does **not** — it answers "does this member own any row that would dangle", and a schedule assigned to them is exactly such a row. `app/api/automation/_shared.ts` and `app/api/ethical-metrics/apply-recommendation/route.ts` are writers deciding which task to move, not counts; they get the status list and no template predicate. **Why:** one rule ("counts hide schedules, safety checks and writers do not") beats a per-file argument. **Cost if wrong:** the removal guard could report a member as free while their imported checklists still point at them.
+- **P8 — the career files are not swept and are not missed.** `lib/career/counts.ts:125` and `lib/career/evidence.ts:244` compare `taskInstances.status` to `"done"` (ruling **P3** pins those), and `lib/career/growth.ts:288` only contains the word inside a Gemini prompt. No `tasks.status` literal survives in `lib/career` or `app/api/career`, so the Task 6 guard list omits them. **Why:** stating the exclusion keeps a later reader from "fixing" a pinned instance comparison. **Cost if wrong:** none — a fourth completed word would have to appear on an instance row, which the PATCH whitelist refuses.
 
 ## File map
 
@@ -1139,12 +1141,17 @@ git commit -m "feat(planner): promote carries the item cadence and builds the sc
 - Modify: `app/api/analytics/route.ts:183-184`
 - Modify: `app/api/activity/route.ts:203-204`
 - Modify: `app/api/settings/[key]/route.ts:157`
+- Modify: `app/api/team/members/route.ts:56-67`
+- Modify: `app/api/team/members/[id]/route.ts:33-37`
+- Modify: `app/api/automation/_shared.ts:293`
+- Modify: `app/api/ethical-metrics/route.ts:539`
+- Modify: `app/api/ethical-metrics/apply-recommendation/route.ts:190`
 - Modify: `lib/dashboard-data.ts:312,321-323,329,338,444,500,524,549,554,716-718`
 - Test: `tests/unit/statuses-sql.test.ts` (create), `tests/unit/recurrence-cross-surface-guards.test.ts` (append)
 
 **Interfaces:**
 - Consumes: `COMPLETED_TASK_STATUSES` from `@/lib/tasks/statuses` (client-safe, already the single home of the words).
-- Produces: `completedStatusSql(column)` and `openStatusSql(column)` — functions of the column (ruling **P5**), each returning a drizzle `SQL`. Task 7 keeps using `isCompletedTaskStatus` on the client; Task 8 reads both from `lib/dashboard-data.ts`.
+- Produces: `completedStatusSql(column)`, `openStatusSql(column)` and `completedStatusListSql()` — the two column forms for drizzle-referenced predicates and the list form for raw SQL that already aliased the table (ruling **P5**), each returning a drizzle `SQL`. Task 7 keeps using `isCompletedTaskStatus` on the client; Task 8 reads both from `lib/dashboard-data.ts`.
 
 - [ ] **Step 1: Write the failing unit test**
 
@@ -1152,9 +1159,10 @@ Create `tests/unit/statuses-sql.test.ts`:
 
 ```ts
 import { describe, expect, it } from "vitest"
+import { sql } from "drizzle-orm"
 import { tasks } from "@/drizzle/schema"
 import { COMPLETED_TASK_STATUSES } from "@/lib/tasks/statuses"
-import { completedStatusSql, openStatusSql } from "@/lib/tasks/statuses-sql"
+import { completedStatusListSql, completedStatusSql, openStatusSql } from "@/lib/tasks/statuses-sql"
 
 describe("completedStatusSql", () => {
   it("binds every word in the shared list, so a fourth word arrives automatically", () => {
@@ -1175,6 +1183,21 @@ describe("openStatusSql", () => {
     expect(open.sql.toLowerCase()).toContain("not (")
   })
 })
+
+describe("completedStatusListSql", () => {
+  it("binds one placeholder per word and no column of its own", () => {
+    const { sql, params } = completedStatusListSql().toSQL()
+    expect(params).toEqual([...COMPLETED_TASK_STATUSES])
+    expect(sql.split("?").length - 1).toBe(COMPLETED_TASK_STATUSES.length)
+    expect(sql).not.toContain("status")
+  })
+
+  it("renders a valid `not in` after a raw aliased column", () => {
+    const fragment = sql`t.status not in (${completedStatusListSql()})`.toSQL()
+    expect(fragment.params).toEqual([...COMPLETED_TASK_STATUSES])
+    expect(fragment.sql.toLowerCase()).toContain("t.status not in")
+  })
+})
 ```
 
 - [ ] **Step 2: Run it and watch it fail**
@@ -1193,20 +1216,25 @@ Create `lib/tasks/statuses-sql.ts`:
 // isCompletedTaskStatus() in lib/tasks/statuses.ts, which is case- and whitespace-tolerant and
 // raw SQL is not — an accepted asymmetry, because every swept site reads rows this app wrote.
 //
-// Both fragments take the column as an argument rather than being constants, because the same
-// rule has to be applied to `tasks.status` reached two ways: through drizzle, and inside a
-// longer raw statement. A constant bound to one cannot serve the other.
+// Three forms, because the rule is applied to `tasks.status` reached three ways: through
+// drizzle's column objects, inside a raw statement that aliased the table, and in JS on a row
+// already fetched. A constant bound to the first cannot serve the second.
 
 import { sql, type SQL } from "drizzle-orm"
 import type { PgColumn } from "drizzle-orm/pg-core"
 import { COMPLETED_TASK_STATUSES } from "@/lib/tasks/statuses"
 
-/** `status in ('done','completed','closed')` — this task is finished, whichever word wrote it. */
-export function completedStatusSql(column: PgColumn): SQL {
-  return sql`${column} in (${sql.join(
+/** The bound word list on its own, for a fragment that names its own (possibly aliased) column. */
+export function completedStatusListSql(): SQL {
+  return sql.join(
     COMPLETED_TASK_STATUSES.map((status) => sql`${status}`),
     sql`, `,
-  )})`
+  )
+}
+
+/** `status in ('done','completed','closed')` — this task is finished, whichever word wrote it. */
+export function completedStatusSql(column: PgColumn): SQL {
+  return sql`${column} in (${completedStatusListSql()})`
 }
 
 /** The one source for "this task is still open": the exact negation of the list above. */
@@ -1233,6 +1261,11 @@ describe("the server reads the completed-status list, not a literal", () => {
     "app/api/analytics/route.ts",
     "app/api/activity/route.ts",
     "app/api/settings/[key]/route.ts",
+    "app/api/team/members/route.ts",
+    "app/api/team/members/[id]/route.ts",
+    "app/api/automation/_shared.ts",
+    "app/api/ethical-metrics/route.ts",
+    "app/api/ethical-metrics/apply-recommendation/route.ts",
     "lib/dashboard-data.ts",
   ]
 
@@ -1255,8 +1288,16 @@ describe("the server reads the completed-status list, not a literal", () => {
     }
   })
 
-  it("excludes schedules from the report workload count", () => {
-    expect(codeOnly(src("app/api/reports/_shared.ts"))).toMatch(/is_template = false/)
+  it("excludes schedules from the counting reads, and only those", () => {
+    // Task 8 adds the same predicate to the dashboard reads; this guard only pins what Task 6 does.
+    expect(codeOnly(src("app/api/reports/_shared.ts"))).toMatch(/isTemplate|is_template = false/)
+    expect(codeOnly(src("app/api/team/members/route.ts"))).toMatch(/eq\(tasks\.isTemplate, false\)/)
+    const detail = codeOnly(src("app/api/team/members/[id]/route.ts"))
+    expect(detail.slice(0, detail.indexOf("export async function DELETE"))).toMatch(
+      /eq\(tasks\.isTemplate, false\)/,
+    )
+    // ruling P7: the account-removal guard counts every owned row, schedules included
+    expect(detail.slice(detail.indexOf("export async function DELETE"))).not.toMatch(/isTemplate/)
   })
 })
 ```
@@ -1268,25 +1309,24 @@ The second regex covers `= 'done'`, `<> 'done'`, `!= 'done'` and `!== 'done'` af
 Run: `npx vitest run tests/unit/recurrence-cross-surface-guards.test.ts`
 Expected: FAIL on all seven files.
 
-- [ ] **Step 7: Reports — raw SQL, alias dropped, schedules excluded**
+- [ ] **Step 7: Reports — raw SQL keeps its alias, gains the list and the schedule exclusion**
 
 In `app/api/reports/_shared.ts`, add:
 
 ```ts
-import { eq } from "drizzle-orm"
-import { openStatusSql } from "@/lib/tasks/statuses-sql"
+import { completedStatusListSql } from "@/lib/tasks/statuses-sql"
 ```
 
-(`eq` is already imported on line 2; only add what is missing.) Replace the `department` branch (formerly :207-213):
+Replace the `department` branch (formerly :207-213):
 
 ```ts
       rows = (await db.execute(sql`
-        SELECT coalesce(nullif(u.department, ''), 'No department')::text AS name, count(tasks.id)::int AS value
-        FROM users u LEFT JOIN tasks
-          ON tasks.assignee_id = u.id
-          AND ${openStatusSql(tasks.status)}
-          AND ${eq(tasks.isTemplate, false)}
-        GROUP BY coalesce(nullif(u.department, ''), 'No department') ORDER BY count(tasks.id) DESC
+        SELECT coalesce(nullif(u.department, ''), 'No department')::text AS name, count(t.id)::int AS value
+        FROM users u LEFT JOIN tasks t
+          ON t.assignee_id = u.id
+          AND t.status not in (${completedStatusListSql()})
+          AND t.is_template = false
+        GROUP BY coalesce(nullif(u.department, ''), 'No department') ORDER BY count(t.id) DESC
       `)) as unknown as DatasetRow[]
 ```
 
@@ -1294,17 +1334,17 @@ and the `name` branch (formerly :215-221):
 
 ```ts
       rows = (await db.execute(sql`
-        SELECT u.name::text AS name, count(tasks.id)::int AS value
-        FROM users u LEFT JOIN tasks
-          ON tasks.assignee_id = u.id
-          AND ${openStatusSql(tasks.status)}
-          AND ${eq(tasks.isTemplate, false)}
-          AND tasks.created_at >= now() - make_interval(days => ${rangeDays})
-        GROUP BY u.name ORDER BY count(tasks.id) DESC
+        SELECT u.name::text AS name, count(t.id)::int AS value
+        FROM users u LEFT JOIN tasks t
+          ON t.assignee_id = u.id
+          AND t.status not in (${completedStatusListSql()})
+          AND t.is_template = false
+          AND t.created_at >= now() - make_interval(days => ${rangeDays})
+        GROUP BY u.name ORDER BY count(t.id) DESC
       `)) as unknown as DatasetRow[]
 ```
 
-Two things happen at once here, and both are load-bearing. The `t` alias is gone because a fragment built from `tasks.status` renders `"tasks"."status"`, and Postgres rejects the original table name once a table is aliased — keeping `LEFT JOIN tasks t` next to `"tasks"."status"` is a runtime error, not a style choice. And `is_template = false` is §G4: a recurring schedule is unfinished forever by design, so counting it as open workload would inflate every department bar by the number of checklists the owner imported.
+Both statements keep their `tasks t` alias, which is why they use `completedStatusListSql()` (the value list alone) rather than `openStatusSql(tasks.status)` — the column-fragment forms render `"tasks"."status"`, and Postgres rejects the original table name once a table is aliased (ruling **P5**). And `t.is_template = false` is §G4: a recurring schedule is unfinished forever by design, so counting it as open workload would inflate every department bar by the number of checklists the owner imported. Both branches are `LEFT JOIN`s, so a member with only schedules still appears with a zero bar rather than vanishing from the chart.
 
 - [ ] **Step 8: Sprints detail route**
 
@@ -1379,6 +1419,64 @@ Per §G4, **no** `isTemplate` predicate is added to any sprint aggregate: a recu
 ```
 
 If `ne` becomes unused in that file, remove it from the drizzle import line — an unused import is a new lint problem, and the lint gate has a fixed baseline.
+
+The five files ruling **P4** adds to the inventory:
+
+`app/api/team/members/route.ts` — add `import { openStatusSql } from "@/lib/tasks/statuses-sql"` and `and` to the drizzle import line (it currently has `asc, desc, eq, ne, sql`). `loadTaskAggregates` (formerly :59-66):
+
+```ts
+      openTasks: sql<number>`count(*) filter (where ${openStatusSql(tasks.status)})::int`,
+      doneTasks: sql<number>`count(*) filter (where ${completedStatusSql(tasks.status)})::int`,
+      blockedTasks: sql<number>`count(*) filter (where ${tasks.status} = 'blocked')::int`,
+      openPoints:
+        sql<number>`coalesce(sum(${tasks.storyPoints}) filter (where ${openStatusSql(tasks.status)}), 0)::int`,
+    })
+    .from(tasks)
+    .where(and(sql`${tasks.assigneeId} is not null`, eq(tasks.isTemplate, false)))
+```
+
+Add `completedStatusSql` to that same import line. `blockedTasks` is not swept — `"blocked"` is an open status, not a completed one (§G3).
+
+`app/api/team/members/[id]/route.ts` — add the same two-helper import. `loadMemberRow` (formerly :33-37, the member-profile card):
+
+```ts
+      openTasks: sql<number>`count(*) filter (where ${openStatusSql(tasks.status)})::int`,
+      doneTasks: sql<number>`count(*) filter (where ${completedStatusSql(tasks.status)})::int`,
+      blockedTasks: sql<number>`count(*) filter (where ${tasks.status} = 'blocked')::int`,
+      openPoints:
+        sql<number>`coalesce(sum(${tasks.storyPoints}) filter (where ${openStatusSql(tasks.status)}), 0)::int`,
+      totalTasks: sql<number>`count(*)::int`,
+    })
+    .from(tasks)
+    .where(and(eq(tasks.assigneeId, memberId), eq(tasks.isTemplate, false)))
+```
+
+`and` is already imported there. The `DELETE` handler's `taskCounts` (formerly :277-279) gets the two status fragments and **no** template predicate, per ruling **P7**:
+
+```ts
+        openTasks: sql<number>`count(*) filter (where ${openStatusSql(tasks.status)})::int`,
+        doneTasks: sql<number>`count(*) filter (where ${completedStatusSql(tasks.status)})::int`,
+```
+
+`app/api/automation/_shared.ts:293` — the one fragment shared by all seven trigger queries, so one edit fixes every rule. Add `import { completedStatusListSql } from "@/lib/tasks/statuses-sql"` and replace the literal:
+
+```ts
+  const open = sql`t.status not in (${completedStatusListSql()})`
+```
+
+The `t` alias stays (the projection below it uses `t.` throughout). This is a writer choosing which task to move, so no `is_template` predicate is added here either — but note what this changes in practice: a `due_soon` or `overdue` rule previously fired on an open schedule, and now fires on it for the same reason it fired before, because no completed word ever lands on a template. The sweep is a correctness fix for rows written `completed`/`closed`, not a behaviour change for rules.
+
+`app/api/ethical-metrics/route.ts:539` and `app/dashboard/ethical-metrics/page.tsx` are read once here and once in Task 7. Add `import { isCompletedTaskStatus } from "@/lib/tasks/statuses"` to the route and:
+
+```ts
+  const isOpen = (t: TaskRecord) => !isCompletedTaskStatus(t.status)
+```
+
+`app/api/ethical-metrics/apply-recommendation/route.ts:190` — same import, and the skip guard reads:
+
+```ts
+        if (!taskRow || isCompletedTaskStatus(taskRow.status)) continue
+```
 
 - [ ] **Step 10: Dashboard data, server side**
 
