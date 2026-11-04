@@ -101,7 +101,7 @@ in this section changes what a real meeting does; it closes the hole where the *
 
 After §B lands there are still two derived branches — instances and one-off tasks — and **both** carry the
 predicate above. Scoping is applied to whichever branches exist at the time, so a later branch added to this
-route is covered by the guard in §H rather than by memory of this paragraph.
+route is covered by the scoping guard in Testing rather than by memory of this paragraph.
 
 ## B — View modes re-cut
 
@@ -172,6 +172,12 @@ Each candidate is topped up with `ensureInstanceHorizon(taskId, cadence, todayIs
 horizonOccurrencesForWindow(cadence, todayIso, endDate))`, awaited serially. `todayIso` is
 `localDay(new Date(), session.timezone)` — the member's day, never UTC, for consistency with the previous
 wave.
+
+Note the asymmetry, which is deliberate: an unassigned recurring task is *visible* under `scope=all` (ruling 5)
+but never topped up, because a write into someone's schedule requires an owner — the same reason
+`GET /api/task-instances` restricts the top-up to `assigneeId === session.id`
+([app/api/task-instances/route.ts:40](../../../app/api/task-instances/route.ts#L40)). Such a task shows the rows
+it already has until it is claimed.
 
 ### C3 — Bounds, because a read is inserting
 
