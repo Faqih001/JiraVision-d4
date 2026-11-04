@@ -7,6 +7,7 @@ import { describe, expect, it } from "vitest"
 import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
 import { INSTANCE_COUNTS } from "@/lib/tasks/recurrence"
+import { COMPLETED_TASK_STATUSES } from "@/lib/tasks/statuses"
 
 const src = (relative: string) => readFileSync(resolve(process.cwd(), relative), "utf8")
 const codeOnly = (source: string) =>
@@ -278,5 +279,50 @@ describe("the dashboard counts schedules out and never offers to finish one", ()
     expect(codeOnly(src("app/dashboard/page.tsx"))).toMatch(
       /STATUSES\.filter\(\(s\) => !\(isRecurringTask\(detailTask\) && isCompletedTaskStatus\(s\)\)\)/,
     )
+  })
+})
+
+describe("the production status census", () => {
+  const scriptPath = "scripts/measure-task-statuses.mjs"
+  const script = () => src(scriptPath)
+  const code = () => codeOnly(src(scriptPath))
+
+  it("mirrors the completed-status list the swept readers use", () => {
+    const list = code().match(/const COMPLETED_STATUSES = \[([^\]]*)\]/)
+    expect(list, "no COMPLETED_STATUSES literal in the census script").not.toBeNull()
+    const mirrored = list![1]
+      .split(",")
+      .map((entry) => entry.trim().replace(/^["']|["']$/g, ""))
+      .filter(Boolean)
+    expect(mirrored).toEqual([...COMPLETED_TASK_STATUSES])
+  })
+
+  it("reads the URL with the anchored regex, from .env.local", () => {
+    // Line 1 of .env.local is a commented stale URL; an unanchored match picks it up and the
+    // census silently measures the wrong database.
+    expect(code()).toContain('env.match(/^DATABASE_URL="?([^"\\n]+)"?/m)')
+    expect(code()).toMatch(/readFileSync\(new URL\("\.\.\/\.env\.local", import\.meta\.url\)/)
+  })
+
+  it("is read-only: no write statement, no --apply, no DDL", () => {
+    const body = code()
+    expect(body).not.toMatch(/\b(insert into|update \w+ set|delete from|truncate|alter table|create table|drop table)\b/i)
+    expect(body).not.toContain("--apply")
+    expect(body).toContain("postgres(")
+    // One statement per table counted, and every one of them starts with select.
+    const statements = [...body.matchAll(/sql`([^`]+)`/g)].map((m) => m[1].trim().replace(/\s+/g, " "))
+    expect(statements.length).toBeGreaterThanOrEqual(1)
+    for (const statement of statements) {
+      expect(statement.toLowerCase().startsWith("select")).toBe(true)
+    }
+  })
+
+  it("imports no app code and never prints the connection string", () => {
+    const body = code()
+    expect(body).not.toMatch(/from ["']@\//)
+    expect(body).not.toMatch(/require\(["']@\//)
+    expect(body).not.toMatch(/console\.log\([^)]*match\[1\]/)
+    expect(body).toMatch(/maskHost/)
+    expect(script()).toContain("await sql.end()")
   })
 })

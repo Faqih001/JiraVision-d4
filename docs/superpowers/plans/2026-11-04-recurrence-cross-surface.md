@@ -2499,6 +2499,19 @@ git add scripts/measure-task-statuses.mjs tests/unit/recurrence-cross-surface-gu
 git commit -m "docs(prod): measure the status words before the completed-status sweep"
 ```
 
+**Census result, measured 2026-11-04 on production before the merge** (Task 10 quotes these verbatim):
+
+| reading | value |
+| --- | --- |
+| `tasks.status` | `done` 33 · `in_progress` 18 · `review` 9 · `completed` 2 · `blocked` 1 |
+| finished count | 33 → 35 (delta **+2**, the two `completed` rows) |
+| total task rows | 63 |
+| schedule rows excluded from workload counts | 8 (monthly 3 · quarterly 2 · weekly 2 · daily 1) |
+| `task_instances.status` | `todo` 414 — nothing else, and **0** words outside the PATCH whitelist |
+| occurrence window (all 414 belong to assignee 1) | oldest 2026-11-03 · newest 2027-10-03 · 24 unsettled in the past · 7 dated today |
+
+Two things the census settled. Ruling **P3** holds against real data: no import ever wrote a tasks-vocabulary word onto an instance row, so the instance readers pinned to `done`/`skipped` are not currently wrong — they are only fragile, which is why Task 9 exists. And every schedule row is a template for one member, so the §G4 exclusion moves that member's workload counts down by 8 rows while the §G2 list moves finished up by 2; the net on the published tiles is small, and Task 10's notes say so rather than leaving the owner to notice.
+
 ---
 
 ### Task 10: Document the wave, sync both specs, run every gate, and ship (spec §H)
