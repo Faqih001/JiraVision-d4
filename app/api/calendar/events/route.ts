@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { calendarEvents, users, tasks, taskInstances } from "@/drizzle/schema"
-import { and, desc, eq, or, gte, lte, sql } from "drizzle-orm"
+import { and, desc, eq, or, gte, inArray, isNull, lte, sql } from "drizzle-orm"
 import { getSession } from "@/lib/auth-actions"
+import { loadVisibleMemberIds } from "@/lib/organizations"
 import { createNotification } from "@/lib/notifications"
 
 export const dynamic = "force-dynamic"
@@ -162,6 +163,14 @@ export async function GET(request: Request) {
     const endDate = searchParams.get("endDate")
     const mineOnly = searchParams.get("scope") === "mine"
 
+    // `scope=all` is the workspace's schedule, so an unassigned recurring task is visible
+    // there and hidden under `scope=mine`. Ruling 5: the 41 imported IT tasks are unassigned
+    // today and would otherwise vanish from the calendar until someone claims them.
+    const visibleIds = mineOnly ? [session.id] : await loadVisibleMemberIds(session.id)
+    const assigneeScope = mineOnly
+      ? eq(tasks.assigneeId, session.id)
+      : or(inArray(tasks.assigneeId, visibleIds), isNull(tasks.assigneeId))!
+
     const conditions = []
     if (startDate && !Number.isNaN(Date.parse(startDate))) {
       conditions.push(gte(calendarEvents.startTime, new Date(startDate)))
@@ -198,10 +207,12 @@ export async function GET(request: Request) {
       )
     }
 
-    // Fetch task instances for cadence-based views (JOIN with tasks for titles)
+    // Occurrences of a schedule, in their own status. Always assignee-scoped, so the
+    // `where` can never degrade to `sql`true``.
     let instancesWithTasks: any[] = []
     if (viewMode === "cadence" || viewMode === "both" || viewMode === "range") {
       const instanceConditions = []
+      instanceConditions.push(assigneeScope)
       if (startDate && !Number.isNaN(Date.parse(startDate))) {
         instanceConditions.push(gte(taskInstances.instanceDate, startDate))
       }
@@ -216,13 +227,13 @@ export async function GET(request: Request) {
         })
         .from(taskInstances)
         .leftJoin(tasks, eq(taskInstances.taskId, tasks.id))
-        .where(instanceConditions.length > 0 ? and(...instanceConditions) : sql`true`)
+        .where(and(...instanceConditions))
     }
 
     // Fetch recurring template tasks for "due" and "both" views
     let recurringTasksList: any[] = []
     if (viewMode === "due" || viewMode === "both") {
-      const taskConditions = [eq(tasks.isTemplate, true)]
+      const taskConditions = [eq(tasks.isTemplate, true), assigneeScope]
       if (startDate && !Number.isNaN(Date.parse(startDate))) {
         taskConditions.push(gte(tasks.dueDate, startDate))
       }
