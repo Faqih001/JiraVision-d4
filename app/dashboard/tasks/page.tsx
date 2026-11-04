@@ -1696,6 +1696,11 @@ export default function TasksWorkspacePage() {
               </p>
               <div>
                 <Label className="text-xs">Status</Label>
+                {isRecurringTask(detailTask) && (
+                  <p className="mt-0.5 text-[10px] text-muted-foreground">
+                    Stays open — tick the day under Instances.
+                  </p>
+                )}
                 <div className="mt-1 flex flex-wrap gap-1">
                   {STATUSES.filter((s) => !(isRecurringTask(detailTask) && isCompletedTaskStatus(s))).map((s) => (
                     <Button
