@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { calendarEvents, users, tasks, taskInstances } from "@/drizzle/schema"
-import { and, desc, eq, or, gte, inArray, isNull, lte, sql } from "drizzle-orm"
+import { and, desc, eq, inArray, isNull, isNotNull, or, gte, lte, sql } from "drizzle-orm"
 import { getSession } from "@/lib/auth-actions"
 import { loadVisibleMemberIds } from "@/lib/organizations"
 import { createNotification } from "@/lib/notifications"
@@ -230,20 +230,43 @@ export async function GET(request: Request) {
         .where(and(...instanceConditions))
     }
 
-    // Fetch recurring template tasks for "due" and "both" views
-    let recurringTasksList: any[] = []
+    // Deadlines: a task with a real due date and no schedule. `is_template = false` is the
+    // complement of the instance branch above, so no task can reach both lists and `both`
+    // cannot double count — the structural reason, not a dedupe step to forget later.
+    let oneOffTasksList: Array<{
+      id: number
+      title: string
+      description: string | null
+      dueDate: string | null
+      status: string
+      priority: string
+      assigneeId: number | null
+      createdAt: Date | string | null
+      updatedAt: Date | string | null
+    }> = []
     if (viewMode === "due" || viewMode === "both") {
-      const taskConditions = [eq(tasks.isTemplate, true), assigneeScope]
+      const oneOffConditions = [eq(tasks.isTemplate, false), isNotNull(tasks.dueDate)]
+      oneOffConditions.push(assigneeScope)
       if (startDate && !Number.isNaN(Date.parse(startDate))) {
-        taskConditions.push(gte(tasks.dueDate, startDate))
+        oneOffConditions.push(gte(tasks.dueDate, startDate))
       }
       if (endDate && !Number.isNaN(Date.parse(endDate))) {
-        taskConditions.push(lte(tasks.dueDate, endDate))
+        oneOffConditions.push(lte(tasks.dueDate, endDate))
       }
-      recurringTasksList = await db
-        .select()
+      oneOffTasksList = await db
+        .select({
+          id: tasks.id,
+          title: tasks.title,
+          description: tasks.description,
+          dueDate: tasks.dueDate,
+          status: tasks.status,
+          priority: tasks.priority,
+          assigneeId: tasks.assigneeId,
+          createdAt: tasks.createdAt,
+          updatedAt: tasks.updatedAt,
+        })
         .from(tasks)
-        .where(and(...taskConditions))
+        .where(and(...oneOffConditions))
     }
 
     // Convert task instances to calendar event format
@@ -268,29 +291,32 @@ export async function GET(request: Request) {
       updatedAt: row.instance.createdAt?.toISOString?.() || row.instance.createdAt || new Date().toISOString(),
     }))
 
-    // Convert recurring tasks to calendar event format
-    const recurringEvents = recurringTasksList.map((task: any) => ({
+    // A one-off deadline keeps the day its owner set. `isRecurring: false` is what makes the
+    // page colour it as a deadline instead of a schedule, which is now honest — a task with a
+    // real due date and no cadence is exactly that.
+    const oneOffEvents = oneOffTasksList.map((task) => ({
       id: `task-${task.id}`,
       title: task.title,
-      startTime: task.dueDate ? `${task.dueDate}T00:00:00Z` : new Date().toISOString(),
-      endTime: task.dueDate ? `${task.dueDate}T23:59:59Z` : new Date().toISOString(),
+      description: task.description,
+      startTime: `${task.dueDate}T00:00:00Z`,
+      endTime: `${task.dueDate}T23:59:59Z`,
+      location: null,
       eventType: "task",
-      isRecurring: true,
-      cadence: task.cadence,
+      isRecurring: false,
+      taskStatus: task.status,
+      priority: task.priority,
       taskId: task.id,
       isAllDay: true,
-      description: task.description,
-      location: null,
-      organizer: { id: task.assigneeId || 0, name: "System", avatar: null },
       recurringPattern: {},
+      organizer: { id: task.assigneeId ?? 0, name: "System", avatar: null },
       attendees: [],
-      color: "blue",
-      createdAt: task.createdAt?.toISOString() || new Date().toISOString(),
-      updatedAt: task.updatedAt?.toISOString() || new Date().toISOString(),
+      color: "amber",
+      createdAt: toIso(task.createdAt),
+      updatedAt: toIso(task.updatedAt),
     }))
 
     // Merge with existing calendar events
-    const allEvents = [...rows.map((row) => formatEvent(row, allUsers)), ...instanceEvents, ...recurringEvents]
+    const allEvents = [...rows.map((row) => formatEvent(row, allUsers)), ...instanceEvents, ...oneOffEvents]
 
     return NextResponse.json({
       success: true,

@@ -32,3 +32,36 @@ describe("the calendar reads only the schedules you may see", () => {
     expect(route).not.toMatch(/instanceConditions\.length > 0/)
   })
 })
+
+describe("a schedule draws occurrences and a deadline draws its due date", () => {
+  const route = codeOnly(src("app/api/calendar/events/route.ts"))
+
+  it("has no template branch left", () => {
+    expect(route).not.toMatch(/recurringTasksList/)
+    expect(route).not.toMatch(/recurringEvents/)
+  })
+
+  it("reads only non-template tasks in the deadline branch", () => {
+    expect(route).toMatch(/eq\(tasks\.isTemplate, false\)/)
+    expect(route).toMatch(/isNotNull\(tasks\.dueDate\)/)
+    // Ruling 1, counted rather than pattern-matched: exactly one derived shape is an occurrence
+    // and exactly one is a deadline. Task 3 reads `isTemplate = true` again to find the grids it
+    // must top up, so a bare token check would reject a legitimate SELECT.
+    expect(route.match(/isRecurring: true/g)?.length).toBe(1)
+    expect(route.match(/isRecurring: false/g)?.length).toBe(1)
+  })
+
+  it("never stamps an event with the request clock", () => {
+    expect(route).not.toMatch(/startTime:[^\n]*new Date\(\)\.toISOString\(\)/)
+  })
+
+  it("carries the assignee predicate on both derived branches", () => {
+    expect(route.match(/push\(assigneeScope\)/g)?.length).toBe(2)
+  })
+
+  it("treats a one-off deadline as a deadline, not a schedule", () => {
+    const page = codeOnly(src("app/dashboard/calendar/page.tsx"))
+    expect(page).toMatch(/isCompletedTaskStatus\(t\.status\)/)
+    expect(page).toMatch(/isRecurringTask\(t\)/)
+  })
+})

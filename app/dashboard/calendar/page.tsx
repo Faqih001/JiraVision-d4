@@ -88,6 +88,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
 import { LIVE_REFRESH_MS, useLiveRefresh } from "@/hooks/use-live-refresh"
 import { cn } from "@/lib/utils"
+import { isCompletedTaskStatus } from "@/lib/tasks/statuses"
 import {
   AXIS,
   AvatarCircle,
@@ -136,6 +137,13 @@ type TaskRow = {
   status: string
   priority: string
   dueDate: string | null
+  cadence: string | null
+}
+
+// The same rule the tasks page applies: a cadence word that is not "one-off" is a schedule, and
+// a schedule belongs on the grid as its occurrences, never as one deadline of its own.
+function isRecurringTask(t: { cadence?: string | null }) {
+  return Boolean(t.cadence) && t.cadence !== "one-off"
 }
 
 type ActivityRow = {
@@ -561,7 +569,7 @@ export default function CalendarWorkspace() {
     const horizon = addDays(today0, 14)
     return tasks
       .filter((t) => {
-        if (!t.dueDate || t.status === "done") return false
+        if (!t.dueDate || isCompletedTaskStatus(t.status) || isRecurringTask(t)) return false
         const d = new Date(t.dueDate)
         return d.getTime() <= horizon.getTime()
       })
