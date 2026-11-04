@@ -7,6 +7,10 @@ import { getSession } from "@/lib/auth-actions"
 import { db } from "@/lib/db"
 import { agentPlans, planItems, tasks, deliverables, taskEvents } from "@/drizzle/schema"
 import { readLegacyDiscipline } from "@/lib/roles"
+import { isCadence, type Cadence } from "@/lib/cadence"
+import { promoteTaskValues } from "@/lib/planner/promote-values"
+import { ensureInstanceHorizon } from "@/lib/data-access-task-instances"
+import { localDay } from "@/lib/worklog/local-day"
 import { eq, and } from "drizzle-orm"
 
 type RouteContext = { params: Promise<{ id: string }> }
@@ -51,6 +55,8 @@ export async function POST(_req: Request, ctx: RouteContext) {
       { status: 400 },
     )
   }
+
+  const createdSchedules: { id: number; cadence: Cadence }[] = []
 
   const result = await db.transaction(async (tx) => {
     const indexToTaskId = new Map<number, number>()

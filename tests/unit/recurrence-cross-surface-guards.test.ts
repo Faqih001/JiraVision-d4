@@ -136,3 +136,28 @@ describe("one cadence vocabulary", () => {
     }
   })
 })
+
+describe("promote carries the cadence and grids after the transaction", () => {
+  const route = codeOnly(src("app/api/planner/[id]/promote/route.ts"))
+
+  it("builds task values from the plan item, not from the plan", () => {
+    expect(route).toMatch(/promoteTaskValues\(item, \{ id: session\.id \}\)/)
+    expect(route).not.toMatch(/agentPlans\.cadence/)
+    expect(route).not.toMatch(/plan\.cadence/)
+  })
+
+  it("materialises the grid after the transaction, never inside it", () => {
+    const txOpen = route.indexOf("db.transaction(")
+    const txReturn = route.indexOf("return { taskIds: createdTaskIds")
+    const grid = route.indexOf("ensureInstanceHorizon(")
+    expect(txOpen).toBeGreaterThan(-1)
+    expect(txReturn).toBeGreaterThan(txOpen)
+    // The transaction's own return statement is its last line, so anything after it is outside.
+    expect(grid).toBeGreaterThan(txReturn)
+    expect(route.slice(txOpen, txReturn)).not.toMatch(/ensureInstanceHorizon\(/)
+  })
+
+  it("keeps the born-finished rule alone", () => {
+    expect(route).not.toMatch(/captureTaskBirths/)
+  })
+})

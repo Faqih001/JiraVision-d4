@@ -7,7 +7,7 @@ const item = (over: Partial<PromotableItem> = {}): PromotableItem => ({
   estimatePoints: 3,
   startDate: "2026-11-10",
   dueDate: "2026-11-30",
-  discipline: "it_support",
+  discipline: "it_operations",
   cadence: null,
   ...over,
 })
@@ -47,7 +47,7 @@ describe("promoteTaskValues", () => {
       storyPoints: 3,
       startDate: "2026-11-10",
       dueDate: "2026-11-30",
-      discipline: "it_support",
+      discipline: "it_operations",
     })
   })
 })
