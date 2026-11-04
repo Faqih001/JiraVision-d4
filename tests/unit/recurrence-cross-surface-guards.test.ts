@@ -245,3 +245,38 @@ describe("the client pages read the completed-status list", () => {
     }
   })
 })
+
+describe("the dashboard counts schedules out and never offers to finish one", () => {
+  it("narrows every member-facing count read to non-template rows", () => {
+    const data = codeOnly(src("lib/dashboard-data.ts"))
+    expect(data.match(/eq\(tasks\.isTemplate, false\)/g)?.length ?? 0).toBeGreaterThanOrEqual(5)
+  })
+
+  it("passes the member's timezone into the overview builder", () => {
+    expect(codeOnly(src("app/api/dashboard/overview/route.ts"))).toContain(
+      "getDashboardOverview(session.id, scope, session.timezone)",
+    )
+    expect(codeOnly(src("lib/dashboard-data.ts"))).toContain("localDay(now, timeZone)")
+  })
+
+  it("answers with the due-today rows and their counts", () => {
+    const data = codeOnly(src("lib/dashboard-data.ts"))
+    expect(data).toMatch(/dueToday/)
+    expect(data).toMatch(/missedCount/)
+    expect(data).toMatch(/isSettledInstanceStatus/)
+  })
+
+  it("hides the finish door on a schedule in all four places", () => {
+    for (const file of [
+      "app/dashboard/page.tsx",
+      "app/dashboard/tasks/page.tsx",
+      "app/dashboard/ai-scrum-master/page.tsx",
+    ]) {
+      expect(codeOnly(src(file)), file).toMatch(/isRecurring/)
+    }
+    // the dialog's status menu must not draw the completed words for a schedule
+    expect(codeOnly(src("app/dashboard/page.tsx"))).toMatch(
+      /STATUSES\.filter\(\(s\) => !\(isRecurringTask\(detailTask\) && isCompletedTaskStatus\(s\)\)\)/,
+    )
+  })
+})
