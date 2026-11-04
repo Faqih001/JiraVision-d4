@@ -77,6 +77,7 @@ import { LIVE_REFRESH_MS, useLiveRefresh } from "@/hooks/use-live-refresh"
 import { cn } from "@/lib/utils"
 import { CADENCES, CADENCE_LABEL, type Cadence } from "@/lib/cadence"
 import { parseChecklistItems, type ChecklistItem, type ChecklistResponse } from "@/lib/tasks/checklist"
+import { planInstanceWindow } from "@/lib/tasks/instance-window"
 import type { DashboardOverview } from "@/lib/dashboard-data"
 import {
   AXIS,
@@ -1737,45 +1738,59 @@ export default function TasksWorkspacePage() {
                     )}
                     {(() => {
                       const items = readChecklist(detailTask.checklistItems)
-                      return [...instances]
-                        .sort((a, b) => (b.instanceDate ?? "").localeCompare(a.instanceDate ?? ""))
-                        .slice(0, 10)
-                        .map((inst) => (
-                          <div
-                            key={inst.id}
-                            className="flex items-center justify-between rounded-md border px-2 py-1.5"
-                          >
-                            <div className="flex items-center gap-2">
-                              <StatusPill status={inst.status} />
-                              <span className="text-xs tabular-nums">{inst.instanceDate}</span>
+                      const win = planInstanceWindow(instances, todayIso)
+                      return (
+                        <>
+                          {win.missedCount > 0 && (
+                            <p className="rounded-md border border-dashed px-2 py-1.5 text-xs text-muted-foreground">
+                              Missed {win.missedCount} {win.missedCount === 1 ? "day" : "days"}
+                              {win.missedDates.length > 0 && ` (${win.missedDates.slice(0, 3).join(", ")}${win.missedDates.length > 3 ? ", …" : ""})`}
+                              {" — logged in the work log, not repeatable here."}
+                            </p>
+                          )}
+                          {win.upcoming.map((inst) => (
+                            <div
+                              key={inst.id}
+                              className="flex items-center justify-between rounded-md border px-2 py-1.5"
+                            >
+                              <div className="flex items-center gap-2">
+                                <StatusPill status={inst.status} />
+                                <span className="text-xs tabular-nums">{inst.instanceDate}</span>
+                                {inst.instanceDate === todayIso && (
+                                  <Badge variant="secondary" className="text-[10px]">
+                                    Today
+                                  </Badge>
+                                )}
+                              </div>
+                              {inst.status !== "done" && items.length > 0 && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 text-xs"
+                                  onClick={() => openCompletionDialog(inst, detailTask)}
+                                >
+                                  <CheckSquare className="mr-1 h-3 w-3" /> Complete
+                                </Button>
+                              )}
+                              {inst.status !== "done" && items.length === 0 && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 text-xs"
+                                  onClick={() => quickCompleteInstance(inst.id, detailTask.id)}
+                                >
+                                  Complete
+                                </Button>
+                              )}
+                              {inst.status === "done" && (
+                                <span className="text-[10px] text-muted-foreground">
+                                  {inst.completedAt ? relativeTime(inst.completedAt) : "done"}
+                                </span>
+                              )}
                             </div>
-                            {inst.status !== "done" && items.length > 0 && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-7 text-xs"
-                                onClick={() => openCompletionDialog(inst, detailTask)}
-                              >
-                                <CheckSquare className="mr-1 h-3 w-3" /> Complete
-                              </Button>
-                            )}
-                            {inst.status !== "done" && items.length === 0 && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-7 text-xs"
-                                onClick={() => quickCompleteInstance(inst.id, detailTask.id)}
-                              >
-                                Complete
-                              </Button>
-                            )}
-                            {inst.status === "done" && (
-                              <span className="text-[10px] text-muted-foreground">
-                                {inst.completedAt ? relativeTime(inst.completedAt) : "done"}
-                              </span>
-                            )}
-                          </div>
-                        ))
+                          ))}
+                        </>
+                      )
                     })()}
                   </div>
                 </div>

@@ -15,6 +15,7 @@
 import { tasks } from "@/drizzle/schema"
 import { CADENCES, isCadence } from "@/lib/cadence"
 import { DISCIPLINE_HINT, isWorkDiscipline } from "@/lib/roles"
+import { isCompletedTaskStatus } from "@/lib/tasks/statuses"
 
 type TaskPatch = Partial<Omit<typeof tasks.$inferInsert, "id" | "createdAt" | "updatedAt">>
 
@@ -161,4 +162,26 @@ export function pickTaskUpdates(input: unknown): TaskPatchResult {
   }
 
   return { patch: patch as TaskPatch }
+}
+
+export const RECURRING_STATUS_HINT =
+  "recurring tasks stay open — complete today's instance instead"
+
+/**
+ * A template cannot be finished, because finishing one deletes the schedule it describes.
+ * `pickTaskUpdates` never sees the row being written, so this second rule is checked against
+ * the stored task: only a writer that has loaded the current row can refuse this patch.
+ *
+ * `patch.cadence` counts because a body may set both fields at once — moving a task to a
+ * completed status *and* making it recurring is the same contradiction, just written in one
+ * request.
+ */
+export function recurringStatusError(
+  current: { cadence?: string | null },
+  patch: { status?: unknown; cadence?: unknown },
+): string | null {
+  const cadence = (patch.cadence as string | undefined) ?? current.cadence ?? null
+  if (!cadence || cadence === "one-off") return null
+  if (typeof patch.status !== "string" || !isCompletedTaskStatus(patch.status)) return null
+  return RECURRING_STATUS_HINT
 }
