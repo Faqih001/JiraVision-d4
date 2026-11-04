@@ -321,7 +321,8 @@ vocabulary: `tasks.cadence` ([drizzle/schema.ts:169](../../../drizzle/schema.ts#
 merely share a word: `agent_plans.cadence` (:429, `notNull` default `weekly` — how often the plan is reviewed)
 and `task_report_templates.cadence`
 ([drizzle/schema.ts:956](../../../drizzle/schema.ts#L956), `notNull` default `monthly` — how often the report is
-generated). `lib/packs/ops/types.ts` `frequency` is a playbook period, again unrelated. The guard in §H is
+generated). `lib/packs/ops/types.ts` `frequency` is a playbook period, again unrelated. The vocabulary guard in
+Testing is
 scoped to task-cadence sites so it cannot fire on any of these correct uses.
 
 `scripts/import-it-technician-tasks.mjs` keeps its mirrored `INSTANCE_COUNTS` literal (a migration script must
