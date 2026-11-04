@@ -3,6 +3,8 @@ import {
   CADENCES,
   CADENCE_DAYS,
   CADENCE_LABEL,
+  SCHEDULE_CADENCES,
+  cadenceOrNone,
   computeNextRun,
   isCadence,
 } from "@/lib/cadence"
@@ -92,5 +94,33 @@ describe("computeNextRun", () => {
     expect(CADENCE_DAYS["one-off"]).toBeNull()
     expect(CADENCE_DAYS.quarterly).toBe(92)
     expect(CADENCE_DAYS.yearly).toBe(365)
+  })
+})
+
+describe("SCHEDULE_CADENCES", () => {
+  it("is the cadence list with the no-schedule word removed", () => {
+    expect([...SCHEDULE_CADENCES]).toEqual(CADENCES.filter((c) => c !== "one-off"))
+  })
+
+  it("never offers one-off as a schedule", () => {
+    expect(SCHEDULE_CADENCES).not.toContain("one-off")
+  })
+})
+
+describe("cadenceOrNone", () => {
+  it("round-trips every known word", () => {
+    for (const value of CADENCES) expect(cadenceOrNone(value)).toBe(value)
+  })
+
+  it("turns an unknown word into null rather than a stored lie", () => {
+    expect(cadenceOrNone("fortnightly")).toBeNull()
+    expect(cadenceOrNone("Daily")).toBeNull()
+    expect(cadenceOrNone("")).toBeNull()
+  })
+
+  it("turns anything that is not a string into null", () => {
+    expect(cadenceOrNone(null)).toBeNull()
+    expect(cadenceOrNone(undefined)).toBeNull()
+    expect(cadenceOrNone(7)).toBeNull()
   })
 })

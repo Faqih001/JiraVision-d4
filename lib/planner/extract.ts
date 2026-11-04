@@ -5,6 +5,7 @@
 // no ids and resolves to real ids at promote.
 
 import { z } from "zod"
+import { SCHEDULE_CADENCES } from "@/lib/cadence"
 
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "must be YYYY-MM-DD")
 
@@ -23,7 +24,7 @@ export const extractItemSchema = z.object({
   dueDate: isoDate.optional(),
   dependsOnItemIndex: z.array(z.number().int().min(0)).max(20).optional(),
   milestone: z.boolean().optional(),
-  cadence: z.enum(["daily", "weekly", "monthly", "quarterly", "yearly"]).optional(),
+  cadence: z.enum(SCHEDULE_CADENCES).optional(),
   deliverable: extractDeliverableSchema.nullable().optional(),
 })
 
@@ -72,7 +73,7 @@ export function planJsonSchema(): Record<string, unknown> {
             dueDate: { type: "STRING" },
             dependsOnItemIndex: { type: "ARRAY", items: { type: "INTEGER" } },
             milestone: { type: "BOOLEAN" },
-            cadence: { type: "STRING", enum: ["daily", "weekly", "monthly", "quarterly", "yearly"] },
+            cadence: { type: "STRING", enum: [...SCHEDULE_CADENCES] },
             deliverable: {
               type: "OBJECT",
               properties: {

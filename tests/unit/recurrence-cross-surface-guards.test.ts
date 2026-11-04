@@ -6,6 +6,7 @@
 import { describe, expect, it } from "vitest"
 import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
+import { INSTANCE_COUNTS } from "@/lib/tasks/recurrence"
 
 const src = (relative: string) => readFileSync(resolve(process.cwd(), relative), "utf8")
 const codeOnly = (source: string) =>
@@ -95,5 +96,43 @@ describe("a calendar read tops up the grid it is about to draw", () => {
   it("anchors on the member's local day and never fails the read", () => {
     expect(route).toMatch(/localDay\(new Date\(\), session\.timezone\)/)
     expect(route).toMatch(/horizon top-up failed/)
+  })
+})
+
+describe("one cadence vocabulary", () => {
+  // Scoped to task-cadence sites. `agent_plans.cadence` and `task_report_templates.cadence`
+  // are different schedules that merely share the word (spec §F), and lib/reports/period.ts,
+  // lib/packs/ops/validator.ts and lib/ops/config/proposal.ts legitimately repeat a subset —
+  // so the guard names the four files that must not carry a private copy.
+  const files = [
+    "lib/planner/extract.ts",
+    "app/dashboard/planner/[id]/plan-editor-client.tsx",
+    "app/api/planner/[id]/items/[itemId]/route.ts",
+  ]
+
+  it("keeps no private copy of the schedule list", () => {
+    for (const file of files) {
+      expect(codeOnly(src(file))).not.toMatch(/"daily",\s*"weekly",\s*"monthly"/)
+    }
+  })
+
+  it("points every consumer at the shared list", () => {
+    expect(codeOnly(src("lib/planner/extract.ts"))).toMatch(/z\.enum\(SCHEDULE_CADENCES\)/)
+    expect(codeOnly(src("lib/planner/extract.ts"))).toMatch(/enum: \[\.\.\.SCHEDULE_CADENCES\]/)
+    expect(codeOnly(src("app/dashboard/planner/[id]/plan-editor-client.tsx"))).toMatch(
+      /SCHEDULE_CADENCES\.map/,
+    )
+    expect(codeOnly(src("app/api/planner/[id]/items/[itemId]/route.ts"))).toMatch(
+      /cadenceOrNone\(body\.cadence\)/,
+    )
+  })
+
+  it("keeps the migration script's mirrored grid counts honest", () => {
+    // A script may not import app code, so equality with the module the app uses is the most it
+    // can be held to. The quoted alternation is the script's own key style, not a second list.
+    const script = src("scripts/import-it-technician-tasks.mjs")
+    for (const [cadence, count] of Object.entries(INSTANCE_COUNTS)) {
+      expect(script).toMatch(new RegExp(`"?${cadence}"?:\\s*${count}`))
+    }
   })
 })

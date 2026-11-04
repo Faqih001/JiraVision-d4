@@ -6,6 +6,20 @@
 export const CADENCES = ["one-off", "daily", "weekly", "monthly", "quarterly", "yearly"] as const
 export type Cadence = (typeof CADENCES)[number]
 
+/**
+ * The words that schedule a task. `one-off` is deliberately absent: a plan item either
+ * schedules something or schedules nothing, and the editor has never offered "one-off" as a
+ * cadence. Deriving this list from `CADENCES` would be nicer, but a `.filter()` on an
+ * `as const` tuple loses the tuple type and Zod's `z.enum` needs the tuple.
+ */
+export const SCHEDULE_CADENCES = ["daily", "weekly", "monthly", "quarterly", "yearly"] as const
+export type ScheduleCadence = (typeof SCHEDULE_CADENCES)[number]
+
+/** A known cadence word, or null for "no schedule". An unknown word never persists. */
+export function cadenceOrNone(value: unknown): Cadence | null {
+  return isCadence(value) ? value : null
+}
+
 export const CADENCE_LABEL: Record<Cadence, string> = {
   "one-off": "One-off",
   daily: "Daily",
