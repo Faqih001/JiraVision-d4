@@ -50,7 +50,9 @@ export async function PATCH(
     const body = await request.json()
     const { status, notes, checklistResponses } = body
 
-    const updateData: Record<string, unknown> = {}
+    // Typed off the writer rather than `Record<string, unknown>`: an untyped bag lets a string
+    // reach a timestamp column, and Drizzle only finds that out when the query is built.
+    const updateData: Parameters<typeof updateTaskInstance>[1] = {}
 
     if (status !== undefined) {
       const validStatuses = ["todo", "in_progress", "done", "skipped"]
@@ -62,7 +64,7 @@ export async function PATCH(
       }
       updateData.status = status
       if (status === "done") {
-        updateData.completedAt = new Date().toISOString()
+        updateData.completedAt = new Date()
         updateData.completedBy = session?.id ?? 1
       }
     }
