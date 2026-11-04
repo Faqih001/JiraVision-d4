@@ -427,8 +427,10 @@ rung, a periodic growth review written from the member's own data, and task sugg
 time is normal and needs no identity choice, per §2). Promotion moves **one rung at a time**; day one is bootstrapped
 by an admin placing existing staff at their real level without a request, so nobody starts at zero.
 
-**Signals — computed, never typed.** Nine metrics, all derived from the tables in §13, each with a per-level target
-in `career_levels.signals`:
+**Signals — computed, never typed.** Ten metrics, all derived from the tables in §13, each with a per-level target
+in `career_levels.signals`. `instance_days_completed_90` (added 2026-11-04 with the recurrence horizon fixes) is
+published with a target of 0 on every rung: a zero target reads as "no bar set", so a new signal cannot move
+anyone's readiness number until the owner sets real rungs for it.
 
 | key | source rows |
 | --- | --- |

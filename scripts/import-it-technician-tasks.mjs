@@ -20,7 +20,7 @@ const DISCIPLINE = "it_operations"
 // app/api/tasks and the board's Backlog bucket) and To do.
 const STATUS = "todo"
 const SPRINT_ID = null
-const INSTANCE_COUNTS = { "one-off": 0, daily: 30, weekly: 12, monthly: 12, yearly: 4 }
+const INSTANCE_COUNTS = { "one-off": 0, daily: 30, weekly: 12, monthly: 12, quarterly: 8, yearly: 4 }
 const PRIORITIES = new Set(["urgent", "high", "medium", "low"])
 const CADENCES = new Set(Object.keys(INSTANCE_COUNTS))
 

@@ -229,9 +229,18 @@ Logic:
 ### Tasks Page Enhancements
 
 **New controls:**
-- Cadence filter dropdown (one-off, daily, weekly, monthly, yearly, all)
+- Cadence filter dropdown (one-off, daily, weekly, monthly, quarterly, yearly, all)
 - Toggle: "Show templates" vs "Show instances"
 - Recurring task badge on template tasks
+
+**Instance list in the detail dialog (amended 2026-11-04):** rendered from `planInstanceWindow()` in
+`lib/tasks/instance-window.ts` — today first, then the next `HORIZON_OCCURRENCES` occurrences ascending, with the
+row dated today marked "Today". Earlier open rows collapse into one "Missed N days (dates…)" line and get **no**
+Complete button, because a day nobody worked is history, not a task. The previous version sorted the grid
+descending and cut ten rows, so the panel showed the tail of next month and buried today.
+
+**Recurring cards stay open in the UI:** both boards hide the finished statuses on a recurring card and the
+status-cycle button never lands one on Done, so the click matches the 409 the server would return.
 
 **Task creation dialog:**
 - Add cadence dropdown
