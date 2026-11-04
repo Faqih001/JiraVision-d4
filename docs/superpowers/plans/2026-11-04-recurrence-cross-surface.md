@@ -52,8 +52,8 @@ Discovered while writing this plan; the spec could not know them. Each is decide
 | `lib/planner/promote-values.ts` | **new** — pure plan-item → task insert mapping | 5 |
 | `app/api/planner/[id]/promote/route.ts` | promote: carries cadence, assigns, grids after the transaction | 5 |
 | `lib/tasks/statuses-sql.ts` | **new** — the completed-status list as SQL fragments | 6 |
-| `app/api/reports/_shared.ts`, `app/api/sprints/{[id],}/route.ts`, `app/api/analytics/route.ts`, `app/api/activity/route.ts`, `app/api/settings/[key]/route.ts`, `lib/dashboard-data.ts` | server aggregates | 6, 8 |
-| the 11 client pages listed in Task 7 | lists, badges, KPI tiles | 2, 7, 8 |
+| `app/api/reports/_shared.ts`, `app/api/sprints/{[id],}/route.ts`, `app/api/analytics/route.ts`, `app/api/activity/route.ts`, `app/api/settings/[key]/route.ts`, `app/api/team/members/{[id],}/route.ts`, `app/api/automation/_shared.ts`, `app/api/ethical-metrics/{route,apply-recommendation/route}.ts`, `lib/dashboard-data.ts` | server aggregates | 6, 8 |
+| the 12 client pages listed in Task 7 | lists, badges, KPI tiles | 2, 7, 8 |
 | `app/dashboard/calendar/page.tsx` | the sidebar deadline list | 2 |
 | `app/dashboard/page.tsx` | the Due-today strip and the dashboard status menu | 8 |
 | `scripts/measure-task-statuses.mjs` | **new, read-only** — the prod status census | 9 |
@@ -1552,6 +1552,668 @@ Expected: PASS, and the full suite still green. A red pre-existing test here usu
 - [ ] **Step 12: Commit**
 
 ```bash
-git add lib/tasks/statuses-sql.ts app/api/reports/_shared.ts "app/api/sprints/[id]/route.ts" app/api/sprints/route.ts app/api/analytics/route.ts app/api/activity/route.ts "app/api/settings/[key]/route.ts" lib/dashboard-data.ts tests/unit/statuses-sql.test.ts tests/unit/recurrence-cross-surface-guards.test.ts
+git add lib/tasks/statuses-sql.ts app/api/reports/_shared.ts "app/api/sprints/[id]/route.ts" app/api/sprints/route.ts app/api/analytics/route.ts app/api/activity/route.ts "app/api/settings/[key]/route.ts" app/api/team/members/route.ts "app/api/team/members/[id]/route.ts" app/api/automation/_shared.ts app/api/ethical-metrics/route.ts app/api/ethical-metrics/apply-recommendation/route.ts lib/dashboard-data.ts tests/unit/statuses-sql.test.ts tests/unit/recurrence-cross-surface-guards.test.ts
 git commit -m "fix(statuses): read the completed-status list in every server aggregate"
+```
+
+---
+
+### Task 7: The client pages read the same list (spec §G2)
+
+**Files:**
+- Modify: `app/dashboard/kanban/page.tsx:169,470,498,744,1091`
+- Modify: `app/dashboard/tasks/page.tsx:180,184,692,693,722,748`
+- Modify: `app/dashboard/backlog/page.tsx:260,352`
+- Modify: `app/dashboard/gamification/page.tsx:177`
+- Modify: `app/dashboard/gamification/leaderboard/page.tsx:70`
+- Modify: `app/dashboard/team-wellbeing/page.tsx:185`
+- Modify: `app/dashboard/ai-scrum-master/page.tsx:435,500,638`
+- Modify: `app/dashboard/analytics/page.tsx:209`
+- Modify: `app/dashboard/email/page.tsx:273`
+- Modify: `app/dashboard/ethical-metrics/page.tsx:553`
+- Modify: `app/dashboard/page.tsx:768,780,831,844` (two overdue colours and two door conditions — `:780`/`:844` are wrapped again in Task 8)
+- Test: `tests/unit/recurrence-cross-surface-guards.test.ts` (append)
+
+**Interfaces:**
+- Consumes: `isCompletedTaskStatus(status: unknown): boolean` from `@/lib/tasks/statuses` — client-safe, already imported by `kanban` and `tasks`.
+- Produces: nothing new. Task 8 adds the recurring-door guards on top of these same expressions, so its before-text is this task's after-text.
+
+- [ ] **Step 1: Write the failing guard**
+
+Append to `tests/unit/recurrence-cross-surface-guards.test.ts`:
+
+```ts
+describe("the client pages read the completed-status list", () => {
+  const sweptPages = [
+    "app/dashboard/kanban/page.tsx",
+    "app/dashboard/tasks/page.tsx",
+    "app/dashboard/backlog/page.tsx",
+    "app/dashboard/gamification/page.tsx",
+    "app/dashboard/gamification/leaderboard/page.tsx",
+    "app/dashboard/team-wellbeing/page.tsx",
+    "app/dashboard/ai-scrum-master/page.tsx",
+    "app/dashboard/analytics/page.tsx",
+    "app/dashboard/email/page.tsx",
+    "app/dashboard/ethical-metrics/page.tsx",
+    "app/dashboard/calendar/page.tsx",
+    "app/dashboard/page.tsx",
+  ]
+
+  it("leaves no open-vs-done comparison in a swept page", () => {
+    for (const file of sweptPages) {
+      const code = codeOnly(src(file))
+      expect(code, file).not.toMatch(/\.status\s*[!=]==?\s*["']done["']/)
+    }
+  })
+
+  it("imports the shared rule into each of them", () => {
+    for (const file of sweptPages) {
+      expect(src(file), file).toMatch(/@\/lib\/tasks\/statuses/)
+    }
+  })
+})
+```
+
+`app/dashboard/calendar/page.tsx` is in the list because Task 2 swept its one read (`:564`); the guard simply refuses to let it drift back. The regex is anchored on `.status`, so `dataKey="done"` chart props, `phase === "done"` in `/dashboard/ops/import`, `inst.status` instance rows and `entry.status` in `/dashboard/ops` are not touched — §G3 keeps those vocabularies separate.
+
+- [ ] **Step 2: Run it and watch it fail**
+
+Run: `npx vitest run tests/unit/recurrence-cross-surface-guards.test.ts -t "the client pages read the completed-status list"`
+Expected: FAIL on the first page in the list (kanban).
+
+- [ ] **Step 3: Kanban**
+
+`isCompletedTaskStatus` is already imported (`:86`). Four reads:
+
+```ts
+const isOverdue = (t: TaskRow) =>
+  Boolean(t.dueDate) && !isCompletedTaskStatus(t.status) && new Date(t.dueDate as string) < new Date()
+```
+
+```ts
+  const myCards = useMemo(() => (me ? tasks.filter((t) => t.assigneeId === me.id && !isCompletedTaskStatus(t.status)) : []), [tasks, me])
+```
+
+The weekly-done buckets (:498) and the footer total (:1091), and the "open here" tile (:744):
+
+```ts
+      const done = tasks.filter(
+        (t) =>
+          isCompletedTaskStatus(t.status) &&
+          t.updatedAt &&
+          new Date(t.updatedAt).toLocaleDateString("en-CA").slice(0, 10) === key,
+      ).length
+```
+
+```ts
+                  <p className="text-lg font-semibold tabular-nums">{visibleTasks.filter((t) => !isCompletedTaskStatus(t.status)).length}</p>
+```
+
+```ts
+            <CheckCheck className="h-3.5 w-3.5" /> {tasks.filter((t) => isCompletedTaskStatus(t.status)).length} done total
+```
+
+- [ ] **Step 4: Tasks page**
+
+`isCompletedTaskStatus` is already imported (`:81`). The two local predicates are the whole sweep, because `isOpen` is what the KPIs (`:688`), the sprint chart (`:745`) and the filters already call:
+
+```ts
+function isOverdue(t: ApiTask, todayIso: string) {
+  return Boolean(t.dueDate && t.dueDate < todayIso && !isCompletedTaskStatus(t.status))
+}
+
+function isOpen(t: ApiTask) {
+  return !isCompletedTaskStatus(t.status)
+}
+```
+
+Then the two inline `doneThisSprint` branches, the assignee bucket and the sprint chart's own done count:
+
+```ts
+      doneThisSprint: overview?.activeSprint
+        ? allTasks.filter((t) => t.sprintId === overview.activeSprint?.id && isCompletedTaskStatus(t.status)).length
+        : allTasks.filter((t) => isCompletedTaskStatus(t.status) && t.sprintId !== null).length,
+```
+
+```ts
+      if (isCompletedTaskStatus(t.status)) cur.done += 1
+      else cur.open += 1
+```
+
+```ts
+          done: rows.filter((t) => isCompletedTaskStatus(t.status)).length,
+```
+
+Leave `:598`/`:624` (the two writers that PUT `status: "done"`) and `:1778,1788,1798` (instance rows, ruling **P3**) exactly as they are.
+
+- [ ] **Step 5: Backlog, gamification, leaderboard, wellbeing**
+
+Add `import { isCompletedTaskStatus } from "@/lib/tasks/statuses"` to each of the four files.
+
+```ts
+    () => tasks.filter((t) => (t.sprintId ?? 0) === 0 && !isCompletedTaskStatus(t.status)),
+```
+
+```ts
+    return tasks.filter((t) => t.sprintId === id && !isCompletedTaskStatus(t.status))
+```
+
+```ts
+  const myDoneTasks = useMemo(
+    () => (me ? tasks.filter((t) => isCompletedTaskStatus(t.status) && t.assigneeId === me.userId) : []),
+    [tasks, me],
+  )
+```
+
+```ts
+        if (!isCompletedTaskStatus(t.status) || t.assigneeId == null) continue
+```
+
+```ts
+      if (tkJson.success) setDoneTasks((tkJson.data as DoneTask[]).filter((t) => isCompletedTaskStatus(t.status)))
+```
+
+`app/dashboard/backlog/page.tsx:975` (`s.status !== "completed"`) is a **sprint** row — leave it.
+
+- [ ] **Step 6: AI Scrum Master**
+
+Add the import, then the three reads:
+
+```ts
+  const openTasks = useMemo(() => teamTasks.filter((t) => !isCompletedTaskStatus(t.status)), [teamTasks])
+```
+
+```ts
+      if (age !== null && age > 14 && !isCompletedTaskStatus(t.status)) reasons.push(`idle ${Math.round(age)}d`)
+```
+
+```ts
+        const backlog = teamTasks
+          .filter((t) => t.sprintId == null && !isCompletedTaskStatus(t.status))
+```
+
+Both of the second block's conditions are now redundant with `openTasks` (it already excludes finished work), but the loop reads `openTasks` for the other reasons and this line guards its own rule — leave both checks rather than restructure the flagging loop for nothing. `:1441` is the writer door; Task 8 handles it.
+
+- [ ] **Step 7: Analytics, email, ethical-metrics, dashboard colours**
+
+`app/dashboard/analytics/page.tsx:209` keeps the bucket vocabulary — the chart's axis is `STATUSES`, whose finished key is literally `"done"`, so a row written `closed` must still land in that bucket:
+
+```ts
+      if (isCompletedTaskStatus(status)) {
+        const exited = t.updatedAt ? new Date(t.updatedAt).getTime() : null
+        status = exited !== null && exited <= endTs ? "done" : "in_progress"
+      }
+```
+
+`app/dashboard/email/page.tsx:273` — the hand-rolled two-word check is exactly what the shared list exists to replace (and it was already missing `closed`):
+
+```ts
+        const openTask = data.myTasks?.find((t) => !isCompletedTaskStatus(t.status))
+```
+
+`app/dashboard/ethical-metrics/page.tsx:553`:
+
+```ts
+    const open = taskRows.filter((t) => !isCompletedTaskStatus(t.status))
+```
+
+`app/dashboard/page.tsx` — add the import, then the two overdue-colour reads (:768 card, :831 table row) and the two Complete/Done door conditions (:780 card, :844 table row). The card's due date:
+
+```ts
+                    <span className={cn(new Date(t.dueDate) < new Date() && !isCompletedTaskStatus(t.status) && "font-semibold text-red-500")}>
+```
+
+The table cell:
+
+```ts
+                        new Date(t.dueDate ?? "9999") < new Date() && !isCompletedTaskStatus(t.status) && "font-semibold text-red-500",
+```
+
+The two doors keep their ternary shape — only the test changes (Task 8 wraps them again, in the recurring guard, and its before-text is exactly this):
+
+```ts
+                  {!isCompletedTaskStatus(t.status) ? (
+                    <Button size="sm" variant="ghost" className="ml-auto h-7 px-2 text-xs text-emerald-600" onClick={() => setTaskStatus(t, "done")}>
+                      Complete
+                    </Button>
+                  ) : (
+```
+
+```ts
+                        {!isCompletedTaskStatus(t.status) ? (
+                          <Button size="sm" variant="ghost" className="h-7 px-2 text-emerald-600" onClick={() => setTaskStatus(t, "done")}>
+                            Done
+                          </Button>
+                        ) : (
+```
+
+- [ ] **Step 8: Run the guard, typecheck and the suite**
+
+Run: `npx vitest run tests/unit/recurrence-cross-surface-guards.test.ts && npx tsc --noEmit && npx vitest run`
+Expected: PASS on both guard blocks (Task 6's server block and this client block), typecheck clean, suite green. If a pre-existing test asserts a count that moved, read it first: a fixture that hardcodes `done`-only counting is the test that was wrong (ruling 4), not this sweep.
+
+- [ ] **Step 9: Commit**
+
+```bash
+git add app/dashboard/kanban/page.tsx app/dashboard/tasks/page.tsx app/dashboard/backlog/page.tsx app/dashboard/gamification/page.tsx app/dashboard/gamification/leaderboard/page.tsx app/dashboard/team-wellbeing/page.tsx app/dashboard/ai-scrum-master/page.tsx app/dashboard/analytics/page.tsx app/dashboard/email/page.tsx app/dashboard/ethical-metrics/page.tsx app/dashboard/calendar/page.tsx app/dashboard/page.tsx tests/unit/recurrence-cross-surface-guards.test.ts
+git commit -m "fix(statuses): read the completed-status list on every dashboard page"
+```
+
+---
+
+### Task 8: The dashboard counts schedules out, shows the day, and stops offering to finish one (spec §D, rulings P1–P2)
+
+**Files:**
+- Modify: `lib/dashboard-data.ts` (signature `:229-232`; the five reads listed in **P2**; `DashboardOverview.myTasks` `:193-203`; the `myTasks` output map `:672-683`; a new `dueToday` section near `:584`)
+- Modify: `app/api/dashboard/overview/route.ts:19`
+- Modify: `app/dashboard/page.tsx` (`TodayStrip` `:138-146` and its call `:895-899`; the doors `:780`/`:844`; the detail dialog `:1242`)
+- Modify: `app/dashboard/tasks/page.tsx:1423,1457` and the `TaskRow`/`OverviewTask` types they read
+- Modify: `app/dashboard/ai-scrum-master/page.tsx:1441` and its `TeamTask` type `:82-92`
+- Modify: `tests/unit/dashboard-member-scope.test.ts:26` (the existing guard pins the old call signature)
+- Test: `tests/unit/recurrence-cross-surface-guards.test.ts` (append)
+
+**Interfaces:**
+- Consumes: Task 6's `completedStatusSql` / `openStatusSql` in `lib/dashboard-data.ts`; Task 7's `!isCompletedTaskStatus(t.status)` door conditions; `isSettledInstanceStatus(status)` from `@/lib/tasks/instance-window`; `localDay(now, timeZone)` from `@/lib/worklog/local-day`.
+- Produces: `getDashboardOverview(userId, scope?, timeZone?)`; `DashboardOverview.dueToday: DueTodayRow[]`, `.dueTodayCount: number`, `.missedCount: number`, and `cadence` on `myTasks` rows. `app/dashboard/page.tsx` gains a local `isRecurringTask` and a `setInstanceDone` handler.
+
+- [ ] **Step 1: Write the failing guard**
+
+Append to `tests/unit/recurrence-cross-surface-guards.test.ts`:
+
+```ts
+describe("the dashboard counts schedules out and never offers to finish one", () => {
+  it("narrows every member-facing count read to non-template rows", () => {
+    const data = codeOnly(src("lib/dashboard-data.ts"))
+    expect(data.match(/eq\(tasks\.isTemplate, false\)/g)?.length ?? 0).toBeGreaterThanOrEqual(5)
+  })
+
+  it("passes the member's timezone into the overview builder", () => {
+    expect(codeOnly(src("app/api/dashboard/overview/route.ts"))).toContain(
+      "getDashboardOverview(session.id, scope, session.timezone)",
+    )
+    expect(codeOnly(src("lib/dashboard-data.ts"))).toContain("localDay(now, timeZone)")
+  })
+
+  it("answers with the due-today rows and their counts", () => {
+    const data = codeOnly(src("lib/dashboard-data.ts"))
+    expect(data).toMatch(/dueToday/)
+    expect(data).toMatch(/missedCount/)
+    expect(data).toMatch(/isSettledInstanceStatus/)
+  })
+
+  it("hides the finish door on a schedule in all four places", () => {
+    for (const file of [
+      "app/dashboard/page.tsx",
+      "app/dashboard/tasks/page.tsx",
+      "app/dashboard/ai-scrum-master/page.tsx",
+    ]) {
+      expect(codeOnly(src(file)), file).toMatch(/isRecurring/)
+    }
+    // the dialog's status menu must not draw the completed words for a schedule
+    expect(codeOnly(src("app/dashboard/page.tsx"))).toMatch(
+      /STATUSES\.filter\(\(s\) => !\(isRecurringTask\(detailTask\) && isCompletedTaskStatus\(s\)\)\)/,
+    )
+  })
+})
+```
+
+- [ ] **Step 2: Run it and watch it fail**
+
+Run: `npx vitest run tests/unit/recurrence-cross-surface-guards.test.ts -t "the dashboard counts schedules out"`
+Expected: FAIL on the first assertion.
+
+- [ ] **Step 3: D1 — schedules out of the five counting reads**
+
+In `lib/dashboard-data.ts`, `statusCounts` (both branches), `myTasksRows`, `myOpenPriorityCounts` and `workloadRows` gain the template predicate. The member status count:
+
+```ts
+    member
+      ? db
+          .select({ status: tasks.status, count: sql<number>`count(*)::int` })
+          .from(tasks)
+          .where(and(eq(tasks.assigneeId, userId), eq(tasks.isTemplate, false)))
+          .groupBy(tasks.status)
+      : db
+          .select({ status: tasks.status, count: sql<number>`count(*)::int` })
+          .from(tasks)
+          .where(eq(tasks.isTemplate, false))
+          .groupBy(tasks.status),
+```
+
+The 60-row own-task read (it feeds `deadlines` and both KPI tiles):
+
+```ts
+    db
+      .select()
+      .from(tasks)
+      .where(and(eq(tasks.assigneeId, userId), eq(tasks.isTemplate, false)))
+      .orderBy(asc(tasks.dueDate))
+      .limit(60),
+```
+
+`myOpenPriorityCounts`:
+
+```ts
+      .where(and(eq(tasks.assigneeId, userId), openStatusSql(tasks.status), eq(tasks.isTemplate, false)))
+```
+
+`workloadRows` is a `leftJoin`, so the predicate goes **in the join**, not in `.where()` — a member whose only rows are schedules must still appear with a zero bar rather than vanish from the team chart (the same asymmetry §C1 accepts on the calendar):
+
+```ts
+      .from(users)
+      .leftJoin(tasks, and(eq(tasks.assigneeId, users.id), eq(tasks.isTemplate, false)))
+```
+
+`and` is already imported. Leave `throughputRows`, `velocityRows` and `sprintTaskRows` alone: a schedule deliberately placed in a sprint is the owner's choice and hiding it would mask the mistake (ruling **P2**, and §G4 for sprint aggregates).
+
+- [ ] **Step 4: D2 — the builder learns the member's timezone**
+
+Add both imports (neither is present today):
+
+```ts
+import { taskInstances } from "@/drizzle/schema"
+import { isSettledInstanceStatus } from "@/lib/tasks/instance-window"
+import { localDay } from "@/lib/worklog/local-day"
+```
+
+(`taskInstances` joins the existing `@/drizzle/schema` import list rather than becoming a second statement.) Then the signature and the day anchors:
+
+```ts
+export async function getDashboardOverview(
+  userId: number,
+  scope: OverviewScope = "team",
+  timeZone?: string | null,
+): Promise<DashboardOverview> {
+  const member = scope === "member"
+  const now = new Date()
+  const todayIso = isoDay(now)
+  // The strip speaks the member's day; `todayIso` stays UTC for the instant-based reads
+  // (active sprint, week windows) that were already computed that way.
+  const memberTodayIso = localDay(now, timeZone)
+```
+
+`todayIso` keeps every existing use. Only the new instance read and the due-today filter use `memberTodayIso`.
+
+- [ ] **Step 5: D2 — the due-today read, in the same `Promise.all`**
+
+The builder opens with `const [ userRow, activeSprintRows, mySprintRows, statusCounts, myTasksRows, … ] = await Promise.all([...])` (`lib/dashboard-data.ts:242`). Insert `dueTodayRows,` immediately after `myTasksRows,` in that destructure, and insert this query immediately after the `db.select().from(tasks)…limit(60)` entry that `myTasksRows` receives — the two lists are positional, so both edits are in the same slot:
+
+```ts
+    // One month of occurrences for this member, newest first. The strip shows today's;
+    // the older days are what `missedCount` reports.
+    db
+      .select({
+        id: taskInstances.id,
+        taskId: tasks.id,
+        title: tasks.title,
+        priority: tasks.priority,
+        status: taskInstances.status,
+        instanceDate: taskInstances.instanceDate,
+        cadence: tasks.cadence,
+      })
+      .from(taskInstances)
+      .innerJoin(tasks, eq(tasks.id, taskInstances.taskId))
+      .where(
+        and(
+          eq(tasks.assigneeId, userId),
+          lte(taskInstances.instanceDate, memberTodayIso),
+          gte(taskInstances.instanceDate, instanceWindowStartIso),
+        ),
+      )
+      .orderBy(desc(taskInstances.instanceDate), asc(tasks.title)),
+```
+
+and in Step 4's day anchors, add the window start beside `memberTodayIso`:
+
+```ts
+  const instanceWindowStartIso = shiftDays(memberTodayIso, -30)
+```
+
+Import `shiftDays` from the same `@/lib/worklog/local-day` module as `localDay` (it exists there at `:64`). `lte`/`gte`/`desc`/`asc`/`and`/`eq` are all already imported. The `cadence` column is selected so a later surface can label a due-today row as a schedule without a second read; if nothing uses it, tsc will not complain and the strip simply ignores it.
+
+- [ ] **Step 6: D2 — shape the three fields**
+
+Where `deadlines` is built (near `:584`), add a sibling section. `instanceRows` below is the destructured name for the new `Promise.all` slot — use whatever the existing destructure pattern calls its neighbours:
+
+```ts
+  // ---- due today ------------------------------------------------------------
+  const openInstances = dueTodayRows.filter((i) => !isSettledInstanceStatus(i.status))
+  const todayInstances = openInstances.filter((i) => i.instanceDate === memberTodayIso)
+  const missedCount = openInstances.length - todayInstances.length
+  const dueToday = [...todayInstances]
+    .sort(
+      (a, b) =>
+        priorityOrder.indexOf(a.priority) - priorityOrder.indexOf(b.priority) ||
+        a.title.localeCompare(b.title),
+    )
+    .slice(0, 8)
+    .map((i) => ({
+      id: i.id,
+      taskId: i.taskId,
+      title: i.title,
+      priority: i.priority,
+      instanceDate: i.instanceDate,
+    }))
+  const dueTodayCount = todayInstances.length
+```
+
+`priorityOrder` is the `["urgent","high","medium","low"]` list declared four lines above (it already orders `priorityBreakdown`), so the strip's own order matches the pie chart under it. `dueTodayCount` is the *unpaginated* count, which is what makes "see all N" honest. Add to `DashboardOverview` (next to `deadlines` at `:192`):
+
+```ts
+  dueToday: { id: number; taskId: number; title: string; priority: string; instanceDate: string }[]
+  dueTodayCount: number
+  missedCount: number
+```
+
+and to the returned object (next to `deadlines,` at `:671`):
+
+```ts
+    dueToday,
+    dueTodayCount,
+    missedCount,
+```
+
+- [ ] **Step 7: D4 — `cadence` reaches the client rows**
+
+In `DashboardOverview.myTasks` (`:193-203`) add `cadence: string | null` after `sprintId: number | null`, and in the output map (`:672-683`) add `cadence: t.cadence,` after `sprintId: t.sprintId,`. `myTasksRows` is a `db.select()` of the whole table, so the column is already in the row.
+
+Then `app/api/dashboard/overview/route.ts:19`:
+
+```ts
+    const data = await getDashboardOverview(session.id, scope, session.timezone)
+```
+
+and update the guard that pins the old call, `tests/unit/dashboard-member-scope.test.ts:26`:
+
+```ts
+    expect(route).toContain("getDashboardOverview(session.id, scope, session.timezone)")
+```
+
+- [ ] **Step 8: D3 — the strip gains its due-today row**
+
+In `app/dashboard/page.tsx`, `TodayStrip` takes two more props and the day list:
+
+```ts
+function TodayStrip({
+  summary,
+  loading,
+  todayIso,
+  staleCount,
+  dueToday,
+  dueTodayCount,
+  missedCount,
+  onToggleInstance,
+}: {
+  summary: WorklogSummary | null
+  loading: boolean
+  todayIso: string
+  staleCount: number | null
+  dueToday: DueTodayRow[]
+  dueTodayCount: number
+  missedCount: number
+  onToggleInstance: (id: number) => void
+}) {
+```
+
+Add the type next to the other page-local row types (it mirrors the wire shape produced in Step 6):
+
+```ts
+type DueTodayRow = DashboardOverview["dueToday"][number]
+```
+
+Insert the block directly after the `{/* 20 — Today in the work log … */}` heading inside `TodayStrip` — before the loading/empty branches, because occurrences are a different question from the log:
+
+```tsx
+      <div className="mb-3">
+        <p className="text-xs font-medium text-muted-foreground">
+          Due today · {dueTodayCount}
+          {missedCount > 0 ? (
+            <span className="text-red-500"> · {missedCount} missed</span>
+          ) : null}
+        </p>
+        {dueToday.length === 0 ? (
+          <p className="mt-1 text-xs text-muted-foreground">
+            Nothing due today from your schedules.
+          </p>
+        ) : (
+          <ul className="mt-1 space-y-1">
+            {dueToday.map((d) => (
+              <li key={d.id} className="flex items-start gap-2 text-xs">
+                <input
+                  type="checkbox"
+                  aria-label={`Mark ${d.title} done for today`}
+                  className="mt-0.5 h-3.5 w-3.5"
+                  onChange={() => onToggleInstance(d.id)}
+                />
+                <Link href={`/dashboard/tasks?task=${d.taskId}`} className="underline underline-offset-2">
+                  {d.title}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+        {dueTodayCount > dueToday.length ? (
+          <Link href="/dashboard/tasks" className="mt-1 inline-block text-xs underline underline-offset-2">
+            see all {dueTodayCount}
+          </Link>
+        ) : null}
+      </div>
+```
+
+`missedCount` uses the same words the tasks page already uses for a past-due occurrence ("missed"), per F1 — do not invent "overdue" here.
+
+- [ ] **Step 9: D3 — the page wires the strip**
+
+Add the handler beside `setTaskStatus` (`:434`), and pass the props at the call site (`:895`):
+
+```ts
+  const setInstanceDone = async (id: number) => {
+    try {
+      const res = await fetch(`/api/task-instances/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "done" }),
+      })
+      if (!res.ok) {
+        const detail = (await res.json().catch(() => null)) as { message?: string } | null
+        toast({ variant: "destructive", title: "Could not record the day", description: detail?.message })
+        return
+      }
+      await reloadQuiet()
+    } catch (err) {
+      toast({ variant: "destructive", title: "Could not record the day", description: (err as Error).message })
+    }
+  }
+```
+
+```tsx
+      <TodayStrip
+        summary={today}
+        loading={todayLoading}
+        todayIso={today?.range.from ?? localDay(new Date())}
+        staleCount={staleCount}
+        dueToday={overview.dueToday}
+        dueTodayCount={overview.dueTodayCount}
+        missedCount={overview.missedCount}
+        onToggleInstance={(id) => void setInstanceDone(id)}
+      />
+```
+
+No fallbacks: `getDashboardOverview` always returns all three, and the page's `overview` is typed from that shape.
+
+- [ ] **Step 10: D4 — the doors that lead to a 409**
+
+`app/dashboard/page.tsx` — add the local helper next to the other row helpers (`tagList`-level):
+
+```ts
+/** A schedule has no Done column to arrive at; only its days get finished. */
+const isRecurringTask = (t: { cadence?: string | null }) => Boolean(t.cadence) && t.cadence !== "one-off"
+```
+
+The two door conditions Task 7 left as `!isCompletedTaskStatus(t.status)` become (card `:780`, table `:844`):
+
+```tsx
+                  {!isRecurringTask(t) && !isCompletedTaskStatus(t.status) ? (
+```
+
+```tsx
+                        {!isRecurringTask(t) && !isCompletedTaskStatus(t.status) ? (
+```
+
+so a recurring card shows no Complete and no Reopen — the else-branch is a *reopen* door, and there is nothing on a schedule to reopen. A schedule row that is somehow finished still shows its normal Details and Edit buttons, so the member is never left with a dead card.
+
+The detail dialog (`:1242`) drops the completed options for a schedule:
+
+```tsx
+                  {STATUSES.filter((s) => !(isRecurringTask(detailTask) && isCompletedTaskStatus(s))).map((s) => (
+```
+
+- [ ] **Step 11: P1 — the two tasks-page doors and the scrum-master door**
+
+`app/dashboard/tasks/page.tsx:1423` ("Blocked or overdue" → Complete) and `:1457` ("Due this week" → Complete) both call `setTaskStatus(t, "done")` on every row. `isRecurringTask` already exists in that file (`:195`). Wrap each button:
+
+```tsx
+                    {!isRecurringTask(t) && (
+                      <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => setTaskStatus(t, "done")}>
+```
+
+```tsx
+                          {!isRecurringTask(t) && (
+                            <Button
+```
+
+each closed with the matching `)}` on the following line, leaving the button's own text and handler untouched.
+
+`app/dashboard/ai-scrum-master/page.tsx` reads `/api/tasks?pageSize=200`, whose rows do carry `cadence`; the local type simply never asked for it. Add to `TeamTask` (`:82-92`):
+
+```ts
+  cadence?: string | null
+```
+
+add the helper next to `type TeamTask`:
+
+```ts
+const isRecurring = (t: TeamTask) => Boolean(t.cadence) && t.cadence !== "one-off"
+```
+
+and gate the quick-fix Done button (`:1441`):
+
+```tsx
+                        {!isRecurring(task) && (
+                          <Button size="sm" variant="ghost" className="h-6 px-2 text-[11px] text-emerald-600" disabled={busy === `fix-${task.id}`} onClick={() => void quickFixTask(task, "done", `fix-${task.id}`)}>
+                            Done
+                          </Button>
+                        )}
+```
+
+- [ ] **Step 12: Run everything**
+
+Run: `npx vitest run tests/unit/recurrence-cross-surface-guards.test.ts tests/unit/dashboard-member-scope.test.ts && npx tsc --noEmit && npx vitest run`
+Expected: PASS. `dashboard-member-scope.test.ts` is green only after Step 7's update to line 26 — if it fails there, that assertion still pins the two-argument call.
+
+- [ ] **Step 13: Commit**
+
+```bash
+git add lib/dashboard-data.ts app/api/dashboard/overview/route.ts app/dashboard/page.tsx app/dashboard/tasks/page.tsx app/dashboard/ai-scrum-master/page.tsx tests/unit/dashboard-member-scope.test.ts tests/unit/recurrence-cross-surface-guards.test.ts
+git commit -m "feat(dashboard): count schedules out, show the day's occurrences, guard the finish doors"
 ```
