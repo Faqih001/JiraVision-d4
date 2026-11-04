@@ -72,6 +72,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { useToast } from "@/hooks/use-toast"
+import { isCompletedTaskStatus } from "@/lib/tasks/statuses"
 import { LIVE_REFRESH_MS, useLiveRefresh } from "@/hooks/use-live-refresh"
 import {
   AXIS,
@@ -550,7 +551,7 @@ export default function EthicalMetricsWorkspace() {
   /** Priority-fairness matrix, computed here from the raw task feed. */
   const matrix = useMemo(() => {
     if (!live) return []
-    const open = taskRows.filter((t) => t.status !== "done")
+    const open = taskRows.filter((t) => !isCompletedTaskStatus(t.status))
     return live.members
       .map((m) => {
         const own = open.filter((t) => t.assigneeId === m.userId)

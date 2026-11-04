@@ -166,7 +166,7 @@ export type KanbanTask = {
 const tagList = (t: TaskRow) => (Array.isArray(t.tags) ? t.tags.map(String) : [])
 
 const isOverdue = (t: TaskRow) =>
-  Boolean(t.dueDate) && t.status !== "done" && new Date(t.dueDate as string) < new Date()
+  Boolean(t.dueDate) && !isCompletedTaskStatus(t.status) && new Date(t.dueDate as string) < new Date()
 
 /** A template is the schedule, so the board never offers to finish one — the day is what gets done. */
 const isRecurring = (t: TaskRow) => Boolean(t.cadence) && t.cadence !== "one-off"
@@ -467,7 +467,7 @@ export default function KanbanBoardPage() {
     [visibleTasks],
   )
 
-  const myCards = useMemo(() => (me ? tasks.filter((t) => t.assigneeId === me.id && t.status !== "done") : []), [tasks, me])
+  const myCards = useMemo(() => (me ? tasks.filter((t) => t.assigneeId === me.id && !isCompletedTaskStatus(t.status)) : []), [tasks, me])
 
   const recentlyMoved = useMemo(() => {
     const cutoff = Date.now() - 48 * 3_600_000
@@ -495,7 +495,7 @@ export default function KanbanBoardPage() {
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
       const done = tasks.filter(
         (t) =>
-          t.status === "done" &&
+          isCompletedTaskStatus(t.status) &&
           t.updatedAt &&
           new Date(t.updatedAt).toLocaleDateString("en-CA").slice(0, 10) === key,
       ).length
@@ -741,7 +741,7 @@ export default function KanbanBoardPage() {
                   <p className="text-[11px] text-muted-foreground">of capacity</p>
                 </div>
                 <div>
-                  <p className="text-lg font-semibold tabular-nums">{visibleTasks.filter((t) => t.status !== "done").length}</p>
+                  <p className="text-lg font-semibold tabular-nums">{visibleTasks.filter((t) => !isCompletedTaskStatus(t.status)).length}</p>
                   <p className="text-[11px] text-muted-foreground">open here</p>
                 </div>
                 <Button asChild size="sm" variant="outline">
@@ -1088,7 +1088,7 @@ export default function KanbanBoardPage() {
         </ResponsiveContainer>
         <div className="mt-2 flex flex-wrap gap-4 text-xs text-muted-foreground">
           <span className="flex items-center gap-1">
-            <CheckCheck className="h-3.5 w-3.5" /> {tasks.filter((t) => t.status === "done").length} done total
+            <CheckCheck className="h-3.5 w-3.5" /> {tasks.filter((t) => isCompletedTaskStatus(t.status)).length} done total
           </span>
           <span className="flex items-center gap-1">
             <Timer className="h-3.5 w-3.5" /> {tasks.filter((t) => t.status === "blocked").length} blocked

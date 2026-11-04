@@ -12,6 +12,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { LIVE_REFRESH_MS, useLiveRefresh } from "@/hooks/use-live-refresh"
 import { useToast } from "@/hooks/use-toast"
 import { jsonFetch, type RosterPlayer } from "../_kit"
+import { isCompletedTaskStatus } from "@/lib/tasks/statuses"
 
 interface TaskLite {
   id: number
@@ -67,7 +68,7 @@ export default function GamificationLeaderboardPage() {
       const cutoff = Date.now() - days * MS_PER_DAY
       const counts = new Map<number, number>()
       for (const t of tasks) {
-        if (t.status !== "done" || t.assigneeId == null) continue
+        if (!isCompletedTaskStatus(t.status) || t.assigneeId == null) continue
         if (new Date(t.updatedAt).getTime() < cutoff) continue
         counts.set(t.assigneeId, (counts.get(t.assigneeId) ?? 0) + 1)
       }

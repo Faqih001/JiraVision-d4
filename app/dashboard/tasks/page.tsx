@@ -177,11 +177,11 @@ function readChecklist(raw: unknown): ChecklistItem[] {
 }
 
 function isOverdue(t: ApiTask, todayIso: string) {
-  return Boolean(t.dueDate && t.dueDate < todayIso && t.status !== "done")
+  return Boolean(t.dueDate && t.dueDate < todayIso && !isCompletedTaskStatus(t.status))
 }
 
 function isOpen(t: ApiTask) {
-  return t.status !== "done"
+  return !isCompletedTaskStatus(t.status)
 }
 
 function nextStatus(status: string, recurring = false) {
@@ -689,8 +689,8 @@ export default function TasksWorkspacePage() {
       inProgress: allTasks.filter((t) => t.status === "in_progress").length,
       blocked: allTasks.filter((t) => t.status === "blocked").length,
       doneThisSprint: overview?.activeSprint
-        ? allTasks.filter((t) => t.sprintId === overview.activeSprint?.id && t.status === "done").length
-        : allTasks.filter((t) => t.status === "done" && t.sprintId !== null).length,
+        ? allTasks.filter((t) => t.sprintId === overview.activeSprint?.id && isCompletedTaskStatus(t.status)).length
+        : allTasks.filter((t) => isCompletedTaskStatus(t.status) && t.sprintId !== null).length,
       overdue: allTasks.filter((t) => isOverdue(t, todayIso)).length,
     }
   }, [allTasks, overview, todayIso])
@@ -719,7 +719,7 @@ export default function TasksWorkspacePage() {
     const map = new Map<number | null, { open: number; done: number; points: number }>()
     allTasks.forEach((t) => {
       const cur = map.get(t.assigneeId) ?? { open: 0, done: 0, points: 0 }
-      if (t.status === "done") cur.done += 1
+      if (isCompletedTaskStatus(t.status)) cur.done += 1
       else cur.open += 1
       cur.points += t.storyPoints
       map.set(t.assigneeId, cur)
@@ -745,7 +745,7 @@ export default function TasksWorkspacePage() {
           key,
           name: short.length > 14 ? `${short.slice(0, 13)}…` : short,
           open: rows.filter(isOpen).length,
-          done: rows.filter((t) => t.status === "done").length,
+          done: rows.filter((t) => isCompletedTaskStatus(t.status)).length,
           blocked: rows.filter((t) => t.status === "blocked").length,
         }
       })

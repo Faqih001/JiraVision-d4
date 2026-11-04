@@ -63,6 +63,7 @@ import {
 import { useToast } from "@/hooks/use-toast"
 import { LIVE_REFRESH_MS, useLiveRefresh } from "@/hooks/use-live-refresh"
 import { cn } from "@/lib/utils"
+import { isCompletedTaskStatus } from "@/lib/tasks/statuses"
 import { AXIS, AvatarCircle, EmptyNote, SectionCard, TOOLTIP_STYLE, relativeTime } from "@/components/dashboard-kit"
 
 /* ------------------------------------------------------------------- types */
@@ -182,7 +183,7 @@ export default function TeamWellbeingPage() {
       }
 
       const tkJson = await tkRes.json()
-      if (tkJson.success) setDoneTasks((tkJson.data as DoneTask[]).filter((t) => t.status === "done"))
+      if (tkJson.success) setDoneTasks((tkJson.data as DoneTask[]).filter((t) => isCompletedTaskStatus(t.status)))
 
       setFailed(false)
     } catch (err) {

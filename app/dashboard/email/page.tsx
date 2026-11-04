@@ -62,6 +62,7 @@ import {
 } from "@/components/ui/select"
 import { LIVE_REFRESH_MS, useLiveRefresh } from "@/hooks/use-live-refresh"
 import { useToast } from "@/hooks/use-toast"
+import { isCompletedTaskStatus } from "@/lib/tasks/statuses"
 import {
   AXIS,
   EmptyNote,
@@ -270,7 +271,7 @@ export default function EmailWorkspace() {
       if (ovJson?.success) {
         const data = ovJson.data as DashboardOverview
         setRealtimeEnabled(Boolean(data.realtimeEnabled))
-        const openTask = data.myTasks?.find((t) => t.status !== "done" && t.status !== "completed")
+        const openTask = data.myTasks?.find((t) => !isCompletedTaskStatus(t.status))
         if (openTask) setSampleTask(openTask.title)
       }
     } catch (err) {

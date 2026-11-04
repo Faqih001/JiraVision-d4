@@ -38,6 +38,7 @@ import { Progress } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
 import { LIVE_REFRESH_MS, useLiveRefresh } from "@/hooks/use-live-refresh"
 import { useToast } from "@/hooks/use-toast"
+import { isCompletedTaskStatus } from "@/lib/tasks/statuses"
 import {
   computeStreak,
   dayKey,
@@ -174,7 +175,7 @@ export default function GamificationHubPage() {
   /* ---- derived real-data computations ---- */
 
   const myDoneTasks = useMemo(
-    () => (me ? tasks.filter((t) => t.status === "done" && t.assigneeId === me.userId) : []),
+    () => (me ? tasks.filter((t) => isCompletedTaskStatus(t.status) && t.assigneeId === me.userId) : []),
     [tasks, me],
   )
 

@@ -56,6 +56,7 @@ import { useToast } from "@/hooks/use-toast"
 import { LIVE_REFRESH_MS, useLiveRefresh } from "@/hooks/use-live-refresh"
 import { cn } from "@/lib/utils"
 import type { DashboardOverview } from "@/lib/dashboard-data"
+import { isCompletedTaskStatus } from "@/lib/tasks/statuses"
 import {
   AXIS,
   AvatarCircle,
@@ -432,7 +433,7 @@ export default function AIScrumMasterPage() {
     return { score, parts }
   }, [overview, burndownAnalysis])
 
-  const openTasks = useMemo(() => teamTasks.filter((t) => t.status !== "done"), [teamTasks])
+  const openTasks = useMemo(() => teamTasks.filter((t) => !isCompletedTaskStatus(t.status)), [teamTasks])
 
   const reassignMoves = useMemo<ReassignMove[]>(() => {
     if (!overview) return []
@@ -497,7 +498,7 @@ export default function AIScrumMasterPage() {
       if (t.dueDate && new Date(`${String(t.dueDate).slice(0, 10)}T00:00:00`) < today) reasons.push("overdue")
       if (t.storyPoints >= 8 && (t.priority === "urgent" || t.priority === "high")) reasons.push("high effort + priority")
       const age = taskAgeDays(t)
-      if (age !== null && age > 14 && t.status !== "done") reasons.push(`idle ${Math.round(age)}d`)
+      if (age !== null && age > 14 && !isCompletedTaskStatus(t.status)) reasons.push(`idle ${Math.round(age)}d`)
       if (reasons.length > 0) flagged.push({ task: t, reasons })
     }
     return flagged.sort((a, b) => b.reasons.length - a.reasons.length || b.task.storyPoints - a.task.storyPoints).slice(0, 15)
@@ -635,7 +636,7 @@ export default function AIScrumMasterPage() {
         })
       } else if (velocityForecast.high - activeSprint.totalPoints >= 5) {
         const backlog = teamTasks
-          .filter((t) => t.sprintId == null && t.status !== "done")
+          .filter((t) => t.sprintId == null && !isCompletedTaskStatus(t.status))
           .sort((a, b) => a.storyPoints - b.storyPoints)
         const picks: TeamTask[] = []
         let sum = 0

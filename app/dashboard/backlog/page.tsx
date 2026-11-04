@@ -62,6 +62,7 @@ import {
 import { useToast } from "@/hooks/use-toast"
 import { LIVE_REFRESH_MS, useLiveRefresh } from "@/hooks/use-live-refresh"
 import { cn } from "@/lib/utils"
+import { isCompletedTaskStatus } from "@/lib/tasks/statuses"
 import {
   AXIS,
   AvatarCircle,
@@ -257,7 +258,7 @@ export default function DashboardBacklog() {
 
   // Backlog = tasks not assigned to any sprint (sprintId null/0), excluding done work.
   const backlog = useMemo(
-    () => tasks.filter((t) => (t.sprintId ?? 0) === 0 && t.status !== "done"),
+    () => tasks.filter((t) => (t.sprintId ?? 0) === 0 && !isCompletedTaskStatus(t.status)),
     [tasks],
   )
 
@@ -349,7 +350,7 @@ export default function DashboardBacklog() {
   const inSprintTasks = useMemo(() => {
     const id = Number(pullSprint)
     if (pullSprint === "none" || Number.isNaN(id)) return []
-    return tasks.filter((t) => t.sprintId === id && t.status !== "done")
+    return tasks.filter((t) => t.sprintId === id && !isCompletedTaskStatus(t.status))
   }, [tasks, pullSprint])
 
   const memberName = useCallback(

@@ -208,3 +208,40 @@ describe("the server reads the completed-status list, not a literal", () => {
     expect(detail.slice(detail.indexOf("export async function DELETE"))).not.toMatch(/isTemplate/)
   })
 })
+
+describe("the client pages read the completed-status list", () => {
+  const sweptPages = [
+    "app/dashboard/kanban/page.tsx",
+    "app/dashboard/tasks/page.tsx",
+    "app/dashboard/backlog/page.tsx",
+    "app/dashboard/gamification/page.tsx",
+    "app/dashboard/gamification/leaderboard/page.tsx",
+    "app/dashboard/team-wellbeing/page.tsx",
+    "app/dashboard/ai-scrum-master/page.tsx",
+    "app/dashboard/analytics/page.tsx",
+    "app/dashboard/email/page.tsx",
+    "app/dashboard/ethical-metrics/page.tsx",
+    "app/dashboard/calendar/page.tsx",
+    "app/dashboard/page.tsx",
+  ]
+
+  it("leaves no open-vs-done comparison in a swept page", () => {
+    // ruling P11: the only "done" literal allowed in a swept page is an instance-row read.
+    // task_instances.status is a whitelist that cannot hold completed/closed (ruling P3), so
+    // `inst.status !== "done"` stays; every other receiver means a tasks.status comparison.
+    const pinnedInstanceReaders = new Set(["inst"])
+    for (const file of sweptPages) {
+      const code = codeOnly(src(file))
+      const receivers = [...code.matchAll(/\b([A-Za-z_$][\w$]*)\.status\s*[!=]==?\s*["']done["']/g)].map((m) => m[1])
+      for (const receiver of receivers) {
+        expect(pinnedInstanceReaders.has(receiver), `${file}: ${receiver}.status compared to "done"`).toBe(true)
+      }
+    }
+  })
+
+  it("imports the shared rule into each of them", () => {
+    for (const file of sweptPages) {
+      expect(src(file), file).toMatch(/@\/lib\/tasks\/statuses/)
+    }
+  })
+})

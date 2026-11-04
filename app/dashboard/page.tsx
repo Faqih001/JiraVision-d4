@@ -69,6 +69,7 @@ import {
 import { LIVE_REFRESH_MS, useLiveRefresh } from "@/hooks/use-live-refresh"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
+import { isCompletedTaskStatus } from "@/lib/tasks/statuses"
 import type { DashboardOverview } from "@/lib/dashboard-data"
 import type { OnboardingView } from "@/lib/onboarding/read"
 import { ONBOARDING_STEP_COUNT } from "@/lib/onboarding/state"
@@ -765,7 +766,7 @@ export default function DashboardHome() {
                     <span>{t.storyPoints} pts</span>
                   </div>
                   {t.dueDate && (
-                    <span className={cn(new Date(t.dueDate) < new Date() && t.status !== "done" && "font-semibold text-red-500")}>
+                    <span className={cn(new Date(t.dueDate) < new Date() && !isCompletedTaskStatus(t.status) && "font-semibold text-red-500")}>
                       {t.dueDate}
                     </span>
                   )}
@@ -777,7 +778,7 @@ export default function DashboardHome() {
                   <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => openEdit(t)}>
                     <Pencil className="mr-1 h-3 w-3" /> Edit
                   </Button>
-                  {t.status !== "done" ? (
+                  {!isCompletedTaskStatus(t.status) ? (
                     <Button size="sm" variant="ghost" className="ml-auto h-7 px-2 text-xs text-emerald-600" onClick={() => setTaskStatus(t, "done")}>
                       Complete
                     </Button>
@@ -828,7 +829,7 @@ export default function DashboardHome() {
                     <td
                       className={cn(
                         "px-4 py-2 text-xs",
-                        new Date(t.dueDate ?? "9999") < new Date() && t.status !== "done" && "font-semibold text-red-500",
+                        new Date(t.dueDate ?? "9999") < new Date() && !isCompletedTaskStatus(t.status) && "font-semibold text-red-500",
                       )}
                     >
                       {t.dueDate ?? "—"}
@@ -841,7 +842,7 @@ export default function DashboardHome() {
                         <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => setDetailTask(t)} aria-label={`Open ${t.title}`}>
                           <ChevronRight className="h-3.5 w-3.5" />
                         </Button>
-                        {t.status !== "done" ? (
+                        {!isCompletedTaskStatus(t.status) ? (
                           <Button size="sm" variant="ghost" className="h-7 px-2 text-emerald-600" onClick={() => setTaskStatus(t, "done")}>
                             Done
                           </Button>

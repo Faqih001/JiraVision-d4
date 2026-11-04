@@ -64,6 +64,7 @@ import {
 import { LIVE_REFRESH_MS, useLiveRefresh } from "@/hooks/use-live-refresh"
 import { useToast } from "@/hooks/use-toast"
 import type { DashboardOverview } from "@/lib/dashboard-data"
+import { isCompletedTaskStatus } from "@/lib/tasks/statuses"
 import {
   AXIS,
   EmptyNote,
@@ -206,7 +207,7 @@ function buildCumulativeFlow(rows: TaskRow[], weeks: number) {
       const created = t.createdAt ? new Date(t.createdAt).getTime() : null
       if (created === null || created > endTs) continue
       let status = t.status
-      if (status === "done") {
+      if (isCompletedTaskStatus(status)) {
         const exited = t.updatedAt ? new Date(t.updatedAt).getTime() : null
         status = exited !== null && exited <= endTs ? "done" : "in_progress"
       }

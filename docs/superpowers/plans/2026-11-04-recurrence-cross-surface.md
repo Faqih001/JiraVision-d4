@@ -40,6 +40,7 @@ Discovered while writing this plan; the spec could not know them. Each is decide
 - **P8 — the career files are not swept and are not missed.** `lib/career/counts.ts:125` and `lib/career/evidence.ts:244` compare `taskInstances.status` to `"done"` (ruling **P3** pins those), and `lib/career/growth.ts:288` only contains the word inside a Gemini prompt. No `tasks.status` literal survives in `lib/career` or `app/api/career`, so the Task 6 guard list omits them. **Why:** stating the exclusion keeps a later reader from "fixing" a pinned instance comparison. **Cost if wrong:** none — a fourth completed word would have to appear on an instance row, which the PATCH whitelist refuses.
 - **P9 — the fragments are rendered by the dialect, not by `toSQL()`** (written back after Task 6 shipped). A drizzle `SQL` instance has no `toSQL()`; `new PgDialect().sqlToQuery(fragment)` is the connection-free render, and it emits `$1, $2, $3` rather than `?`. Task 6's unit test measures `params` and counts `$`. **Why:** the plan drafted the test against an API that does not exist. **Cost if wrong:** none — the assertion is equivalent.
 - **P10 — a route imports only the helper it uses.** `app/api/sprints/route.ts` reads `completedStatusSql` alone; the draft said to copy Step 8's two-line import in, and `openStatusSql` would then be unused. The lint gate is a fixed baseline (82 problems, 4 errors), so an unused import is a gate failure. **Why:** the baseline, not taste. **Cost if wrong:** a lint error a later reader mistakes for pre-existing noise.
+- **P11 — the client guard names `inst` instead of banning every `.status` comparison to `"done"`** (written back after Task 7 shipped). The drafted regex also matched the three `inst.status` rows Step 4 tells the implementer to leave (ruling **P3**), so the guard could never pass while the plan was followed. It now collects the receivers that still compare to `"done"` and asserts each is `inst`. **Why:** a blanket ban contradicts the task's own exclusion; naming the pinned receiver keeps the ban for every other variable. **Cost if wrong:** an instance row that starts holding `completed` reads as open on `/dashboard/tasks` — the same exposure ruling P3 already accepts, checked by Task 9's census.
 
 ## File map
 
@@ -1652,9 +1653,16 @@ describe("the client pages read the completed-status list", () => {
   ]
 
   it("leaves no open-vs-done comparison in a swept page", () => {
+    // ruling P11: the only "done" literal allowed in a swept page is an instance-row read.
+    // task_instances.status is a whitelist that cannot hold completed/closed (ruling P3), so
+    // `inst.status !== "done"` stays; every other receiver means a tasks.status comparison.
+    const pinnedInstanceReaders = new Set(["inst"])
     for (const file of sweptPages) {
       const code = codeOnly(src(file))
-      expect(code, file).not.toMatch(/\.status\s*[!=]==?\s*["']done["']/)
+      const receivers = [...code.matchAll(/\b([A-Za-z_$][\w$]*)\.status\s*[!=]==?\s*["']done["']/g)].map((m) => m[1])
+      for (const receiver of receivers) {
+        expect(pinnedInstanceReaders.has(receiver), `${file}: ${receiver}.status compared to "done"`).toBe(true)
+      }
     }
   })
 
@@ -1666,7 +1674,7 @@ describe("the client pages read the completed-status list", () => {
 })
 ```
 
-`app/dashboard/calendar/page.tsx` is in the list because Task 2 swept its one read (`:564`); the guard simply refuses to let it drift back. The regex is anchored on `.status`, so `dataKey="done"` chart props, `phase === "done"` in `/dashboard/ops/import`, `inst.status` instance rows and `entry.status` in `/dashboard/ops` are not touched — §G3 keeps those vocabularies separate.
+`app/dashboard/calendar/page.tsx` is in the list because Task 2 swept its one read (`:564`); the guard simply refuses to let it drift back. `dataKey="done"` chart props, `phase === "done"` in `/dashboard/ops/import` and `entry.status` in `/dashboard/ops` are not touched — §G3 keeps those vocabularies separate. The three `inst.status` rows on `/dashboard/tasks` would match the same regex, so ruling **P11** names `inst` as the one pinned receiver instead of loosening the check for everything.
 
 - [ ] **Step 2: Run it and watch it fail**
 
