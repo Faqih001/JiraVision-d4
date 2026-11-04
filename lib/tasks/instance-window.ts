@@ -26,7 +26,7 @@ export type InstanceWindow<T extends InstanceWindowRow = InstanceWindowRow> = {
 /** The instance words that end a day: finished, or deliberately not worked. */
 const SETTLED_STATUSES = ["skipped"]
 
-function isSettled(status: string): boolean {
+export function isSettledInstanceStatus(status: string): boolean {
   return isCompletedTaskStatus(status) || SETTLED_STATUSES.includes(status)
 }
 
@@ -43,7 +43,7 @@ export function planInstanceWindow<T extends InstanceWindowRow>(
     .slice(0, Math.max(0, occurrences))
 
   const missedDates = dated
-    .filter((row) => row.instanceDate < todayIso && !isSettled(row.status))
+    .filter((row) => row.instanceDate < todayIso && !isSettledInstanceStatus(row.status))
     .map((row) => row.instanceDate)
     .sort((a, b) => a.localeCompare(b))
 

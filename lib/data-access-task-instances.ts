@@ -1,8 +1,9 @@
 import { db } from "@/lib/db"
 import { taskInstances, tasks } from "@/drizzle/schema"
 import { eq, and, gte, lte, sql } from "drizzle-orm"
-import { computeNextRun, type Cadence } from "@/lib/cadence"
-import { computeInstanceDates } from "@/lib/tasks/recurrence"
+import { type Cadence } from "@/lib/cadence"
+import { HORIZON_OCCURRENCES, computeInstanceDates, horizonDates } from "@/lib/tasks/recurrence"
+import { isSettledInstanceStatus } from "@/lib/tasks/instance-window"
 
 export type TaskInstance = typeof taskInstances.$inferSelect
 
@@ -68,36 +69,65 @@ export async function createTaskInstance(data: {
   }
 }
 
-export async function generateNextInstance(taskId: number): Promise<TaskInstance | null> {
-  try {
-    const templateResults = await db.select().from(tasks).where(eq(tasks.id, taskId)).limit(1)
-    const template = templateResults[0]
-    if (!template || !template.cadence || template.cadence === "one-off") return null
+/**
+ * Top a template's grid up so it always holds `occurrences` scheduled dates from today
+ * onward. Returns the dates it wrote — empty when the grid already reached far enough.
+ *
+ * The anchor is the member's local day, never the end of the old grid: a template nobody
+ * opened for a month would otherwise be handed dates in the past, and a row dated last
+ * Tuesday that no one worked is a fabricated record. The days that lapsed stay absent,
+ * which is what the tasks panel reports as "Missed N days".
+ */
+export async function ensureInstanceHorizon(
+  taskId: number,
+  cadence: Cadence,
+  todayIso: string,
+  occurrences: number = HORIZON_OCCURRENCES,
+): Promise<string[]> {
+  if (cadence === "one-off") return []
 
+  try {
     const latestResults = await db
-      .select()
+      .select({ instanceDate: taskInstances.instanceDate })
       .from(taskInstances)
       .where(eq(taskInstances.taskId, taskId))
       .orderBy(sql`${taskInstances.instanceDate} DESC`)
       .limit(1)
 
-    const latest = latestResults[0]
-    if (!latest) return null
+    const dates = horizonDates(cadence, latestResults[0]?.instanceDate ?? null, todayIso, occurrences)
+    if (dates.length === 0) return []
 
-    const nextDateIso = computeNextRun(template.cadence as Cadence, new Date(latest.instanceDate!))
-    if (!nextDateIso) return null
+    await db
+      .insert(taskInstances)
+      .values(dates.map((date) => ({ taskId, instanceDate: date, status: "todo" as const })))
+      .onConflictDoNothing()
 
-    const nextDate = nextDateIso.slice(0, 10)
+    return dates
+  } catch (error) {
+    console.error("Error topping up instance horizon:", error)
+    return []
+  }
+}
 
-    const existing = await db
+/**
+ * The next occurrence the assignee should act on: the earliest open row from today forward,
+ * creating the grid first if it ran out. Null when the schedule has no open occurrence left.
+ */
+export async function generateNextInstance(taskId: number, todayIso: string): Promise<TaskInstance | null> {
+  try {
+    const templateResults = await db.select().from(tasks).where(eq(tasks.id, taskId)).limit(1)
+    const template = templateResults[0]
+    if (!template || !template.cadence || template.cadence === "one-off") return null
+
+    await ensureInstanceHorizon(taskId, template.cadence as Cadence, todayIso)
+
+    const open = await db
       .select()
       .from(taskInstances)
-      .where(and(eq(taskInstances.taskId, taskId), eq(taskInstances.instanceDate, nextDate)))
-      .limit(1)
+      .where(and(eq(taskInstances.taskId, taskId), gte(taskInstances.instanceDate, todayIso)))
+      .orderBy(sql`${taskInstances.instanceDate} ASC`)
 
-    if (existing.length > 0) return existing[0]
-
-    return await createTaskInstance({ taskId, instanceDate: nextDate, status: "todo" })
+    return open.find((row) => !isSettledInstanceStatus(row.status)) ?? null
   } catch (error) {
     console.error("Error generating next instance:", error)
     return null
