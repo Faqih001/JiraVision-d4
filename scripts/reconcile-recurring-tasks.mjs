@@ -21,6 +21,13 @@
 // ("this schedule is running"), the only honest open state for a row whose own status no longer
 // participates in any count.
 //
+// Weekend occurrences are settled here too. The office works Monday-Friday, so the recurrence
+// engine no longer *creates* Sat/Sun rows — but the grids already written before that rule landed
+// hold some. Every one of them is still 'todo' and still in the future (nobody has ever done
+// weekend work), so marking them 'skipped' loses nothing: 'skipped' is in SETTLED_STATUSES, which
+// means the row stops counting as missed work and stops drawing a To-do card, while the audit
+// trail keeps the date. Rows anybody has already touched are left exactly as they are.
+//
 // Grids are NOT written here. `ensureInstanceHorizon` lives in TypeScript and is already called,
 // bounded, by the calendar read (25 schedules per request, 90 occurrences each); duplicating the
 // engine in SQL would give the dates two authors. The rows this script flips start growing on the
@@ -28,9 +35,9 @@
 //
 // Run from the repo root:
 //   node scripts/reconcile-recurring-tasks.mjs            rehearsal: SELECTs only, prints the exact
-//                                                         row counts and the two UPDATE statements
+//                                                         row counts and the three UPDATE statements
 //                                                         --apply would run. Writes nothing.
-//   node scripts/reconcile-recurring-tasks.mjs --apply    those two statements in one transaction,
+//   node scripts/reconcile-recurring-tasks.mjs --apply    those three statements in one transaction,
 //                                                         after writing backups/reconcile-recurring-<stamp>.
 //   node scripts/reconcile-recurring-tasks.mjs --restore backups/reconcile-recurring-<stamp>
 //                                                         replays that dump's before-values.
@@ -66,6 +73,8 @@ const sql = postgres(urlMatch[1], { max: 1 })
 // two lists together; this script must never be the only place one of them is written.
 const COMPLETED_STATUSES = ["done", "completed", "closed"]
 const REOPEN_TO = "in_progress"
+// lib/tasks/instance-window.ts SETTLED_STATUSES: a settled row is nobody's outstanding work.
+const WEEKEND_SETTLE_TO = "skipped"
 
 function bar(n, total, width = 28) {
   if (total <= 0) return ""
@@ -74,7 +83,7 @@ function bar(n, total, width = 28) {
 }
 
 try {
-  console.log(`\nreconcile-recurring-tasks — ${APPLY ? "APPLY" : "REHEARSAL (rolls back)"}`)
+  console.log(`\nreconcile-recurring-tasks — ${APPLY ? "APPLY" : "REHEARSAL (read-only)"}`)
   console.log(`host: ${maskHost(urlMatch[1])}\n`)
 
   if (RESTORE_DIR) {
@@ -84,7 +93,7 @@ try {
     }
     const before = JSON.parse(readFileSync(`${RESTORE_DIR}/before.json`, "utf8"))
     await sql.begin(async (tx) => {
-      for (const row of before) {
+      for (const row of before.tasks) {
         await tx`
           update tasks
              set is_template = ${row.is_template},
@@ -92,8 +101,16 @@ try {
                  updated_at  = ${row.updated_at}
            where id = ${row.id}`
       }
+      for (const row of before.instances) {
+        await tx`
+          update task_instances
+             set status = ${row.status}
+           where id = ${row.id}`
+      }
     })
-    console.log(`restored ${before.length} tasks rows from ${RESTORE_DIR}`)
+    console.log(
+      `restored ${before.tasks.length} tasks rows and ${before.instances.length} task_instances rows from ${RESTORE_DIR}`,
+    )
   } else {
     // ---- what is there now -------------------------------------------------
     const pairs = await sql`
@@ -151,9 +168,14 @@ try {
     const instanceTotal = grids.reduce((s, g) => s + g.instances, 0)
 
     const weekendRows = await sql`
-      select count(*)::int as n
+      select id, status, instance_date::text as instance_date, task_id
         from task_instances
-       where extract(isodow from instance_date) >= 6`
+       where extract(isodow from instance_date) >= 6
+       order by instance_date, id`
+
+    // Only an untouched row is settled. Anything somebody already did, skipped or started is
+    // theirs, and the weekend rule has no opinion about it.
+    const toSettle = weekendRows.filter((r) => r.status === "todo")
 
     console.log("what would change")
     console.log(`  flip is_template false -> true   ${toFlag.length} tasks`)
@@ -161,7 +183,10 @@ try {
     console.log(`  template flagged with no cadence ${opposite.length} tasks  (left alone; reported)`)
     console.log(`  schedules with an empty grid     ${emptyGrids.length} of ${grids.length}  (grow on the next calendar read)`)
     console.log(`  instance rows already on the grid ${instanceTotal}`)
-    console.log(`  instance rows dated Sat/Sun      ${weekendRows[0].n}  (NOT touched by this script)\n`)
+    console.log(
+      `  settle Sat/Sun occurrences       ${toSettle.length} of ${weekendRows.length} weekend rows  ` +
+        `(-> ${WEEKEND_SETTLE_TO}; the other ${weekendRows.length - toSettle.length} were already touched)\n`,
+    )
 
     if (toReopen.length) {
       console.log("the schedules that would be reopened")
@@ -177,7 +202,35 @@ try {
       console.log()
     }
 
-    if (toFlag.length === 0 && toReopen.length === 0) {
+    // Every row that will be a schedule after the fix, so two imports of the same work are visible
+    // side by side rather than discovered as duplicate cards on the board.
+    const allSchedules = await sql`
+      select id, title, cadence, status, is_template, assignee_id
+        from tasks
+       where cadence is not null and cadence <> 'one-off'
+       order by lower(title), id`
+
+    console.log(`all ${allSchedules.length} schedules after the fix, alphabetical`)
+    for (const r of allSchedules) {
+      const origin = r.is_template ? "template " : "IMPORTED "
+      console.log(
+        `  #${String(r.id).padEnd(4)} ${origin} ${r.cadence.padEnd(10)} ${r.status.padEnd(12)} ${String(r.title).slice(0, 58)}`,
+      )
+    }
+
+    const byTitle = new Map()
+    for (const r of allSchedules) {
+      const key = String(r.title).toLowerCase().replace(/^(daily|weekly|monthly|quarterly|yearly):\s*/, "").replace(/[^a-z0-9 ]/g, "").trim()
+      byTitle.set(key, [...(byTitle.get(key) ?? []), r])
+    }
+    const dupes = [...byTitle.values()].filter((g) => g.length > 1)
+    console.log(`\n  title collisions: ${dupes.length}`)
+    for (const g of dupes) {
+      console.log(`    ${g.map((r) => `#${r.id} (${r.is_template ? "template" : "imported"})`).join("  vs  ")}  ${String(g[0].title).slice(0, 50)}`)
+    }
+    console.log()
+
+    if (toFlag.length === 0 && toReopen.length === 0 && toSettle.length === 0) {
       console.log("nothing to do — the invariant already holds.")
       await sql.end()
       process.exit(0)
@@ -185,6 +238,7 @@ try {
 
     // ---- the change --------------------------------------------------------
     const ids = [...new Set([...toFlag.map((r) => r.id), ...toReopen.map((r) => r.id)])]
+    const settleIds = toSettle.map((r) => r.id)
 
     if (!APPLY) {
       console.log("statements --apply would run")
@@ -192,7 +246,12 @@ try {
       console.log("   where cadence is not null and cadence <> 'one-off' and is_template = false")
       console.log(`  update tasks set status = '${REOPEN_TO}', updated_at = now()`)
       console.log(`   where cadence is not null and cadence <> 'one-off' and status = any(${JSON.stringify(COMPLETED_STATUSES)})`)
-      console.log(`\n  ${ids.length} distinct rows, backup written to backups/reconcile-recurring-<stamp>/before.json`)
+      console.log(`  update task_instances set status = '${WEEKEND_SETTLE_TO}'`)
+      console.log(`   where id = any(${settleIds.length} ids listed above)  -- Sat/Sun rows still 'todo'`)
+      console.log(
+        `\n  ${ids.length} tasks rows + ${settleIds.length} instance rows, ` +
+          "backup written to backups/reconcile-recurring-<stamp>/before.json",
+      )
       console.log("rehearsal ran no writes — the database is exactly as it was.")
       console.log("re-run with --apply to commit these changes.\n")
       await sql.end()
@@ -204,6 +263,32 @@ try {
         from tasks
        where id = any(${ids})
        order by id`
+
+    // The backup is written before the transaction, not after: a rollback is only possible if the
+    // before-values are already on disk.
+    const stamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19)
+    const dir = `backups/reconcile-recurring-${stamp}`
+    mkdirSync(dir, { recursive: true })
+    writeFileSync(
+      `${dir}/before.json`,
+      JSON.stringify(
+        {
+          tasks: touched.map((r) => ({
+            id: r.id,
+            is_template: r.is_template,
+            status: r.status,
+            updated_at: r.updated_at instanceof Date ? r.updated_at.toISOString() : r.updated_at,
+          })),
+          instances: toSettle.map((r) => ({ id: r.id, status: r.status })),
+        },
+        null,
+        2,
+      ),
+    )
+    writeFileSync(
+      `${dir}/RESTORE.md`,
+      `# Restore\n\nBefore-values for ${touched.length} tasks rows and ${toSettle.length} task_instances rows, taken immediately before the apply.\n\n\`\`\`\nnode scripts/reconcile-recurring-tasks.mjs --restore ${dir}\n\`\`\`\n`,
+    )
 
     await sql.begin(async (tx) => {
       await tx`
@@ -221,28 +306,15 @@ try {
          where cadence is not null
            and cadence <> 'one-off'
            and status = any(${COMPLETED_STATUSES})`
-    })
 
-    const stamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19)
-    const dir = `backups/reconcile-recurring-${stamp}`
-    mkdirSync(dir, { recursive: true })
-    writeFileSync(
-      `${dir}/before.json`,
-      JSON.stringify(
-        touched.map((r) => ({
-          id: r.id,
-          is_template: r.is_template,
-          status: r.status,
-          updated_at: r.updated_at instanceof Date ? r.updated_at.toISOString() : r.updated_at,
-        })),
-        null,
-        2,
-      ),
-    )
-    writeFileSync(
-      `${dir}/RESTORE.md`,
-      `# Restore\n\nBefore-values for ${touched.length} tasks rows, taken immediately before the apply.\n\n\`\`\`\nnode scripts/reconcile-recurring-tasks.mjs --restore ${dir}\n\`\`\`\n`,
-    )
+      // By id, not by the isodow predicate, so the write and the backup name the same rows even if
+      // a grid is topped up while this runs.
+      await tx`
+        update task_instances
+           set status = ${WEEKEND_SETTLE_TO}
+         where id = any(${settleIds})
+           and status = 'todo'`
+    })
 
     const after = await sql`
       select count(*) filter (where cadence <> 'one-off' and is_template = false)::int as violating,
@@ -250,10 +322,17 @@ try {
              count(*) filter (where cadence <> 'one-off' and status = any(${COMPLETED_STATUSES}))::int as finished_schedules
         from tasks`
 
+    const afterWeekend = await sql`
+      select count(*)::int as weekend_todo
+        from task_instances
+       where extract(isodow from instance_date) >= 6
+         and status = 'todo'`
+
     console.log("applied.")
     console.log(`  rows still violating the invariant ${after[0].violating}`)
     console.log(`  schedules                          ${after[0].schedules}`)
     console.log(`  schedules at a completed word      ${after[0].finished_schedules}`)
+    console.log(`  weekend rows still 'todo'          ${afterWeekend[0].weekend_todo}`)
     console.log(`  backup                             ${dir}\n`)
   }
 } catch (err) {
