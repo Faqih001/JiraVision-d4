@@ -2,7 +2,9 @@ import { NextResponse } from "next/server"
 import { getSession } from "@/lib/auth-actions"
 import { db } from "@/lib/db"
 import { tasks } from "@/drizzle/schema"
-import { pickTaskUpdates } from "@/lib/task-updates"
+import { pickTaskUpdates, recurringStatusError } from "@/lib/task-updates"
+import { materialiseGridOnCadenceChange } from "@/lib/data-access-task-instances"
+import { localDay } from "@/lib/worklog/local-day"
 import { captureStatusChanges } from "@/lib/worklog/capture"
 import { eq, and, inArray } from "drizzle-orm"
 
@@ -67,9 +69,20 @@ export async function POST(request: Request) {
         // Read the pre-write statuses first: after the UPDATE they are gone, and drizzle's
         // .returning() gives only the new values. One query, then one event insert.
         const beforeRows = await db
-          .select({ id: tasks.id, status: tasks.status })
+          .select({ id: tasks.id, status: tasks.status, cadence: tasks.cadence })
           .from(tasks)
           .where(inArray(tasks.id, numericTaskIds))
+
+        // One recurring row in the batch is enough to refuse it: the update would contradict
+        // the schedule of the task it is written to, and half-applying a bulk action is worse
+        // than asking the caller to narrow the selection.
+        const blocked = beforeRows.filter((row) => recurringStatusError(row, updates.patch))
+        if (blocked.length > 0) {
+          return NextResponse.json(
+            { success: false, message: `${recurringStatusError(blocked[0], updates.patch)} (${blocked.length} selected)` },
+            { status: 409 },
+          )
+        }
 
         // Update all specified tasks
         result = await db
@@ -82,6 +95,13 @@ export async function POST(request: Request) {
           actorId: session.id,
           source: "bulk",
         })
+
+        if (updates.patch.cadence !== undefined) {
+          const todayIso = localDay(new Date(), session.timezone)
+          for (const row of beforeRows) {
+            await materialiseGridOnCadenceChange(row.id, row.cadence, updates.patch.cadence, todayIso)
+          }
+        }
 
         break
       }
