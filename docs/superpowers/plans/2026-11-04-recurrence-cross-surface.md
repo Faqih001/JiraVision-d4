@@ -38,6 +38,8 @@ Discovered while writing this plan; the spec could not know them. Each is decide
 - **P6 — top-up candidates order by `tasks.id`, not "soonest missing occurrence".** §C3 asked for soonest-missing, which is a per-task aggregate over `task_instances` (a lateral join) inside a read path. With the 25-task bound the deferred set is arbitrary either way, so `asc(tasks.id)` is used: stable, no extra aggregate, earliest-created schedules catch up first.
 - **P7 — which new server counts also exclude schedules.** §G4 says counting surfaces hide templates. Applied to the five files P4 adds: the team-directory workload counts (`loadTaskAggregates`, `loadMemberRow`) are member workload, so they get `eq(tasks.isTemplate, false)` like the dashboard reads; the account-removal guard in `app/api/team/members/[id]/route.ts:277-279` does **not** — it answers "does this member own any row that would dangle", and a schedule assigned to them is exactly such a row. `app/api/automation/_shared.ts` and `app/api/ethical-metrics/apply-recommendation/route.ts` are writers deciding which task to move, not counts; they get the status list and no template predicate. **Why:** one rule ("counts hide schedules, safety checks and writers do not") beats a per-file argument. **Cost if wrong:** the removal guard could report a member as free while their imported checklists still point at them.
 - **P8 — the career files are not swept and are not missed.** `lib/career/counts.ts:125` and `lib/career/evidence.ts:244` compare `taskInstances.status` to `"done"` (ruling **P3** pins those), and `lib/career/growth.ts:288` only contains the word inside a Gemini prompt. No `tasks.status` literal survives in `lib/career` or `app/api/career`, so the Task 6 guard list omits them. **Why:** stating the exclusion keeps a later reader from "fixing" a pinned instance comparison. **Cost if wrong:** none — a fourth completed word would have to appear on an instance row, which the PATCH whitelist refuses.
+- **P9 — the fragments are rendered by the dialect, not by `toSQL()`** (written back after Task 6 shipped). A drizzle `SQL` instance has no `toSQL()`; `new PgDialect().sqlToQuery(fragment)` is the connection-free render, and it emits `$1, $2, $3` rather than `?`. Task 6's unit test measures `params` and counts `$`. **Why:** the plan drafted the test against an API that does not exist. **Cost if wrong:** none — the assertion is equivalent.
+- **P10 — a route imports only the helper it uses.** `app/api/sprints/route.ts` reads `completedStatusSql` alone; the draft said to copy Step 8's two-line import in, and `openStatusSql` would then be unused. The lint gate is a fixed baseline (82 problems, 4 errors), so an unused import is a gate failure. **Why:** the baseline, not taste. **Cost if wrong:** a lint error a later reader mistakes for pre-existing noise.
 
 ## File map
 
@@ -1200,25 +1202,30 @@ Create `tests/unit/statuses-sql.test.ts`:
 ```ts
 import { describe, expect, it } from "vitest"
 import { sql } from "drizzle-orm"
+import { PgDialect } from "drizzle-orm/pg-core"
 import { tasks } from "@/drizzle/schema"
 import { COMPLETED_TASK_STATUSES } from "@/lib/tasks/statuses"
 import { completedStatusListSql, completedStatusSql, openStatusSql } from "@/lib/tasks/statuses-sql"
 
+// A drizzle `SQL` fragment has no `toSQL()`; the dialect is what renders it. PgDialect is
+// constructed without a connection, so this measures the same text the server will send.
+const render = (fragment: ReturnType<typeof completedStatusSql>) => new PgDialect().sqlToQuery(fragment)
+
 describe("completedStatusSql", () => {
   it("binds every word in the shared list, so a fourth word arrives automatically", () => {
-    const { sql, params } = completedStatusSql(tasks.status).toSQL()
+    const { sql: text, params } = render(completedStatusSql(tasks.status))
     expect(params).toEqual([...COMPLETED_TASK_STATUSES])
-    expect(sql.toLowerCase()).toContain("in (")
+    expect(text.toLowerCase()).toContain("in (")
   })
 
   it("renders the qualified column, not a bare name", () => {
-    expect(completedStatusSql(tasks.status).toSQL().sql).toContain('"tasks"."status"')
+    expect(render(completedStatusSql(tasks.status)).sql).toContain('"tasks"."status"')
   })
 })
 
 describe("openStatusSql", () => {
   it("is the exact negation of the completed fragment", () => {
-    const open = openStatusSql(tasks.status).toSQL()
+    const open = render(openStatusSql(tasks.status))
     expect(open.params).toEqual([...COMPLETED_TASK_STATUSES])
     expect(open.sql.toLowerCase()).toContain("not (")
   })
@@ -1226,19 +1233,24 @@ describe("openStatusSql", () => {
 
 describe("completedStatusListSql", () => {
   it("binds one placeholder per word and no column of its own", () => {
-    const { sql, params } = completedStatusListSql().toSQL()
+    const { sql: text, params } = render(completedStatusListSql())
     expect(params).toEqual([...COMPLETED_TASK_STATUSES])
-    expect(sql.split("?").length - 1).toBe(COMPLETED_TASK_STATUSES.length)
-    expect(sql).not.toContain("status")
+    expect(text.split("$").length - 1).toBe(COMPLETED_TASK_STATUSES.length)
+    expect(text).not.toContain("status")
   })
 
   it("renders a valid `not in` after a raw aliased column", () => {
-    const fragment = sql`t.status not in (${completedStatusListSql()})`.toSQL()
+    const fragment = render(sql`t.status not in (${completedStatusListSql()})`)
     expect(fragment.params).toEqual([...COMPLETED_TASK_STATUSES])
     expect(fragment.sql.toLowerCase()).toContain("t.status not in")
   })
 })
 ```
+
+Ruling **P9** (forced by the code, synced after shipping): the original draft called `.toSQL()` on
+the fragments — that method does not exist on a drizzle `SQL` instance — and counted `?`
+placeholders. The dialect renders Postgres parameters as `$1, $2, $3`, so the placeholder count is
+taken over `$`. `new PgDialect()` needs no connection, which keeps the test DB-free.
 
 - [ ] **Step 2: Run it and watch it fail**
 
@@ -1426,7 +1438,7 @@ Per §G4, **no** `isTemplate` predicate is added to any sprint aggregate: a recu
 
 - [ ] **Step 9: The remaining server readers**
 
-`app/api/sprints/route.ts` — add both helper imports (same two lines as Step 8), then :106 and :108:
+`app/api/sprints/route.ts` — add `import { completedStatusSql } from "@/lib/tasks/statuses-sql"` only (this route has no open-status read, and an unused import is a new lint problem against a fixed baseline — ruling **P10**), then :106 and :108:
 
 ```ts
       donePoints: sql<number>`coalesce(sum(case when ${completedStatusSql(tasks.status)} then ${tasks.storyPoints} else 0 end), 0)::int`,
