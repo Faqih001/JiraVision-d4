@@ -1,4 +1,6 @@
 import { CADENCE_DAYS, type Cadence, computeNextRun } from "@/lib/cadence"
+import { shiftDays } from "@/lib/worklog/local-day"
+import { fromIsoDate, isWeekend } from "@/lib/working-days"
 
 export const INSTANCE_COUNTS: Record<Cadence, number> = {
   "one-off": 0,
@@ -20,6 +22,35 @@ function dayMs(value: string | null | undefined): number | null {
   if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null
   const ms = Date.parse(`${value}T00:00:00Z`)
   return Number.isNaN(ms) ? null : ms
+}
+
+/** True when a `YYYY-MM-DD` day falls on a Saturday or a Sunday. */
+export function isWeekendDay(dayIso: string): boolean {
+  const day = fromIsoDate(dayIso)
+  return day !== null && isWeekend(day)
+}
+
+/**
+ * The working day an occurrence is actually done on: the date itself when it is Monday–Friday,
+ * otherwise the following Monday. An occurrence is never dropped and never pulled earlier — the
+ * office simply does not open at the weekend, so `daily` steps Friday → Monday and a weekly
+ * schedule dated a Saturday is worked on the Monday instead.
+ *
+ * The rolled day becomes the grid's next anchor, because a grid stores only the day it wrote and
+ * the original date is not recoverable from it. A weekly anchor therefore settles on the Monday
+ * it moved to, and a monthly one can shift a day when its date lands on a weekend. That is the
+ * same one-way behaviour `computeNextRun` already has for a 31st (Jan 31 → Mar 3); holding the
+ * true anchor would need a column the schema does not have.
+ *
+ * Deliberately not in `computeNextRun`: that function also drives `report_schedules.next_run_at`,
+ * whose existing rows were produced without a weekend rule, and its own comment warns that a
+ * change there would shift live schedules.
+ */
+export function workingDayOnOrAfter(dayIso: string): string {
+  let cursor = dayIso
+  // Saturday needs one step and Sunday two; the third iteration is a guard, not a case.
+  for (let i = 0; i < 3 && isWeekendDay(cursor); i++) cursor = shiftDays(cursor, 1)
+  return cursor
 }
 
 /**
