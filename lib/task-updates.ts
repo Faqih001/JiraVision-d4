@@ -181,7 +181,7 @@ export const RECURRING_STATUS_HINT =
  */
 export function recurringStatusError(
   current: { cadence?: string | null },
-  patch: { status?: unknown; cadence?: unknown },
+  patch: Readonly<Record<string, unknown>>,
 ): string | null {
   const cadence = (patch.cadence as string | undefined) ?? current.cadence ?? null
   if (!cadence || cadence === "one-off") return null
