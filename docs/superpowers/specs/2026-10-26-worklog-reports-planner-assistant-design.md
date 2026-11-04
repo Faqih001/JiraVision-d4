@@ -437,6 +437,7 @@ in `career_levels.signals`:
 | `reviews_logged_90` | `work_log_entries.kind in (review, deliverable)` |
 | `tasks_completed_90` | `task_events.to_status` in the completed list, on tasks assigned to the member |
 | `points_completed_90` | `tasks.story_points` of those tasks |
+| `instance_days_completed_90` | distinct `task_instances.instance_date` with `status = 'done'` and a `completed_at` in window, on tasks assigned to the member — the recurring-days count `tasks_completed_90` cannot express, since it counts distinct *tasks* and so credits thirty closed days of one checklist as 1 |
 | `deliverables_delivered` | `deliverables.status = 'delivered'` in window |
 | `reports_submitted` | `work_reports.status in (submitted, acknowledged)` in window |
 | `disciplines_touched` | distinct `tasks.discipline` over the window |

@@ -1426,3 +1426,48 @@ than a date borrowed from `created_at` or `updated_at`.
   `tests/unit/worklog-reports.test.ts` guarding that all five create paths call `captureTaskBirths`, that the
   birth sentinel never leaks into the transition rule, that the rule asks the shared completed list rather than
   one literal, and that no seed or sample file writes into `task_events` at all.
+
+## 49. A recurring task keeps a horizon instead of running out (2026-11-04)
+
+The recurrence system pre-materialises a grid of `task_instances` rows when a template is created — 30 days for
+daily, 12 for weekly — and nothing extended it. There is no cron in `vercel.json`. So the day after the owner
+closed today's instance, the panel showed the tail of next month (the list sorted descending and cut ten rows),
+today was nowhere to complete, and a template nobody opened for a month handed out dates in the past.
+
+- **The window, not the grid.** `planInstanceWindow(instances, todayIso)` in `lib/tasks/instance-window.ts` is a
+  pure selector returning `{ today, upcoming, missedDates, missedCount }`: rows from today forward, ascending,
+  capped at `HORIZON_OCCURRENCES` (7), and every earlier row that is neither done nor skipped collapsed into a
+  "Missed N days" line. Missed days get no Complete button — nobody can close last Tuesday, and offering one
+  would invite a fabricated record.
+- **The horizon is anchored on the member's local day.** `horizonDates(cadence, latestIso, todayIso, n)` steps
+  once past the grid's last date, walks forward to today, and never returns a date before it.
+  `ensureInstanceHorizon()` counts the rows it already holds from today onward and only writes the shortfall, so
+  topping up a 30-row daily grid writes nothing. `generateNextInstance()` now means "the earliest open row from
+  today forward, creating rows if the grid ran out" instead of chaining off the stale tail.
+- **No new scheduler, no schema change.** The top-up happens where the grid is already being read and written:
+  `GET /api/task-instances?taskId=` (for the assignee only — a viewer must not write into someone else's
+  schedule) and the instance PATCH. Days nobody worked stay absent, which is exactly what the missed line says.
+- **A cadence set later gets a grid.** `materialiseGridOnCadenceChange()` fires on a `one-off → recurring` PATCH
+  only; an already-recurring template's rows, and any work recorded on them, are left alone. All four task write
+  doors call it, and `pickTaskUpdates` now moves `is_template` with `cadence` — the calendar filters on that
+  flag, so a stale one hid the schedule.
+- **A template cannot be marked Done.** `recurringStatusError(current, patch)` returns
+  "recurring tasks stay open — complete today's instance instead" and every writer answers 409. It reads
+  `patch.cadence` too, because a body that sets status and cadence together is the same contradiction in one
+  request. The boards hide the finished words on recurring cards rather than letting a drag fail.
+- **Quarterly existed everywhere except the vocabulary.** The planner's enum and `lib/seed/tasks.ts` both emit
+  `quarterly`; `CADENCES` did not carry it, so `computeInstanceDates` returned no grid. It now steps three
+  months at a time, 8 occurrences.
+- **The days count as career evidence.** A tenth signal, `instance_days_completed_90` ("Recurring days
+  completed"), counts distinct closed instance dates for tasks assigned to the member. `tasks_completed_90`
+  counts distinct *tasks*, so thirty closed days of one checklist credited 1 — and instance writes never reach
+  `task_events`, which is the other reason this is a count rather than an event. Its ladder target is 0 on every
+  rung: a zero target reads as "no bar set", so publishing the signal cannot move anyone's readiness number
+  until the owner sets real rungs. `lib/career/evidence.ts` evidences it one row per closed day, so the number
+  on the meter stays openable.
+- **Tests.** `tests/unit/task-instance-window.test.ts` (9), `horizonDates` cases in
+  `tests/unit/task-recurrence.test.ts`, 10 cases in `tests/unit/task-updates.test.ts` for the recurring-status
+  rule and the `is_template` derivation, and `tests/unit/recurrence-gap-guards.test.ts` (36) holding the wiring:
+  all four writers refuse with 409 and materialise the grid, the horizon writer never uses the old step-from-tail
+  function, the read route checks the assignee, the panel uses the selector and never maps missed dates into rows,
+  and every registered signal is both counted and evidenced.

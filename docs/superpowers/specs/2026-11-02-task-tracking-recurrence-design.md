@@ -7,7 +7,7 @@
 ## Overview
 
 Extend the existing task tracking system to support:
-1. **Recurring tasks** — Tasks with cadence (daily/weekly/monthly/yearly) that auto-generate next instance on completion
+1. **Recurring tasks** — Tasks with cadence (daily/weekly/monthly/quarterly/yearly) whose next open instance is served from a horizon anchored on today
 2. **Checklists** — Tasks with simple checkbox items (yes/no/n/a) for operational checks
 3. **Calendar views** — 4 view modes: due dates, cadence-based, both, range
 4. **Report types** — Hybrid reports: auto-generated drafts from task/checklist data with manual editing
@@ -61,19 +61,29 @@ This design is driven by the IT technician workflow documented in the handover b
 
 ### Recurrence Engine
 
-**Location:** `lib/tasks/recurrence.ts`
+**Location:** `lib/tasks/recurrence.ts` (pure dates) and `lib/data-access-task-instances.ts` (writes)
 
-**Core function:** `generateNextInstance(taskId: number): Promise<void>`
+**Core function:** `generateNextInstance(taskId: number, todayIso: string): Promise<TaskInstance | null>`
 
-Logic:
-1. Load the template task
-2. Compute next instance date using `computeNextRun(task.cadence, lastInstance.instance_date)`
-3. Create new row in `task_instances` with status='todo'
-4. If the task has checklist items, copy them to the instance (stored in instance metadata)
+Logic (as shipped, amended 2026-11-04):
+1. Load the template task; bail for a one-off.
+2. `ensureInstanceHorizon()` tops the grid up so it always holds `HORIZON_OCCURRENCES` (7) scheduled dates from
+   today onward. The anchor is the member's local day — never the last stored row — because a row dated in the
+   past that nobody worked is a fabricated record. Days that lapsed while nobody opened the task stay absent; the
+   tasks panel reports them as "Missed N days" and offers no way to close them.
+3. Return the earliest open row from today forward (`status` neither done nor skipped), or null.
 
-**Trigger:** Called automatically when a task instance is marked complete.
+The original design step "compute next instance date from the last instance's date" is retired: chaining off the
+tail produced past-dated rows for any grid that had fallen behind and never caught up.
 
-**Initial population:** When a template task is created with cadence != 'one-off', generate instances for the next 30 days (daily), 12 weeks (weekly), 12 months (monthly), or 4 quarters (yearly).
+**Triggers:** the instance PATCH when a row is closed, and `GET /api/task-instances?taskId=` for the task's own
+assignee. There is no cron — `vercel.json` carries none — so the horizon is maintained where the grid is already
+being read and written. A reader who is not the assignee never writes rows into someone's schedule.
+
+**Initial population:** When a template task is created with cadence != 'one-off', generate instances for the next
+30 days (daily), 12 weeks (weekly), 12 months (monthly), 8 quarters (quarterly), or 4 years (yearly). A task whose
+cadence is set *later* gets the same grid, anchored at today, via `materialiseGridOnCadenceChange()` — and only
+when it was a one-off before, so an existing schedule's rows and recorded work are never rewritten.
 
 ### Checklist System
 
@@ -163,7 +173,13 @@ Logic:
 
 **PATCH /api/tasks/[id]**
 - Accept `cadence`, `checklistItems` updates
-- If cadence changes, regenerate instances
+- `cadence` carries `is_template` with it (`cadence !== "one-off"`), because the calendar filters on that flag; a
+  body that sets `isTemplate` directly is ignored
+- A `one-off → recurring` change materialises the grid anchored at today; an already-recurring task's grid is
+  left alone
+- A recurring task refuses any finished status (`recurringStatusError()` in `lib/task-updates.ts`) with **409**
+  and the message "recurring tasks stay open — complete today's instance instead". Closing a template would
+  delete the schedule it describes, and the boards hide the finished words rather than letting a drag fail.
 
 **POST /api/tasks/[id]/complete**
 - Mark instance complete
@@ -175,10 +191,13 @@ Logic:
 **GET /api/task-instances**
 - Query params: `taskId`, `startDate`, `endDate`, `status`
 - Return instances in range
+- When `taskId` is present and the caller is that task's assignee, top the grid up to the horizon first — this
+  read is what keeps a daily task alive with no cron. A non-assignee read stays read-only.
 
 **PATCH /api/task-instances/[id]**
 - Update status, notes, checklist responses
-- If status changes to 'done', trigger next instance generation
+- If status changes to 'done', return the next open occurrence from today (`generateNextInstance(taskId,
+  localDay(now, session.timezone))`), which tops the grid up first if it ran out
 
 ### Calendar
 
