@@ -508,9 +508,9 @@ export default function PlanEditorClient({ params }: { params: Promise<{ id: str
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="none">None</SelectItem>
-                          {CADENCES.map((c) => (
+                          {SCHEDULE_CADENCES.map((c) => (
                             <SelectItem key={c} value={c}>
-                              {c}
+                              {CADENCE_LABEL[c]}
                             </SelectItem>
                           ))}
                         </SelectContent>

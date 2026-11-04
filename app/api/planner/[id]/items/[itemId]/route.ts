@@ -6,6 +6,7 @@ import { getSession } from "@/lib/auth-actions"
 import { db } from "@/lib/db"
 import { agentPlans, planItems } from "@/drizzle/schema"
 import { readLegacyDiscipline } from "@/lib/roles"
+import { cadenceOrNone } from "@/lib/cadence"
 import { eq, and } from "drizzle-orm"
 
 type RouteContext = { params: Promise<{ id: string; itemId: string }> }
@@ -84,8 +85,10 @@ export async function PATCH(req: Request, ctx: RouteContext) {
   if (typeof body.milestone === "boolean") {
     updates.milestone = body.milestone
   }
-  if (typeof body.cadence === "string") {
-    updates.cadence = body.cadence || null
+  // `undefined` means the field was not sent; null means "no schedule", and an unknown word
+  // is stored as null rather than as a cadence nothing can step by.
+  if (body.cadence !== undefined) {
+    updates.cadence = cadenceOrNone(body.cadence)
   }
   if (typeof body.status === "string") {
     updates.status = body.status.slice(0, 50)
