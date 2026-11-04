@@ -1,10 +1,17 @@
 import { NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { calendarEvents, users, tasks, taskInstances } from "@/drizzle/schema"
-import { and, desc, eq, inArray, isNull, isNotNull, or, gte, lte, sql } from "drizzle-orm"
+import { and, asc, desc, eq, inArray, isNull, isNotNull, or, gte, lte, sql } from "drizzle-orm"
 import { getSession } from "@/lib/auth-actions"
 import { loadVisibleMemberIds } from "@/lib/organizations"
 import { createNotification } from "@/lib/notifications"
+import { isCadence } from "@/lib/cadence"
+import { horizonOccurrencesForWindow } from "@/lib/tasks/recurrence"
+import { ensureInstanceHorizon } from "@/lib/data-access-task-instances"
+import { localDay } from "@/lib/worklog/local-day"
+
+/** §C3: how many schedules one calendar read may top up. The rest catch up on the next read. */
+const HORIZON_TASK_LIMIT = 25
 
 export const dynamic = "force-dynamic"
 
@@ -205,6 +212,50 @@ export async function GET(request: Request) {
         { success: false, error: `Invalid viewMode. Must be one of: ${validViewModes.join(", ")}` },
         { status: 400 }
       )
+    }
+
+    // A grid that ran out shows nothing, and a month view that stops at today is the usual
+    // reason. Top the owned schedules up to the window's end before reading them.
+    //
+    // This is a write inside a read, so three things hold it down: only tasks this member owns
+    // (an unassigned schedule is visible but never written — a write into a grid needs an
+    // owner), at most HORIZON_TASK_LIMIT tasks, and at most MAX_HORIZON_OCCURRENCES rows each.
+    // It is awaited serially because the coverage check per task is what makes the common path
+    // one cheap SELECT. And it is swallowed: a failed top-up shows the rows already there.
+    if (viewMode === "cadence" || viewMode === "both" || viewMode === "range") {
+      const todayIso = localDay(new Date(), session.timezone)
+      const windowEnd =
+        endDate && !Number.isNaN(Date.parse(endDate)) ? endDate.slice(0, 10) : null
+      try {
+        const topUpScope = mineOnly
+          ? eq(tasks.assigneeId, session.id)
+          : inArray(tasks.assigneeId, visibleIds)
+        const candidates = await db
+          .select({ id: tasks.id, cadence: tasks.cadence })
+          .from(tasks)
+          .where(and(eq(tasks.isTemplate, true), topUpScope))
+          .orderBy(asc(tasks.id))
+          .limit(HORIZON_TASK_LIMIT + 1)
+
+        const batch = candidates.slice(0, HORIZON_TASK_LIMIT)
+        if (candidates.length > batch.length) {
+          console.log(
+            `[task_instances] horizon deferred: ${candidates.length - batch.length} tasks`,
+          )
+        }
+
+        for (const candidate of batch) {
+          if (!isCadence(candidate.cadence)) continue
+          await ensureInstanceHorizon(
+            candidate.id,
+            candidate.cadence,
+            todayIso,
+            horizonOccurrencesForWindow(candidate.cadence, todayIso, windowEnd),
+          )
+        }
+      } catch (error) {
+        console.error("[task_instances] horizon top-up failed:", error)
+      }
     }
 
     // Occurrences of a schedule, in their own status. Always assignee-scoped, so the
