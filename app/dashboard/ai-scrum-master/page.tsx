@@ -90,7 +90,11 @@ type TeamTask = {
   assigneeId: number | null
   sprintId: number | null
   dueDate: string | null
+  cadence?: string | null
 }
+
+/** A schedule has no Done column to arrive at; only its days get finished. */
+const isRecurring = (t: TeamTask) => Boolean(t.cadence) && t.cadence !== "one-off"
 
 type SprintRow = {
   id: number
@@ -1439,9 +1443,11 @@ export default function AIScrumMasterPage() {
                             Start
                           </Button>
                         )}
-                        <Button size="sm" variant="ghost" className="h-6 px-2 text-[11px] text-emerald-600" disabled={busy === `fix-${task.id}`} onClick={() => void quickFixTask(task, "done", `fix-${task.id}`)}>
-                          Done
-                        </Button>
+                        {!isRecurring(task) && (
+                          <Button size="sm" variant="ghost" className="h-6 px-2 text-[11px] text-emerald-600" disabled={busy === `fix-${task.id}`} onClick={() => void quickFixTask(task, "done", `fix-${task.id}`)}>
+                            Done
+                          </Button>
+                        )}
                       </div>
                     </td>
                   </tr>

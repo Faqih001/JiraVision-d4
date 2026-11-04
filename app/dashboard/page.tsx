@@ -116,6 +116,10 @@ type TaskDraft = {
 }
 
 type OverviewTask = DashboardOverview["myTasks"][number]
+type DueTodayRow = DashboardOverview["dueToday"][number]
+
+/** A schedule has no Done column to arrive at; only its days get finished. */
+const isRecurringTask = (t: { cadence?: string | null }) => Boolean(t.cadence) && t.cadence !== "one-off"
 
 // A task with no sprint. Radix forbids `<Select.Item value="" />` — the empty
 // string belongs to the Root, where it means "show the placeholder" — so the
@@ -141,11 +145,19 @@ function TodayStrip({
   loading,
   todayIso,
   staleCount,
+  dueToday,
+  dueTodayCount,
+  missedCount,
+  onToggleInstance,
 }: {
   summary: WorklogSummary | null
   loading: boolean
   todayIso: string
   staleCount: number | null
+  dueToday: DueTodayRow[]
+  dueTodayCount: number
+  missedCount: number
+  onToggleInstance: (id: number) => void
 }) {
   const logHref = `/dashboard/worklog?${new URLSearchParams({ v: "day", day: todayIso })}`
   const staleHref = "/dashboard/registers?stale=1"
@@ -174,6 +186,36 @@ function TodayStrip({
           </Link>
         </p>
       ) : null}
+      <div className="mb-3">
+        <p className="text-xs font-medium text-muted-foreground">
+          Due today · {dueTodayCount}
+          {missedCount > 0 ? <span className="text-red-500"> · {missedCount} missed</span> : null}
+        </p>
+        {dueToday.length === 0 ? (
+          <p className="mt-1 text-xs text-muted-foreground">Nothing due today from your schedules.</p>
+        ) : (
+          <ul className="mt-1 space-y-1">
+            {dueToday.map((d) => (
+              <li key={d.id} className="flex items-start gap-2 text-xs">
+                <input
+                  type="checkbox"
+                  aria-label={`Mark ${d.title} done for today`}
+                  className="mt-0.5 h-3.5 w-3.5"
+                  onChange={() => onToggleInstance(d.id)}
+                />
+                <Link href={`/dashboard/tasks?task=${d.taskId}`} className="underline underline-offset-2">
+                  {d.title}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+        {dueTodayCount > dueToday.length ? (
+          <Link href="/dashboard/tasks" className="mt-1 inline-block text-xs underline underline-offset-2">
+            see all {dueTodayCount}
+          </Link>
+        ) : null}
+      </div>
       {loading ? (
         <Skeleton className="h-20 w-full" />
       ) : summary === null ? (
@@ -429,6 +471,24 @@ export default function DashboardHome() {
       toast({ variant: "destructive", title: "Task", description: (err as Error).message })
     } finally {
       setSaving(false)
+    }
+  }
+
+  const setInstanceDone = async (id: number) => {
+    try {
+      const res = await fetch(`/api/task-instances/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "done" }),
+      })
+      if (!res.ok) {
+        const detail = (await res.json().catch(() => null)) as { message?: string } | null
+        toast({ variant: "destructive", title: "Could not record the day", description: detail?.message })
+        return
+      }
+      await reloadQuiet()
+    } catch (err) {
+      toast({ variant: "destructive", title: "Could not record the day", description: (err as Error).message })
     }
   }
 
@@ -778,7 +838,7 @@ export default function DashboardHome() {
                   <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => openEdit(t)}>
                     <Pencil className="mr-1 h-3 w-3" /> Edit
                   </Button>
-                  {!isCompletedTaskStatus(t.status) ? (
+                  {!isRecurringTask(t) && !isCompletedTaskStatus(t.status) ? (
                     <Button size="sm" variant="ghost" className="ml-auto h-7 px-2 text-xs text-emerald-600" onClick={() => setTaskStatus(t, "done")}>
                       Complete
                     </Button>
@@ -842,7 +902,7 @@ export default function DashboardHome() {
                         <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => setDetailTask(t)} aria-label={`Open ${t.title}`}>
                           <ChevronRight className="h-3.5 w-3.5" />
                         </Button>
-                        {!isCompletedTaskStatus(t.status) ? (
+                        {!isRecurringTask(t) && !isCompletedTaskStatus(t.status) ? (
                           <Button size="sm" variant="ghost" className="h-7 px-2 text-emerald-600" onClick={() => setTaskStatus(t, "done")}>
                             Done
                           </Button>
@@ -898,6 +958,10 @@ export default function DashboardHome() {
         loading={todayLoading}
         todayIso={today?.range.from ?? localDay(new Date())}
         staleCount={staleCount}
+        dueToday={overview.dueToday}
+        dueTodayCount={overview.dueTodayCount}
+        missedCount={overview.missedCount}
+        onToggleInstance={(id) => void setInstanceDone(id)}
       />
 
       {/* 6+7 — Burndown & velocity */}
@@ -1240,7 +1304,7 @@ export default function DashboardHome() {
               <div>
                 <Label className="text-xs">Change status</Label>
                 <div className="mt-1 flex flex-wrap gap-1">
-                  {STATUSES.map((s) => (
+                  {STATUSES.filter((s) => !(isRecurringTask(detailTask) && isCompletedTaskStatus(s))).map((s) => (
                     <Button
                       key={s}
                       size="sm"

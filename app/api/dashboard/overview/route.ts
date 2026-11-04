@@ -16,7 +16,7 @@ export async function GET(request: Request) {
 
     const scope: OverviewScope =
       new URL(request.url).searchParams.get("scope") === "member" ? "member" : "team"
-    const data = await getDashboardOverview(session.id, scope)
+    const data = await getDashboardOverview(session.id, scope, session.timezone)
     return NextResponse.json({ success: true, data })
   } catch (error) {
     console.error("Dashboard overview fetch error:", error)

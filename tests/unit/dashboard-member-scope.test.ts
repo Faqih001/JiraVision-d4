@@ -23,12 +23,13 @@ describe("the home dashboard reads only this member's rows", () => {
 
   it("accepts the scope and keeps its default workspace-wide", () => {
     expect(route).toContain('=== "member" ? "member" : "team"')
-    expect(route).toContain("getDashboardOverview(session.id, scope)")
+    expect(route).toContain("getDashboardOverview(session.id, scope, session.timezone)")
     expect(data).toContain('scope: OverviewScope = "team"')
   })
 
-  it("counts only this member's task statuses", () => {
-    expect(data).toMatch(/member\s*\?\s*db\s*\.select\(\{\s*status: tasks\.status[\s\S]{0,220}?\.where\(eq\(tasks\.assigneeId, userId\)\)/)
+  it("counts only this member's tasks, and never a schedule", () => {
+    expect(data).toMatch(/member\s*\?\s*db\s*\.select\(\{\s*status: tasks\.status[\s\S]{0,220}?\.where\(and\(eq\(tasks\.assigneeId, userId\), eq\(tasks\.isTemplate, false\)\)\)/)
+    expect(data).toMatch(/:\s*db\s*\.select\(\{\s*status: tasks\.status[\s\S]{0,220}?\.where\(eq\(tasks\.isTemplate, false\)\)/)
   })
 
   it("takes the active sprint from the sprints this member works in", () => {

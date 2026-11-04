@@ -1420,9 +1420,11 @@ export default function TasksWorkspacePage() {
                       Unblock
                     </Button>
                   ) : (
-                    <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => setTaskStatus(t, "done")}>
-                      Complete
-                    </Button>
+                    !isRecurringTask(t) && (
+                      <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => setTaskStatus(t, "done")}>
+                        Complete
+                      </Button>
+                    )
                   )}
                 </li>
               ))}
@@ -1450,14 +1452,16 @@ export default function TasksWorkspacePage() {
                           {t.title}
                         </button>
                         <span className="shrink-0 text-[10px] text-muted-foreground">{sprintName(t.sprintId)}</span>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-6 px-1.5 text-[11px] text-emerald-600"
-                          onClick={() => setTaskStatus(t, "done")}
-                        >
-                          Complete
-                        </Button>
+                        {!isRecurringTask(t) && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-6 px-1.5 text-[11px] text-emerald-600"
+                            onClick={() => setTaskStatus(t, "done")}
+                          >
+                            Complete
+                          </Button>
+                        )}
                       </li>
                     ))}
                   </ul>
