@@ -21,6 +21,7 @@ import { SectionCard } from "@/components/dashboard-kit"
 import { useToast } from "@/hooks/use-toast"
 import Gantt from "@/components/planner/gantt"
 import type { GanttItem, GanttZoom, GanttGroupBy } from "@/lib/planner/gantt-data"
+import { CADENCE_LABEL, SCHEDULE_CADENCES } from "@/lib/cadence"
 import {
   DISCIPLINE_CATEGORIES,
   DISCIPLINE_CATEGORY_LABEL,
@@ -57,8 +58,6 @@ type Plan = {
   createdAt: string
   promotedAt: string | null
 }
-
-const CADENCES = ["daily", "weekly", "monthly", "quarterly", "yearly"]
 
 export default function PlanEditorClient({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
