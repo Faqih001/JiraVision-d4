@@ -326,7 +326,7 @@ Testing is
 scoped to task-cadence sites so it cannot fire on any of these correct uses.
 
 `scripts/import-it-technician-tasks.mjs` keeps its mirrored `INSTANCE_COUNTS` literal (a migration script must
-not import app code) and gains the equality guard described in §H.
+not import app code) and gains the equality guard described in the Testing section.
 
 ## G — Completed-status sweep
 
