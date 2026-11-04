@@ -75,26 +75,20 @@ export async function POST(_req: Request, ctx: RouteContext) {
       // Store resolved dependencies in tags as a structured object.
       const tags = resolvedDeps.length > 0 ? [{ _dependsOn: resolvedDeps }] : []
 
+      const values = promoteTaskValues(item, { id: session.id })
+
       const [task] = await tx
         .insert(tasks)
-        .values({
-          title: item.title,
-          description: item.description,
-          status: "todo",
-          priority: "medium",
-          storyPoints: item.estimatePoints,
-          startDate: item.startDate,
-          dueDate: item.dueDate,
-          discipline: readLegacyDiscipline(item.discipline),
-          sourcePlanId: planId,
-          tags,
-        })
+        .values({ ...values, sourcePlanId: planId, tags })
         .returning()
 
       if (!task) throw new Error("Failed to create task")
 
       indexToTaskId.set(i, task.id)
       createdTaskIds.push(task.id)
+      if (values.isTemplate && isCadence(values.cadence)) {
+        createdSchedules.push({ id: task.id, cadence: values.cadence })
+      }
     }
 
     // Create deliverables where specified.
@@ -137,6 +131,16 @@ export async function POST(_req: Request, ctx: RouteContext) {
 
     return { taskIds: createdTaskIds, count: createdTaskIds.length }
   })
+
+  // A promoted schedule needs occurrences, or the calendar and the tasks panel show a title with
+  // no dates under it. Outside the transaction on purpose: a horizon write must never roll back
+  // a promote. ensureInstanceHorizon catches its own failures, so nothing is wrapped again here.
+  if (createdSchedules.length > 0) {
+    const todayIso = localDay(new Date(), session.timezone)
+    for (const schedule of createdSchedules) {
+      await ensureInstanceHorizon(schedule.id, schedule.cadence, todayIso)
+    }
+  }
 
   return NextResponse.json(
     { success: true, promoted: true, taskIds: result.taskIds, count: result.count },

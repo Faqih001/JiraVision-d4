@@ -14,7 +14,7 @@ type TaskInsertValues = typeof tasks.$inferInsert
 export type PromotableItem = {
   title: string
   description: string | null
-  estimatePoints: number | null
+  estimatePoints: number
   startDate: string | null
   dueDate: string | null
   discipline: string | null
