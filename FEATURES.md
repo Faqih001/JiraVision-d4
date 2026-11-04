@@ -1578,3 +1578,31 @@ already written held Saturday and Sunday rows for work nobody does.
   `tests/unit/board-today-occurrence.test.ts` (16 guards — the drawn-status wiring, the instance door and its
   refusals, the reader's three bounds, the weekend rule on all three date doors, `lib/cadence.ts` staying free
   of it, and the reconcile script settling only untouched rows from a backup taken first).
+
+## 52. A timestamp column takes a Date, and a failed write says why (2026-11-04)
+
+Marking a daily occurrence Done on the kanban answered **"Move failed — Failed to update instance"**. The write
+never reached the database, and it had not reached it since the instance API was born in `d1fe76c` (2026-11-02):
+§51's claim that the move "stamps `completed_at`" was true of the intent and false of the effect.
+
+- **The defect.** `task_instances.completed_at` is a Drizzle `timestamp` in the default *date* mode, whose
+  `mapToDriverValue` is `value.toISOString()`. The route handed it `new Date().toISOString()` — already a string —
+  so the builder threw `TypeError: value.toISOString is not a function`. Only the `done` transition sets
+  `completed_at`, which is why moving a card to In progress worked and Done never did.
+- **Why tsc missed it.** The patch bag was declared `Record<string, unknown>`, which is assignable to a
+  `Partial<Pick<…>>` of all-optional properties and erases every column type on the way in. The bag is now typed
+  off the writer (`Parameters<typeof updateTaskInstance>[1]`), so the same mistake stops compiling.
+- **Why nobody could diagnose it.** `updateTaskInstance` wrapped the write in a `catch` that logged and returned
+  `null`, and the route turned `null` into a bare 500 naming nothing. It has exactly one caller, whose own catch
+  already reports `error.message` — so the swallow bought no robustness and cost two days. A failed write now
+  propagates; `null` means only "no row matched".
+- **The same bug, found by the sweep.** `app/api/task-reports/[id]/route.ts` stamped `updated_at` with
+  `new Date().toISOString()` into the same untyped bag, so *every* edit to a generated task report — saving
+  sections or promoting draft to final — 500'd. Fixed the same way, with the bag typed
+  `Partial<typeof taskReports.$inferInsert>`. Every other untyped patch bag in `app/api` and `lib` was checked
+  against the columns it writes; the rest set Dates, or write `date` columns, which are string mode and correctly
+  take `toISOString().slice(0, 10)`.
+- **Tests.** `tests/unit/timestamp-column-writes.test.ts` (9 — both columns build from a Date and throw on an
+  ISO string, both routes stamp a Date off a typed bag, a repo-wide sweep of `app/api` and `lib` finds no patch
+  bag stringifying into an `*At`/`*Time` field, and the writer has no `catch`). Gates: `tsc --noEmit` clean,
+  176 files / 2916 tests, lint at the documented 82-problem / 4-error baseline.
