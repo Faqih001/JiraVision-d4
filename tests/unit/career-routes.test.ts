@@ -114,12 +114,20 @@ describe("PATCH /api/career/levels/[id]", () => {
 describe("career signal counting", () => {
   const counts = codeOnly(src("lib/career/counts.ts"))
 
-  it("scopes all six queries by the member id", () => {
+  it("scopes all seven queries by the member id", () => {
     expect(counts).toMatch(/eq\(workLogEntries\.userId, userId\)/)
-    expect(counts.match(/eq\(tasks\.assigneeId, userId\)/g)).toHaveLength(2)
+    // Three reads start from `tasks` and each one goes through the assignee: completed tasks,
+    // distinct disciplines, and the recurring days closed in the window.
+    expect(counts.match(/eq\(tasks\.assigneeId, userId\)/g)).toHaveLength(3)
     expect(counts).toMatch(/eq\(deliverables\.ownerId, userId\)/)
     expect(counts).toMatch(/eq\(workReports\.userId, userId\)/)
     expect(counts).toMatch(/eq\(taskEvents\.actorId, userId\)/)
+  })
+
+  it("counts recurring days as days, from the instance table", () => {
+    expect(counts).toMatch(/from\(taskInstances\)/)
+    expect(counts).toMatch(/count\(distinct \$\{taskInstances\.instanceDate\}\)/)
+    expect(counts).toMatch(/gte\(taskInstances\.completedAt, windowStart\)/)
   })
 
   it("returns zero-filled signals rather than nulls", () => {

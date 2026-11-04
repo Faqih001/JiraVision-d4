@@ -43,7 +43,7 @@ describe("task_events capture covers every status-writing route", () => {
       "app/api/test/tasks/bulk/route.ts",
     ]) {
       const body = src(file)
-      expect(body).toMatch(/select\(\{ id: tasks\.id, status: tasks\.status \}\)/)
+      expect(body).toMatch(/select\(\{ id: tasks\.id, status: tasks\.status\b/)
     }
   })
 
