@@ -449,7 +449,12 @@ anyone's readiness number until the owner sets real rungs for it.
 `completed` (seed or import) or `closed` (migration), and the event's `to_status` carries whichever word the row
 had. All three live in `COMPLETED_TASK_STATUSES` at `lib/tasks/statuses.ts`, which the report bucket
 (§4) and both career readers (`lib/career/counts.ts`, `lib/career/evidence.ts`) import — a reader that hardcodes
-`'done'` silently drops the work of every member whose rows arrived under another word. Completion stays
+`'done'` silently drops the work of every member whose rows arrived under another word. Since the 2026-11-04
+cross-surface wave the vocabulary is read everywhere, not only in the career path: `lib/tasks/statuses-sql.ts`
+builds the SQL predicate for the Drizzle and raw-SQL surfaces (`completedStatusSql(col)`, `openStatusSql(col)`,
+`completedStatusListSql()` for a parameter list) and `isCompletedTaskStatus()` is the TypeScript predicate the
+API routes and dashboard pages use, so the aggregate numbers and the client's "finished" bucket cannot drift
+apart. Completion stays
 event-sourced: the count needs a `task_events` row, and dates are never backfilled to make a number appear. A
 task created *already* finished never moves, so no status change will ever be captured for it — `task-events.ts`
 therefore has a second rule, `bornFinishedChanges()`, which writes that completion as a birth row
@@ -653,6 +658,14 @@ plan_items             id, plan_id (cascade), title, description, discipline, es
                        start_date, due_date, status, depends_on jsonb, milestone bool, cadence, sort_order,
                        deliverable jsonb null, source_task_id
                        (renamed: `order` is a SQL reserved word, so every query would need it quoted)
+                       A promoted item's own `cadence` is what reaches the new `tasks` row —
+                       `promoteTaskValues()` (`lib/planner/promote-values.ts`) reads `plan_items.cadence` only,
+                       never `agent_plans.cadence`, because the plan's cadence is non-null (`weekly` by default)
+                       and means "how often we review this plan"; inheriting it would turn every promoted
+                       one-off into a weekly schedule. When the item is recurring the promote also sets
+                       `is_template`, assigns the row to the promoter, and materialises the instance grid
+                       *after* the transaction commits (`app/api/planner/[id]/promote/route.ts:136-141`): a
+                       horizon write must never roll back a promote.
 assistant_threads      id, user_id, scope(site|workspace), title, created_at, updated_at
 assistant_messages     id, thread_id (cascade), role, content, references jsonb, tokens, created_at
 ai_usage_daily         date, scope(site|workspace|planner|report|career), calls, input_tokens, output_tokens,

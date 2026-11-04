@@ -2521,7 +2521,7 @@ Two things the census settled. Ruling **P3** holds against real data: no import 
 - Modify: `docs/superpowers/specs/2026-11-04-recurrence-cross-surface-design.md` (the two sections the wave changed under it: §B view modes, §D dashboard)
 - Modify: `docs/superpowers/specs/2026-11-02-task-tracking-recurrence-design.md` (`### Calendar Views` :110-125 and `### Calendar Page Enhancements` :255-265)
 - Modify: `docs/superpowers/specs/2026-10-26-worklog-reports-planner-assistant-design.md` (§11 career-signal note, §13 `plan_items` line)
-- Modify: `docs/PLACEHOLDERS.md` only if it still lists any surface this wave closed (grep first; it usually does not)
+- Modify: `PLACEHOLDERS.md` (repo root — there is no `docs/PLACEHOLDERS.md`; the plan named the wrong path) only if it still lists any surface this wave closed (grep first; it usually does not)
 
 **Interfaces:**
 - Consumes: Task 9's census output (three numbers) and the ten commits from Tasks 1–9.
@@ -2648,3 +2648,28 @@ Push-to-main auto-deploys, ONE deployment per push (not per commit). Verify thro
   4. `/dashboard/planner/[id]` — promoting a plan item with a cadence yields a task that already has its grid.
   5. `/dashboard/reports`, `/dashboard/team`, `/dashboard/sprints` — the counts moved by the census delta and nothing else.
 - one line naming anything still open (e.g. the career ladder's instance-status pinning, ruling P3, if the owner later wants instances to accept `completed`).
+
+### Task 10 result (2026-11-04)
+
+Shipped. `FEATURES.md` §50 and the cross-surface spec's §D2/§D3 syncs were landed by the concurrent committer as
+`20d13f8`; this task's own commit carries the remaining doc syncs:
+
+- `docs/superpowers/specs/2026-11-02-task-tracking-recurrence-design.md` — `### Calendar Views` re-cut to the
+  shipped four-mode table (no branch draws a template; both branches scoped to `loadVisibleMemberIds`),
+  `### Task Instances` extended with the calendar's bounded top-up (25 tasks × 90 occurrences, awaited serially,
+  swallowed on failure), `### Calendar Page Enhancements` given the `deadlineRows` line.
+- `docs/superpowers/specs/2026-10-26-worklog-reports-planner-assistant-design.md` — §11 names the widened
+  consumer set (`statuses-sql.ts` predicates + `isCompletedTaskStatus`) and §13's `plan_items` entry records
+  that promote reads `plan_items.cadence` only and materialises the grid after the transaction commits.
+- `PLACEHOLDERS.md:173` — "No cadence-based row generation" was still listed as deferred; it now points at the
+  shipped path. Step 4's `docs/PLACEHOLDERS.md` was a plan path defect: the file lives at the repo root.
+
+Gates: `tsc --noEmit` clean · vitest **174 files / 2880 tests** green (above the 171/2827 entering baseline) ·
+lint **82 problems, 4 errors**, all four pre-existing. Wave guards alone: 73 tests green.
+
+**Open finding reported to the owner, not fixed here (needs per-action approval on prod):** the 414 instance rows
+on production belong to tasks with `is_template = false` (the imported IT Technician list, ids 70-101, each
+carrying a cadence), while all 8 `is_template = true` schedules hold zero instances and 6 already read
+`status = 'done'`. The cadence-based guards refuse to finish those imported rows, but the wave's
+`is_template = false` filters still count them as open work. Reconciling them is a data backfill, outside this
+plan.

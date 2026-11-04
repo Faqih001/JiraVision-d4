@@ -112,15 +112,23 @@ when it was a one-off before, so an existing schedule's rows and recorded work a
 **Location:** Extend `app/api/calendar/events/route.ts`
 
 **Query parameters:**
-- `viewMode` — 'due' | 'cadence' | 'both' | 'range'
+- `viewMode` — 'due' | 'cadence' | 'both' | 'range' (default `due`)
 - `startDate` — range start (for 'range' mode)
 - `endDate` — range end (for 'range' mode)
 
-**Logic:**
-- **due:** Return tasks with dueDate in the query range
-- **cadence:** Return task instances for recurring tasks in the query range
-- **both:** Combine due and cadence
-- **range:** Return all tasks (one-time + instances) within startDate/endDate
+**Shipped logic** (`app/api/calendar/events/route.ts`):
+
+| `viewMode` | Occurrences (`task_instances`) | Deadlines (`tasks.dueDate`) |
+| --- | --- | --- |
+| `due` | no | yes, `is_template = false` + due date in range |
+| `cadence` | yes, in range | no |
+| `both` | yes, in range | yes, `is_template = false` + due date in range |
+| `range` | yes, in range | yes, `is_template = false` + due date in range |
+
+No branch draws a template row: `is_template = false` on the deadline branch is the structural complement of
+the occurrence branch, so a schedule cannot reach both lists and `both` cannot double count. Both branches are
+scoped to `loadVisibleMemberIds(session.userId)` (`[session.id]` when `mineOnly`), and the occurrence branch is
+always assignee-scoped so its `where` can never degrade to `sql`true``.
 
 **Response format:** Existing calendar event format, with additional `isRecurring` and `cadence` fields.
 
@@ -193,6 +201,13 @@ Logic:
 - Return instances in range
 - When `taskId` is present and the caller is that task's assignee, top the grid up to the horizon first — this
   read is what keeps a daily task alive with no cron. A non-assignee read stays read-only.
+- `GET /api/calendar/events` tops up too, on any mode that draws occurrences, because a marker you cannot click
+  to completion is worse than no marker. That write-inside-a-read is bounded three ways: only schedules this
+  member owns (`is_template = true` plus the visible-member scope — an unassigned schedule is visible but never
+  written), at most `HORIZON_TASK_LIMIT = 25` tasks per request, and at most `MAX_HORIZON_OCCURRENCES = 90`
+  occurrences per task (`horizonOccurrencesForWindow()`; `HORIZON_OCCURRENCES = 7` when the window end is
+  missing or unparseable). The top-up is awaited serially and swallowed on failure, so a failed write still
+  returns the rows already there.
 
 **PATCH /api/task-instances/[id]**
 - Update status, notes, checklist responses
@@ -263,6 +278,10 @@ status-cycle button never lands one on Done, so the click matches the 409 the se
 - One-time tasks: solid color
 - Recurring instances: striped/patterned fill
 - Tooltip shows cadence and instance number
+
+The "Task deadlines · next 14 days" side list (`deadlineRows` in `app/dashboard/calendar/page.tsx`) skips a row
+that is finished or that carries a schedule — a template's own due date is a creation-time artefact no
+recurrence rule maintains, and its days are already on the grid as occurrences.
 
 ### Reports Page Enhancements
 

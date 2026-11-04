@@ -170,7 +170,7 @@ One thing a reader could mistake for a stub, because it is an absent *phase* sta
 
 | Looks missing | Actually |
 |---|---|
-| No cadence-based row generation | mentioned in the spec but not core to this phase; the planner extracts items with cadence fields, but materializing dated rows from "generate my month" is deferred |
+| No cadence-based row generation | **shipped 2026-11-04** — a promoted item's `cadence` reaches the `tasks` row via `promoteTaskValues()`, the row is flagged `is_template`, and `ensureInstanceHorizon()` materialises the dated occurrences after the promote transaction commits (see `docs/superpowers/specs/2026-11-04-recurrence-cross-surface-design.md`) |
 
 ## 13. Gantt view (phase 8, 2026-10-27)
 
