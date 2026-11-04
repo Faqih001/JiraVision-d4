@@ -16,6 +16,7 @@ import {
   notifications,
   sprintAnalytics,
   sprints,
+  taskInstances,
   tasks,
   users,
   wellbeingMetrics,
@@ -25,6 +26,8 @@ import { listNotifications } from "@/lib/notifications"
 import { loadVisibleMemberIds } from "@/lib/organizations"
 import { isCompletedTaskStatus } from "@/lib/tasks/statuses"
 import { completedStatusSql, openStatusSql } from "@/lib/tasks/statuses-sql"
+import { isSettledInstanceStatus } from "@/lib/tasks/instance-window"
+import { localDay, shiftDays } from "@/lib/worklog/local-day"
 
 export interface Kpis {
   myOpenTasks: number
@@ -192,6 +195,9 @@ export interface DashboardOverview {
   workload: WorkloadRow[]
   throughput: ThroughputWeek[]
   deadlines: DeadlineTask[]
+  dueToday: { id: number; taskId: number; title: string; priority: string; instanceDate: string }[]
+  dueTodayCount: number
+  missedCount: number
   myTasks: {
     id: number
     title: string
@@ -201,6 +207,7 @@ export interface DashboardOverview {
     storyPoints: number
     dueDate: string | null
     sprintId: number | null
+    cadence: string | null
     tags: unknown
   }[]
   events: UpcomingEvent[]
@@ -230,10 +237,15 @@ function isoDay(d: Date) {
 export async function getDashboardOverview(
   userId: number,
   scope: OverviewScope = "team",
+  timeZone?: string | null,
 ): Promise<DashboardOverview> {
   const member = scope === "member"
   const now = new Date()
   const todayIso = isoDay(now)
+  // The strip speaks the member's day; `todayIso` stays UTC for the instant-based reads
+  // (active sprint, week windows) that were already computed that way.
+  const memberTodayIso = localDay(now, timeZone)
+  const instanceWindowStartIso = shiftDays(memberTodayIso, -30)
   const weekAgo = new Date(now.getTime() - 7 * 86_400_000)
   const weekAhead = new Date(now.getTime() + 7 * 86_400_000)
 
@@ -251,6 +263,7 @@ export async function getDashboardOverview(
     mySprintRows,
     statusCounts,
     myTasksRows,
+    dueTodayRows,
     myOpenPriorityCounts,
     workloadRows,
     throughputRows,
@@ -298,24 +311,47 @@ export async function getDashboardOverview(
       ? db
           .select({ status: tasks.status, count: sql<number>`count(*)::int` })
           .from(tasks)
-          .where(eq(tasks.assigneeId, userId))
+          .where(and(eq(tasks.assigneeId, userId), eq(tasks.isTemplate, false)))
           .groupBy(tasks.status)
       : db
           .select({ status: tasks.status, count: sql<number>`count(*)::int` })
           .from(tasks)
+          .where(eq(tasks.isTemplate, false))
           .groupBy(tasks.status),
 
     db
       .select()
       .from(tasks)
-      .where(eq(tasks.assigneeId, userId))
+      .where(and(eq(tasks.assigneeId, userId), eq(tasks.isTemplate, false)))
       .orderBy(asc(tasks.dueDate))
       .limit(60),
+
+    // One month of occurrences for this member, newest first. The strip shows today's;
+    // the older days are what `missedCount` reports.
+    db
+      .select({
+        id: taskInstances.id,
+        taskId: tasks.id,
+        title: tasks.title,
+        priority: tasks.priority,
+        status: taskInstances.status,
+        instanceDate: taskInstances.instanceDate,
+      })
+      .from(taskInstances)
+      .innerJoin(tasks, eq(tasks.id, taskInstances.taskId))
+      .where(
+        and(
+          eq(tasks.assigneeId, userId),
+          lte(taskInstances.instanceDate, memberTodayIso),
+          gte(taskInstances.instanceDate, instanceWindowStartIso),
+        ),
+      )
+      .orderBy(desc(taskInstances.instanceDate), asc(tasks.title)),
 
     db
       .select({ priority: tasks.priority, count: sql<number>`count(*)::int` })
       .from(tasks)
-      .where(and(eq(tasks.assigneeId, userId), openStatusSql(tasks.status)))
+      .where(and(eq(tasks.assigneeId, userId), openStatusSql(tasks.status), eq(tasks.isTemplate, false)))
       .groupBy(tasks.priority),
 
     db
@@ -329,7 +365,7 @@ export async function getDashboardOverview(
         doneTasks: sql<number>`count(${doneCase()})::int`,
       })
       .from(users)
-      .leftJoin(tasks, eq(tasks.assigneeId, users.id))
+      .leftJoin(tasks, and(eq(tasks.assigneeId, users.id), eq(tasks.isTemplate, false)))
       .where(inArray(users.id, memberIds))
       .groupBy(users.id, users.name, users.role, users.avatar)
       .orderBy(desc(sql`count(${openCase()})`)),
@@ -599,6 +635,26 @@ export async function getDashboardOverview(
       daysRemaining: daysBetween(now, new Date(`${t.dueDate}T00:00:00`)),
     }))
 
+  // ---- due today ------------------------------------------------------------
+  const openInstances = dueTodayRows.filter((i) => !isSettledInstanceStatus(i.status))
+  const todayInstances = openInstances.filter((i) => i.instanceDate === memberTodayIso)
+  const missedCount = openInstances.length - todayInstances.length
+  const dueToday = [...todayInstances]
+    .sort(
+      (a, b) =>
+        priorityOrder.indexOf(a.priority) - priorityOrder.indexOf(b.priority) ||
+        a.title.localeCompare(b.title),
+    )
+    .slice(0, 8)
+    .map((i) => ({
+      id: i.id,
+      taskId: i.taskId,
+      title: i.title,
+      priority: i.priority,
+      instanceDate: i.instanceDate,
+    }))
+  const dueTodayCount = todayInstances.length
+
   // ---- wellbeing ------------------------------------------------------------
   const wellbeingTrend: WellbeingPoint[] = [...wellbeingRows]
     .reverse()
@@ -675,6 +731,9 @@ export async function getDashboardOverview(
     })),
     throughput: throughputRows.map((t) => ({ week: t.week, label: dayLabel(t.week), doneTasks: t.doneTasks, donePoints: t.donePoints })),
     deadlines,
+    dueToday,
+    dueTodayCount,
+    missedCount,
     myTasks: myTasks.slice(0, 24).map((t) => ({
       id: t.id,
       title: t.title,
@@ -684,6 +743,7 @@ export async function getDashboardOverview(
       storyPoints: t.storyPoints,
       dueDate: t.dueDate,
       sprintId: t.sprintId,
+      cadence: t.cadence,
       tags: t.tags,
     })),
     events: upcomingEventRows.map((e) => ({
