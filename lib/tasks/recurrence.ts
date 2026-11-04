@@ -86,12 +86,13 @@ export function computeInstanceDates(cadence: Cadence, from: Date): string[] {
   const count = INSTANCE_COUNTS[cadence]
   if (count === 0) return []
   const dates: string[] = []
-  let cursor = new Date(from)
+  // The first day of a grid is worked too, so a schedule created on a Saturday starts on Monday.
+  let cursor = workingDayOnOrAfter(toIsoDate(from))
   for (let i = 0; i < count; i++) {
-    dates.push(toIsoDate(cursor))
-    const nextIso = computeNextRun(cadence, cursor)
-    if (!nextIso) break
-    cursor = new Date(nextIso)
+    dates.push(cursor)
+    const onward = nextInstanceDate(cadence, new Date(`${cursor}T00:00:00Z`))
+    if (!onward) break
+    cursor = onward
   }
   return dates
 }
@@ -99,7 +100,7 @@ export function computeInstanceDates(cadence: Cadence, from: Date): string[] {
 export function nextInstanceDate(cadence: Cadence, after: Date): string | null {
   if (cadence === "one-off") return null
   const next = computeNextRun(cadence, after)
-  return next ? next.slice(0, 10) : null
+  return next ? workingDayOnOrAfter(next.slice(0, 10)) : null
 }
 
 /**
