@@ -1,4 +1,4 @@
-# Recurrence Cross-Surface Wave (A–G) Implementation Plan
+# Recurrence Cross-Surface Wave (A–H) Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -60,6 +60,34 @@ Discovered while writing this plan; the spec could not know them. Each is decide
 | `tests/unit/recurrence-cross-surface-guards.test.ts` | **new** — this wave's guards, one file per wave | 1–9 |
 | `tests/unit/task-recurrence.test.ts`, `tests/unit/cadence.test.ts`, `tests/unit/planner-promote-values.test.ts`, `tests/unit/statuses-sql.test.ts` | pure behaviour | 3, 4, 5, 6 |
 | `FEATURES.md`, both spec docs | §50 + spec sync | 10 |
+
+## Spec testing map
+
+The spec's Testing table has eleven rows. Where each one is paid, in order:
+
+| spec row | task | how |
+| --- | --- | --- |
+| `horizonOccurrencesForWindow` | 3 | pure cases in `tests/unit/task-recurrence.test.ts` |
+| `promoteTaskValues` | 5 | pure cases in `tests/unit/planner-promote-values.test.ts` |
+| `cadenceOrNone` | 4 | pure cases in `tests/unit/cadence.test.ts` |
+| `completedStatusSql` / `openStatusSql` | 6 | pure cases in `tests/unit/statuses-sql.test.ts` — including `completedStatusListSql`, the third form P5 added |
+| calendar scoping | 1 | guard |
+| view modes | 2 | guard |
+| dashboard counts | 8 | guard |
+| dashboard status menu | 8 | guard |
+| promote | 5 | guard |
+| vocabulary | 4 | guard |
+| status sweep | 6 (server), 7 (client) | per-file guard |
+
+**The spec's last row — "behaviour: a task reading `closed` counts as finished in the sprint velocity and the
+report workload; a recurring template contributes 0 to `openTasks` and 1 to `dueToday`" — is not a unit test in
+this wave, and no task pretends otherwise.** Those three assertions are about SQL executed against rows, and the
+house rule is DB-free tests plus source guards. Each half is paid by the nearest honest substitute: the fragment
+composition is asserted in `statuses-sql.test.ts` (a fourth word in the list appears in the rendered SQL), the
+call sites are pinned by Task 6's and Task 8's guards, the *magnitude* of the change is measured against real
+rows by Task 9's census, and the visible result is checked by the owner in the UI list Task 10 Step 7 prints. If
+a later wave wants the literal behaviour test, it needs a database in the harness first — say so rather than
+writing a test that asserts a mock.
 
 ---
 
@@ -1949,7 +1977,6 @@ The builder opens with `const [ userRow, activeSprintRows, mySprintRows, statusC
         priority: tasks.priority,
         status: taskInstances.status,
         instanceDate: taskInstances.instanceDate,
-        cadence: tasks.cadence,
       })
       .from(taskInstances)
       .innerJoin(tasks, eq(tasks.id, taskInstances.taskId))
@@ -1973,7 +2000,7 @@ Import `shiftDays` from the same `@/lib/worklog/local-day` module as `localDay` 
 
 - [ ] **Step 6: D2 — shape the three fields**
 
-Where `deadlines` is built (near `:584`), add a sibling section. `instanceRows` below is the destructured name for the new `Promise.all` slot — use whatever the existing destructure pattern calls its neighbours:
+Where `deadlines` is built (near `:584`), add a sibling section, reading the `dueTodayRows` slot Step 5 inserted into the `Promise.all` and its destructure:
 
 ```ts
   // ---- due today ------------------------------------------------------------
@@ -2217,3 +2244,361 @@ Expected: PASS. `dashboard-member-scope.test.ts` is green only after Step 7's up
 git add lib/dashboard-data.ts app/api/dashboard/overview/route.ts app/dashboard/page.tsx app/dashboard/tasks/page.tsx app/dashboard/ai-scrum-master/page.tsx tests/unit/dashboard-member-scope.test.ts tests/unit/recurrence-cross-surface-guards.test.ts
 git commit -m "feat(dashboard): count schedules out, show the day's occurrences, guard the finish doors"
 ```
+
+---
+
+### Task 9: Measure the status words on production before the numbers move (spec §G5)
+
+**Files:**
+- Create: `scripts/measure-task-statuses.mjs`
+- Test: `tests/unit/recurrence-cross-surface-guards.test.ts` (append)
+
+**Interfaces:**
+- Consumes: nothing from the app — a script must not import app code (Global Constraint). The completed-status list is **mirrored** as a literal here, exactly as `scripts/import-it-technician-tasks.mjs:23` mirrors `INSTANCE_COUNTS`, and the same kind of guard holds the mirror honest against `lib/tasks/statuses.ts:8`.
+- Produces: stdout only. Task 10 quotes these counts in FEATURES.md §50 and in the deployment notes; nothing reads them back.
+
+- [ ] **Step 1: Write the failing guard**
+
+Append to `tests/unit/recurrence-cross-surface-guards.test.ts`:
+
+```ts
+describe("the production status census", () => {
+  const scriptPath = "scripts/measure-task-statuses.mjs"
+  const script = () => src(scriptPath)
+  const code = () => codeOnly(src(scriptPath))
+
+  it("mirrors the completed-status list the swept readers use", () => {
+    const list = code().match(/const COMPLETED_STATUSES = \[([^\]]*)\]/)
+    expect(list, "no COMPLETED_STATUSES literal in the census script").not.toBeNull()
+    const mirrored = list![1]
+      .split(",")
+      .map((entry) => entry.trim().replace(/^["']|["']$/g, ""))
+      .filter(Boolean)
+    expect(mirrored).toEqual([...COMPLETED_TASK_STATUSES])
+  })
+
+  it("reads the URL with the anchored regex, from .env.local", () => {
+    // Line 1 of .env.local is a commented stale URL; an unanchored match picks it up and the
+    // census silently measures the wrong database.
+    expect(code()).toContain('env.match(/^DATABASE_URL="?([^"\\n]+)"?/m)')
+    expect(code()).toMatch(/readFileSync\(new URL\("\.\.\/\.env\.local", import\.meta\.url\)/)
+  })
+
+  it("is read-only: no write statement, no --apply, no DDL", () => {
+    const body = code()
+    expect(body).not.toMatch(/\b(insert into|update \w+ set|delete from|truncate|alter table|create table|drop table)\b/i)
+    expect(body).not.toContain("--apply")
+    expect(body).toContain("postgres(")
+    // One statement per table counted, and every one of them starts with select.
+    const statements = [...body.matchAll(/sql`([^`]+)`/g)].map((m) => m[1].trim().replace(/\s+/g, " "))
+    expect(statements.length).toBeGreaterThanOrEqual(1)
+    for (const statement of statements) {
+      expect(statement.toLowerCase().startsWith("select")).toBe(true)
+    }
+  })
+
+  it("imports no app code and never prints the connection string", () => {
+    const body = code()
+    expect(body).not.toMatch(/from ["']@\//)
+    expect(body).not.toMatch(/require\(["']@\//)
+    expect(body).not.toMatch(/console\.log\([^)]*match\[1\]/)
+    expect(body).toMatch(/maskHost/)
+  })
+})
+```
+
+Import the list at the top of the file, alongside the existing imports:
+
+```ts
+import { COMPLETED_TASK_STATUSES } from "@/lib/tasks/statuses"
+```
+
+- [ ] **Step 2: Run it and watch it fail**
+
+Run: `npx vitest run tests/unit/recurrence-cross-surface-guards.test.ts`
+Expected: FAIL — the script does not exist, so `src()` throws ENOENT.
+
+- [ ] **Step 3: Write the census script**
+
+Create `scripts/measure-task-statuses.mjs`:
+
+```js
+// Read-only status census on the production database (spec §G5).
+//
+// The completed-status sweep replaces `status = 'done'` with `status in ('done','completed','closed')`
+// in every aggregate, so several published numbers move the moment it merges. This script says by how
+// much, before the merge, from the rows as they are now — so a changed tile is explained in the
+// deployment notes rather than discovered in the UI afterwards.
+//
+//   node scripts/measure-task-statuses.mjs
+//
+// SELECT only. There is no --apply flag, no backup and no write path: a read of a count needs no
+// checkpoint, and the standing rule governs DDL and writes. Never pair this file with a write, and
+// never extend it into one — the guard in tests/unit/recurrence-cross-surface-guards.test.ts fails.
+//
+// The connection string is never printed; only a masked host, so the operator can see which Neon
+// endpoint answered. Run from the repo root: .env.local line 1 is a commented stale URL, which is
+// why the match is anchored with /^DATABASE_URL=…/m.
+
+import { readFileSync } from "node:fs"
+import postgres from "postgres"
+
+// Mirrors COMPLETED_TASK_STATUSES in lib/tasks/statuses.ts. A .mjs script must not import app code,
+// so the list is duplicated here and held equal by a guard, the same way scripts/import-it-technician-tasks.mjs
+// mirrors INSTANCE_COUNTS.
+const COMPLETED_STATUSES = ["done", "completed", "closed"]
+
+const env = readFileSync(new URL("../.env.local", import.meta.url), "utf8")
+const match = env.match(/^DATABASE_URL="?([^"\n]+)"?/m)
+if (!match) {
+  console.error("DATABASE_URL not found in .env.local")
+  process.exit(1)
+}
+
+function maskHost(url) {
+  try {
+    const host = new URL(url).hostname
+    const [first, ...rest] = host.split(".")
+    const shown = first.length <= 2 ? first : `${first.slice(0, 2)}${"•".repeat(Math.min(first.length - 2, 8))}`
+    return [shown, ...rest].join(".")
+  } catch {
+    return "•••"
+  }
+}
+
+const isCompleted = (value) => COMPLETED_STATUSES.includes(String(value ?? "").trim().toLowerCase())
+const bar = (label) => `${label} ${"-".repeat(Math.max(0, 62 - label.length))}`
+
+const sql = postgres(match[1], { max: 1, connect_timeout: 30 })
+const maskedHost = maskHost(match[1])
+
+try {
+  console.log(bar(`status census → ${maskedHost} (SELECT only)`))
+
+  const tasks = await sql`
+    select status, count(*)::int as count
+    from tasks
+    group by status
+    order by count(*) desc
+  `
+
+  let finishedNow = 0
+  let finishedAfter = 0
+  for (const row of tasks) {
+    const word = String(row.status)
+    const countedToday = word.trim().toLowerCase() === "done"
+    const countedAfter = isCompleted(word)
+    if (countedToday) finishedNow += row.count
+    if (countedAfter) finishedAfter += row.count
+    console.log(
+      `  tasks.status ${JSON.stringify(word)}`.padEnd(34) +
+        `${String(row.count).padStart(6)} rows` +
+        `${countedAfter ? "  counted finished" : "  open"}` +
+        `${countedAfter && !countedToday ? "  ← newly counted" : ""}`,
+    )
+  }
+  console.log(`  finished count: ${finishedNow} → ${finishedAfter} (delta ${finishedAfter - finishedNow})`)
+  console.log(`  total task rows: ${tasks.reduce((sum, row) => sum + row.count, 0)}`)
+
+  const templates = await sql`
+    select cadence, count(*)::int as count
+    from tasks
+    where is_template = true
+    group by cadence
+    order by count(*) desc
+  `
+  if (templates.length === 0) {
+    console.log("  no schedule rows (is_template = true)")
+  } else {
+    for (const row of templates) {
+      console.log(`  schedule cadence ${JSON.stringify(row.cadence)}`.padEnd(34) + `${String(row.count).padStart(6)} rows  excluded from workload counts`);
+    }
+  }
+
+  const instances = await sql`
+    select status, count(*)::int as count
+    from task_instances
+    group by status
+    order by count(*) desc
+  `
+  let offList = 0
+  for (const row of instances) {
+    const word = String(row.status)
+    // Instance rows are pinned to the PATCH whitelist by ruling P3; anything else here means an
+    // import wrote a tasks vocabulary word onto an instance, and the day count would miss it.
+    const known = ["todo", "in_progress", "done", "skipped"].includes(word.trim().toLowerCase())
+    if (!known) offList++
+    console.log(
+      `  instance status ${JSON.stringify(word)}`.padEnd(34) +
+        `${String(row.count).padStart(6)} rows${known ? "" : "  ← outside the instance whitelist"}`,
+    )
+  }
+
+  console.log(bar(`census complete — ${offList} instance word(s) outside the whitelist`))
+} finally {
+  await sql.end()
+}
+```
+
+Two notes for the implementer. `sql.end()` in `finally` matters: the postgres pool keeps a pinned connection open otherwise and the script hangs instead of exiting. And the three statements are the whole read surface — the census reports `tasks.status`, the template split (because §G4 removes those rows from the workload counts, so that number moves too and in the opposite direction), and `task_instances.status` (which rules P3 pins, and the script is the place that assumption gets checked against real data).
+
+- [ ] **Step 4: Run the guard**
+
+Run: `npx vitest run tests/unit/recurrence-cross-surface-guards.test.ts`
+Expected: PASS. If the write-statement assertion fires, the script grew a write — delete it; this file is a read and nothing else.
+
+- [ ] **Step 5: Announce, then run it against production**
+
+Say so in chat first, one line, with the masked host — this is a read, so no checkpoint approval is required, but it touches the production project (`snowy-truth-57678083`) and the owner is entitled to know a script just connected.
+
+Run from the repo root: `node scripts/measure-task-statuses.mjs`
+Expected: the census table, ending with `census complete — …`. Keep the whole output; Task 10 Step 1 quotes its `finished count:`, `total task rows:` and `← newly counted` lines, and the report in Step 7 quotes the schedule-row total.
+
+If it fails with `read ETIMEDOUT` or a connection error, the Neon compute is asleep rather than the script being wrong: run it once more after ~10 seconds. Do not "fix" `lib/db.ts` or the timeout settings in response.
+
+- [ ] **Step 6: Gates and commit**
+
+Run: `npx vitest run tests/unit/recurrence-cross-surface-guards.test.ts && npx tsc --noEmit && npx vitest run`
+Expected: PASS; the script is not in the app graph, so `tsc` cannot see it.
+
+```bash
+git add scripts/measure-task-statuses.mjs tests/unit/recurrence-cross-surface-guards.test.ts
+git commit -m "docs(prod): measure the status words before the completed-status sweep"
+```
+
+---
+
+### Task 10: Document the wave, sync both specs, run every gate, and ship (spec §H)
+
+**Files:**
+- Modify: `FEATURES.md` (new §50, after `## 49.` at line 1430)
+- Modify: `docs/superpowers/specs/2026-11-04-recurrence-cross-surface-design.md` (the two sections the wave changed under it: §B view modes, §D dashboard)
+- Modify: `docs/superpowers/specs/2026-11-02-task-tracking-recurrence-design.md` (`### Calendar Views` :110-125 and `### Calendar Page Enhancements` :255-265)
+- Modify: `docs/superpowers/specs/2026-10-26-worklog-reports-planner-assistant-design.md` (§11 career-signal note, §13 `plan_items` line)
+- Modify: `docs/PLACEHOLDERS.md` only if it still lists any surface this wave closed (grep first; it usually does not)
+
+**Interfaces:**
+- Consumes: Task 9's census output (three numbers) and the ten commits from Tasks 1–9.
+- Produces: the deployed wave and the owner-facing "what to check" list. Nothing downstream depends on it.
+
+- [ ] **Step 1: FEATURES.md §50**
+
+Append to `FEATURES.md` (after the last line of §49). Each `«…»` token below names a line Task 9 printed: `«finishedNow»` and `«finishedAfter»` are the two numbers on its `finished count:` line, `«total»` is the number on its `total task rows:` line, and `«word»` is the status word on its largest `← newly counted` line. Do not ship the section with a guillemet in it, and do not state a number Task 9 did not print.
+
+```markdown
+## 50. Every surface reads recurrence the same way (2026-11-04)
+
+The F1–F6 wave fixed the recurrence engine and left its neighbours alone. An audit of every page and route
+that reads `tasks`, `task_instances` or `plan_items` found seven classes of gap, all of them the same mistake
+in different files: a surface written before the model existed, still reading the old shape. On the owner's
+account, that meant schedules drawing calendar markers they were never dated for, a workload bar counting a
+checklist that is unfinished by design, a promoted plan item arriving as a one-off with no grid, and — on
+«finishedAfter» of «total» task rows — work the report bucket (§46) could see and the chart datasets, sprint
+tiles and KPI counters could not, because those read the literal `'done'` and the imported rows say `«word»`.
+
+- **The calendar scopes and stops inventing.** Both recurrence branches of `/api/calendar/events` now filter
+  on the visible members, and the template branch is gone: `due` returns one-offs whose `dueDate` falls in the
+  window, `cadence` returns `task_instances` rows, `both` returns the union. The two predicates are complements
+  on `is_template`, so a task cannot appear twice — the double count is impossible by construction, not
+  deduped after the fact.
+- **The grid you look at is the grid you get.** `horizonOccurrencesForWindow(cadence, start, end)` converts the
+  requested window into an occurrence count (42 days of a daily schedule is 43 rows, not the 7 the panel
+  keeps), and the calendar read tops up each schedule it is about to draw through the writer that already
+  existed. Bounded by 90 occurrences per task and 25 tasks per request, and the coverage early-return means the
+  steady-state path issues one `count()` and no inserts. A read that writes never fails the read.
+- **One cadence vocabulary.** `lib/cadence.ts` is the only place the words live: `SCHEDULE_CADENCES` for the
+  recurring subset, `cadenceOrNone(value)` for reading a column that a seed or an import may have left `null`,
+  and `isCadence` for validation. The planner's item schema, the plan-item PATCH and the plan editor all
+  consume it, so `quarterly` and `yearly` cannot be valid in one door and silently dropped in another.
+- **Promote carries the cadence.** `promoteTaskValues(item, sessionUserId)` is a pure mapping — cadence,
+  `is_template` derived from it, the assignee — and the grid is materialised *after* the transaction commits,
+  not inside it. Before, a plan item titled "weekly drive check" became a one-off task with no occurrences and
+  no way to notice.
+- **Schedules are counted out of workload.** The report dataset, both team-directory aggregates and the five
+  dashboard reads add `is_template = false`: a recurring template is open forever by design, so leaving it in
+  inflated every department bar by the number of checklists the owner imported.
+- **The day's occurrences, on the dashboard.** `getDashboardOverview` takes the member's timezone and anchors on
+  `localDay(new Date(), session.timezone)`, and the Today strip now lists the occurrences due today — up to 8,
+  priority-ordered, each with a checkbox that closes that instance and a "Missed N days" line, in the same
+  wording the recurrence panel uses.
+- **The finish doors are guarded everywhere.** A recurring row no longer offers Done on the dashboard, the tasks
+  page's two quick-complete doors, or the AI Scrum Master's card, so the server's 409 stays the backstop instead
+  of the member's first notice. The status dropdown filters the finished words out for a schedule.
+- **One list decides when a task is finished, on both sides of the wire.** `lib/tasks/statuses-sql.ts` renders
+  `COMPLETED_TASK_STATUSES` as SQL — `completedStatusSql(column)` and `openStatusSql(column)` for drizzle reads,
+  `completedStatusListSql()` for the raw statements that already aliased the table — and the twelve client pages
+  read the JS helper for the same list. The sweep covers 12 server files and 12 pages, including the five
+  surfaces nobody had audited (the team directory, automation's candidate query, and both ethical-metrics
+  reads). Sprint aggregates deliberately keep counting templates: placing a recurring task in a sprint is the
+  owner's choice, and hiding it would mask the mistake.
+- **Measured, not assumed.** `scripts/measure-task-statuses.mjs` is a read-only census of the words production
+  actually holds, run before the merge: «finishedNow» → «finishedAfter» finished rows, so the tiles that move
+  are named in advance.
+- **Tests.** `tests/unit/task-recurrence.test.ts` (the `horizonOccurrencesForWindow` cases), `cadence.test.ts`
+  (`cadenceOrNone` round-trips), `planner-promote-values.test.ts`, `statuses-sql.test.ts` (the fragments bind
+  every word in the list, so a fourth word arrives automatically) and
+  `tests/unit/recurrence-cross-surface-guards.test.ts` — one guard file per wave, holding the calendar scoping,
+  the deleted template branch, the cadence vocabulary, the grid-after-transaction order, the template predicate
+  on every count surface, the status-menu doors, and a per-file assertion that no swept file still compares a
+  `tasks.status` to `"done"`.
+```
+
+- [ ] **Step 2: Sync the cross-surface spec to what shipped**
+
+In `docs/superpowers/specs/2026-11-04-recurrence-cross-surface-design.md`, amend §B's mode table with the shipped reality (the `due` branch reads `eq(tasks.isTemplate, false)`; the deleted names are `recurringTasksList` and `recurringEvents`) and add one line at the end of §D recording the third prop set the strip shipped with (`dueToday`, `dueTodayCount`, `missedCount`) plus the timezone argument. Then append a short "Implemented as" list under `## Rulings` naming the plan-side rulings that outlived the spec's line map: **P5** (three SQL forms because raw statements keep their aliases), **P7** (counts hide schedules, safety checks and writers do not) and **P8** (career files compare instance status and are pinned, not swept). Keep each to two sentences — the spec is authority for *what*, and these three are rulings about *how*, which is exactly what a reader of the spec will otherwise re-litigate.
+
+- [ ] **Step 3: Sync the recurrence design spec**
+
+In `docs/superpowers/specs/2026-11-02-task-tracking-recurrence-design.md`:
+
+- `### Calendar Views` — replace the four-mode logic list with the shipped table (`due` = calendar_events + non-template tasks by `dueDate`; `cadence` = calendar_events + `task_instances` by `instanceDate`; `both` = union; `range` = instances only), and add that both recurrence branches are scoped to `loadVisibleMemberIds(session.userId)` and that no branch draws a template row.
+- `### Calendar Page Enhancements` — one line: the four buttons are unchanged, the re-cut is in what each mode returns, and the sidebar `deadlineRows` now skips completed tasks and recurring templates so the list matches the grid.
+- `### Task Instances` (under `## API Routes`) — extend the `GET /api/task-instances` bullet with the calendar's bounded top-up (`horizonOccurrencesForWindow`, capped at 90 occurrences × 25 tasks) so the "no cron" claim names both writers.
+
+- [ ] **Step 4: Sync the worklog design spec**
+
+In `docs/superpowers/specs/2026-10-26-worklog-reports-planner-assistant-design.md`:
+
+- §11, the "Finished is not one string" paragraph (around :448): change "which the report bucket (§4) and both career readers (`lib/career/counts.ts`, `lib/career/evidence.ts`) import" to name the widened consumer set — every server aggregate through `completedStatusSql`/`openStatusSql`/`completedStatusListSql` in `lib/tasks/statuses-sql.ts`, and every client page through `isCompletedTaskStatus` — while keeping the career sentence true (`instance_days_completed_90` still counts `task_instances.status = 'done'`, because that column's whitelist is the instance PATCH, not the free-text task status).
+- §13, the `plan_items` line: note that a promoted item's `cadence` is what reaches the new `tasks` row (`promoteTaskValues` reads `plan_items.cadence` only, never `agent_plans.cadence`), and that the instance grid is materialised after the promote transaction commits.
+
+- [ ] **Step 5: Full gates**
+
+Run, in this order, from the repo root:
+
+```bash
+npx tsc --noEmit
+npx vitest run
+npm run lint
+```
+
+Expected: `tsc` clean · vitest green, and the file/test counts at or above the entering baseline (**171 files / 2827 tests**) — this wave adds five test files, so a *lower* file count means a file was not written, not that the baseline drifted · lint at **82 problems with exactly 4 errors**, all four pre-existing (`components/landing-chatbot.tsx:177,181,190` and `components/planner/gantt.tsx:43`). A new error in a file this wave touched is a new problem: fix it, do not raise the baseline.
+
+Then re-run the wave's guards alone, because a docs edit that reflows a code block cannot break them but a rebase from the concurrent committer can: `npx vitest run tests/unit/recurrence-cross-surface-guards.test.ts tests/unit/statuses-sql.test.ts tests/unit/recurrence-gap-guards.test.ts`.
+
+- [ ] **Step 6: Commit**
+
+Check `git log --oneline -3` first — the concurrent auto-committer may already have landed these files, and if it has, the correct action is an empty-tree `git status`, not a second commit.
+
+```bash
+git add FEATURES.md docs/superpowers/specs/2026-11-04-recurrence-cross-surface-design.md docs/superpowers/specs/2026-11-02-task-tracking-recurrence-design.md docs/superpowers/specs/2026-10-26-worklog-reports-planner-assistant-design.md docs/superpowers/plans/2026-11-04-recurrence-cross-surface.md
+git commit -m "docs(features): record the recurrence cross-surface wave and sync both specs"
+```
+
+- [ ] **Step 7: Push, verify the deployment, and report**
+
+```bash
+git push
+```
+
+Push-to-main auto-deploys, ONE deployment per push (not per commit). Verify through the Vercel deployments API that the deployment is `READY` and its `commit` sha is the head you pushed, then report to the owner:
+
+- the census numbers with the tiles they explain (which KPI moved and why),
+- the ten commit shas, one line each,
+- **what to check in the UI** (the owner tests visually; do not start a dev server or a browser):
+  1. `/dashboard/calendar` — a daily schedule shows one marker per day across the visible window, no marker on the template itself, and switching Due/Cadence/Both does not double a row.
+  2. `/dashboard` — the Today strip lists today's occurrences with a working checkbox, the "Missed N days" line, and the workload tile no longer counts imported checklists as open work.
+  3. `/dashboard/tasks` and `/dashboard/kanban` — a recurring card offers no Done option, and a `completed`/`closed` task is in the finished column/bucket rather than the open one.
+  4. `/dashboard/planner/[id]` — promoting a plan item with a cadence yields a task that already has its grid.
+  5. `/dashboard/reports`, `/dashboard/team`, `/dashboard/sprints` — the counts moved by the census delta and nothing else.
+- one line naming anything still open (e.g. the career ladder's instance-status pinning, ruling P3, if the owner later wants instances to accept `completed`).
