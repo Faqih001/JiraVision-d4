@@ -25,7 +25,7 @@ export type CareerSignalWindow = {
 }
 
 /**
- * Nine windowed counts, all scoped by the member id. A missing row set yields 0, never
+ * Ten windowed counts, all scoped by the member id. A missing row set yields 0, never
  * null: a signal nobody has recorded is missing evidence, which is what the meter shows.
  */
 export async function countCareerSignals({
@@ -112,6 +112,22 @@ export async function countCareerSignals({
       ),
     )
 
+  // A recurring task is closed a day at a time, so the day is the evidence and the template
+  // row is not. tasks_completed_90 counts distinct tasks, which credits thirty days of one
+  // checklist as one completion — this is the signal that counts the days instead.
+  const [recurDays] = await db
+    .select({ days: sql<number>`count(distinct ${taskInstances.instanceDate})::int` })
+    .from(taskInstances)
+    .innerJoin(tasks, eq(tasks.id, taskInstances.taskId))
+    .where(
+      and(
+        eq(tasks.assigneeId, userId),
+        eq(taskInstances.status, "done"),
+        isNotNull(taskInstances.completedAt),
+        gte(taskInstances.completedAt, windowStart),
+      ),
+    )
+
   // The promote route writes task_events(source='promote', actor_id=<member>), which is
   // the only record of who promoted a plan item — tasks carry no creator column.
   const [promoted] = await db
@@ -133,6 +149,7 @@ export async function countCareerSignals({
     reviews_logged_90: log?.reviews,
     tasks_completed_90: completed?.tasks,
     points_completed_90: completed?.points,
+    instance_days_completed_90: recurDays?.days,
     deliverables_delivered: delivered?.n,
     reports_submitted: reports?.n,
     disciplines_touched: disciplines?.touched,

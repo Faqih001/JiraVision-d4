@@ -93,7 +93,9 @@ const LEVELS = [
 
 // Non-decreasing by rung, and every target is a count the log already records. Points are
 // the one target that can legitimately stay low for non-engineering disciplines; the
-// checklist carries the discipline-specific part.
+// checklist carries the discipline-specific part. Recurring days is 0 on every rung because
+// a zero target is read as "no bar set" — publishing the signal cannot move anyone's
+// readiness number until the owner sets real rungs for it.
 const TARGETS: Record<1 | 2 | 3 | 4, Record<CareerSignalKey, number>> = {
   1: {
     days_logged_90: 20,
@@ -101,6 +103,7 @@ const TARGETS: Record<1 | 2 | 3 | 4, Record<CareerSignalKey, number>> = {
     reviews_logged_90: 4,
     tasks_completed_90: 6,
     points_completed_90: 13,
+    instance_days_completed_90: 0,
     deliverables_delivered: 2,
     reports_submitted: 1,
     disciplines_touched: 1,
@@ -112,6 +115,7 @@ const TARGETS: Record<1 | 2 | 3 | 4, Record<CareerSignalKey, number>> = {
     reviews_logged_90: 8,
     tasks_completed_90: 12,
     points_completed_90: 26,
+    instance_days_completed_90: 0,
     deliverables_delivered: 4,
     reports_submitted: 2,
     disciplines_touched: 2,
@@ -123,6 +127,7 @@ const TARGETS: Record<1 | 2 | 3 | 4, Record<CareerSignalKey, number>> = {
     reviews_logged_90: 14,
     tasks_completed_90: 20,
     points_completed_90: 45,
+    instance_days_completed_90: 0,
     deliverables_delivered: 7,
     reports_submitted: 3,
     disciplines_touched: 3,
@@ -134,6 +139,7 @@ const TARGETS: Record<1 | 2 | 3 | 4, Record<CareerSignalKey, number>> = {
     reviews_logged_90: 20,
     tasks_completed_90: 30,
     points_completed_90: 65,
+    instance_days_completed_90: 0,
     deliverables_delivered: 10,
     reports_submitted: 4,
     disciplines_touched: 4,

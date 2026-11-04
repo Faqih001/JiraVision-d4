@@ -7,13 +7,25 @@ import {
   isCareerSignalKey,
   normaliseSignals,
   normaliseTargets,
+  signalHint,
+  signalLabel,
+  type CareerSignalKey,
 } from "@/lib/career/signals"
 
 describe("career signal registry", () => {
-  it("carries the nine signals once each", () => {
-    expect(CAREER_SIGNAL_KEYS).toHaveLength(9)
-    expect(new Set(CAREER_SIGNAL_KEYS).size).toBe(9)
+  it("carries the ten signals once each", () => {
+    expect(CAREER_SIGNAL_KEYS).toHaveLength(10)
+    expect(new Set(CAREER_SIGNAL_KEYS).size).toBe(10)
     expect(CAREER_SIGNAL_KEYS).toEqual(CAREER_SIGNALS.map((signal) => signal.key))
+  })
+
+  it("counts recurring days beside the task counts they complement", () => {
+    const key = "instance_days_completed_90"
+    expect(isCareerSignalKey(key)).toBe(true)
+    expect(signalLabel(key as CareerSignalKey)).toBe("Recurring days completed")
+    // The hint says what a member can check their own log against: closed days, not
+    // completed template rows, which is the whole reason the signal exists.
+    expect(signalHint(key as CareerSignalKey)).toMatch(/closed a recurring task/i)
   })
 
   it("gives every signal a label and a hint a member can check", () => {

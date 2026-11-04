@@ -5,7 +5,14 @@
 
 import { and, desc, eq, exists, gte, inArray, isNotNull, sql } from "drizzle-orm"
 import { db } from "@/lib/db"
-import { deliverables, taskEvents, tasks, workLogEntries, workReports } from "@/drizzle/schema"
+import {
+  deliverables,
+  taskEvents,
+  taskInstances,
+  tasks,
+  workLogEntries,
+  workReports,
+} from "@/drizzle/schema"
 import { dayStartUtc } from "@/lib/worklog/local-day"
 import { COMPLETED_TASK_STATUSES } from "@/lib/tasks/statuses"
 import { CAREER_SIGNAL_KEYS, type CareerSignalKey } from "./signals"
@@ -218,6 +225,31 @@ export async function collectCareerEvidence({
       .orderBy(desc(workReports.submittedAt), desc(workReports.id))
       .limit(limit)
     out.reports_submitted = clip(rows)
+  }
+
+  if (wanted.has("instance_days_completed_90")) {
+    // One row per closed day, so the list agrees with the distinct-day count: a day that
+    // closed two recurring tasks is still one day of evidence, named after both tasks.
+    const rows = await db
+      .select({
+        id: sql<number>`min(${taskInstances.id})::int`,
+        label: sql<string>`coalesce(string_agg(distinct ${tasks.title}, ', '), 'Recurring task')`,
+        date: taskInstances.instanceDate,
+      })
+      .from(taskInstances)
+      .innerJoin(tasks, eq(tasks.id, taskInstances.taskId))
+      .where(
+        and(
+          eq(tasks.assigneeId, userId),
+          eq(taskInstances.status, "done"),
+          isNotNull(taskInstances.completedAt),
+          gte(taskInstances.completedAt, windowStart),
+        ),
+      )
+      .groupBy(taskInstances.instanceDate)
+      .orderBy(desc(taskInstances.instanceDate))
+      .limit(limit)
+    out.instance_days_completed_90 = clip(rows)
   }
 
   if (wanted.has("plan_items_promoted")) {
