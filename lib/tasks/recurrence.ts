@@ -61,6 +61,11 @@ export function workingDayOnOrAfter(dayIso: string): string {
  * The window is measured in whole days between two calendar dates, never between two `Date`
  * instants: both operands are plain dates, so a viewer in Auckland and a viewer in Lagos get
  * the count their own grid has to cover, not an hour of drift.
+ *
+ * The count is deliberately generous for a `daily` grid, which now skips weekends and so needs
+ * about five rows per seven days rather than seven. Asking for more than the window holds costs
+ * nothing — `ensureInstanceHorizon` only writes the shortfall it is given, and a longer grid
+ * simply reaches further ahead.
  */
 export function horizonOccurrencesForWindow(
   cadence: Cadence,
@@ -111,6 +116,8 @@ export function nextInstanceDate(cadence: Cadence, after: Date): string | null {
  * continuing where it stopped, so days nobody worked stay missing instead of arriving as rows
  * dated in the past. A missed day is a fact the member can still see; a row invented for it is
  * not.
+ *
+ * Every date returned is a working day — see `workingDayOnOrAfter`.
  */
 export function horizonDates(
   cadence: Cadence,
@@ -120,7 +127,10 @@ export function horizonDates(
 ): string[] {
   if (cadence === "one-off" || occurrences <= 0) return []
 
-  let cursor = latestIso ?? todayIso
+  // A grid that stopped on a weekend day, or a reader asking on one, starts from the working day
+  // instead: the walk below compares against `todayIso`, and a Saturday cursor would read as
+  // "already behind today" and step clean over the Monday it should have landed on.
+  let cursor = workingDayOnOrAfter(latestIso ?? todayIso)
   const step = (from: string) => {
     const onward = nextInstanceDate(cadence, new Date(from))
     return onward && onward > from ? onward : null
@@ -128,7 +138,7 @@ export function horizonDates(
 
   // The grid already holds `latestIso`, so the first date worth asking for is the one after it.
   if (latestIso) {
-    const onward = step(latestIso)
+    const onward = step(cursor)
     if (!onward) return []
     cursor = onward
   }

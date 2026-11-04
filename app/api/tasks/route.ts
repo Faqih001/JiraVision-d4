@@ -7,6 +7,9 @@ import { readDisciplineField } from "@/lib/roles"
 import { memberDisciplineDefault } from "@/lib/worklog/member-discipline"
 import { captureTaskBirths } from "@/lib/worklog/capture"
 import { generateInitialInstances } from "@/lib/data-access-task-instances"
+import { loadVisibleMemberIds } from "@/lib/organizations"
+import { localDay } from "@/lib/worklog/local-day"
+import { isScheduleRow, todayOccurrencesFor } from "@/lib/tasks/today-occurrence"
 
 // Anonymous access is a convenience for local development and scripted runs only.
 // The previous expression ORed in ENABLE_TEST_MODE unconditionally, so a stray
@@ -54,10 +57,22 @@ export async function GET(request: Request) {
     
     // Get paginated tasks
     const result = await getPaginatedTasks(page, pageSize, filters)
-    
+
+    // A board buckets by the day, and a schedule's day lives in `task_instances`, not in
+    // `tasks`. Attaching today's occurrence is what lets the kanban put a daily in To do every
+    // morning and let it be marked done once for that day. `null` means "not due today", which
+    // is a real answer for a weekly schedule read on the wrong day, not a missing row.
+    const hasSchedule = result.tasks.some(isScheduleRow)
+    const todayIso = localDay(new Date(), session?.timezone)
+    const writableIds = hasSchedule && session ? await loadVisibleMemberIds(session.id) : []
+    const occurrences = await todayOccurrencesFor(result.tasks, todayIso, writableIds)
+
     return NextResponse.json({
       success: true,
-      data: result.tasks,
+      data: result.tasks.map((task) => ({
+        ...task,
+        todayInstance: occurrences.get(task.id) ?? null,
+      })),
       pagination: result.pagination
     })
   } catch (error) {
