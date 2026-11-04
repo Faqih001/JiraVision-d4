@@ -104,8 +104,22 @@ export async function PUT(
     }
     const updateData = updates.patch
 
+    const recurringBlock = recurringStatusError(existingTask, updateData)
+    if (recurringBlock) {
+      return NextResponse.json({ success: false, message: recurringBlock }, { status: 409 })
+    }
+
     // Update the task
     const updatedTask = await updateTask(id, updateData)
+
+    if (updateData.cadence !== undefined) {
+      await materialiseGridOnCadenceChange(
+        id,
+        existingTask.cadence,
+        updateData.cadence,
+        localDay(new Date(), session.timezone),
+      )
+    }
 
     // The status history is the report's evidence, so it is written for every transition,
     // including the ones that are not worth notifying anyone about.

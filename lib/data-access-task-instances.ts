@@ -1,7 +1,7 @@
 import { db } from "@/lib/db"
 import { taskInstances, tasks } from "@/drizzle/schema"
-import { eq, and, gte, lte, sql } from "drizzle-orm"
-import { type Cadence } from "@/lib/cadence"
+import { eq, and, gte, lte, sql, count } from "drizzle-orm"
+import { isCadence, type Cadence } from "@/lib/cadence"
 import { HORIZON_OCCURRENCES, computeInstanceDates, horizonDates } from "@/lib/tasks/recurrence"
 import { isSettledInstanceStatus } from "@/lib/tasks/instance-window"
 
@@ -87,6 +87,14 @@ export async function ensureInstanceHorizon(
   if (cadence === "one-off") return []
 
   try {
+    const [coverage] = await db
+      .select({ held: count() })
+      .from(taskInstances)
+      .where(and(eq(taskInstances.taskId, taskId), gte(taskInstances.instanceDate, todayIso)))
+
+    const needed = occurrences - Number(coverage?.held ?? 0)
+    if (needed <= 0) return []
+
     const latestResults = await db
       .select({ instanceDate: taskInstances.instanceDate })
       .from(taskInstances)
@@ -94,7 +102,7 @@ export async function ensureInstanceHorizon(
       .orderBy(sql`${taskInstances.instanceDate} DESC`)
       .limit(1)
 
-    const dates = horizonDates(cadence, latestResults[0]?.instanceDate ?? null, todayIso, occurrences)
+    const dates = horizonDates(cadence, latestResults[0]?.instanceDate ?? null, todayIso, needed)
     if (dates.length === 0) return []
 
     await db
@@ -107,6 +115,22 @@ export async function ensureInstanceHorizon(
     console.error("Error topping up instance horizon:", error)
     return []
   }
+}
+
+/**
+ * A template that only became recurring on this request has no grid at all, so the cadence
+ * PATCH is where the schedule has to be born. Returns the dates written; nothing happens when
+ * the task was already recurring (its grid, and any work on it, must be left alone).
+ */
+export async function materialiseGridOnCadenceChange(
+  taskId: number,
+  previousCadence: string | null | undefined,
+  nextCadence: string | null | undefined,
+  todayIso: string,
+): Promise<string[]> {
+  if (!isCadence(nextCadence)) return []
+  if (previousCadence && previousCadence !== "one-off") return []
+  return ensureInstanceHorizon(taskId, nextCadence, todayIso)
 }
 
 /**

@@ -145,6 +145,9 @@ export function pickTaskUpdates(input: unknown): TaskPatchResult {
           return { error: `cadence must be one of: ${CADENCES.join(", ")}` }
         }
         patch.cadence = value
+        // `is_template` is the flag the calendar and the report reads use to tell a schedule
+        // from a single task, so it moves with the cadence instead of being client-settable.
+        patch.isTemplate = value !== "one-off"
         break
       }
       case "checklistItems": {
