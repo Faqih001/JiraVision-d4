@@ -78,6 +78,7 @@ import { cn } from "@/lib/utils"
 import { CADENCES, CADENCE_LABEL, type Cadence } from "@/lib/cadence"
 import { parseChecklistItems, type ChecklistItem, type ChecklistResponse } from "@/lib/tasks/checklist"
 import { planInstanceWindow } from "@/lib/tasks/instance-window"
+import { isCompletedTaskStatus } from "@/lib/tasks/statuses"
 import type { DashboardOverview } from "@/lib/dashboard-data"
 import {
   AXIS,
@@ -183,9 +184,16 @@ function isOpen(t: ApiTask) {
   return t.status !== "done"
 }
 
-function nextStatus(status: string) {
-  const idx = STATUSES.indexOf(status)
-  return STATUSES[(idx + 1) % STATUSES.length]
+function nextStatus(status: string, recurring = false) {
+  // A recurring template has no Done column to arrive at: its occurrences finish, never the
+  // schedule itself, so the cycle for one stops short of the completed words.
+  const pool = recurring ? STATUSES.filter((s) => !isCompletedTaskStatus(s)) : STATUSES
+  const idx = pool.indexOf(status)
+  return pool[(idx + 1) % pool.length]
+}
+
+function isRecurringTask(t: { cadence?: string | null }) {
+  return Boolean(t.cadence) && t.cadence !== "one-off"
 }
 
 function CadenceBadge({ cadence }: { cadence: string | null | undefined }) {
@@ -493,7 +501,7 @@ export default function TasksWorkspacePage() {
     patchTask(t, { status }, "Status updated", `${t.title} → ${STATUS_LABEL[status] ?? status}`)
 
   const cycleTaskStatus = (t: ApiTask) => {
-    const to = nextStatus(t.status)
+    const to = nextStatus(t.status, isRecurringTask(t))
     return setTaskStatus(t, to)
   }
 
@@ -1192,7 +1200,7 @@ export default function TasksWorkspacePage() {
                       <Pencil className="mr-1 h-3 w-3" /> Edit
                     </Button>
                     <Button size="sm" variant="ghost" className="ml-auto h-7 px-2 text-xs" onClick={() => cycleTaskStatus(t)}>
-                      {STATUS_LABEL[nextStatus(t.status)] ?? "Advance"}
+                      {STATUS_LABEL[nextStatus(t.status, isRecurringTask(t))] ?? "Advance"}
                     </Button>
                   </div>
                 </CardContent>
@@ -1273,7 +1281,7 @@ export default function TasksWorkspacePage() {
                       <td className="px-2 py-2 text-right">
                         <div className="inline-flex gap-1">
                           <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => cycleTaskStatus(t)}>
-                            → {STATUS_LABEL[nextStatus(t.status)]}
+                            → {STATUS_LABEL[nextStatus(t.status, isRecurringTask(t))]}
                           </Button>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -1327,7 +1335,7 @@ export default function TasksWorkspacePage() {
                     {t.dueDate ?? "—"}
                   </span>
                   <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => cycleTaskStatus(t)}>
-                    → {STATUS_LABEL[nextStatus(t.status)]}
+                    → {STATUS_LABEL[nextStatus(t.status, isRecurringTask(t))]}
                   </Button>
                 </div>
               )
@@ -1689,7 +1697,7 @@ export default function TasksWorkspacePage() {
               <div>
                 <Label className="text-xs">Status</Label>
                 <div className="mt-1 flex flex-wrap gap-1">
-                  {STATUSES.map((s) => (
+                  {STATUSES.filter((s) => !(isRecurringTask(detailTask) && isCompletedTaskStatus(s))).map((s) => (
                     <Button
                       key={s}
                       size="sm"

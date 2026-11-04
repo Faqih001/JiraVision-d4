@@ -83,6 +83,8 @@ import {
   TOOLTIP_STYLE,
   relativeTime,
 } from "@/components/dashboard-kit"
+import { isCompletedTaskStatus } from "@/lib/tasks/statuses"
+import { RECURRING_STATUS_HINT } from "@/lib/task-updates"
 
 /* ------------------------------------------------------------------ types */
 
@@ -96,6 +98,7 @@ type TaskRow = {
   assigneeId: number | null
   sprintId: number | null
   dueDate: string | null
+  cadence: string | null
   tags: unknown
   createdAt: string | null
   updatedAt: string | null
@@ -164,6 +167,9 @@ const tagList = (t: TaskRow) => (Array.isArray(t.tags) ? t.tags.map(String) : []
 
 const isOverdue = (t: TaskRow) =>
   Boolean(t.dueDate) && t.status !== "done" && new Date(t.dueDate as string) < new Date()
+
+/** A template is the schedule, so the board never offers to finish one — the day is what gets done. */
+const isRecurring = (t: TaskRow) => Boolean(t.cadence) && t.cadence !== "one-off"
 
 /* ---------------------------------------------------------------- the page */
 
@@ -286,6 +292,15 @@ export default function KanbanBoardPage() {
   const moveTask = useCallback(
     async (task: TaskRow, status: string) => {
       if (task.status === status) return
+      if (isRecurring(task) && isCompletedTaskStatus(status)) {
+        toast({
+          variant: "destructive",
+          title: "Recurring tasks stay open",
+          description: RECURRING_STATUS_HINT,
+        })
+        await reloadTasks()
+        return
+      }
       const before = task.status
       setTasks((prev) => prev.map((t) => (t.id === task.id ? { ...t, status, updatedAt: new Date().toISOString() } : t)))
       setDetailTask((d) => (d && d.id === task.id ? { ...d, status } : d))
@@ -602,7 +617,7 @@ export default function KanbanBoardPage() {
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuLabel className="text-[11px] font-normal text-muted-foreground">Move to</DropdownMenuLabel>
-            {STATUSES.filter((s) => s !== t.status).map((s) => (
+            {STATUSES.filter((s) => s !== t.status && !(isRecurring(t) && isCompletedTaskStatus(s))).map((s) => (
               <DropdownMenuItem key={s} onClick={() => void moveTask(t, s)}>
                 <span className="mr-2 h-2 w-2 rounded-full" style={{ background: STATUS_COLOR[s] }} />
                 {STATUS_LABEL[s]}
