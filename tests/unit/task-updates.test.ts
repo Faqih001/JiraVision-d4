@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
-import { pickTaskUpdates } from "@/lib/task-updates"
+import { pickTaskUpdates, RECURRING_STATUS_HINT, recurringStatusError } from "@/lib/task-updates"
+import { COMPLETED_TASK_STATUSES } from "@/lib/tasks/statuses"
 
 // drizzle interpolates every key handed to `.set()` as a column identifier, so the
 // task routes that spread the request body accepted `id` (repointing a primary key)
@@ -128,5 +129,70 @@ describe("phase 1 task columns", () => {
     const result = pickTaskUpdates({ title: "Real work", sourcePlanId: 7 })
     expect(result).toEqual({ patch: { title: "Real work" } })
     expect("sourcePlanId" in (result as { patch: object }).patch).toBe(false)
+  })
+})
+
+describe("recurringStatusError", () => {
+  // A template is the schedule, not a day of work. Marking it done would retire every
+  // occurrence it describes, so the four task writers refuse the patch before the UPDATE.
+  it("refuses to complete a recurring task", () => {
+    for (const cadence of ["daily", "weekly", "monthly", "quarterly", "yearly"]) {
+      expect(recurringStatusError({ cadence }, { status: "done" })).toBe(RECURRING_STATUS_HINT)
+    }
+  })
+
+  it("refuses every word the project uses for finished", () => {
+    for (const status of COMPLETED_TASK_STATUSES) {
+      expect(recurringStatusError({ cadence: "daily" }, { status })).toBe(RECURRING_STATUS_HINT)
+    }
+  })
+
+  it("allows a one-off task to be completed", () => {
+    expect(recurringStatusError({ cadence: "one-off" }, { status: "done" })).toBeNull()
+    expect(recurringStatusError({ cadence: null }, { status: "done" })).toBeNull()
+    expect(recurringStatusError({}, { status: "done" })).toBeNull()
+  })
+
+  it("allows a recurring task to move between working statuses", () => {
+    expect(recurringStatusError({ cadence: "daily" }, { status: "in_progress" })).toBeNull()
+    expect(recurringStatusError({ cadence: "weekly" }, { status: "backlog" })).toBeNull()
+  })
+
+  it("ignores a patch that says nothing about status", () => {
+    expect(recurringStatusError({ cadence: "daily" }, { title: "Renamed" })).toBeNull()
+    expect(recurringStatusError({ cadence: "daily" }, { priority: "urgent" })).toBeNull()
+  })
+
+  it("catches the same request that completes the task and makes it recurring", () => {
+    expect(recurringStatusError({ cadence: "one-off" }, { status: "done", cadence: "daily" })).toBe(
+      RECURRING_STATUS_HINT,
+    )
+  })
+
+  it("says what to do instead, in one sentence a toast can show", () => {
+    expect(RECURRING_STATUS_HINT).toContain("complete today's instance")
+  })
+})
+
+describe("cadence keeps is_template honest", () => {
+  // tasks.is_template is what the calendar and the report reads use to tell a schedule from a
+  // single task. A cadence PATCH that left it behind would make a daily task vanish from the
+  // calendar, so the flag is derived here rather than accepted from the client.
+  it("marks a task a template when the cadence becomes recurring", () => {
+    expect(pickTaskUpdates({ cadence: "daily" })).toEqual({ patch: { cadence: "daily", isTemplate: true } })
+    expect(pickTaskUpdates({ cadence: "quarterly" })).toEqual({
+      patch: { cadence: "quarterly", isTemplate: true },
+    })
+  })
+
+  it("unmarks it when the cadence goes back to one-off", () => {
+    expect(pickTaskUpdates({ cadence: "one-off" })).toEqual({
+      patch: { cadence: "one-off", isTemplate: false },
+    })
+  })
+
+  it("keeps is_template un-settable on its own", () => {
+    const result = pickTaskUpdates({ title: "Renamed", isTemplate: true })
+    expect("isTemplate" in (result as { patch: object }).patch).toBe(false)
   })
 })
