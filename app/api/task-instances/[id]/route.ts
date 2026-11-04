@@ -6,6 +6,7 @@ import {
   generateNextInstance,
 } from "@/lib/data-access-task-instances"
 import { validateChecklistResponses, parseChecklistItems } from "@/lib/tasks/checklist"
+import { localDay } from "@/lib/worklog/local-day"
 import { db } from "@/lib/db"
 import { tasks } from "@/drizzle/schema"
 import { eq } from "drizzle-orm"
@@ -96,7 +97,7 @@ export async function PATCH(
 
     let nextInstance = null
     if (status === "done") {
-      nextInstance = await generateNextInstance(instance.taskId)
+      nextInstance = await generateNextInstance(instance.taskId, localDay(new Date(), session?.timezone))
     }
 
     return NextResponse.json({
