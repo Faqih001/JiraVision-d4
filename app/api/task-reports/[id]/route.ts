@@ -75,7 +75,9 @@ export async function PATCH(
     const body = await request.json()
     const { content, status } = body
 
-    const updateData: Record<string, unknown> = {}
+    // Typed off the table rather than `Record<string, unknown>`: an untyped bag lets a string
+    // reach `updated_at`, and Drizzle only throws when it builds the statement.
+    const updateData: Partial<typeof taskReports.$inferInsert> = {}
     if (content !== undefined) {
       if (!Array.isArray(content)) {
         return NextResponse.json(
@@ -115,7 +117,7 @@ export async function PATCH(
       }
       updateData.status = status
     }
-    updateData.updatedAt = new Date().toISOString()
+    updateData.updatedAt = new Date()
 
     const reports = await db
       .update(taskReports)

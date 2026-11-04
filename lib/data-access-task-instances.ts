@@ -38,21 +38,21 @@ export async function getTaskInstanceById(id: number): Promise<TaskInstance | nu
   }
 }
 
+/**
+ * Null means no row matched. A failure to write throws: swallowing it here turns a type error
+ * into an anonymous 500 that names nothing, which is how a string reaching `completed_at` stayed
+ * invisible for two days. The caller's catch reports the message.
+ */
 export async function updateTaskInstance(
   id: number,
   data: Partial<Pick<TaskInstance, "status" | "notes" | "checklistResponses" | "completedAt" | "completedBy">>,
 ): Promise<TaskInstance | null> {
-  try {
-    const results = await db
-      .update(taskInstances)
-      .set(data)
-      .where(eq(taskInstances.id, id))
-      .returning()
-    return results[0] ?? null
-  } catch (error) {
-    console.error("Error updating task instance:", error)
-    return null
-  }
+  const results = await db
+    .update(taskInstances)
+    .set(data)
+    .where(eq(taskInstances.id, id))
+    .returning()
+  return results[0] ?? null
 }
 
 export async function createTaskInstance(data: {
