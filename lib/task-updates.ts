@@ -13,6 +13,7 @@
 // it; letting a client set it would forge that link.
 
 import { tasks } from "@/drizzle/schema"
+import { CADENCES, isCadence } from "@/lib/cadence"
 import { DISCIPLINE_HINT, isWorkDiscipline } from "@/lib/roles"
 
 type TaskPatch = Partial<Omit<typeof tasks.$inferInsert, "id" | "createdAt" | "updatedAt">>
@@ -139,8 +140,8 @@ export function pickTaskUpdates(input: unknown): TaskPatchResult {
         patch.tags = value.map((tag) => String(tag ?? ""))
         break
       case "cadence": {
-        if (typeof value !== "string" || !["one-off", "daily", "weekly", "monthly", "yearly"].includes(value)) {
-          return { error: "cadence must be one of: one-off, daily, weekly, monthly, yearly" }
+        if (!isCadence(value)) {
+          return { error: `cadence must be one of: ${CADENCES.join(", ")}` }
         }
         patch.cadence = value
         break
