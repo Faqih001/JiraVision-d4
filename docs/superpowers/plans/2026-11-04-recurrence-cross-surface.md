@@ -284,12 +284,13 @@ describe("a schedule draws occurrences and a deadline draws its due date", () =>
   it("has no template branch left", () => {
     expect(route).not.toMatch(/recurringTasksList/)
     expect(route).not.toMatch(/recurringEvents/)
-    expect(route).not.toMatch(/isTemplate, true/)
   })
 
   it("reads only non-template tasks in the deadline branch", () => {
     expect(route).toMatch(/eq\(tasks\.isTemplate, false\)/)
     expect(route).toMatch(/isNotNull\(tasks\.dueDate\)/)
+    expect(route.match(/isRecurring: true/g)?.length).toBe(1)
+    expect(route.match(/isRecurring: false/g)?.length).toBe(1)
   })
 
   it("never stamps an event with the request clock", () => {
@@ -311,17 +312,17 @@ describe("a schedule draws occurrences and a deadline draws its due date", () =>
 - [ ] **Step 2: Run it and watch it fail**
 
 Run: `npx vitest run tests/unit/recurrence-cross-surface-guards.test.ts`
-Expected: FAIL — the template branch still exists, `isTemplate, true` is still present, and the page still compares `t.status === "done"`.
+Expected: FAIL — the template branch still exists, the deadline branch still selects templates, and the page still compares `t.status === "done"`.
 
 - [ ] **Step 3: Add the imports the new branch needs**
 
 In `app/api/calendar/events/route.ts` line 4, add `isNotNull`:
 
 ```ts
-import { and, asc, desc, eq, inArray, isNull, isNotNull, or, gte, lte, sql } from "drizzle-orm"
+import { and, desc, eq, inArray, isNull, isNotNull, or, gte, lte, sql } from "drizzle-orm"
 ```
 
-(`asc` is used by Task 3; adding it here keeps the import line stable across both tasks.)
+(`asc` is imported in Task 3, where it is used. Importing it here would trip `@typescript-eslint/no-unused-vars` and move the lint baseline by one warning, and the gate constraint outranks keeping the line stable.)
 
 - [ ] **Step 4: Replace the template branch with a one-off deadline branch**
 
@@ -422,9 +423,13 @@ type TaskRow = {
 ```
 
 ```ts
-  const isRecurringTask = (t: { cadence?: string | null }) =>
-    Boolean(t.cadence && t.cadence !== "one-off")
+// module scope, next to the page's other helpers — not inside the component
+function isRecurringTask(t: { cadence?: string | null }) {
+  return Boolean(t.cadence) && t.cadence !== "one-off"
+}
+```
 
+```ts
   const deadlineRows = useMemo(() => {
     const today0 = startOfDay(new Date())
     const horizon = addDays(today0, 14)
@@ -439,7 +444,7 @@ type TaskRow = {
   }, [tasks])
 ```
 
-`isRecurringTask` is the same local rule the tasks page uses ([app/dashboard/tasks/page.tsx:195](../../app/dashboard/tasks/page.tsx#L195)) — deliberately re-declared rather than imported, because a shared home for it would have to live in a module both pages can import, and one `cadence !== "one-off"` test is not worth that coupling. `GET /api/tasks` returns the full row, so `cadence` is already on the wire; only the local type was hiding it.
+`isRecurringTask` is the same rule the tasks page keeps at module scope ([app/dashboard/tasks/page.tsx:195](../../app/dashboard/tasks/page.tsx#L195)) — deliberately re-declared rather than imported, because a shared home for it would have to live in a module both pages can import, and one `cadence !== "one-off"` test is not worth that coupling. Declaring it *inside* the component would put a changing function reference in `deadlineRows`'s dependency graph and add a `react-hooks/exhaustive-deps` warning to the lint baseline, so it lives outside. `GET /api/tasks` returns the full row, so `cadence` is already on the wire; only the local type was hiding it.
 
 Add the import next to the other `@/lib` imports at the top of the page:
 
@@ -812,9 +817,11 @@ describe("one cadence vocabulary", () => {
   })
 
   it("keeps the migration script's mirrored grid counts honest", () => {
+    // A script may not import app code, so equality with the module the app uses is the most it
+    // can be held to. The quoted alternation is the script's own key style, not a second list.
     const script = src("scripts/import-it-technician-tasks.mjs")
     for (const [cadence, count] of Object.entries(INSTANCE_COUNTS)) {
-      expect(script).toContain(`${cadence}: ${count}`)
+      expect(script).toMatch(new RegExp(`"?${cadence}"?:\\s*${count}`))
     }
   })
 })
@@ -835,10 +842,10 @@ Expected: FAIL on the three private copies.
 
 - [ ] **Step 7: Collapse the extractor's copies**
 
-In `lib/planner/extract.ts`, add to the existing `@/lib/cadence` import (line 12 imports `computeNextRun`):
+In `lib/planner/extract.ts`, add a fresh `@/lib/cadence` import below `import { z } from "zod"` (the file has no cadence import today — the schedule words are inlined twice, in the Zod schema and in the JSON schema, which is exactly the private copy this task removes):
 
 ```ts
-import { SCHEDULE_CADENCES, computeNextRun } from "@/lib/cadence"
+import { SCHEDULE_CADENCES } from "@/lib/cadence"
 ```
 
 line 26:
@@ -946,7 +953,7 @@ const item = (over: Partial<PromotableItem> = {}): PromotableItem => ({
   estimatePoints: 3,
   startDate: "2026-11-10",
   dueDate: "2026-11-30",
-  discipline: "it_support",
+  discipline: "it_operations",
   cadence: null,
   ...over,
 })
@@ -986,7 +993,7 @@ describe("promoteTaskValues", () => {
       storyPoints: 3,
       startDate: "2026-11-10",
       dueDate: "2026-11-30",
-      discipline: "it_support",
+      discipline: "it_operations",
     })
   })
 })
@@ -1018,7 +1025,7 @@ type TaskInsertValues = typeof tasks.$inferInsert
 export type PromotableItem = {
   title: string
   description: string | null
-  estimatePoints: number | null
+  estimatePoints: number
   startDate: string | null
   dueDate: string | null
   discipline: string | null
@@ -1055,7 +1062,12 @@ export function promoteTaskValues(
 - [ ] **Step 4: Run the unit tests**
 
 Run: `npx vitest run tests/unit/planner-promote-values.test.ts`
-Expected: PASS. If `typeof tasks.$inferInsert` reports an error against the `import type`, change it to a value import — the module is server-only either way (see the Global Constraints) and the route is its only consumer besides the test.
+Expected: PASS. The `import type { tasks }` form works as written — `typeof tasks.$inferInsert` is a type-level use, so erasing the import is correct and the module stays DB-free at runtime.
+
+Two type facts the plan had wrong, both caught by `tsc` rather than by the tests:
+
+- `tasks.story_points` is `notNull().default(0)`, so its insert type is `number | undefined` and `null` is not assignable. `plan_items.estimate_points` is likewise `notNull().default(0)`, so `PromotableItem.estimatePoints` is `number`, not `number | null`.
+- `readLegacyDiscipline` returns null for a word outside the 75-discipline registry, so the fixture must use a real key (`it_operations`). A fixture spelling that looks plausible but is not in the registry asserts `null` and hides the mapping the test exists to prove.
 
 - [ ] **Step 5: Write the failing guard**
 
@@ -1107,7 +1119,7 @@ Above the loop, next to `const createdTaskIds: number[] = []`, add the list the 
 
 (`Cadence` comes from the same `@/lib/cadence` import line: `import { isCadence, type Cadence } from "@/lib/cadence"`.)
 
-Replace the insert (formerly :72-86) — `sourcePlanId` and `tags` stay route-owned because `sourcePlanId` is written only here:
+Replace the insert (formerly :72-86) — `sourcePlanId` and `tags` stay route-owned because `sourcePlanId` is written only here. The `const tags` line already exists two lines above the insert (:76), so keep that one and adopt only the rest of this block; copying the whole block gives the loop body a second `const tags` in the same scope and the file will not build:
 
 ```ts
       const values = promoteTaskValues(item, { id: session.id })
