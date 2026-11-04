@@ -65,3 +65,35 @@ describe("a schedule draws occurrences and a deadline draws its due date", () =>
     expect(page).toMatch(/isRecurringTask\(t\)/)
   })
 })
+
+describe("a calendar read tops up the grid it is about to draw", () => {
+  const route = codeOnly(src("app/api/calendar/events/route.ts"))
+  const recurrence = codeOnly(src("lib/tasks/recurrence.ts"))
+
+  it("sits in front of the instance query", () => {
+    expect(route.indexOf("ensureInstanceHorizon(")).toBeLessThan(
+      route.indexOf("instancesWithTasks = await db"),
+    )
+    expect(route).toMatch(/horizonOccurrencesForWindow\(/)
+  })
+
+  it("is bounded in rows and in tasks", () => {
+    expect(recurrence).toMatch(/export const MAX_HORIZON_OCCURRENCES = 90/)
+    expect(route).toMatch(/const HORIZON_TASK_LIMIT = 25/)
+    expect(route).toMatch(/limit\(HORIZON_TASK_LIMIT \+ 1\)/)
+    expect(route).toMatch(/horizon deferred/)
+  })
+
+  it("tops up only schedules that have an owner", () => {
+    expect(route).toMatch(/const topUpScope =/)
+    // exactly one `isNull(tasks.assigneeId)` exists: Task 1's visible-scope predicate. A second
+    // would mean the top-up reached for an unassigned schedule, and a write into someone's grid
+    // needs an owner.
+    expect(route.match(/isNull\(tasks\.assigneeId\)/g)?.length).toBe(1)
+  })
+
+  it("anchors on the member's local day and never fails the read", () => {
+    expect(route).toMatch(/localDay\(new Date\(\), session\.timezone\)/)
+    expect(route).toMatch(/horizon top-up failed/)
+  })
+})

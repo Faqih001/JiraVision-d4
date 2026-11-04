@@ -1,4 +1,4 @@
-import { type Cadence, computeNextRun } from "@/lib/cadence"
+import { CADENCE_DAYS, type Cadence, computeNextRun } from "@/lib/cadence"
 
 export const INSTANCE_COUNTS: Record<Cadence, number> = {
   "one-off": 0,
@@ -11,6 +11,45 @@ export const INSTANCE_COUNTS: Record<Cadence, number> = {
 
 /** How many scheduled dates a grid keeps ahead of today when a reader tops it up. */
 export const HORIZON_OCCURRENCES = 7
+
+/** The most occurrences one read may ask one schedule to materialise in a single request. */
+export const MAX_HORIZON_OCCURRENCES = 90
+
+/** A `YYYY-MM-DD` string as UTC midnight, or null when it is not a real date. */
+function dayMs(value: string | null | undefined): number | null {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null
+  const ms = Date.parse(`${value}T00:00:00Z`)
+  return Number.isNaN(ms) ? null : ms
+}
+
+/**
+ * How many scheduled dates a grid needs to reach the end of the window a reader is about to
+ * draw, so a month view shows a month of occurrences instead of the seven rows the standing
+ * horizon keeps.
+ *
+ * The window is measured in whole days between two calendar dates, never between two `Date`
+ * instants: both operands are plain dates, so a viewer in Auckland and a viewer in Lagos get
+ * the count their own grid has to cover, not an hour of drift.
+ */
+export function horizonOccurrencesForWindow(
+  cadence: Cadence,
+  todayIso: string,
+  endDateIso: string | null | undefined,
+): number {
+  const days = CADENCE_DAYS[cadence]
+  if (days === null) return HORIZON_OCCURRENCES
+
+  const today = dayMs(todayIso)
+  const end = dayMs(endDateIso)
+  if (today === null || end === null) return HORIZON_OCCURRENCES
+
+  const span = Math.round((end - today) / 86_400_000)
+  // A window that closed in the past still gets the row for its own day rather than zero,
+  // which `horizonDates` would read as "ask for nothing".
+  if (span < 0) return 1
+
+  return Math.min(MAX_HORIZON_OCCURRENCES, Math.ceil(span / days) + 1)
+}
 
 export function computeInstanceDates(cadence: Cadence, from: Date): string[] {
   const count = INSTANCE_COUNTS[cadence]

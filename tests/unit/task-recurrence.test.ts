@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest"
 import {
   HORIZON_OCCURRENCES,
+  MAX_HORIZON_OCCURRENCES,
   computeInstanceDates,
   horizonDates,
+  horizonOccurrencesForWindow,
   nextInstanceDate,
 } from "@/lib/tasks/recurrence"
 
@@ -146,5 +148,38 @@ describe("nextInstanceDate", () => {
 
   it("returns next week for weekly", () => {
     expect(nextInstanceDate("weekly", new Date("2026-11-02"))).toBe("2026-11-09")
+  })
+})
+
+describe("horizonOccurrencesForWindow", () => {
+  it("covers a 42-day month grid on a daily cadence", () => {
+    expect(horizonOccurrencesForWindow("daily", "2026-11-04", "2026-12-16")).toBe(43)
+  })
+
+  it("needs two yearly rows to reach next year", () => {
+    expect(horizonOccurrencesForWindow("yearly", "2026-11-04", "2027-11-04")).toBe(2)
+  })
+
+  it("falls back to the standing horizon when the reader sent no window", () => {
+    expect(horizonOccurrencesForWindow("daily", "2026-11-04", null)).toBe(HORIZON_OCCURRENCES)
+    expect(horizonOccurrencesForWindow("daily", "2026-11-04", "not-a-date")).toBe(HORIZON_OCCURRENCES)
+  })
+
+  it("caps a 12-month daily view at the bound rather than writing 366 rows", () => {
+    expect(horizonOccurrencesForWindow("daily", "2026-11-04", "2027-11-04")).toBe(
+      MAX_HORIZON_OCCURRENCES,
+    )
+  })
+
+  it("never asks for a negative or zero window", () => {
+    expect(horizonOccurrencesForWindow("daily", "2026-11-04", "2026-10-01")).toBe(1)
+  })
+
+  it("treats a one-off as no window demand", () => {
+    // CADENCE_DAYS["one-off"] is null: the caller never tops one up, and the answer is the
+    // standing horizon rather than a division by nothing.
+    expect(horizonOccurrencesForWindow("one-off", "2026-11-04", "2026-12-16")).toBe(
+      HORIZON_OCCURRENCES,
+    )
   })
 })
