@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server"
 import { getTaskById, updateTask, deleteTask } from "@/lib/data-access"
-import { pickTaskUpdates } from "@/lib/task-updates"
+import { pickTaskUpdates, recurringStatusError } from "@/lib/task-updates"
+import { materialiseGridOnCadenceChange } from "@/lib/data-access-task-instances"
+import { localDay } from "@/lib/worklog/local-day"
 import { captureStatusChanges } from "@/lib/worklog/capture"
 import { getSession } from "@/lib/auth-actions"
 
@@ -96,7 +98,21 @@ export async function PUT(
     }
 
     // Update the task
+    const recurringBlock = recurringStatusError(existingTask, updates.patch)
+    if (recurringBlock) {
+      return NextResponse.json({ success: false, message: recurringBlock }, { status: 409 })
+    }
+
     const updatedTask = await updateTask(id, updates.patch)
+
+    if (updates.patch.cadence !== undefined) {
+      await materialiseGridOnCadenceChange(
+        id,
+        existingTask.cadence,
+        updates.patch.cadence,
+        localDay(new Date(), session.timezone),
+      )
+    }
 
     // Same capture as the production route — the log must not depend on which door was used.
     await captureStatusChanges([existingTask], [updatedTask], {
