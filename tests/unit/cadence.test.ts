@@ -11,8 +11,8 @@ import {
 // and the report builder share one recurrence definition. The three cadences that
 // already ship must keep producing exactly the timestamps they produced before.
 describe("CADENCES", () => {
-  it("keeps the three shipped values and adds one-off and yearly", () => {
-    expect(CADENCES).toEqual(["one-off", "daily", "weekly", "monthly", "yearly"])
+  it("keeps the shipped values and adds quarterly", () => {
+    expect(CADENCES).toEqual(["one-off", "daily", "weekly", "monthly", "quarterly", "yearly"])
   })
 
   it("labels every member, so a select can render from the vocabulary alone", () => {
@@ -24,6 +24,11 @@ describe("CADENCES", () => {
 
   it("accepts a member and rejects everything shaped like one but is not", () => {
     expect(isCadence("yearly")).toBe(true)
+    expect(isCadence("quarterly")).toBe(true)
+    // The value the planner extraction enum and lib/seed/tasks.ts both emit. Before this
+    // change it failed here while those writers stored it, so a quarterly schedule
+    // reached the recurrence engine as an unknown string.
+    expect(isCadence("quarter")).toBe(false)
     expect(isCadence("annual")).toBe(false)
     expect(isCadence("")).toBe(false)
     expect(isCadence(undefined)).toBe(false)
@@ -49,6 +54,20 @@ describe("computeNextRun", () => {
     expect(computeNextRun("yearly", from)).toBe("2027-10-26T07:30:00.000Z")
   })
 
+  it("advances three months for quarterly", () => {
+    expect(computeNextRun("quarterly", from)).toBe("2027-01-26T07:30:00.000Z")
+  })
+
+  it("walks a quarterly schedule through a year end", () => {
+    let cursor = new Date("2026-11-15T00:00:00.000Z")
+    const seen: string[] = []
+    for (let i = 0; i < 4; i++) {
+      cursor = new Date(computeNextRun("quarterly", cursor) as string)
+      seen.push(cursor.toISOString().slice(0, 10))
+    }
+    expect(seen).toEqual(["2027-02-15", "2027-05-15", "2027-08-15", "2027-11-15"])
+  })
+
   it("advances a year from a leap day and says where it lands", () => {
     // JS date math rolls an out-of-range day forward rather than clamping it, so a
     // yearly schedule first run on 2028-02-29 next fires on 2029-03-01. Documented here
@@ -71,6 +90,7 @@ describe("computeNextRun", () => {
 
   it("states a period length for everything but one-off", () => {
     expect(CADENCE_DAYS["one-off"]).toBeNull()
+    expect(CADENCE_DAYS.quarterly).toBe(92)
     expect(CADENCE_DAYS.yearly).toBe(365)
   })
 })
