@@ -3,6 +3,7 @@ import { and, asc, eq, gte, isNotNull } from "drizzle-orm"
 import { getSession } from "@/lib/auth-actions"
 import { db } from "@/lib/db"
 import { sprints, sprintAnalytics, tasks, users, wellbeingMetrics } from "@/drizzle/schema"
+import { isCompletedTaskStatus } from "@/lib/tasks/statuses"
 
 export const dynamic = "force-dynamic"
 
@@ -180,8 +181,8 @@ export async function GET(request: Request) {
     }))
 
     // ---- task-derived metrics ---------------------------------------------
-    const doneTasks = taskRows.filter((t: TaskRow) => t.status === "done")
-    const openTasks = taskRows.filter((t: TaskRow) => t.status !== "done")
+    const doneTasks = taskRows.filter((t: TaskRow) => isCompletedTaskStatus(t.status))
+    const openTasks = taskRows.filter((t: TaskRow) => !isCompletedTaskStatus(t.status))
 
     // Cycle-time proxy: median(updatedAt - createdAt) over done tasks.
     const cycleDays = doneTasks

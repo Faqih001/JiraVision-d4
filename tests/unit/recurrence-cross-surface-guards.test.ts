@@ -161,3 +161,50 @@ describe("promote carries the cadence and grids after the transaction", () => {
     expect(route).not.toMatch(/captureTaskBirths/)
   })
 })
+
+describe("the server reads the completed-status list, not a literal", () => {
+  const serverFiles = [
+    "app/api/reports/_shared.ts",
+    "app/api/sprints/[id]/route.ts",
+    "app/api/sprints/route.ts",
+    "app/api/analytics/route.ts",
+    "app/api/activity/route.ts",
+    "app/api/settings/[key]/route.ts",
+    "app/api/team/members/route.ts",
+    "app/api/team/members/[id]/route.ts",
+    "app/api/automation/_shared.ts",
+    "app/api/ethical-metrics/route.ts",
+    "app/api/ethical-metrics/apply-recommendation/route.ts",
+    "lib/dashboard-data.ts",
+  ]
+
+  it("leaves no status-vs-'done' comparison in a swept server file", () => {
+    for (const file of serverFiles) {
+      const code = codeOnly(src(file))
+      expect(code, file).not.toMatch(/status\s*[!=]==?\s*["']done["']/)
+      expect(code, file).not.toMatch(/status\}? (<>=?|<>) ?'done'/)
+      expect(code, file).not.toMatch(/neqDone\(/)
+    }
+  })
+
+  it("imports the shared rule into each of them", () => {
+    for (const file of serverFiles) {
+      const code = src(file)
+      expect(
+        /@\/lib\/tasks\/statuses(-sql)?/.test(code),
+        `${file} imports neither statuses helper`,
+      ).toBe(true)
+    }
+  })
+
+  it("excludes schedules from the counting reads, and only those", () => {
+    expect(codeOnly(src("app/api/reports/_shared.ts"))).toMatch(/isTemplate|is_template = false/)
+    expect(codeOnly(src("app/api/team/members/route.ts"))).toMatch(/eq\(tasks\.isTemplate, false\)/)
+    const detail = codeOnly(src("app/api/team/members/[id]/route.ts"))
+    expect(detail.slice(0, detail.indexOf("export async function DELETE"))).toMatch(
+      /eq\(tasks\.isTemplate, false\)/,
+    )
+    // ruling P7: the account-removal guard counts every owned row, schedules included
+    expect(detail.slice(detail.indexOf("export async function DELETE"))).not.toMatch(/isTemplate/)
+  })
+})

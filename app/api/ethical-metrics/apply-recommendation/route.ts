@@ -14,6 +14,7 @@ import { getSession } from "@/lib/auth-actions"
 import { db } from "@/lib/db"
 import { tasks, users } from "@/drizzle/schema"
 import { createNotification, notifyMany } from "@/lib/notifications"
+import { isCompletedTaskStatus } from "@/lib/tasks/statuses"
 import {
   ETHICS_LINK,
   SnapshotUnmeasurableError,
@@ -187,7 +188,7 @@ export async function POST(request: Request) {
           .from(tasks)
           .where(eq(tasks.id, taskId))
           .limit(1)
-        if (!taskRow || taskRow.status === "done") continue
+        if (!taskRow || isCompletedTaskStatus(taskRow.status)) continue
         if (fromUserId !== null && taskRow.assigneeId !== fromUserId) continue
         if (taskRow.assigneeId === toUserId) continue
 

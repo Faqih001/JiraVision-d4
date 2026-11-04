@@ -24,6 +24,7 @@ import {
 } from "@/drizzle/schema"
 import { senioritySource, seniorityTierOf, type SeniorityTier } from "@/lib/career/seniority"
 import { createNotification } from "@/lib/notifications"
+import { isCompletedTaskStatus } from "@/lib/tasks/statuses"
 
 export const dynamic = "force-dynamic"
 
@@ -536,7 +537,7 @@ export async function computeLive(config: EthicsConfig): Promise<LiveMetrics> {
   )
   const pool = tracked.length > 0 ? tracked : memberRows
 
-  const isOpen = (t: TaskRecord) => t.status !== "done"
+  const isOpen = (t: TaskRecord) => !isCompletedTaskStatus(t.status)
   const latestWellbeing = new Map<number, WellbeingRecord>()
   for (const w of wellbeingRows) {
     if (!latestWellbeing.has(w.userId)) latestWellbeing.set(w.userId, w)

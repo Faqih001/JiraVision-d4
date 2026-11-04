@@ -4,6 +4,7 @@ import { db } from "@/lib/db"
 import { sprints, tasks } from "@/drizzle/schema"
 import { and, asc, desc, eq, inArray, isNotNull, sql } from "drizzle-orm"
 import { createNotification, notifyMany } from "@/lib/notifications"
+import { completedStatusSql } from "@/lib/tasks/statuses-sql"
 
 export const dynamic = "force-dynamic"
 
@@ -103,9 +104,9 @@ async function loadTaskAggregates(ids: number[]): Promise<
     .select({
       sprintId: tasks.sprintId,
       totalPoints: sql<number>`coalesce(sum(${tasks.storyPoints}), 0)::int`,
-      donePoints: sql<number>`coalesce(sum(case when ${tasks.status} = 'done' then ${tasks.storyPoints} else 0 end), 0)::int`,
+      donePoints: sql<number>`coalesce(sum(case when ${completedStatusSql(tasks.status)} then ${tasks.storyPoints} else 0 end), 0)::int`,
       taskCount: sql<number>`count(*)::int`,
-      doneCount: sql<number>`count(case when ${tasks.status} = 'done' then 1 end)::int`,
+      doneCount: sql<number>`count(case when ${completedStatusSql(tasks.status)} then 1 end)::int`,
     })
     .from(tasks)
     .where(inArray(tasks.sprintId, ids))

@@ -8,6 +8,7 @@ import { NextResponse } from "next/server"
 import { sql } from "drizzle-orm"
 import { db } from "@/lib/db"
 import { type Cadence, isCadence } from "@/lib/cadence"
+import { completedStatusListSql } from "@/lib/tasks/statuses-sql"
 
 export const DATASETS = {
   tasks: {
@@ -208,14 +209,18 @@ export async function buildDataset(
       rows = (await db.execute(sql`
         SELECT coalesce(nullif(u.department, ''), 'No department')::text AS name, count(t.id)::int AS value
         FROM users u LEFT JOIN tasks t
-          ON t.assignee_id = u.id AND t.status <> 'done'
+          ON t.assignee_id = u.id
+          AND t.status not in (${completedStatusListSql()})
+          AND t.is_template = false
         GROUP BY coalesce(nullif(u.department, ''), 'No department') ORDER BY count(t.id) DESC
       `)) as unknown as DatasetRow[]
     } else {
       rows = (await db.execute(sql`
         SELECT u.name::text AS name, count(t.id)::int AS value
         FROM users u LEFT JOIN tasks t
-          ON t.assignee_id = u.id AND t.status <> 'done'
+          ON t.assignee_id = u.id
+          AND t.status not in (${completedStatusListSql()})
+          AND t.is_template = false
           AND t.created_at >= now() - make_interval(days => ${rangeDays})
         GROUP BY u.name ORDER BY count(t.id) DESC
       `)) as unknown as DatasetRow[]

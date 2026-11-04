@@ -16,6 +16,7 @@ import {
   wellbeingMetrics,
 } from "@/drizzle/schema";
 import { and, asc, desc, eq, ne, sql } from "drizzle-orm";
+import { completedStatusSql, openStatusSql } from "@/lib/tasks/statuses-sql";
 import { getSession } from "@/lib/auth-actions";
 import { createNotification } from "@/lib/notifications";
 import { readTeamSettings, teamNotifyEnabled } from "@/lib/team-settings";
@@ -30,15 +31,15 @@ async function loadMemberRow(memberId: number) {
 
   const [taskAggRow] = await db
     .select({
-      openTasks: sql<number>`count(*) filter (where ${tasks.status} <> 'done')::int`,
-      doneTasks: sql<number>`count(*) filter (where ${tasks.status} = 'done')::int`,
+      openTasks: sql<number>`count(*) filter (where ${openStatusSql(tasks.status)})::int`,
+      doneTasks: sql<number>`count(*) filter (where ${completedStatusSql(tasks.status)})::int`,
       blockedTasks: sql<number>`count(*) filter (where ${tasks.status} = 'blocked')::int`,
       openPoints:
-        sql<number>`coalesce(sum(${tasks.storyPoints}) filter (where ${tasks.status} <> 'done'), 0)::int`,
+        sql<number>`coalesce(sum(${tasks.storyPoints}) filter (where ${openStatusSql(tasks.status)}), 0)::int`,
       totalTasks: sql<number>`count(*)::int`,
     })
     .from(tasks)
-    .where(eq(tasks.assigneeId, memberId));
+    .where(and(eq(tasks.assigneeId, memberId), eq(tasks.isTemplate, false)));
 
   const [latestWb] = await db
     .select({
@@ -274,8 +275,8 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
 
     const [taskCounts] = await db
       .select({
-        openTasks: sql<number>`count(*) filter (where ${tasks.status} <> 'done')::int`,
-        doneTasks: sql<number>`count(*) filter (where ${tasks.status} = 'done')::int`,
+        openTasks: sql<number>`count(*) filter (where ${openStatusSql(tasks.status)})::int`,
+        doneTasks: sql<number>`count(*) filter (where ${completedStatusSql(tasks.status)})::int`,
         totalTasks: sql<number>`count(*)::int`,
       })
       .from(tasks)

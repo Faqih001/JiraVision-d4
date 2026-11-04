@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { and, desc, eq, gte, ilike, or, sql } from "drizzle-orm"
 import { getCurrentUser } from "@/lib/session"
 import { db } from "@/lib/db"
+import { isCompletedTaskStatus } from "@/lib/tasks/statuses"
 import {
   aiInsights,
   gamification,
@@ -197,11 +198,12 @@ export async function GET(request: NextRequest) {
       const createdMs = (t.createdAt ?? t.updatedAt) ? new Date(t.createdAt ?? t.updatedAt!).getTime() : null
       const updatedMs = (t.updatedAt ?? t.createdAt) ? new Date(t.updatedAt ?? t.createdAt!).getTime() : null
       if (updatedMs !== null && updatedMs >= since.getTime()) {
+        const finished = isCompletedTaskStatus(t.status)
         events.push({
           id: `t-${t.id}-u`,
           kind: "task",
-          type: t.status === "done" ? "task_completed" : "task_updated",
-          title: t.status === "done" ? `Task completed: ${t.title}` : `Task updated: ${t.title}`,
+          type: finished ? "task_completed" : "task_updated",
+          title: finished ? `Task completed: ${t.title}` : `Task updated: ${t.title}`,
           body: `Status ${t.status} · ${t.storyPoints} pts`,
           link: "/dashboard/tasks",
           actorName: t.assigneeName ?? undefined,

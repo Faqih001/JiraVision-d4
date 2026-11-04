@@ -1,9 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server"
-import { and, eq, ne, sql } from "drizzle-orm"
+import { and, eq, sql } from "drizzle-orm"
 import { db } from "@/lib/db"
 import { tasks, users } from "@/drizzle/schema"
 import { getSession } from "@/lib/auth-actions"
 import { createNotification } from "@/lib/notifications"
+import { openStatusSql } from "@/lib/tasks/statuses-sql"
 import { DEFAULT_SETTINGS } from "../route"
 
 export const dynamic = "force-dynamic"
@@ -154,7 +155,7 @@ async function handleDeletionRequest(userId: number, value: unknown) {
   const [countRow] = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(tasks)
-    .where(and(eq(tasks.assigneeId, userId), ne(tasks.status, "done")))
+    .where(and(eq(tasks.assigneeId, userId), openStatusSql(tasks.status)))
   const openAssigned = Number(countRow?.count ?? 0)
 
   if (openAssigned > 0) {

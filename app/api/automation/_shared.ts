@@ -6,6 +6,7 @@
 import { NextResponse } from "next/server"
 import { sql } from "drizzle-orm"
 import { db } from "@/lib/db"
+import { completedStatusListSql } from "@/lib/tasks/statuses-sql"
 import { createNotification } from "@/lib/notifications"
 import {
   PRIORITIES,
@@ -290,7 +291,7 @@ function toTaskShape(r: TaskRawRow): TaskShape {
 
 /** Candidate set for a trigger, evaluated against CURRENT workspace state. */
 async function triggerCandidates(rule: RuleDto): Promise<TaskShape[]> {
-  const open = sql`t.status <> 'done'`
+  const open = sql`t.status not in (${completedStatusListSql()})`
   switch (rule.trigger) {
     case "due_soon": {
       const days = rule.triggerParams.days ?? 3

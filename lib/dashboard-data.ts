@@ -23,6 +23,8 @@ import {
 import { and, asc, desc, eq, gte, inArray, lte, or, sql } from "drizzle-orm"
 import { listNotifications } from "@/lib/notifications"
 import { loadVisibleMemberIds } from "@/lib/organizations"
+import { isCompletedTaskStatus } from "@/lib/tasks/statuses"
+import { completedStatusSql, openStatusSql } from "@/lib/tasks/statuses-sql"
 
 export interface Kpis {
   myOpenTasks: number
@@ -239,6 +241,10 @@ export async function getDashboardOverview(
   // viewer's organization; a member with none sees just themselves.
   const memberIds = await loadVisibleMemberIds(userId)
 
+  // Declared once so the workload aggregate and its orderBy cannot drift apart.
+  const openCase = () => sql`case when ${openStatusSql(tasks.status)} then 1 end`
+  const doneCase = () => sql`case when ${completedStatusSql(tasks.status)} then 1 end`
+
   const [
     userRow,
     activeSprintRows,
@@ -309,7 +315,7 @@ export async function getDashboardOverview(
     db
       .select({ priority: tasks.priority, count: sql<number>`count(*)::int` })
       .from(tasks)
-      .where(and(eq(tasks.assigneeId, userId), neqDone(tasks.status)))
+      .where(and(eq(tasks.assigneeId, userId), openStatusSql(tasks.status)))
       .groupBy(tasks.priority),
 
     db
@@ -318,15 +324,15 @@ export async function getDashboardOverview(
         name: users.name,
         role: users.role,
         avatar: users.avatar,
-        openPoints: sql<number>`coalesce(sum(case when ${tasks.status} <> 'done' then ${tasks.storyPoints} else 0 end), 0)::int`,
-        openTasks: sql<number>`count(case when ${tasks.status} <> 'done' then 1 end)::int`,
-        doneTasks: sql<number>`count(case when ${tasks.status} = 'done' then 1 end)::int`,
+        openPoints: sql<number>`coalesce(sum(case when ${openStatusSql(tasks.status)} then ${tasks.storyPoints} else 0 end), 0)::int`,
+        openTasks: sql<number>`count(${openCase()})::int`,
+        doneTasks: sql<number>`count(${doneCase()})::int`,
       })
       .from(users)
       .leftJoin(tasks, eq(tasks.assigneeId, users.id))
       .where(inArray(users.id, memberIds))
       .groupBy(users.id, users.name, users.role, users.avatar)
-      .orderBy(desc(sql`count(case when ${tasks.status} <> 'done' then 1 end)`)),
+      .orderBy(desc(sql`count(${openCase()})`)),
 
     db
       .select({
@@ -335,7 +341,7 @@ export async function getDashboardOverview(
         donePoints: sql<number>`coalesce(sum(${tasks.storyPoints}), 0)::int`,
       })
       .from(tasks)
-      .where(and(eq(tasks.status, "done"), gte(tasks.updatedAt, weekAgo), member ? eq(tasks.assigneeId, userId) : undefined))
+      .where(and(completedStatusSql(tasks.status), gte(tasks.updatedAt, weekAgo), member ? eq(tasks.assigneeId, userId) : undefined))
       .groupBy(sql`date_trunc('week', ${tasks.updatedAt})`)
       .orderBy(asc(sql`date_trunc('week', ${tasks.updatedAt})`)),
 
@@ -441,7 +447,7 @@ export async function getDashboardOverview(
           .select({
             name: sprints.name,
             committed: sql<number>`coalesce(sum(${tasks.storyPoints}), 0)::int`,
-            completed: sql<number>`coalesce(sum(case when ${tasks.status} = 'done' then ${tasks.storyPoints} else 0 end), 0)::int`,
+            completed: sql<number>`coalesce(sum(case when ${completedStatusSql(tasks.status)} then ${tasks.storyPoints} else 0 end), 0)::int`,
           })
           .from(tasks)
           .innerJoin(sprints, eq(sprints.id, tasks.sprintId))
@@ -497,7 +503,7 @@ export async function getDashboardOverview(
       )
 
     const totalPoints = sprintTaskRows.reduce((s, t) => s + t.storyPoints, 0)
-    const donePoints = sprintTaskRows.filter((t) => t.status === "done").reduce((s, t) => s + t.storyPoints, 0)
+    const donePoints = sprintTaskRows.filter((t) => isCompletedTaskStatus(t.status)).reduce((s, t) => s + t.storyPoints, 0)
     const start = new Date(`${activeSprintRow.startDate}T00:00:00`)
     const end = new Date(`${activeSprintRow.endDate}T23:59:59`)
     activeSprint = {
@@ -521,7 +527,7 @@ export async function getDashboardOverview(
     // Actual line: remaining points per day, using updatedAt as completion day.
     const completedByDay = new Map<string, number>()
     for (const t of sprintTaskRows) {
-      if (t.status !== "done" || !t.updatedAt) continue
+      if (!isCompletedTaskStatus(t.status) || !t.updatedAt) continue
       const key = isoDay(t.updatedAt)
       completedByDay.set(key, (completedByDay.get(key) ?? 0) + t.storyPoints)
     }
@@ -546,12 +552,12 @@ export async function getDashboardOverview(
 
   // ---- KPIs -----------------------------------------------------------------
   const myTasks = myTasksRows
-  const notDone = (t: (typeof myTasks)[number]) => t.status !== "done"
+  const notDone = (t: (typeof myTasks)[number]) => !isCompletedTaskStatus(t.status)
   const myDueThisWeek = myTasks.filter(
     (t) => notDone(t) && t.dueDate && new Date(`${t.dueDate}T00:00:00`) <= weekAhead,
   ).length
   const myCompletedThisWeek = myTasks.filter(
-    (t) => t.status === "done" && t.updatedAt && t.updatedAt >= weekAgo,
+    (t) => isCompletedTaskStatus(t.status) && t.updatedAt && t.updatedAt >= weekAgo,
   ).length
   const teamHappiness =
     teamMoodRows.length > 0
@@ -711,8 +717,4 @@ export async function getDashboardOverview(
     })),
     realtimeEnabled: neonRealtimeEnabled(),
   }
-}
-
-function neqDone(column: typeof tasks.status) {
-  return sql`${column} <> 'done'`
 }

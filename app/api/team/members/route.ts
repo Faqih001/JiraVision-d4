@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { gamification, tasks, users, wellbeingMetrics } from "@/drizzle/schema";
-import { asc, desc, eq, ne, sql, type InferSelectModel } from "drizzle-orm";
+import { and, asc, desc, eq, ne, sql, type InferSelectModel } from "drizzle-orm";
+import { completedStatusSql, openStatusSql } from "@/lib/tasks/statuses-sql";
 import bcrypt from "bcryptjs";
 import { v4 as uuidv4 } from "uuid";
 import { getSession } from "@/lib/auth-actions";
@@ -56,14 +57,14 @@ export async function loadTaskAggregates(): Promise<Map<number, TaskAgg>> {
   const rows = await db
     .select({
       assigneeId: tasks.assigneeId,
-      openTasks: sql<number>`count(*) filter (where ${tasks.status} <> 'done')::int`,
-      doneTasks: sql<number>`count(*) filter (where ${tasks.status} = 'done')::int`,
+      openTasks: sql<number>`count(*) filter (where ${openStatusSql(tasks.status)})::int`,
+      doneTasks: sql<number>`count(*) filter (where ${completedStatusSql(tasks.status)})::int`,
       blockedTasks: sql<number>`count(*) filter (where ${tasks.status} = 'blocked')::int`,
       openPoints:
-        sql<number>`coalesce(sum(${tasks.storyPoints}) filter (where ${tasks.status} <> 'done'), 0)::int`,
+        sql<number>`coalesce(sum(${tasks.storyPoints}) filter (where ${openStatusSql(tasks.status)}), 0)::int`,
     })
     .from(tasks)
-    .where(sql`${tasks.assigneeId} is not null`)
+    .where(and(sql`${tasks.assigneeId} is not null`, eq(tasks.isTemplate, false)))
     .groupBy(tasks.assigneeId);
 
   const map = new Map<number, TaskAgg>();

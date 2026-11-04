@@ -4,6 +4,8 @@ import { db } from "@/lib/db"
 import { sprints, tasks, users } from "@/drizzle/schema"
 import { and, desc, eq, isNotNull, sql } from "drizzle-orm"
 import { createNotification, notifyMany } from "@/lib/notifications"
+import { isCompletedTaskStatus } from "@/lib/tasks/statuses"
+import { completedStatusSql, openStatusSql } from "@/lib/tasks/statuses-sql"
 
 export const dynamic = "force-dynamic"
 
@@ -52,9 +54,9 @@ async function getAggregates(sprint: SprintRow) {
   const rows = await db
     .select({
       totalPoints: sql<number>`coalesce(sum(${tasks.storyPoints}), 0)::int`,
-      donePoints: sql<number>`coalesce(sum(case when ${tasks.status} = 'done' then ${tasks.storyPoints} else 0 end), 0)::int`,
+      donePoints: sql<number>`coalesce(sum(case when ${completedStatusSql(tasks.status)} then ${tasks.storyPoints} else 0 end), 0)::int`,
       taskCount: sql<number>`count(*)::int`,
-      doneCount: sql<number>`count(case when ${tasks.status} = 'done' then 1 end)::int`,
+      doneCount: sql<number>`count(case when ${completedStatusSql(tasks.status)} then 1 end)::int`,
     })
     .from(tasks)
     .where(eq(tasks.sprintId, sprint.id))
@@ -85,7 +87,7 @@ function buildBurndown(sprint: SprintRow, sprintTasks: TaskRow[]): BurndownPoint
 
   const completedByDay = new Map<string, number>()
   for (const t of sprintTasks) {
-    if (t.status !== "done" || !t.updatedAt) continue
+    if (!isCompletedTaskStatus(t.status) || !t.updatedAt) continue
     const key = isoDay(new Date(t.updatedAt))
     completedByDay.set(key, (completedByDay.get(key) ?? 0) + t.storyPoints)
   }
@@ -114,8 +116,8 @@ async function getTeamCapacity(sprintId: number) {
       avatar: users.avatar,
       taskCount: sql<number>`count(*)::int`,
       points: sql<number>`coalesce(sum(${tasks.storyPoints}), 0)::int`,
-      donePoints: sql<number>`coalesce(sum(case when ${tasks.status} = 'done' then ${tasks.storyPoints} else 0 end), 0)::int`,
-      openPoints: sql<number>`coalesce(sum(case when ${tasks.status} <> 'done' then ${tasks.storyPoints} else 0 end), 0)::int`,
+      donePoints: sql<number>`coalesce(sum(case when ${completedStatusSql(tasks.status)} then ${tasks.storyPoints} else 0 end), 0)::int`,
+      openPoints: sql<number>`coalesce(sum(case when ${openStatusSql(tasks.status)} then ${tasks.storyPoints} else 0 end), 0)::int`,
     })
     .from(tasks)
     .innerJoin(users, eq(users.id, tasks.assigneeId))
@@ -368,7 +370,7 @@ export async function DELETE(_request: Request, context: RouteContext) {
     const openTaskCount = await db
       .select({ count: sql<number>`count(*)::int` })
       .from(tasks)
-      .where(and(eq(tasks.sprintId, id), sql`${tasks.status} <> 'done'`))
+      .where(and(eq(tasks.sprintId, id), openStatusSql(tasks.status)))
       .then((r) => r[0]?.count ?? 0)
 
     await db.update(tasks).set({ sprintId: null, updatedAt: new Date() }).where(eq(tasks.sprintId, id))
