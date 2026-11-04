@@ -1,4 +1,4 @@
-// The nine career signals (design §11). This module is the registry only — every count
+// The ten career signals (design §11). This module is the registry only — every count
 // is computed server-side in lib/career/counts.ts — and it stays free of database and
 // cookie imports so the readiness arithmetic is unit-testable, the same reason
 // lib/roles.ts and lib/reports/readiness-adjacent modules are.
@@ -12,6 +12,7 @@ export type CareerSignalKey =
   | "reviews_logged_90"
   | "tasks_completed_90"
   | "points_completed_90"
+  | "instance_days_completed_90"
   | "deliverables_delivered"
   | "reports_submitted"
   | "disciplines_touched"
@@ -52,6 +53,11 @@ export const CAREER_SIGNALS: readonly CareerSignal[] = [
     hint: "Story points on those completed tasks.",
   },
   {
+    key: "instance_days_completed_90",
+    label: "Recurring days completed",
+    hint: "Distinct days on which you closed a recurring task's day.",
+  },
+  {
     key: "deliverables_delivered",
     label: "Deliverables delivered",
     hint: "Deliverables you own that reached delivered.",
@@ -87,6 +93,7 @@ export const EMPTY_SIGNALS: CareerSignals = {
   reviews_logged_90: 0,
   tasks_completed_90: 0,
   points_completed_90: 0,
+  instance_days_completed_90: 0,
   deliverables_delivered: 0,
   reports_submitted: 0,
   disciplines_touched: 0,

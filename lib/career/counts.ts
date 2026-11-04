@@ -8,6 +8,7 @@ import { db } from "@/lib/db"
 import {
   deliverables,
   taskEvents,
+  taskInstances,
   tasks,
   workLogEntries,
   workReports,
