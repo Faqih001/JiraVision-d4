@@ -1526,3 +1526,55 @@ counters could not, because those read the literal `'done'` and the imported row
   the deleted template branch, the cadence vocabulary, the grid-after-transaction order, the template predicate
   on every count surface, the status-menu doors, and a per-file assertion that no swept file still compares a
   `tasks.status` to `"done"`.
+
+## 51. The kanban draws the day, and the office closes at the weekend (2026-11-04)
+
+§50 made every surface read recurrence the same way. Two things the owner then saw on the board were left
+over: a daily schedule sat in one column forever because a template's own status never changes, and the grids
+already written held Saturday and Sunday rows for work nobody does.
+
+> "task with daily should appear on to do everyday and can be marked done once so everyday should show on
+> kanban to do only and since we aint coming to job on weekend can be left need to find work around for that"
+
+- **A production reconcile, with the numbers measured first.** `is_template = (cadence <> 'one-off')` is
+  derived, but the 2026-11-03 IT-technician import had written 24 rows carrying a cadence with
+  `is_template = false` — schedules the engine never grew a grid for, so nothing anywhere could finish them.
+  `scripts/reconcile-recurring-tasks.mjs` restores the derivation and settles the weekend rows. Applied under a
+  per-action owner approval with the backup written *before* the transaction
+  (`backups/reconcile-recurring-2026-11-04T18-07-31`); after-counts **0** violating rows · **32** schedules ·
+  **0** schedules at a finished word · **0** weekend rows left as `todo`. Eight of the 32 overlap the seeded
+  templates in subject matter with zero exact title collisions; pruning them is a separate decision, not a
+  reconcile.
+- **No grid is written for a weekend.** `workingDayOnOrAfter()` in `lib/tasks/recurrence.ts` rolls a Saturday or
+  Sunday forward to the Monday, and every door that emits an occurrence date routes through it —
+  `computeInstanceDates` (a schedule created on a Saturday starts on the Monday), `nextInstanceDate` and
+  `horizonDates`. Nothing is dropped and nothing is pulled earlier; `daily` simply steps Friday → Monday.
+  `computeNextRun` is deliberately untouched, because it also drives `report_schedules.next_run_at` and rolling
+  it would shift live schedules that predate the rule.
+- **The rolled day becomes the next anchor, and that drifts — accepted and recorded.** A grid stores only the
+  day it wrote, so the original date is not recoverable: a weekly anchor settles on the Monday it moved to and
+  a monthly date can shift a day. This is the same one-way behaviour `computeNextRun` already has for a 31st
+  (Jan 31 → Mar 3); holding the true anchor needs a column the schema does not have. Four alternatives were
+  worked through and rejected — see §I2 of the cross-surface spec.
+- **The board draws today's occurrence, not the schedule.** `GET /api/tasks` attaches
+  `todayInstance: { id, status } | null` to every row; `null` means "not due today", which is a real answer for
+  a weekly read on the wrong day. `lib/tasks/today-occurrence.ts` tops a grid up when today's row is missing,
+  under the same three bounds the calendar read uses — only schedules this member may write for, at most 25 per
+  request, at most `HORIZON_OCCURRENCES` rows each, serial and swallowed on failure. A failed top-up still
+  returns the rows the first read found, and the member list is only loaded when the page holds a schedule.
+- **One drawn status, everywhere on the page.** `boardStatus(t)` is the column a card draws in, or `null` when
+  it draws none, and the columns, the swimlanes, My cards, the overdue flag, "open here" and "done total" all
+  read through it — so a template's forever-`in_progress` status never leaks onto a card, and a `skipped` day
+  is nobody's outstanding work. The To do column names what it is holding back ("N schedules not due today") so
+  a hidden card does not read as a lost one.
+- **Moving a card moves the day.** `moveTask` PATCHes `/api/task-instances/:id` when the card has an
+  occurrence — the route that already enforces assignee ownership and stamps `completed_at` — and offers only
+  the three states an occurrence row can hold, because `task_instances` has no `review` and no `blocked`. A drag
+  into either is refused with a reload rather than a silent no-op, and a template still gets §49's refusal on
+  the finished words. That is what makes a daily land back in To do tomorrow: the row that moved is dated
+  today, the schedule itself never changes, and tomorrow's row is already in the grid.
+- **Tests.** `tests/unit/task-recurrence.test.ts` (36 — the rolled dates, a stale grid walking up to today
+  without inventing the missed days, and "never returns a weekend date, whatever the cadence") and
+  `tests/unit/board-today-occurrence.test.ts` (16 guards — the drawn-status wiring, the instance door and its
+  refusals, the reader's three bounds, the weekend rule on all three date doors, `lib/cadence.ts` staying free
+  of it, and the reconcile script settling only untouched rows from a backup taken first).
