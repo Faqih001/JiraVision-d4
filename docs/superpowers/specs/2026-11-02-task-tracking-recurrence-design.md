@@ -85,6 +85,14 @@ being read and written. A reader who is not the assignee never writes rows into 
 cadence is set *later* gets the same grid, anchored at today, via `materialiseGridOnCadenceChange()` — and only
 when it was a one-off before, so an existing schedule's rows and recorded work are never rewritten.
 
+**No weekend work (amended 2026-11-04):** the office works Monday–Friday, so no door that emits an occurrence
+date returns a Saturday or a Sunday — `workingDayOnOrAfter()` rolls one forward to the Monday, and
+`computeInstanceDates`, `nextInstanceDate` and `horizonDates` all route through it. `computeNextRun` does not:
+it also drives `report_schedules.next_run_at`, whose live rows predate the rule. The rolled day becomes the
+grid's next anchor, which drifts a non-daily cadence one way over time; the cost and the rejected alternatives
+are recorded in §I2 of
+[2026-11-04-recurrence-cross-surface-design.md](./2026-11-04-recurrence-cross-surface-design.md).
+
 ### Checklist System
 
 **Storage:** Inline in `tasks.checklist_items` as JSON array:

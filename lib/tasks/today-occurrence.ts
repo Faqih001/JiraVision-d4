@@ -60,12 +60,17 @@ export async function todayOccurrencesFor(
   const schedules = rows.filter(isScheduleRow)
   if (schedules.length === 0) return new Map()
 
-  try {
-    const found = await readRowsFor(
-      schedules.map((s) => s.id),
-      todayIso,
-    )
+  // Hoisted out of the try so a failed top-up still returns the rows the first read found:
+  // losing the grid growth costs one day's card, losing the read costs the whole board.
+  const found = await readRowsFor(
+    schedules.map((s) => s.id),
+    todayIso,
+  ).catch((error) => {
+    console.error("[task_instances] board occurrence read failed:", error)
+    return new Map<number, TodayOccurrence>()
+  })
 
+  try {
     const writable = new Set(writableAssigneeIds)
     const missing = schedules
       .filter((s) => !found.has(s.id) && s.assigneeId !== null && writable.has(s.assigneeId))
@@ -75,13 +80,13 @@ export async function todayOccurrencesFor(
     if (missing.length > batch.length) {
       console.log(`[task_instances] board horizon deferred: ${missing.length - batch.length} schedules`)
     }
+    if (batch.length === 0) return found
 
     for (const schedule of batch) {
       if (!isCadence(schedule.cadence)) continue
       await ensureInstanceHorizon(schedule.id, schedule.cadence, todayIso)
     }
 
-    if (batch.length === 0) return found
     const grown = await readRowsFor(
       batch.map((s) => s.id),
       todayIso,
@@ -89,7 +94,7 @@ export async function todayOccurrencesFor(
     for (const [taskId, occurrence] of grown) found.set(taskId, occurrence)
     return found
   } catch (error) {
-    console.error("[task_instances] board occurrence read failed:", error)
-    return new Map()
+    console.error("[task_instances] board horizon top-up failed:", error)
+    return found
   }
 }

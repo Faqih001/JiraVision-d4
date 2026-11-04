@@ -85,6 +85,7 @@ import {
 } from "@/components/dashboard-kit"
 import { isCompletedTaskStatus } from "@/lib/tasks/statuses"
 import { RECURRING_STATUS_HINT } from "@/lib/task-updates"
+import { CADENCE_LABEL, isCadence } from "@/lib/cadence"
 
 /* ------------------------------------------------------------------ types */
 
@@ -102,6 +103,8 @@ type TaskRow = {
   tags: unknown
   createdAt: string | null
   updatedAt: string | null
+  /** Today's occurrence of a schedule, or null when it is not due today. */
+  todayInstance: { id: number; status: string } | null
 }
 
 type SprintRow = {
@@ -165,11 +168,56 @@ export type KanbanTask = {
 
 const tagList = (t: TaskRow) => (Array.isArray(t.tags) ? t.tags.map(String) : [])
 
-const isOverdue = (t: TaskRow) =>
-  Boolean(t.dueDate) && !isCompletedTaskStatus(t.status) && new Date(t.dueDate as string) < new Date()
+// Overdue is read off the column the card draws in, not the row behind it: a schedule keeps its
+// own status forever, so its original due date would paint every daily occurrence red.
+const isOverdue = (t: TaskRow) => {
+  const status = boardStatus(t)
+  return (
+    Boolean(t.dueDate) &&
+    status !== null &&
+    !isCompletedTaskStatus(status) &&
+    new Date(t.dueDate as string) < new Date()
+  )
+}
 
 /** A template is the schedule, so the board never offers to finish one — the day is what gets done. */
 const isRecurring = (t: TaskRow) => Boolean(t.cadence) && t.cadence !== "one-off"
+
+// An occurrence is its own row with its own vocabulary: task_instances accepts
+// todo|in_progress|done|skipped, so `review` and `blocked` from the board's five columns have
+// nowhere to go and must never be offered for a schedule's card.
+const INSTANCE_STATUSES = ["todo", "in_progress", "done"]
+
+/**
+ * The column a card draws in, or null when the row draws no card at all.
+ *
+ * A schedule draws today's occurrence and nothing else: that is what puts a daily in To do every
+ * morning and lets it be marked done once for that day. No row today means the schedule is not
+ * due — a weekly read on the wrong day — and a `skipped` row (a weekend, or a day somebody
+ * settled) is nobody's outstanding work, so neither draws a card.
+ */
+const boardStatus = (t: TaskRow): string | null => {
+  if (!isRecurring(t)) return t.status
+  const status = t.todayInstance?.status
+  if (!status || status === "skipped") return null
+  return status
+}
+
+/**
+ * Every status this card may hold, current one included. An occurrence gets the three its row
+ * can hold; a template gets the board minus every finished word (the day is what gets done, not
+ * the schedule); a one-off gets the whole board.
+ */
+const allowedStatuses = (t: TaskRow): string[] => {
+  if (t.todayInstance) return INSTANCE_STATUSES
+  return STATUSES.filter((s) => !(isRecurring(t) && isCompletedTaskStatus(s)))
+}
+
+/** The move menu: the same list without the column the card already sits in. */
+const moveTargets = (t: TaskRow): string[] => {
+  const current = boardStatus(t)
+  return allowedStatuses(t).filter((s) => s !== current)
+}
 
 /* ---------------------------------------------------------------- the page */
 
@@ -291,6 +339,45 @@ export default function KanbanBoardPage() {
 
   const moveTask = useCallback(
     async (task: TaskRow, status: string) => {
+      // The card on the board for a schedule is today's occurrence, so the move writes the
+      // occurrence and leaves the template alone. That is what makes a daily land back in To do
+      // tomorrow: the row that moved is dated today and nothing else changes.
+      const occurrence = task.todayInstance
+      if (occurrence) {
+        if (occurrence.status === status) return
+        if (!INSTANCE_STATUSES.includes(status)) {
+          toast({
+            variant: "destructive",
+            title: "A day's work has three states",
+            description: `${STATUS_LABEL[status] ?? status} belongs to a one-off card. Today's occurrence can be To do, In progress or Done.`,
+          })
+          await reloadTasks()
+          return
+        }
+        const before = occurrence.status
+        const patch = (t: TaskRow): TaskRow =>
+          t.id === task.id ? { ...t, todayInstance: { ...occurrence, status } } : t
+        setTasks((prev) => prev.map(patch))
+        setDetailTask((d) => (d ? patch(d) : d))
+        try {
+          const res = await fetch(`/api/task-instances/${occurrence.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status }),
+          })
+          const json = await res.json()
+          if (!json.success) throw new Error(json.message ?? "Update failed")
+          toast({
+            title: status === "done" ? "Day marked done" : "Card moved",
+            description: `${task.title} · ${STATUS_LABEL[before] ?? before} → ${STATUS_LABEL[status] ?? status}`,
+          })
+        } catch (err) {
+          toast({ variant: "destructive", title: "Move failed", description: (err as Error).message })
+        }
+        await reloadTasks()
+        return
+      }
+
       if (task.status === status) return
       if (isRecurring(task) && isCompletedTaskStatus(status)) {
         toast({
@@ -444,17 +531,28 @@ export default function KanbanBoardPage() {
     })
   }, [tasks, search, sprintFilter, priorityFilter, assigneeFilter])
 
+  // Cards the board actually draws. A schedule with no occurrence today is filtered out here
+  // rather than parked in To do, and counted separately so it does not read as vanished.
+  const boardTasks = useMemo(() => visibleTasks.filter((t) => boardStatus(t) !== null), [visibleTasks])
+
+  // A hidden card should not read as a lost one, so the board names how many schedules it is
+  // holding back. Only schedules: a one-off with no occurrence is simply a task in its column.
+  const notDueToday = useMemo(
+    () => visibleTasks.filter((t) => isRecurring(t) && boardStatus(t) === null).length,
+    [visibleTasks],
+  )
+
   const columns = useMemo(
     () =>
       STATUSES.map((status) => {
-        const colTasks = visibleTasks.filter((t) => t.status === status)
+        const colTasks = boardTasks.filter((t) => boardStatus(t) === status)
         return {
           status,
           tasks: colTasks,
           points: colTasks.reduce((sum, t) => sum + (t.storyPoints || 0), 0),
         }
       }),
-    [visibleTasks],
+    [boardTasks],
   )
 
   const capacitySprint = useMemo(
@@ -467,7 +565,17 @@ export default function KanbanBoardPage() {
     [visibleTasks],
   )
 
-  const myCards = useMemo(() => (me ? tasks.filter((t) => t.assigneeId === me.id && !isCompletedTaskStatus(t.status)) : []), [tasks, me])
+  const myCards = useMemo(
+    () =>
+      me
+        ? tasks.filter((t) => {
+            if (t.assigneeId !== me.id) return false
+            const status = boardStatus(t)
+            return status !== null && !isCompletedTaskStatus(status)
+          })
+        : [],
+    [tasks, me],
+  )
 
   const recentlyMoved = useMemo(() => {
     const cutoff = Date.now() - 48 * 3_600_000
@@ -506,7 +614,7 @@ export default function KanbanBoardPage() {
 
   const lanes = useMemo(() => {
     const byAssignee = new Map<string, TaskRow[]>()
-    for (const t of visibleTasks) {
+    for (const t of boardTasks) {
       const key = t.assigneeId === null ? "__unassigned__" : String(t.assigneeId)
       const list = byAssignee.get(key)
       if (list) list.push(t)
@@ -520,11 +628,11 @@ export default function KanbanBoardPage() {
           name: member?.name ?? "Unassigned",
           avatar: member?.avatar ?? null,
           points: list.reduce((sum, t) => sum + (t.storyPoints || 0), 0),
-          tasks: [...list].sort((a, b) => STATUSES.indexOf(a.status) - STATUSES.indexOf(b.status)),
+          tasks: [...list].sort((a, b) => STATUSES.indexOf(boardStatus(a) ?? "") - STATUSES.indexOf(boardStatus(b) ?? "")),
         }
       })
       .sort((a, b) => (a.key === "__unassigned__" ? 1 : b.key === "__unassigned__" ? -1 : a.name.localeCompare(b.name)))
-  }, [visibleTasks, memberById])
+  }, [boardTasks, memberById])
 
   /* ------------------------------------------------------- drag and drop */
 
@@ -617,7 +725,7 @@ export default function KanbanBoardPage() {
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuLabel className="text-[11px] font-normal text-muted-foreground">Move to</DropdownMenuLabel>
-            {STATUSES.filter((s) => s !== t.status && !(isRecurring(t) && isCompletedTaskStatus(s))).map((s) => (
+            {moveTargets(t).map((s) => (
               <DropdownMenuItem key={s} onClick={() => void moveTask(t, s)}>
                 <span className="mr-2 h-2 w-2 rounded-full" style={{ background: STATUS_COLOR[s] }} />
                 {STATUS_LABEL[s]}
@@ -641,6 +749,11 @@ export default function KanbanBoardPage() {
         <div className="flex items-center gap-2">
           <PriorityPill priority={t.priority} />
           <span className="tabular-nums">{t.storyPoints} pts</span>
+          {t.todayInstance && isCadence(t.cadence) && (
+            <Badge variant="outline" className="px-1.5 py-0 text-[10px] font-normal">
+              {CADENCE_LABEL[t.cadence]} · today
+            </Badge>
+          )}
         </div>
         <div className="flex items-center gap-2">
           {t.dueDate && (
@@ -741,7 +854,9 @@ export default function KanbanBoardPage() {
                   <p className="text-[11px] text-muted-foreground">of capacity</p>
                 </div>
                 <div>
-                  <p className="text-lg font-semibold tabular-nums">{visibleTasks.filter((t) => !isCompletedTaskStatus(t.status)).length}</p>
+                  <p className="text-lg font-semibold tabular-nums">
+                    {boardTasks.filter((t) => !isCompletedTaskStatus(t.todayInstance?.status ?? t.status)).length}
+                  </p>
                   <p className="text-[11px] text-muted-foreground">open here</p>
                 </div>
                 <Button asChild size="sm" variant="outline">
@@ -889,6 +1004,11 @@ export default function KanbanBoardPage() {
                     Drop cards here
                   </p>
                 )}
+                {col.status === "todo" && notDueToday > 0 && (
+                  <p className="px-1 pt-1 text-[11px] text-muted-foreground">
+                    {notDueToday} {notDueToday === 1 ? "schedule" : "schedules"} not due today
+                  </p>
+                )}
               </div>
             </section>
           ))}
@@ -911,7 +1031,7 @@ export default function KanbanBoardPage() {
                     <div key={t.id}>
                       {renderCard(t, false)}
                       <div className="mt-1">
-                        <StatusPill status={t.status} />
+                        <StatusPill status={boardStatus(t) ?? t.status} />
                       </div>
                     </div>
                   ))}
@@ -1017,7 +1137,7 @@ export default function KanbanBoardPage() {
               >
                 <span className="truncate text-sm font-medium">{t.title}</span>
                 <span className="flex items-center justify-between">
-                  <StatusPill status={t.status} />
+                  <StatusPill status={boardStatus(t) ?? t.status} />
                   <span className="text-[11px] tabular-nums text-muted-foreground">{t.storyPoints} pts</span>
                 </span>
                 {t.dueDate && (
@@ -1088,7 +1208,8 @@ export default function KanbanBoardPage() {
         </ResponsiveContainer>
         <div className="mt-2 flex flex-wrap gap-4 text-xs text-muted-foreground">
           <span className="flex items-center gap-1">
-            <CheckCheck className="h-3.5 w-3.5" /> {tasks.filter((t) => isCompletedTaskStatus(t.status)).length} done total
+            <CheckCheck className="h-3.5 w-3.5" />{" "}
+            {tasks.filter((t) => isCompletedTaskStatus(t.todayInstance?.status ?? t.status)).length} done total
           </span>
           <span className="flex items-center gap-1">
             <Timer className="h-3.5 w-3.5" /> {tasks.filter((t) => t.status === "blocked").length} blocked
@@ -1130,7 +1251,7 @@ export default function KanbanBoardPage() {
             </DialogHeader>
             <div className="space-y-3 text-sm">
               <div className="flex flex-wrap items-center gap-3">
-                <StatusPill status={detailTask.status} />
+                <StatusPill status={boardStatus(detailTask) ?? detailTask.status} />
                 <PriorityPill priority={detailTask.priority} />
                 <Badge variant="outline">{detailTask.storyPoints} pts</Badge>
                 {detailTask.assigneeId !== null && (
@@ -1154,13 +1275,15 @@ export default function KanbanBoardPage() {
                 <p className="text-[11px] text-muted-foreground">Updated {relativeTime(detailTask.updatedAt)}</p>
               )}
               <div>
-                <Label className="text-xs">Change status</Label>
+                <Label className="text-xs">
+                  {detailTask.todayInstance ? "Change today's status" : "Change status"}
+                </Label>
                 <div className="mt-1 flex flex-wrap gap-1">
-                  {STATUSES.map((s) => (
+                  {allowedStatuses(detailTask).map((s) => (
                     <Button
                       key={s}
                       size="sm"
-                      variant={detailTask.status === s ? "default" : "outline"}
+                      variant={boardStatus(detailTask) === s ? "default" : "outline"}
                       className="h-7 text-xs"
                       onClick={() => void moveTask(detailTask, s)}
                     >

@@ -490,3 +490,84 @@ Vercel production deployment verified after push.
   (`app/api/tasks/route.ts:140`, `lib/task-updates.ts:150`, and now `promoteTaskValues`). The §F guard on the
   derivation is the only thing stopping a fourth writer from setting one field without the other; it belongs on
   the list of guards that must not be relaxed.
+
+## I — The board draws the day, and the office closes at the weekend (added after A–H shipped)
+
+A–H shipped and deployed 2026-11-04 (`3d0d919`). Two things the owner then saw on the kanban were not in
+scope of that wave, and both are recorded here because they change rules the earlier sections state.
+
+> "task with daily should appear on to do everyday and can be marked done once so everyday should show on
+> kanban to do only and since we aint coming to job on weekend can be left need to find work around for that"
+
+### I1 — A production reconcile, because the invariant had already drifted
+
+`is_template = (cadence <> 'one-off')` is derived, and three writers set it — but the 2026-11-03 IT-technician
+import wrote 24 rows carrying a cadence with `is_template = false`. Those rows were schedules the engine never
+grew a grid for, so nothing on any board could ever finish them.
+
+`scripts/reconcile-recurring-tasks.mjs` restores the derivation and settles the weekend rows the pre-I2 grids
+had already written. Applied 2026-11-04 with a per-action owner approval and a backup at
+`backups/reconcile-recurring-2026-11-04T18-07-31`. Measured before, verified after: 63 tasks → **0** rows
+violating the invariant, **32** schedules, **0** schedules parked at a finished word, **0** weekend rows left
+as `todo`. The backup is written *before* the transaction — a rollback is only possible if the before-values
+are already on disk — and `--restore <dir>` replays both tables.
+
+Left alone deliberately: 8 of the 32 schedules overlap the seeded templates in subject matter (#126 "Daily:
+Check backup status" vs #71 "Monitor daily cloud backup operations"), with **0** exact title collisions.
+Pruning is a separate decision, not a reconcile.
+
+### I2 — The weekend rule
+
+The office works Monday–Friday, so the recurrence engine no longer emits a Saturday or a Sunday occurrence.
+`workingDayOnOrAfter(dayIso)` in `lib/tasks/recurrence.ts` rolls a weekend day forward to the Monday, and all
+three doors that can emit an occurrence date pass through it: `computeInstanceDates` (the first day of a grid
+is worked too, so a schedule created on a Saturday starts on the Monday), `nextInstanceDate`, and
+`horizonDates` (both its starting cursor and every step).
+
+**Deliberately not in `computeNextRun`.** That function also drives `report_schedules.next_run_at`, whose live
+rows were produced without a weekend rule and whose own comment warns that a change there shifts running
+schedules. The guard is that `lib/cadence.ts` imports neither `working-days` nor `workingDayOnOrAfter`.
+
+**Ruling — bounded anchor drift, accepted.** A grid stores only the day it wrote, so a rolled day becomes the
+next anchor and the original date is not recoverable. `daily` is unaffected (Friday → Monday is the same step
+the cadence would take). Non-daily cadences drift one way: a weekly anchor settles on the Monday it moved to,
+and a monthly date can shift by a day when it lands on a weekend — `monthly` from `2026-10-15` now yields
+`11-16, 12-16, 01-18, 02-18, 03-18, 04-19, 05-19`. This is the same one-way behaviour `computeNextRun`
+already has for a 31st (Jan 31 → Mar 3). Holding the true anchor would need a column the schema does not have,
+and this wave's non-goal is no schema change. Alternatives considered and rejected: a dual natural/rolled
+cursor (impossible across requests), unrolling to recover the natural date (ambiguous — Sat, Sun and Mon all
+roll to the same Monday), storing natural dates and rolling at read time (breaks the `instance_date = today`
+lookup), anchoring on `tasks.start_date` (nullable and unpopulated).
+
+`horizonOccurrencesForWindow` is deliberately generous for a daily grid, which now needs about five rows per
+seven days rather than seven. Asking for more than the window holds costs nothing — `ensureInstanceHorizon`
+only writes the shortfall it is given.
+
+### I3 — The board draws today's occurrence
+
+§D removed templates from the dashboard's counts; the kanban went further and now draws the *day*.
+
+`GET /api/tasks` attaches `todayInstance: { id, status } | null` to every row via
+`todayOccurrencesFor(rows, todayIso, writableAssigneeIds)` in `lib/tasks/today-occurrence.ts`. `null` means
+"not due today", which is a real answer for a weekly schedule read on the wrong day, not a missing row. The
+reader tops a grid up when today's row is absent, under the same three bounds §C3 set for the calendar: only
+schedules whose assignee the caller may write for, at most `TODAY_TOP_UP_LIMIT = 25` per request, at most
+`HORIZON_OCCURRENCES` rows each; awaited serially, swallowed on failure — and a failed top-up still returns
+the rows the first read found. `loadVisibleMemberIds` is only called when the page actually holds a schedule.
+
+On the page, `boardStatus(t)` is the column a card draws in, or `null` when it draws none: a schedule draws
+today's occurrence and nothing else, and a `skipped` row is nobody's outstanding work. `boardTasks`, `columns`,
+`lanes`, `myCards`, `isOverdue`, "open here" and "done total" all read through it, so a template's own
+forever-`in_progress` status never leaks onto a card. §2a: the To do column names what it is holding back —
+"N schedules not due today" — so a hidden card does not read as a lost one.
+
+`moveTask` writes the occurrence, not the task, when the card has one: `PATCH /api/task-instances/:id`, which
+already enforces ownership and stamps `completed_at`/`completed_by`. `allowedStatuses` gives an occurrence card
+the three states its row can hold — `todo`, `in_progress`, `done` — because `task_instances` has no `review`
+and no `blocked`, and a drag into either is refused with a reload rather than a silent no-op. A template still
+gets §F4's refusal on the finished words.
+
+This is what makes a daily land back in To do tomorrow: the row that moved is dated today, the schedule's own
+status never changes, and tomorrow's row is already in the grid.
+
+Guards: `tests/unit/board-today-occurrence.test.ts` (16). Date maths: `tests/unit/task-recurrence.test.ts` (36).
