@@ -731,7 +731,7 @@ export default function KanbanBoardPage() {
             <Button
               variant="ghost"
               size="sm"
-              className="h-6 w-6 shrink-0 p-0 opacity-60 group-hover:opacity-100"
+              className="h-7 w-7 shrink-0 p-0 opacity-60 group-hover:opacity-100"
               aria-label={`Actions for ${t.title}`}
               onClick={(e) => e.stopPropagation()}
             >
@@ -828,10 +828,10 @@ export default function KanbanBoardPage() {
               ))}
             </SelectContent>
           </Select>
-          <Button size="sm" onClick={() => openCreate()}>
+          <Button className="h-8 text-xs" size="sm" onClick={() => openCreate()}>
             <Plus className="mr-1 h-4 w-4" /> New card
           </Button>
-          <Button size="sm" variant="ghost" onClick={refresh} disabled={refreshing}>
+          <Button className="h-8 text-xs" size="sm" variant="ghost" onClick={refresh} disabled={refreshing}>
             <RefreshCw className={cn("mr-1 h-4 w-4", refreshing && "animate-spin")} /> Refresh
           </Button>
         </div>
@@ -901,7 +901,7 @@ export default function KanbanBoardPage() {
             <Button
               size="sm"
               variant={boardScope === "mine" ? "secondary" : "ghost"}
-              className="h-7 px-2 text-xs"
+              className="h-8 px-2 text-xs"
               onClick={() => setBoardScope("mine")}
             >
               My board
@@ -909,7 +909,7 @@ export default function KanbanBoardPage() {
             <Button
               size="sm"
               variant={boardScope === "workspace" ? "secondary" : "ghost"}
-              className="h-7 px-2 text-xs"
+              className="h-8 px-2 text-xs"
               onClick={() => setBoardScope("workspace")}
             >
               Workspace
@@ -958,7 +958,7 @@ export default function KanbanBoardPage() {
             <Button
               size="sm"
               variant={view === "board" ? "secondary" : "ghost"}
-              className="h-7 px-2"
+              className="h-8 px-2"
               onClick={() => setView("board")}
               aria-label="Board view"
             >
@@ -967,7 +967,7 @@ export default function KanbanBoardPage() {
             <Button
               size="sm"
               variant={view === "lanes" ? "secondary" : "ghost"}
-              className="h-7 px-2"
+              className="h-8 px-2"
               onClick={() => setView("lanes")}
               aria-label="Swimlane view, grouped by assignee"
             >
@@ -1011,7 +1011,7 @@ export default function KanbanBoardPage() {
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="h-6 w-6 p-0"
+                    className="h-7 w-7 p-0"
                     onClick={() => openCreate(col.status)}
                     aria-label={`New card in ${STATUS_LABEL[col.status]}`}
                   >

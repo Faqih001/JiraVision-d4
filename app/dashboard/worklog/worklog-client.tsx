@@ -988,7 +988,7 @@ function ViewToolbarSection({
               key={p}
               variant={state.preset === p ? "secondary" : "ghost"}
               size="sm"
-              className="h-6 px-2 text-[11px]"
+              className="h-7 px-2 text-[11px]"
               aria-pressed={state.preset === p}
               onClick={() => patchState({ preset: p })}
             >

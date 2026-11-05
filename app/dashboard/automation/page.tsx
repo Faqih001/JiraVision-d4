@@ -1179,16 +1179,16 @@ export default function AutomationPage() {
                         {ACTIONS[a.type].description}
                       </span>
                       <div className="ml-auto flex gap-1">
-                        <Button size="sm" variant="ghost" onClick={() => moveDraftAction(i, -1)} aria-label="Move up">
+                        <Button className="h-8 text-xs" size="sm" variant="ghost" onClick={() => moveDraftAction(i, -1)} aria-label="Move up">
                           <ArrowUp className="h-3.5 w-3.5" />
                         </Button>
-                        <Button size="sm" variant="ghost" onClick={() => moveDraftAction(i, 1)} aria-label="Move down">
+                        <Button className="h-8 text-xs" size="sm" variant="ghost" onClick={() => moveDraftAction(i, 1)} aria-label="Move down">
                           <ArrowDown className="h-3.5 w-3.5" />
                         </Button>
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="text-destructive"
+                          className="h-8 text-destructive"
                           onClick={() =>
                             setDraft({ ...draft, actions: draft.actions.filter((_, j) => j !== i) })
                           }

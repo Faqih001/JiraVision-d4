@@ -1379,7 +1379,7 @@ export default function AIScrumMasterPage() {
                         <span className="font-medium">{m.taskTitle}</span> ({m.points}pt) {m.fromName} → {m.toName}
                         {done && <span className="ml-1 text-emerald-600">· moved</span>}
                       </span>
-                      <Button size="sm" variant={done ? "ghost" : "outline"} className="h-6 shrink-0 px-2 text-[11px]" disabled={done || busy === `move-${m.taskId}`} onClick={() => void reassign(m)} aria-label={`Reassign ${m.taskTitle} to ${m.toName}`}>
+                      <Button size="sm" variant={done ? "ghost" : "outline"} className="h-7 shrink-0 px-2 text-[11px]" disabled={done || busy === `move-${m.taskId}`} onClick={() => void reassign(m)} aria-label={`Reassign ${m.taskTitle} to ${m.toName}`}>
                         {done ? <><Check className="mr-1 h-3 w-3" /> Done</> : <><ArrowLeftRight className="mr-1 h-3 w-3" /> Reassign</>}
                       </Button>
                     </li>
@@ -1434,17 +1434,17 @@ export default function AIScrumMasterPage() {
                     <td className="px-2 py-2 text-right">
                       <div className="inline-flex gap-1">
                         {task.status === "blocked" && (
-                          <Button size="sm" variant="outline" className="h-6 px-2 text-[11px]" disabled={busy === `fix-${task.id}`} onClick={() => void quickFixTask(task, "todo", `fix-${task.id}`)}>
+                          <Button size="sm" variant="outline" className="h-7 px-2 text-[11px]" disabled={busy === `fix-${task.id}`} onClick={() => void quickFixTask(task, "todo", `fix-${task.id}`)}>
                             Unblock
                           </Button>
                         )}
                         {task.status === "todo" && (
-                          <Button size="sm" variant="outline" className="h-6 px-2 text-[11px]" disabled={busy === `fix-${task.id}`} onClick={() => void quickFixTask(task, "in_progress", `fix-${task.id}`)}>
+                          <Button size="sm" variant="outline" className="h-7 px-2 text-[11px]" disabled={busy === `fix-${task.id}`} onClick={() => void quickFixTask(task, "in_progress", `fix-${task.id}`)}>
                             Start
                           </Button>
                         )}
                         {!isRecurring(task) && (
-                          <Button size="sm" variant="ghost" className="h-6 px-2 text-[11px] text-emerald-600" disabled={busy === `fix-${task.id}`} onClick={() => void quickFixTask(task, "done", `fix-${task.id}`)}>
+                          <Button size="sm" variant="ghost" className="h-7 px-2 text-[11px] text-emerald-600" disabled={busy === `fix-${task.id}`} onClick={() => void quickFixTask(task, "done", `fix-${task.id}`)}>
                             Done
                           </Button>
                         )}
@@ -1522,20 +1522,20 @@ export default function AIScrumMasterPage() {
                     <td className="px-2 py-2 text-[11px] text-muted-foreground">{i.createdAt ? relativeTime(i.createdAt) : "—"}</td>
                     <td className="px-2 py-2 text-right">
                       <div className="inline-flex gap-1">
-                        <Button size="sm" variant="outline" className="h-6 px-2 text-[11px]" onClick={() => void patchInsight(i.id, "active", `db-${i.id}`, "restored")} disabled={busy === `db-${i.id}`}>
+                        <Button size="sm" variant="outline" className="h-7 px-2 text-[11px]" onClick={() => void patchInsight(i.id, "active", `db-${i.id}`, "restored")} disabled={busy === `db-${i.id}`}>
                           <Undo2 className="mr-1 h-3 w-3" /> Restore
                         </Button>
                         {confirmDeleteKey === `db-${i.id}` ? (
                           <>
-                            <Button size="sm" variant="destructive" className="h-6 px-2 text-[11px]" onClick={() => void deleteInsight(i.id)}>
+                            <Button size="sm" variant="destructive" className="h-7 px-2 text-[11px]" onClick={() => void deleteInsight(i.id)}>
                               Confirm delete
                             </Button>
-                            <Button size="sm" variant="ghost" className="h-6 px-2 text-[11px]" onClick={() => setConfirmDeleteKey(null)}>
+                            <Button size="sm" variant="ghost" className="h-7 px-2 text-[11px]" onClick={() => setConfirmDeleteKey(null)}>
                               <X className="h-3 w-3" />
                             </Button>
                           </>
                         ) : (
-                          <Button size="sm" variant="ghost" className="h-6 px-2 text-[11px] text-red-500" onClick={() => setConfirmDeleteKey(`db-${i.id}`)} aria-label={`Delete ${i.title}`}>
+                          <Button size="sm" variant="ghost" className="h-7 px-2 text-[11px] text-red-500" onClick={() => setConfirmDeleteKey(`db-${i.id}`)} aria-label={`Delete ${i.title}`}>
                             <Trash2 className="h-3 w-3" />
                           </Button>
                         )}

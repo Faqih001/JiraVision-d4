@@ -946,7 +946,7 @@ export default function AgentClient() {
                             type="button"
                             size="sm"
                             variant="ghost"
-                            className="h-9 px-2 text-xs"
+                            className="h-10 px-2 text-xs"
                             onClick={() =>
                               setRegisterEditor({
                                 ...registerEditor,
@@ -1104,7 +1104,7 @@ export default function AgentClient() {
                             type="button"
                             size="sm"
                             variant="ghost"
-                            className="ml-auto h-7 text-xs"
+                            className="ml-auto h-8 text-xs"
                             onClick={() =>
                               setPlaybookEditor({
                                 ...playbookEditor,

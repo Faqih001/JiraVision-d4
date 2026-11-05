@@ -703,11 +703,11 @@ export default function RetrospectivesWorkspace() {
               Whole team
             </Button>
           </div>
-          <Button variant="outline" size="sm" onClick={() => void load(false)} disabled={refreshing}>
+          <Button className="h-7 text-xs" variant="outline" size="sm" onClick={() => void load(false)} disabled={refreshing}>
             <RefreshCw className={`mr-1.5 h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
             Refresh
           </Button>
-          <Button size="sm" onClick={() => setNewOpen(true)}>
+          <Button className="h-7 text-xs" size="sm" onClick={() => setNewOpen(true)}>
             <Plus className="mr-1.5 h-4 w-4" />
             New retro
           </Button>
@@ -899,7 +899,7 @@ export default function RetrospectivesWorkspace() {
                                 <Button
                                   size="sm"
                                   variant={note.my_vote ? "default" : "outline"}
-                                  className={`h-6 gap-1 px-2 text-[11px] ${note.my_vote ? "" : "text-muted-foreground"}`}
+                                  className={`h-7 gap-1 px-2 text-[11px] ${note.my_vote ? "" : "text-muted-foreground"}`}
                                   disabled={votingNoteId === note.id}
                                   onClick={() => void voteNote(note)}
                                   aria-label={note.my_vote ? `Remove your vote from this note (${note.votes})` : `Vote for this note (${note.votes})`}
@@ -911,7 +911,7 @@ export default function RetrospectivesWorkspace() {
                                   <Button
                                     size="icon"
                                     variant="ghost"
-                                    className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                                    className="h-7 w-7 text-muted-foreground hover:text-destructive"
                                     aria-label="Delete note"
                                     onClick={() =>
                                       setConfirm({ kind: "deleteNote", retroId: detail.retro.id, id: note.id, label: note.body.slice(0, 60) })

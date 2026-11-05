@@ -1278,7 +1278,7 @@ export default function ChatWorkspace() {
                 </div>
                 <div className="flex items-center gap-1">
                   {selectedChat.type === "group" && selectedChat.isGroupAdmin && (
-                    <Button
+                    <Button className="h-8 text-xs"
                       size="sm"
                       variant="ghost"
                       onClick={() => {
@@ -1566,7 +1566,7 @@ export default function ChatWorkspace() {
                         <Button
                           size="icon"
                           variant="ghost"
-                          className="h-6 w-6"
+                          className="h-7 w-7"
                           aria-label="Cancel"
                           onClick={() => {
                             if (editing) {
@@ -1683,7 +1683,7 @@ export default function ChatWorkspace() {
                             <Paperclip className="h-4 w-4" />
                           </Button>
                         </span>
-                        <Button type="submit" size="icon" aria-label="Send message" disabled={sending || !draft.trim()}>
+                        <Button className="h-8 w-8" type="submit" size="icon" aria-label="Send message" disabled={sending || !draft.trim()}>
                           <Send className="h-4 w-4" />
                         </Button>
                       </div>
@@ -1767,7 +1767,7 @@ export default function ChatWorkspace() {
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                className="h-6 px-1.5 text-[10px]"
+                                className="h-7 px-1.5 text-[10px]"
                                 onClick={() => toggleMute(selectedChat)}
                               >
                                 {selectedChat.isMuted ? "Unmute" : "Mute"}
@@ -1775,7 +1775,7 @@ export default function ChatWorkspace() {
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                className="h-6 px-1.5 text-[10px] text-destructive"
+                                className="h-7 px-1.5 text-[10px] text-destructive"
                                 onClick={() => patchChatSettings(selectedChat.id, { isBlocked: true })}
                               >
                                 Block
@@ -1786,7 +1786,7 @@ export default function ChatWorkspace() {
                             <Button
                               size="sm"
                               variant="ghost"
-                              className="h-6 px-1.5 text-[10px]"
+                              className="h-7 px-1.5 text-[10px]"
                               title={`Direct message ${p.user.name}`}
                               onClick={() =>
                                 startDm({

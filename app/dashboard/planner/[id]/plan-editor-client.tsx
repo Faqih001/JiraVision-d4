@@ -300,7 +300,7 @@ export default function PlanEditorClient({ params }: { params: Promise<{ id: str
         </Button>
         <div className="flex gap-2">
           <div className="flex border rounded-md overflow-hidden">
-            <Button
+            <Button className="h-10"
               variant={viewMode === "list" ? "default" : "ghost"}
               size="sm"
               onClick={() => setViewMode("list")}
@@ -308,7 +308,7 @@ export default function PlanEditorClient({ params }: { params: Promise<{ id: str
               <List className="mr-2 h-4 w-4" />
               List
             </Button>
-            <Button
+            <Button className="h-10"
               variant={viewMode === "gantt" ? "default" : "ghost"}
               size="sm"
               onClick={() => setViewMode("gantt")}
@@ -561,7 +561,7 @@ export default function PlanEditorClient({ params }: { params: Promise<{ id: str
                   )}
                 </div>
                 {isDraft && (
-                  <Button variant="outline" size="sm" onClick={() => deleteItem(item.id)}>
+                  <Button className="h-10" variant="outline" size="sm" onClick={() => deleteItem(item.id)}>
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 )}

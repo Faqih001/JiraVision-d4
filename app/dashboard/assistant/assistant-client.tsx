@@ -262,7 +262,7 @@ export default function AssistantClient() {
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100"
+                        className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100"
                         onClick={(e) => {
                           e.stopPropagation()
                           handleDeleteThread(thread.id)

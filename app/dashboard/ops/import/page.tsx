@@ -1030,7 +1030,7 @@ function RegisterCard({
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-9 w-9 shrink-0 text-muted-foreground"
+                className="h-10 w-10 shrink-0 text-muted-foreground"
                 onClick={() => update(index, { fields: setRegisterField(item.fields, name, "") })}
                 aria-label={`Remove ${name}`}
               >
@@ -1051,6 +1051,7 @@ function RegisterCard({
         <Button
           variant="outline"
           size="sm"
+          className="h-10"
           disabled={!newName.trim()}
           onClick={() => {
             update(index, { fields: addRegisterField(item.fields, newName) })
@@ -1136,7 +1137,7 @@ function PlaybooksEditor({
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-9 w-9"
+                    className="h-10 w-10"
                     disabled={sIdx === 0}
                     onClick={() => update(i, { steps: moveStep(pb.steps, sIdx, -1) })}
                     aria-label="Move step up"
@@ -1146,7 +1147,7 @@ function PlaybooksEditor({
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-9 w-9"
+                    className="h-10 w-10"
                     disabled={sIdx === pb.steps.length - 1}
                     onClick={() => update(i, { steps: moveStep(pb.steps, sIdx, 1) })}
                     aria-label="Move step down"
@@ -1156,7 +1157,7 @@ function PlaybooksEditor({
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-9 w-9 text-muted-foreground"
+                    className="h-10 w-10 text-muted-foreground"
                     onClick={() => update(i, { steps: removeStep(pb.steps, sIdx) })}
                     aria-label="Remove step"
                   >

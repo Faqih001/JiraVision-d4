@@ -341,7 +341,7 @@ function WeekBody({
             type="button"
             variant="ghost"
             size="sm"
-            className="h-6 w-full justify-between px-1 text-[11px] font-semibold"
+            className="h-7 w-full justify-between px-1 text-[11px] font-semibold"
             onClick={() => onPickDay(bucket.day)}
           >
             <span>{bucket.day.slice(5)}</span>

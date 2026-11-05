@@ -880,10 +880,10 @@ export default function CalendarWorkspace() {
               </Button>
             ))}
           </div>
-          <Button size="sm" variant="ghost" onClick={refresh} disabled={refreshing}>
+          <Button className="h-8 text-xs" size="sm" variant="ghost" onClick={refresh} disabled={refreshing}>
             <RefreshCw className={cn("mr-1 h-4 w-4", refreshing && "animate-spin")} /> Refresh
           </Button>
-          <Button size="sm" onClick={() => openCreate()}>
+          <Button className="h-8 text-xs" size="sm" onClick={() => openCreate()}>
             <Plus className="mr-1 h-4 w-4" /> New event
           </Button>
         </div>
@@ -896,7 +896,7 @@ export default function CalendarWorkspace() {
             <Button
               size="sm"
               variant={boardScope === "mine" ? "secondary" : "ghost"}
-              className="h-7 px-2 text-xs"
+              className="h-8 px-2 text-xs"
               onClick={() => setBoardScope("mine")}
             >
               My calendar
@@ -904,7 +904,7 @@ export default function CalendarWorkspace() {
             <Button
               size="sm"
               variant={boardScope === "workspace" ? "secondary" : "ghost"}
-              className="h-7 px-2 text-xs"
+              className="h-8 px-2 text-xs"
               onClick={() => setBoardScope("workspace")}
             >
               Workspace
@@ -934,7 +934,7 @@ export default function CalendarWorkspace() {
             </SelectContent>
           </Select>
           {(search.trim() !== "" || typeFilter !== "all") && (
-            <Button
+            <Button className="h-8 text-xs"
               size="sm"
               variant="ghost"
               onClick={() => {

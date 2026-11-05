@@ -849,7 +849,7 @@ export default function BillingPage() {
                   placeholder="Visa ending •••• demo"
                   maxLength={80}
                 />
-                <Button size="sm" variant="outline" className="shrink-0" disabled={pmSaving} onClick={savePaymentLabel}>
+                <Button size="sm" variant="outline" className="h-10 shrink-0" disabled={pmSaving} onClick={savePaymentLabel}>
                   {pmSaving ? "Saving…" : "Save"}
                 </Button>
               </div>

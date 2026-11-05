@@ -584,7 +584,7 @@ export default function SprintsWorkspace() {
           <Button
             size="sm"
             variant={boardScope === "mine" ? "secondary" : "ghost"}
-            className="h-7 px-2 text-xs"
+            className="h-8 px-2 text-xs"
             onClick={() => setBoardScope("mine")}
           >
             My sprints
@@ -592,7 +592,7 @@ export default function SprintsWorkspace() {
           <Button
             size="sm"
             variant={boardScope === "workspace" ? "secondary" : "ghost"}
-            className="h-7 px-2 text-xs"
+            className="h-8 px-2 text-xs"
             onClick={() => setBoardScope("workspace")}
           >
             Workspace

@@ -894,7 +894,7 @@ export default function RegistersClient() {
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="ml-auto h-6 px-1.5 text-[11px]"
+                        className="ml-auto h-7 px-1.5 text-[11px]"
                         disabled={busy || row.status === "disposed"}
                         onClick={() => void verify(row)}
                       >
@@ -1102,7 +1102,7 @@ export default function RegistersClient() {
                           type="button"
                           size="sm"
                           variant="ghost"
-                          className="h-9 px-2 text-xs"
+                          className="h-10 px-2 text-xs"
                           onClick={() =>
                             setDraft({
                               ...draft,

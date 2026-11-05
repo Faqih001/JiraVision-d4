@@ -628,12 +628,12 @@ export default function ActivityCenter() {
                         )}
                         <span className="shrink-0 text-[10px] tabular-nums text-muted-foreground">{relativeTime(i.occurredAt)}</span>
                         {i.read === false && i.id.startsWith("n-") && (
-                          <Button size="sm" variant="ghost" className="h-6 px-1.5 text-[10px]" onClick={() => markOneRead(i.id)}>
+                          <Button size="sm" variant="ghost" className="h-7 px-1.5 text-[10px]" onClick={() => markOneRead(i.id)}>
                             Read
                           </Button>
                         )}
                         {i.link && (
-                          <Button asChild size="sm" variant="ghost" className="h-6 px-1.5 text-[10px]">
+                          <Button asChild size="sm" variant="ghost" className="h-7 px-1.5 text-[10px]">
                             <Link href={i.link}>
                               Open <ExternalLink className="ml-0.5 h-3 w-3" />
                             </Link>
@@ -734,7 +734,7 @@ export default function ActivityCenter() {
                           </span>
                         </span>
                         {n.link && (
-                          <Button asChild size="sm" variant="ghost" className="h-6 shrink-0 px-1.5 text-[10px]">
+                          <Button asChild size="sm" variant="ghost" className="h-7 shrink-0 px-1.5 text-[10px]">
                             <Link href={n.link}>Jump</Link>
                           </Button>
                         )}

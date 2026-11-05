@@ -609,7 +609,7 @@ export default function DashboardBacklog() {
             <Button
               size="sm"
               variant={boardScope === "mine" ? "secondary" : "ghost"}
-              className="h-7 px-2 text-xs"
+              className="h-8 px-2 text-xs"
               onClick={() => switchScope("mine")}
             >
               My backlog
@@ -617,7 +617,7 @@ export default function DashboardBacklog() {
             <Button
               size="sm"
               variant={boardScope === "workspace" ? "secondary" : "ghost"}
-              className="h-7 px-2 text-xs"
+              className="h-8 px-2 text-xs"
               onClick={() => switchScope("workspace")}
             >
               Workspace

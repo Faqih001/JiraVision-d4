@@ -216,7 +216,7 @@ export default function BillingSettingsPage() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
-            <Button asChild size="sm" variant="ghost" className="h-8 w-8 p-0" aria-label="Back to billing">
+            <Button asChild size="sm" variant="ghost" className="h-9 w-9 p-0" aria-label="Back to billing">
               <Link href="/dashboard/billing">
                 <ArrowLeft className="h-4 w-4" />
               </Link>

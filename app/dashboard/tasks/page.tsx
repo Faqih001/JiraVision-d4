@@ -920,7 +920,7 @@ export default function TasksWorkspacePage() {
             <Button
               size="sm"
               variant={boardScope === "mine" ? "secondary" : "ghost"}
-              className="h-7 px-2 text-xs"
+              className="h-8 px-2 text-xs"
               onClick={() => switchScope("mine")}
             >
               My tasks
@@ -928,7 +928,7 @@ export default function TasksWorkspacePage() {
             <Button
               size="sm"
               variant={boardScope === "workspace" ? "secondary" : "ghost"}
-              className="h-7 px-2 text-xs"
+              className="h-8 px-2 text-xs"
               onClick={() => switchScope("workspace")}
             >
               Workspace
@@ -1111,10 +1111,10 @@ export default function TasksWorkspacePage() {
             {confirmBulkDelete ? (
               <div className="flex items-center gap-2">
                 <span className="text-xs text-red-500">Delete {visibleSelected.length} tasks?</span>
-                <Button size="sm" variant="destructive" onClick={() => runBulk("delete")} disabled={bulkBusy}>
+                <Button className="h-8 text-xs" size="sm" variant="destructive" onClick={() => runBulk("delete")} disabled={bulkBusy}>
                   {bulkBusy ? "Deleting…" : "Confirm"}
                 </Button>
-                <Button size="sm" variant="ghost" onClick={() => setConfirmBulkDelete(false)}>
+                <Button className="h-8 text-xs" size="sm" variant="ghost" onClick={() => setConfirmBulkDelete(false)}>
                   Keep
                 </Button>
               </div>
@@ -1377,7 +1377,7 @@ export default function TasksWorkspacePage() {
             </Select>
           </div>
           <div className="flex items-center gap-2">
-            <Button
+            <Button className="h-8 text-xs"
               size="sm"
               variant="outline"
               disabled={pagination.page <= 1 || listLoading}
@@ -1388,7 +1388,7 @@ export default function TasksWorkspacePage() {
             <span className="text-xs text-muted-foreground tabular-nums">
               {pagination.page} / {pagination.pageCount}
             </span>
-            <Button
+            <Button className="h-8 text-xs"
               size="sm"
               variant="outline"
               disabled={pagination.page >= pagination.pageCount || listLoading}
@@ -1463,7 +1463,7 @@ export default function TasksWorkspacePage() {
                           <Button
                             size="sm"
                             variant="ghost"
-                            className="h-6 px-1.5 text-[11px] text-emerald-600"
+                            className="h-7 px-1.5 text-[11px] text-emerald-600"
                             onClick={() => setTaskStatus(t, "done")}
                           >
                             Complete

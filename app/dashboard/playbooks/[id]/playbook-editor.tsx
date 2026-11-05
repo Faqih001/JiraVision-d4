@@ -684,7 +684,7 @@ export default function PlaybookEditor({ id }: { id: string }) {
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="h-7 px-1.5"
+                      className="h-8 px-1.5"
                       aria-label={`Move step ${index + 1} up`}
                       onClick={() => setSteps(moveStep(draft.steps, index, index - 1))}
                       disabled={index === 0}
@@ -694,7 +694,7 @@ export default function PlaybookEditor({ id }: { id: string }) {
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="h-7 px-1.5"
+                      className="h-8 px-1.5"
                       aria-label={`Move step ${index + 1} down`}
                       onClick={() => setSteps(moveStep(draft.steps, index, index + 1))}
                       disabled={index === draft.steps.length - 1}
@@ -704,7 +704,7 @@ export default function PlaybookEditor({ id }: { id: string }) {
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="h-7 px-1.5"
+                      className="h-8 px-1.5"
                       aria-label={`Clone step ${index + 1}`}
                       onClick={() => setSteps(cloneStep(draft.steps, index))}
                     >
@@ -713,7 +713,7 @@ export default function PlaybookEditor({ id }: { id: string }) {
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="h-7 px-1.5 text-destructive"
+                      className="h-8 px-1.5 text-destructive"
                       aria-label={`Remove step ${index + 1}`}
                       onClick={() => setSteps(removeStep(draft.steps, index))}
                     >

@@ -734,10 +734,10 @@ export default function TeamWorkspace() {
                   value={newOrgName}
                   onChange={(e) => setNewOrgName(e.target.value)}
                   placeholder="Organization name"
-                  className={FILTER_TRIGGER}
+                  className="h-8 w-56 text-xs"
                   aria-label="Organization name"
                 />
-                <Button size="sm" onClick={createOrg} disabled={orgBusy || !newOrgName.trim()}>
+                <Button size="sm" className="h-8" onClick={createOrg} disabled={orgBusy || !newOrgName.trim()}>
                   Create organization
                 </Button>
               </div>
@@ -808,7 +808,7 @@ export default function TeamWorkspace() {
           <Input
             aria-label="Search team members"
             placeholder="Search by name, role, skill…"
-            className="pl-8"
+            className="h-8 pl-8"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -845,7 +845,7 @@ export default function TeamWorkspace() {
           </SelectContent>
         </Select>
         <div className="flex items-center gap-1 sm:ml-auto">
-          <Button
+          <Button className="h-8 w-8"
             variant={view === "grid" ? "default" : "outline"}
             size="icon"
             aria-label="Grid view"
@@ -853,7 +853,7 @@ export default function TeamWorkspace() {
           >
             <LayoutGrid className="h-4 w-4" />
           </Button>
-          <Button
+          <Button className="h-8 w-8"
             variant={view === "list" ? "default" : "outline"}
             size="icon"
             aria-label="List view"

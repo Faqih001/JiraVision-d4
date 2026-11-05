@@ -678,7 +678,7 @@ export default function DashboardLayout({
         {/* Top Navbar */}
         <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-white dark:bg-gray-900 px-3 sm:px-4 lg:px-6">
           <div className="flex items-center gap-2 sm:gap-4">
-            <Button variant="ghost" size="icon" className="lg:hidden" onClick={toggleMobileSidebar}>
+            <Button variant="ghost" size="icon" className="h-9 w-9 lg:hidden" onClick={toggleMobileSidebar}>
               <Menu className="h-5 w-5" />
             </Button>
             <form

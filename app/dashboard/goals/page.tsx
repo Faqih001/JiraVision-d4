@@ -616,7 +616,7 @@ export default function GoalsPage() {
             <Button
               size="sm"
               variant={goalScope === "mine" ? "secondary" : "ghost"}
-              className="h-7 px-2 text-xs"
+              className="h-10 px-2 text-xs"
               onClick={() => switchScope("mine")}
             >
               My goals
@@ -624,7 +624,7 @@ export default function GoalsPage() {
             <Button
               size="sm"
               variant={goalScope === "team" ? "secondary" : "ghost"}
-              className="h-7 px-2 text-xs"
+              className="h-10 px-2 text-xs"
               onClick={() => switchScope("team")}
             >
               Whole team

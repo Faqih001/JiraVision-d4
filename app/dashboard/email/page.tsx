@@ -986,7 +986,7 @@ export default function EmailWorkspace() {
                     <p className="mt-0.5 text-[10px] text-muted-foreground">{relativeTime(n.createdAt)}</p>
                   </div>
                   {!n.isRead && (
-                    <Button variant="ghost" size="sm" className="h-6 shrink-0 px-2 text-[11px]" onClick={() => void markNotificationRead(n)}>
+                    <Button variant="ghost" size="sm" className="h-7 shrink-0 px-2 text-[11px]" onClick={() => void markNotificationRead(n)}>
                       Mark read
                     </Button>
                   )}

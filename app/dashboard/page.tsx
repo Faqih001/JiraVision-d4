@@ -791,7 +791,7 @@ export default function DashboardHome() {
             <Button
               size="sm"
               variant={view === "grid" ? "secondary" : "ghost"}
-              className="h-7 px-2"
+              className="h-8 px-2"
               onClick={() => setView("grid")}
               aria-label="Grid view"
             >
@@ -800,7 +800,7 @@ export default function DashboardHome() {
             <Button
               size="sm"
               variant={view === "list" ? "secondary" : "ghost"}
-              className="h-7 px-2"
+              className="h-8 px-2"
               onClick={() => setView("list")}
               aria-label="List view"
             >
