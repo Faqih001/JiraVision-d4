@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest"
 import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
-import { COMPLETED_TASK_STATUSES, isCompletedTaskStatus } from "@/lib/tasks/statuses"
+import {
+  COMPLETED_TASK_STATUSES,
+  creatableStatusesFor,
+  isCompletedTaskStatus,
+} from "@/lib/tasks/statuses"
 
 const src = (relative: string) => readFileSync(resolve(process.cwd(), relative), "utf8")
 const codeOnly = (source: string) =>
@@ -21,6 +25,37 @@ describe("the completed-task status vocabulary", () => {
     for (const status of ["todo", "in_progress", "review", "blocked", "", null, undefined]) {
       expect(isCompletedTaskStatus(status), String(status)).toBe(false)
     }
+  })
+})
+
+describe("a create form offers only the statuses the writer will accept", () => {
+  const ALL = ["todo", "in_progress", "review", "blocked", "done"]
+
+  it("offers everything for a one-off, however the absence of a cadence arrives", () => {
+    for (const cadence of ["one-off", null, undefined, ""]) {
+      expect(creatableStatusesFor(cadence, ALL), String(cadence)).toEqual(ALL)
+    }
+  })
+
+  it("drops the finished words for every schedule cadence", () => {
+    for (const cadence of ["daily", "weekly", "monthly", "quarterly", "yearly"]) {
+      expect(creatableStatusesFor(cadence, ALL), cadence).toEqual([
+        "todo",
+        "in_progress",
+        "review",
+        "blocked",
+      ])
+    }
+  })
+
+  it("drops a legacy finished literal too, not just 'done'", () => {
+    expect(creatableStatusesFor("daily", ["todo", "completed", "closed"])).toEqual(["todo"])
+  })
+
+  it("hands back a new array rather than filtering the caller's vocabulary in place", () => {
+    const vocabulary = ["todo", "done"]
+    expect(creatableStatusesFor("daily", vocabulary)).not.toBe(vocabulary)
+    expect(vocabulary).toEqual(["todo", "done"])
   })
 })
 
