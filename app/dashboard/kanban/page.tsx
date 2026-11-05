@@ -1354,13 +1354,20 @@ export default function KanbanBoardPage() {
                 <Textarea id="kf-desc" rows={3} value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })} />
               </div>
               <div className="space-y-1">
-                <Label>Status</Label>
-                <Select value={draft.status} onValueChange={(v) => setDraft({ ...draft, status: v })}>
-                  <SelectTrigger>
+                <Label htmlFor="kf-status">Status</Label>
+                <p className="text-[10px] text-muted-foreground">
+                  Where the card lands. This pick — not the column you pressed “+ New card” in — is
+                  what the board and the tasks page both show.
+                </p>
+                <Select
+                  value={draft.status}
+                  onValueChange={(v) => setDraft({ ...draft, status: v })}
+                >
+                  <SelectTrigger id="kf-status">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {STATUSES.map((s) => (
+                    {creatableStatusesFor(draft.cadence, STATUSES).map((s) => (
                       <SelectItem key={s} value={s}>
                         {STATUS_LABEL[s]}
                       </SelectItem>
@@ -1432,6 +1439,91 @@ export default function KanbanBoardPage() {
                 <Label htmlFor="kf-tags">Tags (comma separated)</Label>
                 <Input id="kf-tags" value={draft.tags} onChange={(e) => setDraft({ ...draft, tags: e.target.value })} placeholder="frontend, bug" />
               </div>
+              <div className="space-y-1">
+                <Label htmlFor="kf-cadence">Cadence</Label>
+                <p className="text-[10px] text-muted-foreground">
+                  Anything but one-off turns the card into a schedule: the board then shows one card
+                  per day, and each day is completed on its own.
+                </p>
+                <Select
+                  value={draft.cadence}
+                  onValueChange={(v) =>
+                    setDraft({
+                      ...draft,
+                      cadence: v as Cadence,
+                      status: statusAfterCadenceChange(v, draft.status, STATUSES),
+                      checklistItems: v === "one-off" ? [] : draft.checklistItems,
+                    })
+                  }
+                >
+                  <SelectTrigger id="kf-cadence">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CADENCES.map((c) => (
+                      <SelectItem key={c} value={c}>
+                        {CADENCE_LABEL[c]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {draft.cadence !== "one-off" && (
+                <div className="space-y-2 sm:col-span-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs">Checklist items</Label>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 text-xs"
+                      onClick={() =>
+                        setDraft({
+                          ...draft,
+                          checklistItems: [
+                            ...draft.checklistItems,
+                            { id: `item-${Date.now()}`, label: "", type: "yes-no-na" as const },
+                          ],
+                        })
+                      }
+                    >
+                      <Plus className="mr-1 h-3 w-3" /> Add item
+                    </Button>
+                  </div>
+                  {draft.checklistItems.length === 0 && (
+                    <p className="text-xs text-muted-foreground">No checklist items. Add items to track recurring checks.</p>
+                  )}
+                  {draft.checklistItems.map((item, idx) => (
+                    <div key={item.id} className="flex items-center gap-2">
+                      <Input
+                        className="h-8 text-xs"
+                        value={item.label}
+                        onChange={(e) => {
+                          const updated = [...draft.checklistItems]
+                          updated[idx] = { ...updated[idx], label: e.target.value }
+                          setDraft({ ...draft, checklistItems: updated })
+                        }}
+                        placeholder={`Item ${idx + 1}`}
+                      />
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 w-8 p-0 text-red-500"
+                        aria-label="Remove checklist item"
+                        onClick={() =>
+                          setDraft({
+                            ...draft,
+                            checklistItems: draft.checklistItems.filter((_, i) => i !== idx),
+                          })
+                        }
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             <DialogFooter>
               <Button variant="ghost" onClick={() => setFormOpen(false)} disabled={saving}>

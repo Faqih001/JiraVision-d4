@@ -78,7 +78,11 @@ import { cn } from "@/lib/utils"
 import { CADENCES, CADENCE_LABEL, type Cadence } from "@/lib/cadence"
 import { parseChecklistItems, type ChecklistItem, type ChecklistResponse } from "@/lib/tasks/checklist"
 import { planInstanceWindow } from "@/lib/tasks/instance-window"
-import { isCompletedTaskStatus } from "@/lib/tasks/statuses"
+import {
+  creatableStatusesFor,
+  isCompletedTaskStatus,
+  statusAfterCadenceChange,
+} from "@/lib/tasks/statuses"
 import type { DashboardOverview } from "@/lib/dashboard-data"
 import {
   AXIS,
@@ -184,10 +188,10 @@ function isOpen(t: ApiTask) {
   return !isCompletedTaskStatus(t.status)
 }
 
-function nextStatus(status: string, recurring = false) {
+function nextStatus(status: string, cadence?: string | null) {
   // A recurring template has no Done column to arrive at: its occurrences finish, never the
   // schedule itself, so the cycle for one stops short of the completed words.
-  const pool = recurring ? STATUSES.filter((s) => !isCompletedTaskStatus(s)) : STATUSES
+  const pool = creatableStatusesFor(cadence, STATUSES)
   const idx = pool.indexOf(status)
   return pool[(idx + 1) % pool.length]
 }
@@ -501,7 +505,7 @@ export default function TasksWorkspacePage() {
     patchTask(t, { status }, "Status updated", `${t.title} → ${STATUS_LABEL[status] ?? status}`)
 
   const cycleTaskStatus = (t: ApiTask) => {
-    const to = nextStatus(t.status, isRecurringTask(t))
+    const to = nextStatus(t.status, t.cadence)
     return setTaskStatus(t, to)
   }
 
@@ -1200,7 +1204,7 @@ export default function TasksWorkspacePage() {
                       <Pencil className="mr-1 h-3 w-3" /> Edit
                     </Button>
                     <Button size="sm" variant="ghost" className="ml-auto h-7 px-2 text-xs" onClick={() => cycleTaskStatus(t)}>
-                      {STATUS_LABEL[nextStatus(t.status, isRecurringTask(t))] ?? "Advance"}
+                      {STATUS_LABEL[nextStatus(t.status, t.cadence)] ?? "Advance"}
                     </Button>
                   </div>
                 </CardContent>
@@ -1281,7 +1285,7 @@ export default function TasksWorkspacePage() {
                       <td className="px-2 py-2 text-right">
                         <div className="inline-flex gap-1">
                           <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => cycleTaskStatus(t)}>
-                            → {STATUS_LABEL[nextStatus(t.status, isRecurringTask(t))]}
+                            → {STATUS_LABEL[nextStatus(t.status, t.cadence)]}
                           </Button>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -1335,7 +1339,7 @@ export default function TasksWorkspacePage() {
                     {t.dueDate ?? "—"}
                   </span>
                   <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => cycleTaskStatus(t)}>
-                    → {STATUS_LABEL[nextStatus(t.status, isRecurringTask(t))]}
+                    → {STATUS_LABEL[nextStatus(t.status, t.cadence)]}
                   </Button>
                 </div>
               )
@@ -1706,7 +1710,7 @@ export default function TasksWorkspacePage() {
                   </p>
                 )}
                 <div className="mt-1 flex flex-wrap gap-1">
-                  {STATUSES.filter((s) => !(isRecurringTask(detailTask) && isCompletedTaskStatus(s))).map((s) => (
+                  {creatableStatusesFor(detailTask.cadence, STATUSES).map((s) => (
                     <Button
                       key={s}
                       size="sm"
@@ -1861,7 +1865,7 @@ export default function TasksWorkspacePage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {STATUSES.map((s) => (
+                    {creatableStatusesFor(draft.cadence, STATUSES).map((s) => (
                       <SelectItem key={s} value={s}>
                         {STATUS_LABEL[s]}
                       </SelectItem>
@@ -1942,7 +1946,17 @@ export default function TasksWorkspacePage() {
               </div>
               <div className="space-y-1">
                 <Label htmlFor="tf-cadence">Cadence</Label>
-                <Select value={draft.cadence} onValueChange={(v) => setDraft({ ...draft, cadence: v as Cadence, checklistItems: v === "one-off" ? [] : draft.checklistItems })}>
+                <Select
+                  value={draft.cadence}
+                  onValueChange={(v) =>
+                    setDraft({
+                      ...draft,
+                      cadence: v as Cadence,
+                      status: statusAfterCadenceChange(v, draft.status, STATUSES),
+                      checklistItems: v === "one-off" ? [] : draft.checklistItems,
+                    })
+                  }
+                >
                   <SelectTrigger id="tf-cadence">
                     <SelectValue />
                   </SelectTrigger>

@@ -77,9 +77,21 @@ describe("the status list a card may hold has one home", () => {
   })
 })
 
+/**
+ * The source between two markers, where the second marker is the first one AFTER the first.
+ * A plain `indexOf(a), indexOf(b)` pair silently returns "" whenever b also appears before a.
+ */
+function between(source: string, open: string, close: string): string {
+  const start = source.indexOf(open)
+  expect(start, `no ${JSON.stringify(open)} in the source`).toBeGreaterThan(-1)
+  const end = source.indexOf(close, start + open.length)
+  expect(end, `no ${JSON.stringify(close)} after ${JSON.stringify(open)}`).toBeGreaterThan(start)
+  return source.slice(start, end)
+}
+
 describe("the kanban add-card modal can create a schedule", () => {
   it("the draft carries cadence and checklist items", () => {
-    const draft = kanban.slice(kanban.indexOf("type TaskDraft"), kanban.indexOf("/* ----"))
+    const draft = between(kanban, "type TaskDraft", "/* ---------------------------------------------------------------- helpers")
     expect(draft).toMatch(/cadence:\s Cadence/u)
     expect(draft).toMatch(/checklistItems: ChecklistItem\[\]/u)
   })
