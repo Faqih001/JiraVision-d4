@@ -33,11 +33,9 @@ const kanban = code("app/dashboard/kanban/page.tsx")
 const tasksPage = code("app/dashboard/tasks/page.tsx")
 
 describe("a create cannot store a status its own writer refuses", () => {
-  it("POST /api/tasks runs the recurring-status rule and answers 409", () => {
-    expect(postRoute).toMatch(/recurringStatusError\(/)
-    expect(postRoute).toMatch(/\{ status: 409 \}/)
-  })
-
+  // That POST enforces the rule at all is held by the write-door census in
+  // recurrence-gap-guards.test.ts; what belongs here is that it reads the rule instead of
+  // inventing its own, because a second copy of the sentence is a second thing to get wrong.
   it("POST reads the rule from lib/task-updates rather than restating it", () => {
     expect(postRoute).toMatch(/import \{[^}]*recurringStatusError[^}]*\} from "@\/lib\/task-updates"/)
     expect(postRoute).not.toMatch(/cadence !== "one-off"[\s\S]{0,80}&&[\s\S]{0,80}done/)

@@ -1606,3 +1606,38 @@ never reached the database, and it had not reached it since the instance API was
   ISO string, both routes stamp a Date off a typed bag, a repo-wide sweep of `app/api` and `lib` finds no patch
   bag stringifying into an `*At`/`*Time` field, and the writer has no `catch`). Gates: `tsc --noEmit` clean,
   176 files / 2916 tests, lint at the documented 82-problem / 4-error baseline.
+
+## 53. The board can create a schedule, and a create cannot lie about its status (2026-11-05)
+
+The board's "+ New card" modal had no Cadence field, so a daily stand-up or a monthly check had to be created on
+the tasks page first. Adding it surfaced a rule the two dialogs disagreed about.
+
+- **What the report was, and what it wasn't.** "A card made on the kanban always shows as To do on the tasks page"
+  does not reproduce for a one-off: `tasks.status` is written straight from the request and read straight back, and
+  production confirms it — #134 `done`, #135 `done`, #136 `blocked`, all created that day, and not one `todo` row in
+  the table. Two real mechanisms produce the symptom instead, and both are about schedules:
+  the header button opens the modal with `status = "todo"` no matter which column you are looking at, and for a
+  cadence the board draws `todayInstance.status`, never the template's — while `generateInitialInstances` births
+  every occurrence as `todo`. A schedule therefore *never* shows the status it was created with, on the board.
+- **The defect that would have shipped.** `recurringStatusError` (lib/task-updates.ts:182) refuses a finished status
+  on a template, and PUT `/api/tasks/[id]` enforced it with a 409 — POST `/api/tasks` did not. The moment the board
+  could pick a cadence, a "Daily + Done" create would have stored a template the board draws in To do and the tasks
+  page draws in Done: one card, two columns. POST now runs the same rule and answers the same 409, so both create
+  doors refuse what both edit doors refuse.
+- **One vocabulary for what a form may offer.** Both dialogs were filtering the finished words out inline, twice, in
+  slightly different words. `creatableStatusesFor(cadence, vocabulary)` and `statusAfterCadenceChange(cadence,
+  current, vocabulary)` in [lib/tasks/statuses.ts](file:///Users/kiibridge-tech/Desktop/Projects/jiravision/lib/tasks/statuses.ts)
+  are now the only place that decides. The vocabulary is a parameter, not an import, so the rule stays free of the
+  client component that owns the five board words. A cadence change that would strand the pick — Daily while Done is
+  selected — moves the selection to the first state a template can hold, instead of letting the member meet the 409
+  after pressing save.
+- **The modal.** Cadence and the checklist editor are mirrored from the tasks dialog in full, and the Status field
+  now says what it is: the pick that decides where the card lands, not the column you happened to press the button
+  in. Selecting a schedule drops the finished words from Status; selecting Done drops them back.
+- **Left alone on purpose.** Past open occurrences stay read-only — "a day is owed, not redone here, the work log
+  records it" is a standing ruling, and logging yesterday's work happens in the work log, not by ticking a stale
+  occurrence.
+- **Tests.** `tests/unit/task-create-status.test.ts` (12 source guards — POST reads the rule rather than restating
+  it, neither page filters inline any more, both create dialogs source their Status list from the shared helper, and
+  the board draft carries cadence and checklist from open through payload). Gates: `tsc --noEmit` clean,
+  177 files / 2935 tests, lint at the documented 82-problem / 4-error baseline.

@@ -571,3 +571,37 @@ This is what makes a daily land back in To do tomorrow: the row that moved is da
 status never changes, and tomorrow's row is already in the grid.
 
 Guards: `tests/unit/board-today-occurrence.test.ts` (16). Date maths: `tests/unit/task-recurrence.test.ts` (36).
+
+## J — The board creates schedules too (added after I shipped)
+
+§I made the board read a schedule correctly; it still could not make one. The add-card modal had no Cadence
+field, so every recurring task had to be created on the tasks page first.
+
+Mirroring that field exposed an asymmetry the earlier waves had left behind. §F4's rule — a template is never
+finished — was enforced by every *edit* door, and by `PUT /api/tasks/[id]` in particular, but `POST /api/tasks`
+had no copy of it. That was harmless while only the tasks page could set a cadence, because its dialog already
+hid the finished words; it became a live defect the moment the board offered Cadence, since a "Daily + Done"
+create would have stored a template the board draws in To do (the board reads today's occurrence, and every
+occurrence is born `todo`) while the tasks page draws it in Done.
+
+- **POST now runs `recurringStatusError` and answers 409**, the same refusal PUT gives, read from
+  `lib/task-updates.ts` rather than restated. §I's line "A template still gets §F4's refusal on the finished
+  words" now holds on the way in, not only on the way out.
+- **The rule has one home.** `creatableStatusesFor(cadence, vocabulary)` and
+  `statusAfterCadenceChange(cadence, current, vocabulary)` in `lib/tasks/statuses.ts` replace the two inline
+  `STATUSES.filter(...)` copies the dialogs each carried, and `nextStatus(status, cadence)` takes the cadence
+  instead of a `recurring` boolean so the cycle button reads from the same list. `vocabulary` is a parameter
+  because the five board words live in a client component and this module stays free of UI.
+- **A cadence change cannot strand the selection.** Choosing Daily while Done is picked moves Status to the
+  first state a template can hold; the alternative is a 409 the member meets after pressing save.
+- **Not a bug: "a card always lands in To do."** For a one-off the premise does not hold — `tasks.status` is
+  written from the request and read back verbatim, and production had no `todo` rows at all when this was
+  checked. The two mechanisms that do produce it are both schedule-side and both are addressed here: the
+  header button opens the modal at `todo` whatever column you are in (so the field now says it is the pick
+  that decides), and a schedule's card is drawn from its occurrence, never its template.
+
+Deliberately unchanged: past open occurrences stay read-only. A missed day is owed, not redone from the grid;
+the work log is where yesterday gets recorded.
+
+Guards: `tests/unit/task-create-status.test.ts` (12), and the write-door census in
+`tests/unit/recurrence-gap-guards.test.ts` now includes `app/api/tasks/route.ts`.

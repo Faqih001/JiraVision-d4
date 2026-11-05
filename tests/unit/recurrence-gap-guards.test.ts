@@ -21,14 +21,19 @@ const TASK_WRITE_ROUTES = [
   "app/api/test/tasks/bulk/route.ts",
 ] as const
 
+// The create door is a writer too, but it births the first grid itself, so it only belongs in the
+// rules that apply to any write — not the cadence-change one.
+const TASK_CREATE_ROUTES = ["app/api/tasks/route.ts"] as const
+
 describe("a recurring template stays open", () => {
-  // POST creates the row and its first grid in one step, so it is not a cadence-change door and
-  // belongs in this list only — materialiseGridOnCadenceChange would be a no-op on a fresh row.
-  it.each([POST_TASK_ROUTE, ...TASK_WRITE_ROUTES])("%s refuses a finished status with 409", (file) => {
-    const body = codeOnly(src(file))
-    expect(body).toMatch(/recurringStatusError\(/)
-    expect(body).toMatch(/status: 409/)
-  })
+  it.each([...TASK_CREATE_ROUTES, ...TASK_WRITE_ROUTES])(
+    "%s refuses a finished status with 409",
+    (file) => {
+      const body = codeOnly(src(file))
+      expect(body).toMatch(/recurringStatusError\(/)
+      expect(body).toMatch(/status: 409/)
+    },
+  )
 
   it("derives the template flag from the cadence rather than the request body", () => {
     const picker = codeOnly(src("lib/task-updates.ts"))
