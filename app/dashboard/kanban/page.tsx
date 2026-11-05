@@ -83,6 +83,9 @@ import {
   StatusPill,
   TOOLTIP_STYLE,
   relativeTime,
+  FILTER_BAR,
+  FILTER_SEARCH,
+  FILTER_TRIGGER,
 } from "@/components/dashboard-kit"
 import {
   creatableStatusesFor,
@@ -810,7 +813,7 @@ export default function KanbanBoardPage() {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Select value={sprintFilter} onValueChange={setSprintFilter}>
-            <SelectTrigger className="h-9 w-44 text-sm" aria-label="Filter by sprint">
+            <SelectTrigger className={FILTER_TRIGGER} aria-label="Filter by sprint">
               <CalendarClock className="mr-1 h-4 w-4 text-muted-foreground" />
               <SelectValue placeholder="Sprint" />
             </SelectTrigger>
@@ -893,7 +896,7 @@ export default function KanbanBoardPage() {
 
       {/* 3 — Filter bar (search, priority, assignee) + view toggle */}
       <Card>
-        <CardContent className="flex flex-wrap items-center gap-2 py-3">
+        <CardContent className={FILTER_BAR}>
           <div className="flex items-center gap-1 rounded-md border p-0.5" role="group" aria-label="Board scope">
             <Button
               size="sm"
@@ -912,18 +915,18 @@ export default function KanbanBoardPage() {
               Workspace
             </Button>
           </div>
-          <div className="relative min-w-40 flex-1">
+          <div className={FILTER_SEARCH}>
             <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search cards…"
               aria-label="Search cards"
-              className="h-9 pl-8 text-sm"
+              className="h-8 pl-8 text-xs"
             />
           </div>
           <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-            <SelectTrigger className="h-9 w-32 text-sm" aria-label="Filter by priority">
+            <SelectTrigger className={FILTER_TRIGGER} aria-label="Filter by priority">
               <SelectValue placeholder="Priority" />
             </SelectTrigger>
             <SelectContent>
@@ -937,7 +940,7 @@ export default function KanbanBoardPage() {
           </Select>
           {boardScope === "workspace" ? (
             <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
-              <SelectTrigger className="h-9 w-40 text-sm" aria-label="Filter by assignee">
+              <SelectTrigger className={FILTER_TRIGGER} aria-label="Filter by assignee">
                 <SelectValue placeholder="Assignee" />
               </SelectTrigger>
               <SelectContent>

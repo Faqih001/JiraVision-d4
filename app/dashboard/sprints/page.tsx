@@ -76,6 +76,9 @@ import {
   STATUS_LABEL,
   TOOLTIP_STYLE,
   relativeTime,
+  FILTER_BAR,
+  FILTER_SEARCH,
+  FILTER_TRIGGER,
 } from "@/components/dashboard-kit"
 
 /* ------------------------------------------------------------------ types */
@@ -576,7 +579,7 @@ export default function SprintsWorkspace() {
 
   const filterBar = (
     <Card>
-      <CardContent className="flex flex-wrap items-center gap-2 py-3">
+      <CardContent className={FILTER_BAR}>
         <div className="flex items-center gap-1 rounded-md border p-0.5" role="group" aria-label="Sprint scope">
           <Button
             size="sm"
@@ -595,18 +598,18 @@ export default function SprintsWorkspace() {
             Workspace
           </Button>
         </div>
-        <div className="relative min-w-40 flex-1">
+        <div className={FILTER_SEARCH}>
           <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search sprints…"
             aria-label="Search sprints"
-            className="h-9 pl-8 text-sm"
+            className="h-8 pl-8 text-xs"
           />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="h-9 w-32 text-sm" aria-label="Filter by status">
+          <SelectTrigger className={FILTER_TRIGGER} aria-label="Filter by status">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
@@ -617,7 +620,7 @@ export default function SprintsWorkspace() {
           </SelectContent>
         </Select>
         <Select value={sortBy} onValueChange={(v) => setSortBy(v as typeof sortBy)}>
-          <SelectTrigger className="h-9 w-36 text-sm" aria-label="Sort sprints">
+          <SelectTrigger className={FILTER_TRIGGER} aria-label="Sort sprints">
             <SelectValue placeholder="Sort" />
           </SelectTrigger>
           <SelectContent>
@@ -637,7 +640,7 @@ export default function SprintsWorkspace() {
               setDateTo(to ?? "")
             }}
             placeholder="Any range"
-            className="h-9 w-64 text-sm"
+            className={FILTER_TRIGGER}
           />
         </div>
         {(dateFrom || dateTo || search || statusFilter !== "all" || sortBy !== "recent") && (

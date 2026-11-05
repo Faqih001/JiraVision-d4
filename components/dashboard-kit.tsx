@@ -34,6 +34,17 @@ export const PRIORITY_COLOR: Record<string, string> = {
   low: "hsl(var(--chart-stone))",
 }
 
+/**
+ * The sizing contract for a filter bar and the dropdowns that sit in it. A row of six filters has
+ * to hold one line at desktop, so each control is as wide as its own text and no wider — the fixed
+ * guesses this replaces (w-36, w-40) were what pushed the last control onto a second row — and the
+ * search field, not the filters, is what absorbs the slack. `max-w` is the ceiling for names that
+ * beat it; the shared SelectTrigger truncates there rather than wrapping.
+ */
+export const FILTER_BAR = "flex flex-wrap items-center gap-1.5 py-3"
+export const FILTER_TRIGGER = "h-8 w-auto max-w-[13rem] shrink-0 text-xs"
+export const FILTER_SEARCH = "relative min-w-0 flex-1 basis-40"
+
 export function SectionCard({
   title,
   icon,

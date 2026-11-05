@@ -1641,3 +1641,48 @@ the tasks page first. Adding it surfaced a rule the two dialogs disagreed about.
   it, neither page filters inline any more, both create dialogs source their Status list from the shared helper, and
   the board draft carries cadence and checklist from open through payload). Gates: `tsc --noEmit` clean,
   177 files / 2935 tests, lint at the documented 82-problem / 4-error baseline.
+
+## 54. A dropdown says what it holds, and the filter bar holds one row (2026-11-05)
+
+The tasks page got a sort control and "Recently updated" landed on a second row on desktop. The new
+control was not the cause: the row was already 1342px wide before it, and the workspace's content
+column is the window minus a 250px sidebar.
+
+- **The arithmetic.** Eight controls with widths guessed in 2025 — scope group ~150, search `min-w-40`,
+  status `w-36`, priority `w-32`, assignee `w-40`, sprint `w-40`, cadence `w-36`, sort `w-36` — plus seven
+  `gap-2`s, the card's `px-6` and the page's `p-6`. Nothing in that list is the width of its own text:
+  "All sprints" does not need 160px, and "Recently updated" needs 158 in a 144px field, which is why the
+  one control read every day was the first thing pushed off the line.
+- **The contract.** `FILTER_BAR` (`gap-1.5`), `FILTER_TRIGGER` (`h-8 w-auto max-w-[13rem] shrink-0
+  text-xs`) and `FILTER_SEARCH` (`relative min-w-0 flex-1 basis-40`) in
+  [components/dashboard-kit.tsx](file:///Users/kiibridge-tech/Desktop/Projects/jiravision/components/dashboard-kit.tsx)
+  are now the only widths a filter bar uses: every control is exactly as wide as the text it holds and
+  never stretches, and the search field — not a filter — is what absorbs the slack or gives it up. The
+  row budget drops to ~743px before the search field, so the bar holds one line from a 1280px window up
+  and wraps only below that, instead of clipping what does not fit.
+- **The same text, cut off inside the list.** `SelectContent` was pinned to *exactly* the trigger width
+  (`w-[var(--radix-select-trigger-width)]`) with every option `truncate`d — a deliberate rule from the
+  onboarding-grid wave that made "Recently updat…" and "Sprint 7 – Infras…" correct behaviour. The menu
+  now hugs its longest option (`w-max`), keeps the floor it had (`min-w-[max(8rem,var(--radix-select-trigger-width))]`)
+  and is capped by the screen (`max-w-[min(30rem,calc(100vw-3rem))]`); `truncate` survives as the
+  last resort past the cap, not the default. Sitting below the field and never flipping is unchanged, so
+  the fix reaches every dropdown in the app — dialogs, forms, settings — without touching their call
+  sites. The trigger got `whitespace-nowrap`, `gap-1.5` and `[&_svg]:shrink-0`, so a long value truncates
+  in place rather than pushing the chevron out or wrapping to a second line.
+- **Swept, not spot-patched.** All 36 fixed-width dropdowns in `app/dashboard` and every `gap-2 py-3` bar
+  container now come from the three constants: the nine pages with a filter bar (dashboard, tasks,
+  kanban, backlog, sprints, calendar, analytics, activity, team) plus the worklog bulk bar, the
+  achievements people filter and the tasks bulk/page-size selects. `billing`'s per-invoice status
+  dropdown is left at `h-7 w-28`: it sits in a table cell, sizes to its column, and its longest word
+  ("refunded") already fits — the guard says so in its own comment rather than pretending the rule is
+  universal.
+- **Tests.** `tests/unit/filter-bar-layout.test.ts` (6 — the three constants carry their classes, the
+  sort control is inside the bar and not beside it, a sweep of every `app/dashboard` page finds no bar
+  dropdown with a hand-guessed width, and no bar still uses the old `gap-2 py-3` row).
+  `tests/unit/select-geometry.test.ts` re-cut from 5 to 8: it used to assert the menu is *exactly* the
+  trigger width and that a long option truncates rather than widening the list — the two rules this wave
+  reversed — and now asserts the floor, the hug, the cap, one-line text in both the menu and the closed
+  field, and that no `w-[var(--radix-select-trigger-width)]` or `line-clamp` comes back.
+  Gates: `tsc --noEmit` clean, 178 files / 2944 tests, lint at the documented 82-problem / 4-error
+  baseline. Layout itself is for the owner to confirm in the browser: the tasks bar on one row at
+  desktop, and a sprint or assignee dropdown wide enough to read.

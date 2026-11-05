@@ -74,6 +74,9 @@ import {
   StatusPill,
   TOOLTIP_STYLE,
   relativeTime,
+  FILTER_BAR,
+  FILTER_SEARCH,
+  FILTER_TRIGGER,
 } from "@/components/dashboard-kit"
 
 /* ------------------------------------------------------------------ types */
@@ -600,7 +603,7 @@ export default function DashboardBacklog() {
 
       {/* 3 — Filters */}
       <Card>
-        <CardContent className="flex flex-wrap items-center gap-2 py-3">
+        <CardContent className={FILTER_BAR}>
           <Filter className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
           <div className="flex items-center gap-1 rounded-md border p-0.5" role="group" aria-label="Backlog scope">
             <Button
@@ -620,18 +623,18 @@ export default function DashboardBacklog() {
               Workspace
             </Button>
           </div>
-          <div className="relative min-w-40 flex-1">
+          <div className={FILTER_SEARCH}>
             <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               aria-label="Search backlog"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search backlog…"
-              className="h-9 pl-8 text-sm"
+              className="h-8 pl-8 text-xs"
             />
           </div>
           <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-            <SelectTrigger className="h-9 w-32 text-sm" aria-label="Filter by priority">
+            <SelectTrigger className={FILTER_TRIGGER} aria-label="Filter by priority">
               <SelectValue placeholder="Priority" />
             </SelectTrigger>
             <SelectContent>
@@ -645,7 +648,7 @@ export default function DashboardBacklog() {
           </Select>
           {boardScope === "workspace" ? (
             <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
-              <SelectTrigger className="h-9 w-40 text-sm" aria-label="Filter by assignee">
+              <SelectTrigger className={FILTER_TRIGGER} aria-label="Filter by assignee">
                 <SelectValue placeholder="Assignee" />
               </SelectTrigger>
               <SelectContent>
@@ -660,7 +663,7 @@ export default function DashboardBacklog() {
             </Select>
           ) : null}
           <Select value={ageFilter} onValueChange={setAgeFilter}>
-            <SelectTrigger className="h-9 w-36 text-sm" aria-label="Filter by age">
+            <SelectTrigger className={FILTER_TRIGGER} aria-label="Filter by age">
               <SelectValue placeholder="Age" />
             </SelectTrigger>
             <SelectContent>

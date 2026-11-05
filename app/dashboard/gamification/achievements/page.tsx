@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { ArrowLeft, Award, Pencil, Plus, Trash2 } from "lucide-react"
-import { AvatarCircle, EmptyNote, relativeTime, SectionCard } from "@/components/dashboard-kit"
+import { AvatarCircle, EmptyNote, relativeTime, SectionCard, FILTER_TRIGGER } from "@/components/dashboard-kit"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -212,7 +212,7 @@ export default function AchievementsAdminPage() {
               Filter by member
             </Label>
             <Select value={userFilter} onValueChange={setUserFilter}>
-              <SelectTrigger id="user-filter" className="h-8 w-44 text-xs">
+              <SelectTrigger id="user-filter" className={FILTER_TRIGGER}>
                 <SelectValue placeholder="Filter by member" />
               </SelectTrigger>
               <SelectContent>

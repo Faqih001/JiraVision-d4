@@ -91,6 +91,9 @@ import {
   StatusPill,
   TOOLTIP_STYLE,
   relativeTime,
+  FILTER_BAR,
+  FILTER_SEARCH,
+  FILTER_TRIGGER,
 } from "@/components/dashboard-kit"
 
 /* ------------------------------------------------------------------ types */
@@ -734,18 +737,18 @@ export default function DashboardHome() {
 
       {/* 4 — Filter bar + grid/list toggle */}
       <Card>
-        <CardContent className="flex flex-wrap items-center gap-2 py-3">
-          <div className="relative min-w-40 flex-1">
+        <CardContent className={FILTER_BAR}>
+          <div className={FILTER_SEARCH}>
             <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search my tasks…"
-              className="h-9 pl-8 text-sm"
+              className="h-8 pl-8 text-xs"
             />
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="h-9 w-36 text-sm">
+            <SelectTrigger className={FILTER_TRIGGER}>
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
@@ -758,7 +761,7 @@ export default function DashboardHome() {
             </SelectContent>
           </Select>
           <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-            <SelectTrigger className="h-9 w-32 text-sm">
+            <SelectTrigger className={FILTER_TRIGGER}>
               <SelectValue placeholder="Priority" />
             </SelectTrigger>
             <SelectContent>
@@ -771,7 +774,7 @@ export default function DashboardHome() {
             </SelectContent>
           </Select>
           <Select value={sprintFilter} onValueChange={setSprintFilter}>
-            <SelectTrigger className="h-9 w-40 text-sm">
+            <SelectTrigger className={FILTER_TRIGGER}>
               <SelectValue placeholder="Sprint" />
             </SelectTrigger>
             <SelectContent>

@@ -7,25 +7,43 @@ const select = readFileSync(path.join(repo, "components/ui/select.tsx"), "utf8")
   .replace(/\/\*[\s\S]*?\*\//g, "")
   .replace(/\/\/[^\n]*/g, "")
 
-// The onboarding grid puts two selects side by side at 640px and stacks them below it. A popper
-// that flips above the field or widens to its longest option is the wrong list for the field it
-// belongs to, so the geometry is pinned here rather than discovered per breakpoint.
-describe("Select dropdowns sit under the field at the field's width", () => {
+// The onboarding grid puts two selects side by side at 640px and stacks them below it, and every
+// filter bar on the dashboard needs its dropdown to read as that field's list. So the menu stays
+// pinned below the field and at least as wide as it — but it hugs its longest option, because a
+// closed list that reads "Recently updat…" is the one defect the narrow field cannot show.
+describe("Select dropdowns sit under the field and show their whole option", () => {
   it("never flips away from the bottom", () => {
     expect(select).toMatch(/side="bottom"/)
     expect(select).toMatch(/avoidCollisions=\{false\}/)
   })
 
-  it("is exactly as wide as its trigger when it is a popper", () => {
-    expect(select).toContain("w-[var(--radix-select-trigger-width)]")
+  it("is at least as wide as its trigger and as wide as its longest option", () => {
+    expect(select).toContain("min-w-[max(8rem,var(--radix-select-trigger-width))]")
+    expect(select).toContain("w-max")
+  })
+
+  it("is never wider than the screen can hold", () => {
+    expect(select).toContain("max-w-[min(30rem,calc(100vw-3rem))]")
+  })
+
+  it("has no rule left that would pin the menu to the trigger width again", () => {
+    expect(select).not.toMatch(/(^|[^-])\bw-\[var\(--radix-select-trigger-width\)\]/)
+    expect(select).not.toContain("min-w-[var(--radix-select-trigger-width)]")
   })
 
   it("caps its height to the space left on screen instead of flipping", () => {
     expect(select).toContain("max-h-[min(24rem,var(--radix-select-content-available-height))]")
   })
 
-  it("lets a long option truncate rather than widen the list", () => {
+  it("keeps every option on one line, in the menu and in the closed field", () => {
     expect(select).toMatch(/<SelectPrimitive\.ItemText[^>]*className="[^"]*\btruncate\b/)
+    expect(select).toMatch(/whitespace-nowrap/)
+    expect(select).toMatch(/\[&>span\]:truncate/)
+    expect(select).not.toMatch(/line-clamp/)
+  })
+
+  it("never pushes the chevron out of the field to fit one long value", () => {
+    expect(select).toMatch(/\[&_svg\]:shrink-0/)
   })
 
   it("leaves the viewport height to the content cap so the list scrolls", () => {

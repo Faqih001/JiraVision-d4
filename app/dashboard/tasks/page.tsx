@@ -97,6 +97,9 @@ import {
   StatusPill,
   TOOLTIP_STYLE,
   relativeTime,
+  FILTER_BAR,
+  FILTER_SEARCH,
+  FILTER_TRIGGER,
 } from "@/components/dashboard-kit"
 
 /* ------------------------------------------------------------------ types */
@@ -912,7 +915,7 @@ export default function TasksWorkspacePage() {
 
       {/* 3 — search + multi-filter bar */}
       <Card>
-        <CardContent className="flex flex-wrap items-center gap-2 py-3">
+        <CardContent className={FILTER_BAR}>
           <div className="flex items-center gap-1 rounded-md border p-0.5" role="group" aria-label="Task scope">
             <Button
               size="sm"
@@ -931,18 +934,18 @@ export default function TasksWorkspacePage() {
               Workspace
             </Button>
           </div>
-          <div className="relative min-w-40 flex-1">
+          <div className={FILTER_SEARCH}>
             <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               aria-label="Search tasks"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               placeholder="Search title or description…"
-              className="h-9 pl-8 text-sm"
+              className="h-8 pl-8 text-xs"
             />
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="h-9 w-36 text-sm" aria-label="Filter by status">
+            <SelectTrigger className={FILTER_TRIGGER} aria-label="Filter by status">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
@@ -955,7 +958,7 @@ export default function TasksWorkspacePage() {
             </SelectContent>
           </Select>
           <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-            <SelectTrigger className="h-9 w-32 text-sm" aria-label="Filter by priority">
+            <SelectTrigger className={FILTER_TRIGGER} aria-label="Filter by priority">
               <SelectValue placeholder="Priority" />
             </SelectTrigger>
             <SelectContent>
@@ -969,7 +972,7 @@ export default function TasksWorkspacePage() {
           </Select>
           {boardScope === "workspace" ? (
             <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
-              <SelectTrigger className="h-9 w-40 text-sm" aria-label="Filter by assignee">
+              <SelectTrigger className={FILTER_TRIGGER} aria-label="Filter by assignee">
                 <SelectValue placeholder="Assignee" />
               </SelectTrigger>
               <SelectContent>
@@ -984,7 +987,7 @@ export default function TasksWorkspacePage() {
             </Select>
           ) : null}
           <Select value={sprintFilter} onValueChange={setSprintFilter}>
-            <SelectTrigger className="h-9 w-40 text-sm" aria-label="Filter by sprint">
+            <SelectTrigger className={FILTER_TRIGGER} aria-label="Filter by sprint">
               <SelectValue placeholder="Sprint" />
             </SelectTrigger>
             <SelectContent>
@@ -998,7 +1001,7 @@ export default function TasksWorkspacePage() {
             </SelectContent>
           </Select>
           <Select value={cadenceFilter} onValueChange={setCadenceFilter}>
-            <SelectTrigger className="h-9 w-36 text-sm" aria-label="Filter by cadence">
+            <SelectTrigger className={FILTER_TRIGGER} aria-label="Filter by cadence">
               <SelectValue placeholder="Cadence" />
             </SelectTrigger>
             <SelectContent>
@@ -1011,7 +1014,7 @@ export default function TasksWorkspacePage() {
             </SelectContent>
           </Select>
           <Select value={sortKey} onValueChange={(v) => setSortKey(v as SortKey)}>
-            <SelectTrigger className="h-9 w-36 text-sm" aria-label="Sort tasks">
+            <SelectTrigger className={FILTER_TRIGGER} aria-label="Sort tasks">
               <SelectValue placeholder="Sort" />
             </SelectTrigger>
             <SelectContent>
@@ -1023,7 +1026,7 @@ export default function TasksWorkspacePage() {
             </SelectContent>
           </Select>
           {activeFilters.length > 0 && (
-            <Button size="sm" variant="ghost" className="h-9 text-xs" onClick={clearFilters}>
+            <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={clearFilters}>
               <Filter className="mr-1 h-3.5 w-3.5" /> Clear filters
             </Button>
           )}
@@ -1082,7 +1085,7 @@ export default function TasksWorkspacePage() {
             <span className="text-sm font-medium">{visibleSelected.length} selected</span>
             <Separator orientation="vertical" className="h-5" />
             <Select onValueChange={(v) => runBulk("update", { status: v })}>
-              <SelectTrigger className="h-8 w-36 text-xs" aria-label="Bulk set status">
+              <SelectTrigger className={FILTER_TRIGGER} aria-label="Bulk set status">
                 <SelectValue placeholder="Set status…" />
               </SelectTrigger>
               <SelectContent>
@@ -1094,7 +1097,7 @@ export default function TasksWorkspacePage() {
               </SelectContent>
             </Select>
             <Select onValueChange={(v) => runBulk("update", { priority: v })}>
-              <SelectTrigger className="h-8 w-36 text-xs" aria-label="Bulk set priority">
+              <SelectTrigger className={FILTER_TRIGGER} aria-label="Bulk set priority">
                 <SelectValue placeholder="Set priority…" />
               </SelectTrigger>
               <SelectContent>
@@ -1361,7 +1364,7 @@ export default function TasksWorkspacePage() {
                 setPagination((p) => ({ ...p, pageSize: Number(v), page: 1 }))
               }}
             >
-              <SelectTrigger id="page-size" className="h-8 w-20 text-xs">
+              <SelectTrigger id="page-size" className={FILTER_TRIGGER}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

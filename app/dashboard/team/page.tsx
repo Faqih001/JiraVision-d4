@@ -83,6 +83,7 @@ import {
   StatusPill,
   TOOLTIP_STYLE,
   relativeTime,
+  FILTER_TRIGGER,
 } from "@/components/dashboard-kit"
 
 /* ------------------------------------------------------------------ types */
@@ -733,7 +734,7 @@ export default function TeamWorkspace() {
                   value={newOrgName}
                   onChange={(e) => setNewOrgName(e.target.value)}
                   placeholder="Organization name"
-                  className="h-9 w-56 text-sm"
+                  className={FILTER_TRIGGER}
                   aria-label="Organization name"
                 />
                 <Button size="sm" onClick={createOrg} disabled={orgBusy || !newOrgName.trim()}>
@@ -816,7 +817,7 @@ export default function TeamWorkspace() {
           Filter by role
         </Label>
         <Select value={roleFilter} onValueChange={setRoleFilter}>
-          <SelectTrigger id="role-filter" className="h-9 w-40 text-sm">
+          <SelectTrigger id="role-filter" className={FILTER_TRIGGER}>
             <SelectValue placeholder="Role" />
           </SelectTrigger>
           <SelectContent>
@@ -832,7 +833,7 @@ export default function TeamWorkspace() {
           Filter by status
         </Label>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger id="status-filter" className="h-9 w-36 text-sm">
+          <SelectTrigger id="status-filter" className={FILTER_TRIGGER}>
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>

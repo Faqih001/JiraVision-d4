@@ -54,6 +54,8 @@ import {
   StatusPill,
   TOOLTIP_STYLE,
   relativeTime,
+  FILTER_BAR,
+  FILTER_TRIGGER,
 } from "@/components/dashboard-kit"
 
 /* ------------------------------------------------------------------ types */
@@ -505,7 +507,7 @@ export default function ActivityCenter() {
 
       {/* 3 — Filter bar (kind/days/q are server params; actor narrows the loaded stream) */}
       <Card>
-        <CardContent className="flex flex-wrap items-center gap-2 py-3">
+        <CardContent className={FILTER_BAR}>
           <form
             className="relative min-w-44 flex-1"
             onSubmit={(e) => {
@@ -522,7 +524,7 @@ export default function ActivityCenter() {
               value={qDraft}
               onChange={(e) => setQDraft(e.target.value)}
               placeholder="Search titles… (Enter to apply)"
-              className="h-9 pl-8 text-sm"
+              className="h-8 pl-8 text-xs"
             />
           </form>
           <div>
@@ -530,7 +532,7 @@ export default function ActivityCenter() {
               Kind
             </Label>
             <Select value={kind} onValueChange={setKind}>
-              <SelectTrigger id="act-kind" className="h-9 w-40 text-sm">
+              <SelectTrigger id="act-kind" className={FILTER_TRIGGER}>
                 <SelectValue placeholder="Kind" />
               </SelectTrigger>
               <SelectContent>
@@ -548,7 +550,7 @@ export default function ActivityCenter() {
               Actor
             </Label>
             <Select value={actor} onValueChange={setActor}>
-              <SelectTrigger id="act-actor" className="h-9 w-40 text-sm">
+              <SelectTrigger id="act-actor" className={FILTER_TRIGGER}>
                 <SelectValue placeholder="Actor" />
               </SelectTrigger>
               <SelectContent>
@@ -566,7 +568,7 @@ export default function ActivityCenter() {
               Time window
             </Label>
             <Select value={days} onValueChange={setDays}>
-              <SelectTrigger id="act-days" className="h-9 w-28 text-sm">
+              <SelectTrigger id="act-days" className={FILTER_TRIGGER}>
                 <SelectValue placeholder="Window" />
               </SelectTrigger>
               <SelectContent>
@@ -576,10 +578,10 @@ export default function ActivityCenter() {
               </SelectContent>
             </Select>
           </div>
-          <Button size="sm" variant="ghost" className="h-9 text-xs" onClick={clearFilters} disabled={!filtersActive}>
+          <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={clearFilters} disabled={!filtersActive}>
             <X className="mr-1 h-3.5 w-3.5" /> Clear
           </Button>
-          <Button size="sm" variant="outline" className="h-9 text-xs" onClick={exportCsv}>
+          <Button size="sm" variant="outline" className="h-8 text-xs" onClick={exportCsv}>
             <Download className="mr-1 h-3.5 w-3.5" /> Export CSV
           </Button>
         </CardContent>

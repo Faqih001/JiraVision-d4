@@ -97,6 +97,9 @@ import {
   StatusPill,
   TOOLTIP_STYLE,
   relativeTime,
+  FILTER_BAR,
+  FILTER_SEARCH,
+  FILTER_TRIGGER,
 } from "@/components/dashboard-kit"
 
 /* ------------------------------------------------------------------ types */
@@ -888,7 +891,7 @@ export default function CalendarWorkspace() {
 
       {/* 2 — filter bar: scope + search + event type */}
       <Card>
-        <CardContent className="flex flex-wrap items-center gap-2 py-3">
+        <CardContent className={FILTER_BAR}>
           <div className="flex items-center gap-1 rounded-md border p-0.5" role="group" aria-label="Calendar scope">
             <Button
               size="sm"
@@ -907,18 +910,18 @@ export default function CalendarWorkspace() {
               Workspace
             </Button>
           </div>
-          <div className="relative min-w-40 flex-1">
+          <div className={FILTER_SEARCH}>
             <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search events, people, locations…"
               aria-label="Search events"
-              className="h-9 pl-8 text-sm"
+              className="h-8 pl-8 text-xs"
             />
           </div>
           <Select value={typeFilter} onValueChange={setTypeFilter}>
-            <SelectTrigger className="h-9 w-40 text-sm" aria-label="Filter by event type">
+            <SelectTrigger className={FILTER_TRIGGER} aria-label="Filter by event type">
               <SelectValue placeholder="Type" />
             </SelectTrigger>
             <SelectContent>

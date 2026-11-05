@@ -39,7 +39,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { EmptyNote, SectionCard } from "@/components/dashboard-kit"
+import { EmptyNote, SectionCard, FILTER_TRIGGER } from "@/components/dashboard-kit"
 import { rangeDays } from "@/lib/worklog/local-day"
 import {
   DELIVERABLE_LABEL,
@@ -567,7 +567,7 @@ export function BulkSection({
             Move to task
           </Label>
           <Select value={taskId} onValueChange={setTaskId} disabled={busy}>
-            <SelectTrigger id="bulk-task" className="h-8 w-44 text-xs">
+            <SelectTrigger id="bulk-task" className={FILTER_TRIGGER}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -590,7 +590,7 @@ export function BulkSection({
             onValueChange={(value) => setKind(value as WorkLogKind)}
             disabled={busy}
           >
-            <SelectTrigger id="bulk-kind" className="h-8 w-36 text-xs">
+            <SelectTrigger id="bulk-kind" className={FILTER_TRIGGER}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -613,7 +613,7 @@ export function BulkSection({
             value={workedOn}
             max={todayIso}
             onChange={(event) => setWorkedOn(event.target.value)}
-            className="h-8 w-40 text-xs"
+            className={FILTER_TRIGGER}
             disabled={busy}
           />
         </div>

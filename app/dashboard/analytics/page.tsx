@@ -75,6 +75,8 @@ import {
   STATUS_COLOR,
   TOOLTIP_STYLE,
   relativeTime,
+  FILTER_BAR,
+  FILTER_TRIGGER,
 } from "@/components/dashboard-kit"
 
 /* ------------------------------------------------------------------ types */
@@ -531,10 +533,10 @@ export default function AnalyticsWorkspace() {
 
       {/* 2 — Filter bar */}
       <Card>
-        <CardContent className="flex flex-wrap items-center gap-2 py-3">
+        <CardContent className={FILTER_BAR}>
           <span className="text-xs font-medium text-muted-foreground">Filters</span>
           <Select value={filters.rangeDays} onValueChange={(v) => setFilters((f) => ({ ...f, rangeDays: v }))}>
-            <SelectTrigger className="h-9 w-36 text-sm" aria-label="Date range">
+            <SelectTrigger className={FILTER_TRIGGER} aria-label="Date range">
               <SelectValue placeholder="Range" />
             </SelectTrigger>
             <SelectContent>
@@ -546,7 +548,7 @@ export default function AnalyticsWorkspace() {
             </SelectContent>
           </Select>
           <Select value={filters.sprintId} onValueChange={(v) => setFilters((f) => ({ ...f, sprintId: v }))}>
-            <SelectTrigger className="h-9 w-44 text-sm" aria-label="Sprint">
+            <SelectTrigger className={FILTER_TRIGGER} aria-label="Sprint">
               <SelectValue placeholder="Sprint" />
             </SelectTrigger>
             <SelectContent>
@@ -559,7 +561,7 @@ export default function AnalyticsWorkspace() {
             </SelectContent>
           </Select>
           <Select value={filters.priority} onValueChange={(v) => setFilters((f) => ({ ...f, priority: v }))}>
-            <SelectTrigger className="h-9 w-36 text-sm" aria-label="Priority">
+            <SelectTrigger className={FILTER_TRIGGER} aria-label="Priority">
               <SelectValue placeholder="Priority" />
             </SelectTrigger>
             <SelectContent>
