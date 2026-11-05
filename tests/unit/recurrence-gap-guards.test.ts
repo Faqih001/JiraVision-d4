@@ -15,7 +15,6 @@ const codeOnly = (source: string) =>
 // Every door that can mutate a task row. A rule enforced in one of them and not the others
 // is a rule a client can step around.
 const TASK_WRITE_ROUTES = [
-  "app/api/tasks/route.ts",
   "app/api/tasks/[id]/route.ts",
   "app/api/tasks/bulk/route.ts",
   "app/api/test/tasks/[id]/route.ts",
@@ -23,7 +22,9 @@ const TASK_WRITE_ROUTES = [
 ] as const
 
 describe("a recurring template stays open", () => {
-  it.each(TASK_WRITE_ROUTES)("%s refuses a finished status with 409", (file) => {
+  // POST creates the row and its first grid in one step, so it is not a cadence-change door and
+  // belongs in this list only — materialiseGridOnCadenceChange would be a no-op on a fresh row.
+  it.each([POST_TASK_ROUTE, ...TASK_WRITE_ROUTES])("%s refuses a finished status with 409", (file) => {
     const body = codeOnly(src(file))
     expect(body).toMatch(/recurringStatusError\(/)
     expect(body).toMatch(/status: 409/)
