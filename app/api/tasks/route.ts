@@ -3,6 +3,7 @@ import { getSession } from "@/lib/auth-actions"
 import { createTask, getPaginatedTasks } from "@/lib/data-access"
 import { createNotification } from "@/lib/notifications"
 import { isCadence } from "@/lib/cadence"
+import { recurringStatusError } from "@/lib/task-updates"
 import { readDisciplineField } from "@/lib/roles"
 import { memberDisciplineDefault } from "@/lib/worklog/member-discipline"
 import { captureTaskBirths } from "@/lib/worklog/capture"
@@ -125,6 +126,15 @@ export async function POST(request: Request) {
         { success: false, message: "Invalid cadence value" },
         { status: 400 }
       )
+    }
+
+    // A cadence makes this row a template, and a template is never finished: PUT refuses that
+    // patch, and POST has to refuse it too. Without this, a "Daily + Done" create would store a
+    // template the board draws in To do (the board reads today's occurrence, and every occurrence
+    // is born `todo`) while the tasks page draws it in Done — one card, two columns.
+    const recurringBlock = recurringStatusError({ cadence }, { status: data.status })
+    if (recurringBlock) {
+      return NextResponse.json({ success: false, message: recurringBlock }, { status: 409 })
     }
 
     // A task the member creates for themselves is classified by the discipline they work in, so

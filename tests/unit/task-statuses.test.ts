@@ -5,6 +5,7 @@ import {
   COMPLETED_TASK_STATUSES,
   creatableStatusesFor,
   isCompletedTaskStatus,
+  statusAfterCadenceChange,
 } from "@/lib/tasks/statuses"
 
 const src = (relative: string) => readFileSync(resolve(process.cwd(), relative), "utf8")
@@ -56,6 +57,24 @@ describe("a create form offers only the statuses the writer will accept", () => 
     const vocabulary = ["todo", "done"]
     expect(creatableStatusesFor("daily", vocabulary)).not.toBe(vocabulary)
     expect(vocabulary).toEqual(["todo", "done"])
+  })
+})
+
+describe("a cadence change keeps a status the writer will still accept", () => {
+  const ALL = ["todo", "in_progress", "review", "blocked", "done"]
+
+  it("holds the pick when the new cadence can still carry it", () => {
+    expect(statusAfterCadenceChange("weekly", "in_progress", ALL)).toBe("in_progress")
+    expect(statusAfterCadenceChange("one-off", "done", ALL)).toBe("done")
+  })
+
+  it("falls back to the first state a template can hold", () => {
+    expect(statusAfterCadenceChange("daily", "done", ALL)).toBe("todo")
+    expect(statusAfterCadenceChange("monthly", "completed", ALL)).toBe("todo")
+  })
+
+  it("settles a word the filtered list does not carry, even an open one", () => {
+    expect(statusAfterCadenceChange("daily", "backlog", ALL)).toBe("todo")
   })
 })
 

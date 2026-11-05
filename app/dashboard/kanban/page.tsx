@@ -32,6 +32,7 @@ import {
   Timer,
   Trash2,
   Users,
+  X,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -83,9 +84,14 @@ import {
   TOOLTIP_STYLE,
   relativeTime,
 } from "@/components/dashboard-kit"
-import { isCompletedTaskStatus } from "@/lib/tasks/statuses"
+import {
+  creatableStatusesFor,
+  isCompletedTaskStatus,
+  statusAfterCadenceChange,
+} from "@/lib/tasks/statuses"
 import { RECURRING_STATUS_HINT } from "@/lib/task-updates"
-import { CADENCE_LABEL, isCadence } from "@/lib/cadence"
+import { CADENCES, CADENCE_LABEL, isCadence, type Cadence } from "@/lib/cadence"
+import { parseChecklistItems, type ChecklistItem } from "@/lib/tasks/checklist"
 
 /* ------------------------------------------------------------------ types */
 
@@ -100,6 +106,7 @@ type TaskRow = {
   sprintId: number | null
   dueDate: string | null
   cadence: string | null
+  checklistItems?: unknown
   tags: unknown
   createdAt: string | null
   updatedAt: string | null
@@ -139,6 +146,8 @@ type TaskDraft = {
   sprintId: number | ""
   dueDate: string
   tags: string
+  cadence: Cadence
+  checklistItems: ChecklistItem[]
 }
 
 /* ---------------------------------------------------------------- helpers */
@@ -167,6 +176,10 @@ export type KanbanTask = {
 }
 
 const tagList = (t: TaskRow) => (Array.isArray(t.tags) ? t.tags.map(String) : [])
+
+/** The API hands back the checklist as JSON already-parsed or as text, depending on the driver. */
+const readChecklist = (raw: unknown): ChecklistItem[] =>
+  parseChecklistItems(typeof raw === "string" ? raw : JSON.stringify(raw ?? []))
 
 // Overdue is read off the column the card draws in, not the row behind it: a schedule keeps its
 // own status forever, so its original due date would paint every daily occurrence red.
@@ -210,7 +223,7 @@ const boardStatus = (t: TaskRow): string | null => {
  */
 const allowedStatuses = (t: TaskRow): string[] => {
   if (t.todayInstance) return INSTANCE_STATUSES
-  return STATUSES.filter((s) => !(isRecurring(t) && isCompletedTaskStatus(s)))
+  return creatableStatusesFor(t.cadence, STATUSES)
 }
 
 /** The move menu: the same list without the column the card already sits in. */
@@ -423,6 +436,8 @@ export default function KanbanBoardPage() {
       sprintId: sprintFilter !== "all" && sprintFilter !== "backlog" ? Number(sprintFilter) : 0,
       dueDate: "",
       tags: "",
+      cadence: "one-off",
+      checklistItems: [],
     })
     setConfirmDelete(false)
     setFormOpen(true)
@@ -440,6 +455,8 @@ export default function KanbanBoardPage() {
       sprintId: t.sprintId ?? 0,
       dueDate: t.dueDate ?? "",
       tags: tagList(t).join(", "),
+      cadence: isCadence(t.cadence) ? t.cadence : "one-off",
+      checklistItems: readChecklist(t.checklistItems),
     })
     setConfirmDelete(false)
     setDetailTask(null)
@@ -467,6 +484,8 @@ export default function KanbanBoardPage() {
           .split(",")
           .map((tag) => tag.trim())
           .filter(Boolean),
+        cadence: draft.cadence,
+        checklistItems: draft.cadence !== "one-off" ? draft.checklistItems : [],
       }
       const res = draft.id
         ? await fetch(`/api/tasks/${draft.id}`, {

@@ -38,3 +38,18 @@ export function creatableStatusesFor(
   if (!isCadence(cadence) || cadence === "one-off") return [...vocabulary]
   return vocabulary.filter((status) => !isCompletedTaskStatus(status))
 }
+
+/**
+ * The status a create form holds when the member changes the cadence.
+ *
+ * Flipping a card to a schedule can strand its status: "Daily + Done" is a template the writer
+ * refuses, so the form moves the pick to the first state a template can actually hold rather
+ * than letting the member discover the 409 after they press save.
+ */
+export function statusAfterCadenceChange(
+  cadence: string | null | undefined,
+  current: string,
+  vocabulary: readonly string[],
+): string {
+  return creatableStatusesFor(cadence, vocabulary).includes(current) ? current : "todo"
+}
