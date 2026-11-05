@@ -15,6 +15,7 @@ const codeOnly = (source: string) =>
 // Every door that can mutate a task row. A rule enforced in one of them and not the others
 // is a rule a client can step around.
 const TASK_WRITE_ROUTES = [
+  "app/api/tasks/route.ts",
   "app/api/tasks/[id]/route.ts",
   "app/api/tasks/bulk/route.ts",
   "app/api/test/tasks/[id]/route.ts",
@@ -35,12 +36,17 @@ describe("a recurring template stays open", () => {
   })
 
   it("keeps the finished words out of the boards for recurring cards", () => {
+    // The rule itself is the KC-1 shared vocabulary in lib/tasks/statuses.ts; both readers now call
+    // it instead of spelling it out, so the guard holds the call sites, not the old inline filter.
     const kanban = codeOnly(src("app/dashboard/kanban/page.tsx"))
-    expect(kanban).toMatch(/isRecurring\(t\) && isCompletedTaskStatus\(s\)/)
+    expect(kanban).toMatch(/creatableStatusesFor\(t\.cadence, STATUSES\)/)
     const tasks = codeOnly(src("app/dashboard/tasks/page.tsx"))
-    expect(tasks).toMatch(/isRecurringTask\(detailTask\) && isCompletedTaskStatus\(s\)/)
+    expect(tasks).toMatch(/creatableStatusesFor\(detailTask\.cadence, STATUSES\)/)
     // The cycle button has the same rule, or a click would still land the card on Done.
-    expect(tasks).toMatch(/nextStatus\(t\.status, isRecurringTask\(t\)\)/)
+    expect(tasks).toMatch(/nextStatus\(t\.status, t\.cadence\)/)
+    expect(codeOnly(src("lib/tasks/statuses.ts"))).toMatch(
+      /vocabulary\.filter\(\(status\) => !isCompletedTaskStatus\(status\)\)/,
+    )
   })
 })
 

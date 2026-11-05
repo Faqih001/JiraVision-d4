@@ -91,25 +91,25 @@ function between(source: string, open: string, close: string): string {
 
 describe("the kanban add-card modal can create a schedule", () => {
   it("the draft carries cadence and checklist items", () => {
-    const draft = between(kanban, "type TaskDraft", "/* ---------------------------------------------------------------- helpers")
-    expect(draft).toMatch(/cadence:\s Cadence/u)
+    const draft = between(kanban, "type TaskDraft", "export type KanbanTask")
+    expect(draft).toMatch(/cadence:\s*Cadence/u)
     expect(draft).toMatch(/checklistItems: ChecklistItem\[\]/u)
   })
 
   it("a new card starts one-off with no checklist", () => {
-    const open = kanban.slice(kanban.indexOf("const openCreate"), kanban.indexOf("const openEdit"))
+    const open = between(kanban, "const openCreate", "const openEdit")
     expect(open).toMatch(/cadence: "one-off"/u)
     expect(open).toMatch(/checklistItems: \[\]/u)
   })
 
   it("editing a card loads its cadence, so a save cannot quietly reset a schedule", () => {
-    const open = kanban.slice(kanban.indexOf("const openEdit"), kanban.indexOf("const saveTask"))
+    const open = between(kanban, "const openEdit", "const saveTask")
     expect(open).toMatch(/cadence:/u)
     expect(open).toMatch(/checklistItems:/u)
   })
 
   it("the payload sends both fields, and drops a checklist that is no longer scheduled", () => {
-    const payload = kanban.slice(kanban.indexOf("const saveTask"), kanban.indexOf("const deleteTask"))
+    const payload = between(kanban, "const saveTask", "const deleteTask")
     expect(payload).toMatch(/cadence: draft\.cadence/u)
     expect(payload).toMatch(/checklistItems: draft\.cadence !== "one-off" \? draft\.checklistItems\s*:\s*\[\]/u)
   })
