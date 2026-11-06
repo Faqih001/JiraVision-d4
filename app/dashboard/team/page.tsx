@@ -1174,7 +1174,7 @@ export default function TeamWorkspace() {
 
       {/* 12 · member detail dialog */}
       <Dialog open={detailRow !== null} onOpenChange={(open) => !open && setDetailRow(null)}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-3">
               {detailRow && <AvatarCircle name={detailRow.name} avatar={detailRow.avatar} size={36} />}

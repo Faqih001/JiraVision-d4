@@ -1164,7 +1164,7 @@ export default function ReportsPage() {
 
       {/* create/edit dialog */}
       <Dialog open={draftOpen} onOpenChange={(o) => !saving && setDraftOpen(o)}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+        <DialogContent className=" sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>{draft?.id ? "Edit schedule" : "New schedule"}</DialogTitle>
             <DialogDescription>
@@ -1353,7 +1353,7 @@ export default function ReportsPage() {
         open={templateDialogOpen}
         onOpenChange={(o) => setTemplateDialogOpen(o)}
       >
-        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
+        <DialogContent className=" sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>Choose a report template</DialogTitle>
             <DialogDescription>
@@ -1418,7 +1418,7 @@ export default function ReportsPage() {
           if (!editorSaving) setEditorOpen(o)
         }}
       >
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
+        <DialogContent className=" sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle>
               {editorReport?.status === "final" ? "View report" : "Edit report"}

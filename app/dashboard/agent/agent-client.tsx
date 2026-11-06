@@ -832,7 +832,7 @@ export default function AgentClient() {
       )}
 
       <Dialog open={registerEditor !== null} onOpenChange={(open) => (!open ? setRegisterEditor(null) : undefined)}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
+        <DialogContent className=" sm:max-w-xl">
           <DialogHeader>
             <DialogTitle>{registerIndex === null ? "New register row" : "Edit register row"}</DialogTitle>
             <DialogDescription>
@@ -980,7 +980,7 @@ export default function AgentClient() {
         open={playbookEditor !== null}
         onOpenChange={(open) => (!open ? setPlaybookEditor(null) : undefined)}
       >
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+        <DialogContent className=" sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>
               {playbookEditor?.index === null || playbookEditor?.index === undefined

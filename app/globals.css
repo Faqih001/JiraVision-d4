@@ -205,9 +205,28 @@
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
 }
 
+/* Thin vertical scrollbar for dialog bodies (see tests/unit/modal-scroll.test.ts) */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--muted-foreground) / 0.4) transparent;
+}
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.35);
+  border-radius: 9999px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.55);
+}
+
 /* Preserve horizontal scroll only for kanban */
-.preserve-horizontal-scroll {
-  overflow-x: auto;
+.preserve-horizontal-scroll {  overflow-x: auto;
   max-width: 100%;
   -ms-overflow-style: -ms-autohiding-scrollbar;
   touch-action: pan-x pinch-zoom;

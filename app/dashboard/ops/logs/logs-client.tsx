@@ -455,7 +455,7 @@ export default function LogsClient() {
       ) : null}
 
       <Dialog open={draft !== null} onOpenChange={(open) => (!open ? setDraft(null) : undefined)}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
+        <DialogContent className=" sm:max-w-xl">
           <DialogHeader>
             <DialogTitle>
               {draft?.id === null ? `Log ${activeDef?.label ?? "entry"}` : `Edit ${activeDef?.label ?? "entry"}`}

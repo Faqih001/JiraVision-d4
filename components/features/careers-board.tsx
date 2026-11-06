@@ -123,7 +123,7 @@ export function CareersBoard({ jobs }: { jobs: JobOpening[] }) {
       )}
 
       <Dialog open={applyingFor !== null} onOpenChange={(open) => !open && setApplyingFor(null)}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+        <DialogContent className=" sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Apply to JiraVision</DialogTitle>
             <DialogDescription>

@@ -177,7 +177,7 @@ export function ConfigureEthicalMetricsModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle className="text-xl">Ethical Metrics Configuration</DialogTitle>
           <DialogDescription>

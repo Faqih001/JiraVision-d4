@@ -1145,7 +1145,7 @@ export default function GoalsPage() {
 
       {/* create/edit dialog */}
       <Dialog open={draftOpen} onOpenChange={(o) => !saving && setDraftOpen(o)}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+        <DialogContent className=" sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>{draft?.id ? "Edit goal" : "New goal"}</DialogTitle>
             <DialogDescription>

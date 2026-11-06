@@ -1368,7 +1368,7 @@ export default function CalendarWorkspace() {
           }
         }}
       >
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+        <DialogContent className=" sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>{draft?.id ? "Edit event" : "New event"}</DialogTitle>
             <DialogDescription>

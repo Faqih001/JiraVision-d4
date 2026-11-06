@@ -918,7 +918,7 @@ export default function AutomationPage() {
 
       {/* builder dialog */}
       <Dialog open={draftOpen} onOpenChange={(o) => !saving && setDraftOpen(o)}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+        <DialogContent className=" sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>{draft?.id ? "Edit rule" : "New rule"}</DialogTitle>
             <DialogDescription>

@@ -510,7 +510,7 @@ export default function PlaybooksClient() {
       </CommandDialog>
 
       <Dialog open={create !== null} onOpenChange={(open) => (!open ? setCreate(null) : undefined)}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
+        <DialogContent className=" sm:max-w-xl">
           <DialogHeader>
             <DialogTitle>New playbook</DialogTitle>
             <DialogDescription>

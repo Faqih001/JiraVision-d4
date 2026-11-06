@@ -125,7 +125,7 @@ export default function KanbanTaskForm({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto p-4 sm:p-6 w-[95%]">
+      <DialogContent className="sm:max-w-[550px] p-4 sm:p-6 w-[95%]">
         <DialogHeader>
           <DialogTitle>Add New Task</DialogTitle>
           <DialogDescription>
