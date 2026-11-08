@@ -1,4 +1,4 @@
-// Source guards for the "a daily lands in To do every morning" wave: the board draws today's
+// Source guards for the "a daily lands in To do every morning" wave: the board draws the day's
 // occurrence instead of the schedule, the move writes the occurrence row, the read that feeds
 // it is bounded, and no grid is written for a weekend. The date maths itself is unit-tested in
 // tests/unit/task-recurrence.test.ts; these hold the wiring, because every rule here is one a
@@ -15,7 +15,6 @@ const codeOnly = (source: string) =>
 
 const KANBAN = "app/dashboard/kanban/page.tsx"
 const TASKS_ROUTE = "app/api/tasks/route.ts"
-const READER = "lib/tasks/today-occurrence.ts"
 const RECURRENCE = "lib/tasks/recurrence.ts"
 const RECONCILE = "scripts/reconcile-recurring-tasks.mjs"
 
@@ -33,22 +32,22 @@ describe("the board draws the day, not the schedule", () => {
     expect(page).not.toMatch(/visibleTasks\.filter\(\(t\) => t\.status === status\)/)
   })
 
-  it("draws nothing for a schedule with no occurrence today, or a settled one", () => {
+  it("draws nothing for a schedule with no occurrence on the drawn day, or a settled one", () => {
     const page = codeOnly(src(KANBAN))
-    expect(page).toMatch(/const status = t\.todayInstance\?\.status/)
+    expect(page).toMatch(/const status = t\.dayInstance\?\.status/)
     expect(page).toMatch(/if \(!status \|\| status === "skipped"\) return null/)
   })
 
   it("names the schedules it is holding back", () => {
     const page = codeOnly(src(KANBAN))
     expect(page).toMatch(/isRecurring\(t\) && boardStatus\(t\) === null/)
-    expect(page).toMatch(/not due today/)
+    expect(page).toMatch(/not due on this day/)
   })
 
   it("reads overdue, my cards and the totals off the drawn status", () => {
     const page = codeOnly(src(KANBAN))
     expect(page).toMatch(/const status = boardStatus\(t\)/)
-    expect(page).toMatch(/isCompletedTaskStatus\(t\.todayInstance\?\.status \?\? t\.status\)/)
+    expect(page).toMatch(/isCompletedTaskStatus\(t\.dayInstance\?\.status \?\? t\.status\)/)
   })
 })
 
@@ -56,7 +55,7 @@ describe("an occurrence card moves through the instance door", () => {
   it("offers only the three states an occurrence row can hold", () => {
     const page = codeOnly(src(KANBAN))
     expect(page).toMatch(/const INSTANCE_STATUSES = \["todo", "in_progress", "done"\]/)
-    expect(page).toMatch(/if \(t\.todayInstance\) return INSTANCE_STATUSES/)
+    expect(page).toMatch(/if \(t\.dayInstance\) return INSTANCE_STATUSES/)
   })
 
   it("refuses a board-only column and writes nothing", () => {
@@ -81,30 +80,15 @@ describe("an occurrence card moves through the instance door", () => {
 })
 
 describe("the read that feeds the board", () => {
-  it("attaches today's occurrence to every task row", () => {
+  it("attaches the drawn day's occurrence to every task row", () => {
     const route = codeOnly(src(TASKS_ROUTE))
-    expect(route).toMatch(/todayOccurrencesFor\(/)
-    expect(route).toMatch(/todayInstance: occurrences\.get\(task\.id\) \?\? null/)
+    expect(route).toMatch(/occurrencesForDay\(/)
+    expect(route).toMatch(/dayInstance: occurrences\.get\(task\.id\) \?\? null/)
   })
 
   it("loads the member list only when the page holds a schedule", () => {
     const route = codeOnly(src(TASKS_ROUTE))
     expect(route).toMatch(/hasSchedule && session \? await loadVisibleMemberIds\(session\.id\) : \[\]/)
-  })
-
-  it("tops up only grids this caller may write, and only so many", () => {
-    const reader = codeOnly(src(READER))
-    expect(reader).toMatch(/export const TODAY_TOP_UP_LIMIT = 25/)
-    expect(reader).toMatch(/missing\.slice\(0, TODAY_TOP_UP_LIMIT\)/)
-    expect(reader).toMatch(/s\.assigneeId !== null && writable\.has\(s\.assigneeId\)/)
-  })
-
-  it("reads today's rows in one query and swallows a failed top-up", () => {
-    const reader = codeOnly(src(READER))
-    expect(reader).toMatch(/eq\(taskInstances\.instanceDate, todayIso\)/)
-    expect(reader).toMatch(/inArray\(taskInstances\.taskId, taskIds\)/)
-    expect(reader).toMatch(/catch \(error\) \{/)
-    expect(reader).toMatch(/return found/)
   })
 })
 

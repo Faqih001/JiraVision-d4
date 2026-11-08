@@ -61,10 +61,10 @@ describe("personal boards open on the member's own rows", () => {
   })
 
   it("kanban reads its cards and sprint filter through the scope", () => {
-    expect(kanban).toContain("fetch(`/api/tasks?pageSize=200&${scopeParam}`)")
+    expect(kanban).toContain("fetch(`/api/tasks?pageSize=200&${scopeParam}${dateQuery}`)")
     expect(kanban).toContain("fetch(`/api/sprints?${scopeParam}`)")
     expect(kanban).toContain('fetch("/api/dashboard/overview?scope=member")')
-    expect(kanban.match(/scopeParam\]/g)?.length ?? 0).toBeGreaterThanOrEqual(2)
+    expect(kanban.match(/scopeParam, dateQuery\]/g)?.length ?? 0).toBeGreaterThanOrEqual(2)
   })
 
   it("tasks reads both the table and the KPI list through the scope", () => {

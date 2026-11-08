@@ -1,7 +1,8 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState, type DragEvent as ReactDragEvent } from "react"
+import { Suspense, useCallback, useEffect, useMemo, useState, type DragEvent as ReactDragEvent } from "react"
 import Link from "next/link"
+import { useRouter, useSearchParams } from "next/navigation"
 import {
   Bar,
   BarChart,
@@ -21,9 +22,13 @@ import {
   BarChart3,
   CalendarClock,
   CheckCheck,
+  ChevronLeft,
+  ChevronRight,
   Eye,
   Flag,
+  History,
   LayoutGrid,
+  Lock,
   MoreHorizontal,
   Pencil,
   Plus,
@@ -95,6 +100,9 @@ import {
 import { RECURRING_STATUS_HINT } from "@/lib/task-updates"
 import { CADENCES, CADENCE_LABEL, isCadence, type Cadence } from "@/lib/cadence"
 import { parseChecklistItems, type ChecklistItem } from "@/lib/tasks/checklist"
+import { boardDayParam, boardDayTitle, resolveBoardDay } from "@/lib/tasks/board-day"
+import { localDay, shiftDays } from "@/lib/worklog/local-day"
+import { DateField } from "@/components/ui/date-range-picker"
 
 /* ------------------------------------------------------------------ types */
 
@@ -113,9 +121,12 @@ type TaskRow = {
   tags: unknown
   createdAt: string | null
   updatedAt: string | null
-  /** Today's occurrence of a schedule, or null when it is not due today. */
-  todayInstance: { id: number; status: string } | null
+  /** The drawn day's occurrence of a schedule, or null when it is not due on that day. */
+  dayInstance: { id: number; status: string } | null
 }
+
+/** The server's verdict on the day it drew: which day, whose today, and whether it may be written. */
+type BoardDayPayload = { date: string; today: string; readOnly: boolean }
 
 type SprintRow = {
   id: number
@@ -207,14 +218,14 @@ const INSTANCE_STATUSES = ["todo", "in_progress", "done"]
 /**
  * The column a card draws in, or null when the row draws no card at all.
  *
- * A schedule draws today's occurrence and nothing else: that is what puts a daily in To do every
- * morning and lets it be marked done once for that day. No row today means the schedule is not
- * due — a weekly read on the wrong day — and a `skipped` row (a weekend, or a day somebody
- * settled) is nobody's outstanding work, so neither draws a card.
+ * A schedule draws the browsed day's occurrence and nothing else: that is what puts a daily in
+ * To do every morning and lets it be marked done once for that day. No row on that day means the
+ * schedule is not due — a weekly read on the wrong day — and a `skipped` row (a weekend, or a day
+ * somebody settled) is nobody's outstanding work, so neither draws a card.
  */
 const boardStatus = (t: TaskRow): string | null => {
   if (!isRecurring(t)) return t.status
-  const status = t.todayInstance?.status
+  const status = t.dayInstance?.status
   if (!status || status === "skipped") return null
   return status
 }
@@ -225,7 +236,7 @@ const boardStatus = (t: TaskRow): string | null => {
  * the schedule); a one-off gets the whole board.
  */
 const allowedStatuses = (t: TaskRow): string[] => {
-  if (t.todayInstance) return INSTANCE_STATUSES
+  if (t.dayInstance) return INSTANCE_STATUSES
   return creatableStatusesFor(t.cadence, STATUSES)
 }
 
@@ -237,8 +248,38 @@ const moveTargets = (t: TaskRow): string[] => {
 
 /* ---------------------------------------------------------------- the page */
 
+function BoardSkeleton() {
+  return (
+    <div className="space-y-5 p-4 md:p-6">
+      <div className="flex items-center justify-between">
+        <Skeleton className="h-10 w-64" />
+        <Skeleton className="h-9 w-40" />
+      </div>
+      <Skeleton className="h-16" />
+      <Skeleton className="h-12" />
+      <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-5">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <Skeleton key={i} className="h-72" />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// useSearchParams needs a boundary; without one the whole route bails out of prerendering.
 export default function KanbanBoardPage() {
+  return (
+    <Suspense fallback={<BoardSkeleton />}>
+      <KanbanBoard />
+    </Suspense>
+  )
+}
+
+function KanbanBoard() {
   const { toast } = useToast()
+  const router = useRouter()
+  const urlParams = useSearchParams()
+  const requestedDay = urlParams.get("date")
 
   // data
   const [tasks, setTasks] = useState<TaskRow[]>([])
@@ -249,6 +290,15 @@ export default function KanbanBoardPage() {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
+  // The browser's zone is the best guess until the first response names the member's own today.
+  const [serverDay, setServerDay] = useState<BoardDayPayload | null>(null)
+  const [dayLoading, setDayLoading] = useState(false)
+
+  const todayIso = serverDay?.today ?? localDay(new Date(), null)
+  const boardDay = useMemo(() => resolveBoardDay(requestedDay, todayIso), [requestedDay, todayIso])
+  // The server owns the verdict for the day it actually drew. While a new day is in flight the
+  // same pure rule answers, so a future day is never briefly writable.
+  const readOnly = serverDay?.date === boardDay.iso ? serverDay.readOnly : boardDay.readOnly
 
   // filters + view
   const [boardScope, setBoardScope] = useState<"mine" | "workspace">("mine")
@@ -258,6 +308,9 @@ export default function KanbanBoardPage() {
   const [sprintFilter, setSprintFilter] = useState("all")
   const [view, setView] = useState<"board" | "lanes">("board")
   const scopeParam = boardScope === "mine" ? "scope=mine" : "scope=all"
+  // The raw URL value travels to the API, which resolves junk to today. Resolving it here first
+  // would make the query depend on the response, and the read would chase its own tail.
+  const dateQuery = requestedDay ? `&date=${encodeURIComponent(requestedDay)}` : ""
 
   // drag state
   const [dragOverStatus, setDragOverStatus] = useState<string | null>(null)
@@ -273,7 +326,7 @@ export default function KanbanBoardPage() {
 
   const load = useCallback(async () => {
     const [tasksRes, sprintsRes, overviewRes, notifRes] = await Promise.all([
-      fetch(`/api/tasks?pageSize=200&${scopeParam}`),
+      fetch(`/api/tasks?pageSize=200&${scopeParam}${dateQuery}`),
       fetch(`/api/sprints?${scopeParam}`),
       fetch("/api/dashboard/overview?scope=member"),
       fetch("/api/notifications?limit=30"),
@@ -281,6 +334,7 @@ export default function KanbanBoardPage() {
     const tasksJson = await tasksRes.json()
     if (!tasksJson.success) throw new Error(tasksJson.message ?? "Failed to load tasks")
     setTasks((tasksJson.data ?? []) as TaskRow[])
+    setServerDay((tasksJson.day ?? null) as BoardDayPayload | null)
     setLoadError(null)
 
     const sprintsJson = await sprintsRes.json().catch(() => null)
@@ -308,36 +362,48 @@ export default function KanbanBoardPage() {
 
     const notifJson = await notifRes.json().catch(() => null)
     if (notifJson && Array.isArray(notifJson.items)) setActivity(notifJson.items as ActivityItem[])
-  }, [scopeParam])
+  }, [scopeParam, dateQuery])
 
   const reloadTasks = useCallback(async () => {
     try {
       const [tasksRes, notifRes] = await Promise.all([
-        fetch(`/api/tasks?pageSize=200&${scopeParam}`),
+        fetch(`/api/tasks?pageSize=200&${scopeParam}${dateQuery}`),
         fetch("/api/notifications?limit=30"),
       ])
       const tasksJson = await tasksRes.json()
-      if (tasksJson.success) setTasks((tasksJson.data ?? []) as TaskRow[])
+      if (tasksJson.success) {
+        setTasks((tasksJson.data ?? []) as TaskRow[])
+        setServerDay((tasksJson.day ?? null) as BoardDayPayload | null)
+      }
       const notifJson = await notifRes.json().catch(() => null)
       if (notifJson && Array.isArray(notifJson.items)) setActivity(notifJson.items as ActivityItem[])
     } catch {
       /* the board on screen stays; the refresh button reports failures */
     }
-  }, [scopeParam])
+  }, [scopeParam, dateQuery])
 
   useLiveRefresh(reloadTasks, { intervalMs: LIVE_REFRESH_MS })
 
   useEffect(() => {
     let cancelled = false
+    setDayLoading(true)
     load().catch((err: Error) => {
       if (!cancelled) setLoadError(err.message)
     }).finally(() => {
-      if (!cancelled) setLoading(false)
+      if (!cancelled) {
+        setLoading(false)
+        setDayLoading(false)
+      }
     })
     return () => {
       cancelled = true
     }
   }, [load])
+
+  const goToDay = useCallback((iso: string) => {
+    const param = boardDayParam(iso, todayIso)
+    router.replace(param ? `/dashboard/kanban?date=${param}` : "/dashboard/kanban", { scroll: false })
+  }, [router, todayIso])
 
   const refresh = useCallback(async () => {
     setRefreshing(true)
@@ -355,24 +421,31 @@ export default function KanbanBoardPage() {
 
   const moveTask = useCallback(
     async (task: TaskRow, status: string) => {
-      // The card on the board for a schedule is today's occurrence, so the move writes the
+      if (readOnly) {
+        toast({
+          title: "This day is a preview",
+          description: `${boardDayTitle(boardDay.iso, todayIso)} has not arrived. Come back to it, or move the card on today's board.`,
+        })
+        return
+      }
+      // The card on the board for a schedule is the drawn day's occurrence, so the move writes the
       // occurrence and leaves the template alone. That is what makes a daily land back in To do
-      // tomorrow: the row that moved is dated today and nothing else changes.
-      const occurrence = task.todayInstance
+      // tomorrow: the row that moved is dated to the day drawn and nothing else changes.
+      const occurrence = task.dayInstance
       if (occurrence) {
         if (occurrence.status === status) return
         if (!INSTANCE_STATUSES.includes(status)) {
           toast({
             variant: "destructive",
             title: "A day's work has three states",
-            description: `${STATUS_LABEL[status] ?? status} belongs to a one-off card. Today's occurrence can be To do, In progress or Done.`,
+            description: `${STATUS_LABEL[status] ?? status} belongs to a one-off card. A day's occurrence can be To do, In progress or Done.`,
           })
           await reloadTasks()
           return
         }
         const before = occurrence.status
         const patch = (t: TaskRow): TaskRow =>
-          t.id === task.id ? { ...t, todayInstance: { ...occurrence, status } } : t
+          t.id === task.id ? { ...t, dayInstance: { ...occurrence, status } } : t
         setTasks((prev) => prev.map(patch))
         setDetailTask((d) => (d ? patch(d) : d))
         try {
@@ -425,7 +498,7 @@ export default function KanbanBoardPage() {
         await reloadTasks()
       }
     },
-    [reloadTasks, toast],
+    [reloadTasks, toast, readOnly, boardDay.iso, todayIso],
   )
 
   const openCreate = (status = "todo") => {
@@ -553,13 +626,13 @@ export default function KanbanBoardPage() {
     })
   }, [tasks, search, sprintFilter, priorityFilter, assigneeFilter])
 
-  // Cards the board actually draws. A schedule with no occurrence today is filtered out here
+  // Cards the board actually draws. A schedule with no occurrence on the drawn day is filtered out
   // rather than parked in To do, and counted separately so it does not read as vanished.
   const boardTasks = useMemo(() => visibleTasks.filter((t) => boardStatus(t) !== null), [visibleTasks])
 
   // A hidden card should not read as a lost one, so the board names how many schedules it is
   // holding back. Only schedules: a one-off with no occurrence is simply a task in its column.
-  const notDueToday = useMemo(
+  const notDueOnDay = useMemo(
     () => visibleTasks.filter((t) => isRecurring(t) && boardStatus(t) === null).length,
     [visibleTasks],
   )
@@ -661,6 +734,7 @@ export default function KanbanBoardPage() {
   const handleColumnDrop = (status: string) => (e: ReactDragEvent) => {
     e.preventDefault()
     setDragOverStatus(null)
+    if (readOnly) return
     const id = Number(e.dataTransfer.getData("text/plain"))
     if (!Number.isFinite(id)) return
     const task = tasks.find((t) => t.id === id)
@@ -669,23 +743,7 @@ export default function KanbanBoardPage() {
 
   /* ------------------------------------------------------------- render */
 
-  if (loading) {
-    return (
-      <div className="space-y-5 p-4 md:p-6">
-        <div className="flex items-center justify-between">
-          <Skeleton className="h-10 w-64" />
-          <Skeleton className="h-9 w-40" />
-        </div>
-        <Skeleton className="h-16" />
-        <Skeleton className="h-12" />
-        <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-5">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className="h-72" />
-          ))}
-        </div>
-      </div>
-    )
-  }
+  if (loading) return <BoardSkeleton />
 
   if (loadError) {
     return (
@@ -720,7 +778,10 @@ export default function KanbanBoardPage() {
             }
           : undefined
       }
-      className="group cursor-grab rounded-lg border bg-card p-2.5 shadow-sm transition-colors hover:border-primary/40 active:cursor-grabbing"
+      className={cn(
+        "group rounded-lg border bg-card p-2.5 shadow-sm transition-colors hover:border-primary/40",
+        draggable ? "cursor-grab active:cursor-grabbing" : "cursor-default",
+      )}
     >
       <div className="flex items-start justify-between gap-2">
         <button className="min-w-0 text-left text-sm font-medium leading-snug hover:underline" onClick={() => setDetailTask(t)}>
@@ -746,13 +807,21 @@ export default function KanbanBoardPage() {
               <Pencil className="mr-2 h-4 w-4" /> Edit card
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuLabel className="text-[11px] font-normal text-muted-foreground">Move to</DropdownMenuLabel>
-            {moveTargets(t).map((s) => (
-              <DropdownMenuItem key={s} onClick={() => void moveTask(t, s)}>
-                <span className="mr-2 h-2 w-2 rounded-full" style={{ background: STATUS_COLOR[s] }} />
-                {STATUS_LABEL[s]}
+            <DropdownMenuLabel className="text-[11px] font-normal text-muted-foreground">
+              {readOnly ? "Read-only day" : "Move to"}
+            </DropdownMenuLabel>
+            {readOnly ? (
+              <DropdownMenuItem disabled>
+                <Lock className="mr-2 h-4 w-4" /> This day has not arrived
               </DropdownMenuItem>
-            ))}
+            ) : (
+              moveTargets(t).map((s) => (
+                <DropdownMenuItem key={s} onClick={() => void moveTask(t, s)}>
+                  <span className="mr-2 h-2 w-2 rounded-full" style={{ background: STATUS_COLOR[s] }} />
+                  {STATUS_LABEL[s]}
+                </DropdownMenuItem>
+              ))
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem
               className="text-red-600 focus:text-red-600"
@@ -771,9 +840,9 @@ export default function KanbanBoardPage() {
         <div className="flex items-center gap-2">
           <PriorityPill priority={t.priority} />
           <span className="tabular-nums">{t.storyPoints} pts</span>
-          {t.todayInstance && isCadence(t.cadence) && (
+          {t.dayInstance && isCadence(t.cadence) && (
             <Badge variant="outline" className="px-1.5 py-0 text-[10px] font-normal">
-              {CADENCE_LABEL[t.cadence]} · today
+              {CADENCE_LABEL[t.cadence]}{boardDay.isToday ? " · today" : ""}
             </Badge>
           )}
         </div>
@@ -837,6 +906,68 @@ export default function KanbanBoardPage() {
         </div>
       </div>
 
+      {/* 1b — Day navigator: which day the board is drawing */}
+      <Card className={cn(readOnly && "border-amber-500/40 bg-amber-500/5")}>
+        <CardContent className={FILTER_BAR}>
+          <div className="flex shrink-0 items-center gap-1">
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 w-8 p-0"
+              aria-label="Previous day"
+              onClick={() => goToDay(shiftDays(boardDay.iso, -1))}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <DateField
+              value={boardDay.iso}
+              onChange={(iso) => goToDay(iso ?? todayIso)}
+              className="h-8 w-auto text-xs"
+              aria-label="Board day"
+            />
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 w-8 p-0"
+              aria-label="Next day"
+              onClick={() => goToDay(shiftDays(boardDay.iso, 1))}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+          <Button
+            size="sm"
+            variant={boardDay.isToday ? "secondary" : "outline"}
+            className="h-8 px-2.5 text-xs"
+            aria-label="Jump to today"
+            disabled={boardDay.isToday}
+            onClick={() => goToDay(todayIso)}
+          >
+            Today
+          </Button>
+          <p aria-live="polite" className="min-w-0 flex-1 truncate text-sm font-semibold tracking-tight">
+            {boardDayTitle(boardDay.iso, todayIso)}
+          </p>
+          {dayLoading ? (
+            <RefreshCw className="h-4 w-4 shrink-0 animate-spin text-muted-foreground" aria-label="Loading this day" />
+          ) : readOnly ? (
+            <Badge variant="outline" className="shrink-0 border-amber-500/50 text-[10px] text-amber-700 dark:text-amber-400">
+              <Lock className="mr-1 h-3 w-3" /> Preview
+            </Badge>
+          ) : boardDay.relation === "past" ? (
+            <Badge variant="outline" className="shrink-0 text-[10px]">
+              <History className="mr-1 h-3 w-3" /> Past day
+            </Badge>
+          ) : null}
+        </CardContent>
+        {readOnly && (
+          <p className="border-t border-amber-500/30 px-4 py-2 text-[11px] text-muted-foreground">
+            Future days are a preview. Cards cannot be dragged or marked done here — come back on the day,
+            or jump to Today. Editing a card&rsquo;s details still changes the task itself.
+          </p>
+        )}
+      </Card>
+
       {/* 2 — WIP / capacity bar */}
       <Card>
         <CardContent className="flex flex-col gap-2 py-3 md:flex-row md:items-center md:gap-6">
@@ -877,7 +1008,7 @@ export default function KanbanBoardPage() {
                 </div>
                 <div>
                   <p className="text-lg font-semibold tabular-nums">
-                    {boardTasks.filter((t) => !isCompletedTaskStatus(t.todayInstance?.status ?? t.status)).length}
+                    {boardTasks.filter((t) => !isCompletedTaskStatus(t.dayInstance?.status ?? t.status)).length}
                   </p>
                   <p className="text-[11px] text-muted-foreground">open here</p>
                 </div>
@@ -1020,15 +1151,15 @@ export default function KanbanBoardPage() {
                 </div>
               </header>
               <div className="flex flex-1 flex-col gap-2 overflow-y-auto">
-                {col.tasks.map((t) => renderCard(t, true))}
+                {col.tasks.map((t) => renderCard(t, !readOnly))}
                 {col.tasks.length === 0 && (
                   <p className="rounded-lg border border-dashed py-6 text-center text-xs text-muted-foreground">
-                    Drop cards here
+                    {readOnly ? "Nothing scheduled" : "Drop cards here"}
                   </p>
                 )}
-                {col.status === "todo" && notDueToday > 0 && (
+                {col.status === "todo" && notDueOnDay > 0 && (
                   <p className="px-1 pt-1 text-[11px] text-muted-foreground">
-                    {notDueToday} {notDueToday === 1 ? "schedule" : "schedules"} not due today
+                    {notDueOnDay} {notDueOnDay === 1 ? "schedule" : "schedules"} not due on this day
                   </p>
                 )}
               </div>
@@ -1231,7 +1362,7 @@ export default function KanbanBoardPage() {
         <div className="mt-2 flex flex-wrap gap-4 text-xs text-muted-foreground">
           <span className="flex items-center gap-1">
             <CheckCheck className="h-3.5 w-3.5" />{" "}
-            {tasks.filter((t) => isCompletedTaskStatus(t.todayInstance?.status ?? t.status)).length} done total
+            {tasks.filter((t) => isCompletedTaskStatus(t.dayInstance?.status ?? t.status)).length} done total
           </span>
           <span className="flex items-center gap-1">
             <Timer className="h-3.5 w-3.5" /> {tasks.filter((t) => t.status === "blocked").length} blocked
@@ -1298,7 +1429,11 @@ export default function KanbanBoardPage() {
               )}
               <div>
                 <Label className="text-xs">
-                  {detailTask.todayInstance ? "Change today's status" : "Change status"}
+                  {readOnly
+                    ? "Status — this day is a preview"
+                    : detailTask.dayInstance
+                      ? `Change the status for ${boardDayTitle(boardDay.iso, todayIso)}`
+                      : "Change status"}
                 </Label>
                 <div className="mt-1 flex flex-wrap gap-1">
                   {allowedStatuses(detailTask).map((s) => (
@@ -1307,6 +1442,7 @@ export default function KanbanBoardPage() {
                       size="sm"
                       variant={boardStatus(detailTask) === s ? "default" : "outline"}
                       className="h-7 text-xs"
+                      disabled={readOnly}
                       onClick={() => void moveTask(detailTask, s)}
                     >
                       {STATUS_LABEL[s]}

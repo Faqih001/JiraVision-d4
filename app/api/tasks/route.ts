@@ -10,7 +10,8 @@ import { captureTaskBirths } from "@/lib/worklog/capture"
 import { generateInitialInstances } from "@/lib/data-access-task-instances"
 import { loadVisibleMemberIds } from "@/lib/organizations"
 import { localDay } from "@/lib/worklog/local-day"
-import { isScheduleRow, todayOccurrencesFor } from "@/lib/tasks/today-occurrence"
+import { isScheduleRow, occurrencesForDay } from "@/lib/tasks/day-occurrence"
+import { resolveBoardDay } from "@/lib/tasks/board-day"
 
 // Anonymous access is a convenience for local development and scripted runs only.
 // The previous expression ORed in ENABLE_TEST_MODE unconditionally, so a stray
@@ -60,21 +61,33 @@ export async function GET(request: Request) {
     const result = await getPaginatedTasks(page, pageSize, filters)
 
     // A board buckets by the day, and a schedule's day lives in `task_instances`, not in
-    // `tasks`. Attaching today's occurrence is what lets the kanban put a daily in To do every
-    // morning and let it be marked done once for that day. `null` means "not due today", which
-    // is a real answer for a weekly schedule read on the wrong day, not a missing row.
+    // `tasks`. Attaching the drawn day's occurrence is what lets the kanban put a daily in To do
+    // every morning and let it be marked done once for that day. `null` means "not due on this
+    // day", which is a real answer for a weekly schedule read on the wrong day, not a missing row.
+    //
+    // `?date=` browses another day. It only selects; the grid top-up stays anchored on the real
+    // today, so paging forward cannot fabricate occurrences.
     const hasSchedule = result.tasks.some(isScheduleRow)
     const todayIso = localDay(new Date(), session?.timezone)
+    const boardDay = resolveBoardDay(searchParams.get("date"), todayIso)
     const writableIds = hasSchedule && session ? await loadVisibleMemberIds(session.id) : []
-    const occurrences = await todayOccurrencesFor(result.tasks, todayIso, writableIds)
+    const occurrences = await occurrencesForDay(result.tasks, boardDay.iso, writableIds, todayIso)
 
     return NextResponse.json({
       success: true,
       data: result.tasks.map((task) => ({
         ...task,
-        todayInstance: occurrences.get(task.id) ?? null,
+        dayInstance: occurrences.get(task.id) ?? null,
       })),
-      pagination: result.pagination
+      pagination: result.pagination,
+      // The server owns the verdict on writability: a tab left open overnight, or a member in
+      // another zone, must not disagree with it about which day is still ahead.
+      day: {
+        date: boardDay.iso,
+        today: todayIso,
+        relation: boardDay.relation,
+        readOnly: boardDay.readOnly,
+      },
     })
   } catch (error) {
     console.error("Error fetching tasks:", error)

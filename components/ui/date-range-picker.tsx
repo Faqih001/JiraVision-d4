@@ -131,6 +131,7 @@ export interface DateFieldProps {
   max?: string | null
   className?: string
   disabled?: boolean
+  "aria-label"?: string
 }
 
 export function DateField({
@@ -142,6 +143,7 @@ export function DateField({
   max,
   className,
   disabled,
+  "aria-label": ariaLabel,
 }: DateFieldProps) {
   const [allowWeekends, setAllowWeekends] = React.useState(false)
 
@@ -159,6 +161,7 @@ export function DateField({
           type="button"
           variant="outline"
           disabled={disabled}
+          aria-label={ariaLabel}
           className={cn(
             "w-full justify-start text-left font-normal",
             !value && "text-muted-foreground",
