@@ -103,6 +103,34 @@ describe("the instance grid is anchored on today", () => {
   })
 })
 
+describe("the grid repair script borrows the engine's dates", () => {
+  const script = codeOnly(src("scripts/reanchor-recurring-grid.mjs"))
+
+  it("asks the engine which days exist instead of stepping them itself", () => {
+    expect(script).toMatch(/await import\("\.\.\/lib\/tasks\/recurrence\.ts"\)/)
+    expect(script).toMatch(/computeInstanceDates\(task\.cadence,[\s\S]*?task\.due_date\)/)
+    expect(script).not.toMatch(/CADENCE_DAYS|setUTCDate/)
+  })
+
+  it("writes nothing until --apply, and backs up before the transaction opens", () => {
+    expect(script).toMatch(/const APPLY = process\.argv\.includes\("--apply"\)/)
+    expect(script).toMatch(/if \(!APPLY\) \{[\s\S]*?process\.exit\(0\)/)
+    expect(script.indexOf("const stamp = new Date()")).toBeLessThan(
+      script.lastIndexOf("await sql.begin"),
+    )
+    expect(script).toMatch(/mkdirSync\(dir, \{ recursive: true \}\)/)
+  })
+
+  it("refuses to delete a row that carries somebody's work", () => {
+    expect(script).toMatch(/function isUntouched\(/)
+    expect(script).toMatch(/const blocked = outside\.filter\(\(r\) => !isUntouched\(r\)\)/)
+    expect(script).toMatch(/if \(blocked\.length\) \{[\s\S]*?process\.exit\(1\)/)
+    expect(script).toMatch(
+      /delete from task_instances[\s\S]*?and status = 'todo'[\s\S]*?and notes is null[\s\S]*?and completed_at is null/,
+    )
+  })
+})
+
 describe("the tasks panel shows today", () => {
   const page = codeOnly(src("app/dashboard/tasks/page.tsx"))
 
