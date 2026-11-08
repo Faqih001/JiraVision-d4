@@ -556,6 +556,13 @@ the row cannot store would be a rule with no way to state an exception.
 Known gap, deliberately not in this rule: shrinking a due date on an existing schedule leaves the open rows the
 old date already reached; they stay, and the new cap binds only from the next top-up.
 
+The one row the old anchor had already written was repaired on production on 2026-11-08 by
+`scripts/reanchor-recurring-grid.mjs --task 142 --from 2026-11-06 --apply`: 11 untouched Fridays past the due date
+deleted, the 6 missing ones from `11-06` to `12-11` inserted, `start_date` set to `2026-11-06`. The script asks
+`computeInstanceDates` for the dates rather than stepping them itself, so it cannot disagree with the app;
+before-values are in `backups/reanchor-grid-2026-11-08T16-29-31/`. No read can perform this repair — `horizonDates`
+never invents a date in the past, and the cap stops it writing at all once the tail is the due date.
+
 ### I3 — The board draws today's occurrence
 
 §D removed templates from the dashboard's counts; the kanban went further and now draws the *day*.
