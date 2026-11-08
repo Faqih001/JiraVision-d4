@@ -87,13 +87,43 @@ export function horizonOccurrencesForWindow(
   return Math.min(MAX_HORIZON_OCCURRENCES, Math.ceil(span / days) + 1)
 }
 
-export function computeInstanceDates(cadence: Cadence, from: Date): string[] {
+/**
+ * The day a `YYYY-MM-DD` value names, also accepting the timestamp form a client form sends.
+ * Null when it names no real day, so a malformed date can never act as a rule.
+ */
+function capDay(value: string | null | undefined): string | null {
+  if (typeof value !== "string") return null
+  const iso = value.slice(0, 10)
+  return dayMs(iso) === null ? null : iso
+}
+
+/**
+ * The last day a series is allowed to occupy, or null when nothing caps it.
+ *
+ * A due date means "the series runs until here" — but only when it is not already behind the day
+ * the series starts from. Honoring a date behind that day would either birth a schedule with no
+ * occurrences at all, or switch off a running one because someone left an old due date on it.
+ * Either way the member sees a schedule that quietly stopped existing, so the stale date is
+ * ignored and the standing horizon applies.
+ */
+function seriesCap(endDateIso: string | null | undefined, fromIso: string): string | null {
+  const cap = capDay(endDateIso)
+  return cap !== null && cap >= fromIso ? cap : null
+}
+
+export function computeInstanceDates(
+  cadence: Cadence,
+  from: Date,
+  endDateIso: string | null = null,
+): string[] {
   const count = INSTANCE_COUNTS[cadence]
   if (count === 0) return []
   const dates: string[] = []
   // The first day of a grid is worked too, so a schedule created on a Saturday starts on Monday.
   let cursor = workingDayOnOrAfter(toIsoDate(from))
+  const cap = seriesCap(endDateIso, cursor)
   for (let i = 0; i < count; i++) {
+    if (cap !== null && cursor > cap) break
     dates.push(cursor)
     const onward = nextInstanceDate(cadence, new Date(`${cursor}T00:00:00Z`))
     if (!onward) break
@@ -118,12 +148,17 @@ export function nextInstanceDate(cadence: Cadence, after: Date): string | null {
  * not.
  *
  * Every date returned is a working day — see `workingDayOnOrAfter`.
+ *
+ * `endDateIso` is the schedule's due date: the last day the series may occupy. A grid that has
+ * already run past it is left uncapped, so a stale date cannot retroactively switch a running
+ * schedule off.
  */
 export function horizonDates(
   cadence: Cadence,
   latestIso: string | null,
   todayIso: string,
   occurrences: number = HORIZON_OCCURRENCES,
+  endDateIso: string | null = null,
 ): string[] {
   if (cadence === "one-off" || occurrences <= 0) return []
 
@@ -131,6 +166,7 @@ export function horizonDates(
   // instead: the walk below compares against `todayIso`, and a Saturday cursor would read as
   // "already behind today" and step clean over the Monday it should have landed on.
   let cursor = workingDayOnOrAfter(latestIso ?? todayIso)
+  const cap = seriesCap(endDateIso, latestIso ?? todayIso)
   const step = (from: string) => {
     const onward = nextInstanceDate(cadence, new Date(from))
     return onward && onward > from ? onward : null
@@ -152,6 +188,7 @@ export function horizonDates(
 
   const dates: string[] = []
   for (let i = 0; i < occurrences; i++) {
+    if (cap !== null && cursor > cap) break
     dates.push(cursor)
     const onward = step(cursor)
     if (!onward) break

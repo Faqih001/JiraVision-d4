@@ -86,6 +86,21 @@ describe("the instance grid is anchored on today", () => {
     expect(route).toMatch(/assigneeId === session\.id/)
     expect(route).toMatch(/ensureInstanceHorizon\(/)
   })
+
+  it("anchors a born grid on the start day and caps it at the due date", () => {
+    const create = codeOnly(src("app/api/tasks/route.ts"))
+    // The due date ends a series. Passed in as the anchor instead, it birthed a grid of Fridays
+    // that had not arrived yet, so the board drew no card on the day the schedule was made.
+    expect(create).not.toMatch(/generateInitialInstances\([\s\S]{0,220}?data\.dueDate/)
+    expect(create).toMatch(
+      /generateInitialInstances\(\s*newTask\.id,[\s\S]*?newTask\.startDate[\s\S]*?newTask\.dueDate/,
+    )
+
+    const writer = codeOnly(src("lib/data-access-task-instances.ts"))
+    expect(writer).toMatch(/computeInstanceDates\(cadence, from, endDateIso\)/)
+    // Every top-up door reads the cap itself, so none of them can forget to pass it.
+    expect(writer).toMatch(/horizonDates\([\s\S]*?await seriesEnd\(taskId\)/)
+  })
 })
 
 describe("the tasks panel shows today", () => {

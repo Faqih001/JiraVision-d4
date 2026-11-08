@@ -70,6 +70,20 @@ export async function createTaskInstance(data: {
 }
 
 /**
+ * The day a series stops at — the template's due date — or null when it runs on. Read here rather
+ * than threaded through every caller, so a grid cannot be topped up past its end by whoever forgot
+ * to pass the date.
+ */
+async function seriesEnd(taskId: number): Promise<string | null> {
+  const [row] = await db
+    .select({ dueDate: tasks.dueDate })
+    .from(tasks)
+    .where(eq(tasks.id, taskId))
+    .limit(1)
+  return row?.dueDate ?? null
+}
+
+/**
  * Top a template's grid up so it always holds `occurrences` scheduled dates from today
  * onward. Returns the dates it wrote — empty when the grid already reached far enough.
  *
@@ -77,6 +91,9 @@ export async function createTaskInstance(data: {
  * opened for a month would otherwise be handed dates in the past, and a row dated last
  * Tuesday that no one worked is a fabricated record. The days that lapsed stay absent,
  * which is what the tasks panel reports as "Missed N days".
+ *
+ * The template's due date caps the series, so a schedule that runs to a date stops writing
+ * occurrences there instead of trailing off into next year.
  */
 export async function ensureInstanceHorizon(
   taskId: number,
@@ -102,7 +119,13 @@ export async function ensureInstanceHorizon(
       .orderBy(sql`${taskInstances.instanceDate} DESC`)
       .limit(1)
 
-    const dates = horizonDates(cadence, latestResults[0]?.instanceDate ?? null, todayIso, needed)
+    const dates = horizonDates(
+      cadence,
+      latestResults[0]?.instanceDate ?? null,
+      todayIso,
+      needed,
+      await seriesEnd(taskId),
+    )
     if (dates.length === 0) return []
 
     await db
@@ -158,15 +181,22 @@ export async function generateNextInstance(taskId: number, todayIso: string): Pr
   }
 }
 
+/**
+ * The grid a schedule is born with. `fromIso` is the day it starts — the start day, or today —
+ * and `endDateIso` is its due date, the last day the series may occupy. Neither is the other:
+ * handing the due date in as the start day used to birth a grid of Fridays that had not arrived
+ * yet, so the board showed no card on the day the schedule was made.
+ */
 export async function generateInitialInstances(
   taskId: number,
   cadence: Cadence,
   startDate?: string,
+  endDateIso: string | null = null,
 ): Promise<number> {
   if (cadence === "one-off") return 0
 
   const from = startDate ? new Date(startDate) : new Date()
-  const dates = computeInstanceDates(cadence, from)
+  const dates = computeInstanceDates(cadence, from, endDateIso)
   if (dates.length === 0) return 0
 
   try {

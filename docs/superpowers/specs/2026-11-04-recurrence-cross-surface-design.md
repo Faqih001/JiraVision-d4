@@ -543,6 +543,19 @@ lookup), anchoring on `tasks.start_date` (nullable and unpopulated).
 seven days rather than seven. Asking for more than the window holds costs nothing — `ensureInstanceHorizon`
 only writes the shortfall it is given.
 
+**Ruling — a due date ends a series; it never starts one (added 2026-11-06).** `POST /api/tasks` passed
+`data.dueDate` into `generateInitialInstances` as the *start* of the grid, so a weekly schedule created with
+due date `2026-12-18` was born as the twelve Fridays from `12-18` to `2027-03-05` and drew no card on the day
+it was made. The rule now: the grid is anchored on `tasks.start_date`, falling back to the member's local day,
+and `tasks.due_date` is the last day the series may occupy — `computeInstanceDates` and `horizonDates` both take
+an optional end date, and `ensureInstanceHorizon` reads it itself so no top-up door can forget to pass it.
+Two refusals keep a stale date from destroying a schedule: a grid is never born dead (a cap behind the start
+day is ignored), and a running series is never switched off retroactively (a cap behind the grid's own tail is
+ignored). `tasks.start_date` is now settable at create, because the dialogs do not offer it yet and an anchor
+the row cannot store would be a rule with no way to state an exception.
+Known gap, deliberately not in this rule: shrinking a due date on an existing schedule leaves the open rows the
+old date already reached; they stay, and the new cap binds only from the next top-up.
+
 ### I3 — The board draws today's occurrence
 
 §D removed templates from the dashboard's counts; the kanban went further and now draws the *day*.

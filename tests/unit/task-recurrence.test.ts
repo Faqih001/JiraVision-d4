@@ -200,6 +200,66 @@ describe("horizonDates", () => {
   })
 })
 
+describe("the series ends at its due date", () => {
+  it("stops a weekly grid on the last occurrence at or before the due date", () => {
+    // Friday 6 November, weekly, due Friday 18 December: seven Fridays, and the due date is the
+    // last of them. Before this rule the due date was read as the day the series *starts*.
+    expect(computeInstanceDates("weekly", new Date("2026-11-06"), "2026-12-18")).toEqual([
+      "2026-11-06",
+      "2026-11-13",
+      "2026-11-20",
+      "2026-11-27",
+      "2026-12-04",
+      "2026-12-11",
+      "2026-12-18",
+    ])
+  })
+
+  it("never births a dead grid: a due date behind the anchor is ignored", () => {
+    // Someone leaving an old due date on a schedule must not switch it off on its first day.
+    expect(computeInstanceDates("weekly", new Date("2026-11-06"), "2026-10-02")).toHaveLength(12)
+  })
+
+  it("keeps the cadence ceiling when the due date is far away", () => {
+    expect(computeInstanceDates("weekly", new Date("2026-11-06"), "2038-01-01")).toHaveLength(12)
+  })
+
+  it("tops a grid up to the due date and no further", () => {
+    expect(
+      horizonDates("weekly", "2026-11-06", "2026-11-13", HORIZON_OCCURRENCES, "2026-12-18"),
+    ).toEqual([
+      "2026-11-13",
+      "2026-11-20",
+      "2026-11-27",
+      "2026-12-04",
+      "2026-12-11",
+      "2026-12-18",
+    ])
+  })
+
+  it("writes nothing once a finished series is read", () => {
+    expect(
+      horizonDates("weekly", "2026-12-18", "2026-12-19", HORIZON_OCCURRENCES, "2026-12-18"),
+    ).toEqual([])
+  })
+
+  it("ignores a due date the grid has already run past", () => {
+    // The cap ends a series; it never erases one that outlived a stale date.
+    const dates = horizonDates("daily", "2026-12-02", "2026-11-04", HORIZON_OCCURRENCES, "2026-11-30")
+    expect(dates).toHaveLength(HORIZON_OCCURRENCES)
+    expect(dates.some(isWeekendDay)).toBe(false)
+  })
+
+  it("behaves exactly as before when the schedule has no due date", () => {
+    expect(horizonDates("weekly", null, "2026-11-06", 3)).toEqual([
+      "2026-11-06",
+      "2026-11-13",
+      "2026-11-20",
+    ])
+    expect(computeInstanceDates("weekly", new Date("2026-11-06"), null)).toHaveLength(12)
+  })
+})
+
 describe("nextInstanceDate", () => {
   it("returns null for one-off", () => {
     expect(nextInstanceDate("one-off", new Date("2026-11-02"))).toBeNull()

@@ -158,6 +158,9 @@ export async function POST(request: Request) {
       assigneeId,
       sprintId: data.sprintId || null,
       dueDate: data.dueDate ? data.dueDate : null, // Save as string, not Date object
+      // The day a recurring grid starts from. The dialogs do not offer it yet, so this is usually
+      // null and the series is anchored on the day the schedule is made.
+      startDate: data.startDate ? data.startDate : null,
       tags: data.tags || [],
       discipline: discipline.value,
       cadence,
@@ -175,7 +178,15 @@ export async function POST(request: Request) {
     // Generate initial instances for recurring tasks
     let instanceCount = 0
     if (cadence !== "one-off") {
-      instanceCount = await generateInitialInstances(newTask.id, cadence as any, data.dueDate || undefined)
+      // Anchored on the start day (today when the member gave none) and capped by the due date.
+      // Anchoring on the due date used to hand out a grid of Fridays that had not arrived yet, so
+      // the board drew no card on the day the schedule was made.
+      instanceCount = await generateInitialInstances(
+        newTask.id,
+        cadence as any,
+        newTask.startDate ?? localDay(new Date(), session?.timezone),
+        newTask.dueDate ?? null,
+      )
     }
 
     if (newTask.assigneeId && newTask.assigneeId !== userId) {
