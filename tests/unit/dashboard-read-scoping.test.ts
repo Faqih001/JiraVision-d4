@@ -145,11 +145,16 @@ describe("the calendar only shows events the member is in", () => {
   })
 })
 
-describe("the sprints page asks for the sprints it is a member of", () => {
-  it("defaults to the member's own board", () => {
-    expect(sprintsPage).toContain('useState<"mine" | "workspace">("mine")')
+describe("the sprints page always asks with an explicit scope", () => {
+  // The default used to be "mine". That scope means "sprints I hold an assigned task in", so a
+  // sprint created here — empty by definition — was filtered out of the list the dialog closed
+  // onto. The invariant worth holding is that the page never asks unscoped; which scope it opens
+  // on is held by tests/unit/sprint-create-visibility.test.ts.
+  it("derives both reads from a scope, never from an unscoped fetch", () => {
     expect(sprintsPage).toContain('boardScope === "mine" ? "scope=mine" : "scope=all"')
-    expect(sprintsPage.match(/fetch\(`\/api\/sprints\?\$\{scopeParam\}`\)/g)?.length).toBe(2)
+    expect(sprintsPage).toContain('scope === "mine" ? "scope=mine" : "scope=all"')
+    expect(sprintsPage).toContain("fetch(`/api/sprints?${scopeParam}`)")
+    expect(sprintsPage).toContain("fetch(`/api/sprints?${query}`)")
     expect(sprintsPage).not.toContain('fetch("/api/sprints")')
     expect(sprintsPage).toContain('aria-label="Sprint scope"')
   })

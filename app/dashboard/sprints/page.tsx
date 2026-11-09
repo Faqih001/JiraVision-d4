@@ -208,7 +208,9 @@ export default function SprintsWorkspace() {
   const [loadFailed, setLoadFailed] = useState(false)
 
   const [view, setView] = useState<"cards" | "table" | "timeline">("cards")
-  const [boardScope, setBoardScope] = useState<"mine" | "workspace">("mine")
+  // `scope=mine` means "sprints I hold an assigned task in", so a sprint with no tasks yet is
+  // invisible there. This page creates sprints; it has to open where its own output can land.
+  const [boardScope, setBoardScope] = useState<"mine" | "workspace">("workspace")
   const scopeParam = boardScope === "mine" ? "scope=mine" : "scope=all"
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
@@ -230,9 +232,10 @@ export default function SprintsWorkspace() {
 
   /* ---- data loading ---- */
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (scope: "mine" | "workspace" = boardScope) => {
     try {
-      const res = await fetch(`/api/sprints?${scopeParam}`)
+      const query = scope === "mine" ? "scope=mine" : "scope=all"
+      const res = await fetch(`/api/sprints?${query}`)
       const json = await res.json()
       if (!json.success) throw new Error(json.message ?? "Failed to load sprints")
       const list: Sprint[] = json.data
@@ -250,7 +253,7 @@ export default function SprintsWorkspace() {
       toast({ variant: "destructive", title: "Sprints", description: (err as Error).message })
       return null
     }
-  }, [toast, scopeParam])
+  }, [toast, boardScope])
 
   useEffect(() => {
     void (async () => {
@@ -384,8 +387,11 @@ export default function SprintsWorkspace() {
       })
       setFormOpen(false)
       setDraft(null)
+      // A brand-new sprint holds no tasks, so My sprints would filter out the row just made.
+      // Read back the widened scope explicitly: `load` still closes over the scope this render held.
+      if (!draft.id) setBoardScope("workspace")
       setSelectedId(data.id)
-      await load()
+      await load(draft.id ? boardScope : "workspace")
       setDetailTick((t) => t + 1)
     } catch (err) {
       toast({ variant: "destructive", title: "Sprint", description: (err as Error).message })
@@ -586,6 +592,7 @@ export default function SprintsWorkspace() {
             variant={boardScope === "mine" ? "secondary" : "ghost"}
             className="h-8 px-2 text-xs"
             onClick={() => setBoardScope("mine")}
+            title="Sprints you hold an assigned task in. A sprint with no tasks yet lives under Workspace."
           >
             My sprints
           </Button>
