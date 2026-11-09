@@ -5,14 +5,13 @@ import { sprints, tasks } from "@/drizzle/schema"
 import { and, asc, desc, eq, inArray, isNotNull, sql } from "drizzle-orm"
 import { createNotification, notifyMany } from "@/lib/notifications"
 import { completedStatusSql } from "@/lib/tasks/statuses-sql"
+import { SPRINT_STATUSES } from "@/lib/sprints/statuses"
 
 export const dynamic = "force-dynamic"
 
 /* ------------------------------------------------------------------ types */
 
 type SprintRow = typeof sprints.$inferSelect
-
-const SPRINT_STATUSES = ["planned", "planning", "active", "completed"] as const
 
 type SprintAggregates = {
   totalPoints: number

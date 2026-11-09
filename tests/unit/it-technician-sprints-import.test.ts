@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { readFileSync } from "node:fs"
 import path from "node:path"
+import { SPRINT_STATUSES } from "@/lib/sprints/statuses"
 
 // The owner's sprint plan arrived as a document (2026-11-03) and lives as data:
 // scripts/data/it-technician-sprints.json. These guards fail if the transcription drops a
@@ -77,12 +78,9 @@ describe("it-technician sprint data", () => {
   })
 
   it("uses only statuses /api/sprints will accept, with exactly one active sprint", () => {
-    // Parsed from the route itself so a vocabulary change breaks here rather than silently.
-    const route = readFileSync(path.join(repo, "app/api/sprints/route.ts"), "utf8")
-    const statuses = route
-      .match(/const SPRINT_STATUSES = \[([^\]]*)\]/)![1]
-      .split(",")
-      .map((s) => s.trim().replace(/^"|"$/g, ""))
+    // Read from the shared vocabulary the routes themselves validate against, so a status change
+    // breaks here rather than silently.
+    const statuses = [...SPRINT_STATUSES]
     expect(statuses).toEqual(["planned", "planning", "active", "completed"])
 
     for (const s of plan.sprints) expect(statuses).toContain(s.status)

@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server"
 import { getSession } from "@/lib/auth-actions"
 import { db } from "@/lib/db"
-import { sprints, tasks, users } from "@/drizzle/schema"
+import { sprints, tasks, users, sprintAnalytics, kanbanTasks } from "@/drizzle/schema"
 import { and, desc, eq, isNotNull, sql } from "drizzle-orm"
 import { createNotification, notifyMany } from "@/lib/notifications"
+import { SPRINT_STATUSES, normalizeSprintStatus, sprintTransition, type SprintTransition } from "@/lib/sprints/statuses"
 import { isCompletedTaskStatus } from "@/lib/tasks/statuses"
 import { completedStatusSql, openStatusSql } from "@/lib/tasks/statuses-sql"
 
@@ -13,8 +14,6 @@ type RouteContext = { params: Promise<{ id: string }> }
 
 type SprintRow = typeof sprints.$inferSelect
 type TaskRow = typeof tasks.$inferSelect
-
-const SPRINT_STATUSES = ["planned", "planning", "active", "completed"] as const
 
 /* ------------------------------------------------------------- helpers ---- */
 
@@ -268,8 +267,7 @@ export async function PUT(request: Request, context: RouteContext) {
       patch.capacity = Math.round(Number(body.capacity))
     }
 
-    const normalize = (s: string) => (s === "planning" ? "planned" : s)
-    let statusTransition: "started" | "completed" | null = null
+    let transition: SprintTransition | null = null
     if (body.status !== undefined) {
       if (!SPRINT_STATUSES.includes(body.status)) {
         return NextResponse.json(
@@ -277,18 +275,7 @@ export async function PUT(request: Request, context: RouteContext) {
           { status: 400 },
         )
       }
-      const from = normalize(existing.status)
-      const to = normalize(body.status as string)
-      if (from !== to) {
-        const allowed = (from === "planned" && to === "active") || (from === "active" && to === "completed")
-        if (!allowed) {
-          return NextResponse.json(
-            { success: false, message: `Invalid status transition: ${existing.status} → ${body.status}` },
-            { status: 400 },
-          )
-        }
-        statusTransition = to === "active" ? "started" : "completed"
-      }
+      transition = sprintTransition(existing.status, body.status as string)
       patch.status = body.status as string
     }
 
@@ -305,17 +292,21 @@ export async function PUT(request: Request, context: RouteContext) {
       fresh.completed = aggregates.donePoints
     }
 
-    if (statusTransition) {
+    if (transition) {
       const teammates = await sprintAssigneeIds(id, session.id)
-      const baseMeta = { sprintId: id, action: statusTransition }
+      const baseMeta = { sprintId: id, action: transition }
       const title =
-        statusTransition === "started"
+        transition === "started"
           ? `Sprint started: ${fresh.name}`
-          : `Sprint completed: ${fresh.name}`
+          : transition === "completed"
+            ? `Sprint completed: ${fresh.name}`
+            : `Sprint reopened: ${fresh.name}`
       const bodyText =
-        statusTransition === "started"
+        transition === "started"
           ? `${session.name} kicked off "${fresh.name}" (${fresh.startDate} → ${fresh.endDate}) with ${aggregates.taskCount} tasks.`
-          : `"${fresh.name}" closed at ${aggregates.progressPct}% (${aggregates.donePoints}/${aggregates.totalPoints} points).`
+          : transition === "completed"
+            ? `"${fresh.name}" closed at ${aggregates.progressPct}% (${aggregates.donePoints}/${aggregates.totalPoints} points).`
+            : `${session.name} moved "${fresh.name}" back to ${normalizeSprintStatus(fresh.status)}.`
       await createNotification({
         userId: session.id,
         type: "sprint",
@@ -347,8 +338,8 @@ export async function PUT(request: Request, context: RouteContext) {
 
 /* ---------------------------------------------------------------- DELETE */
 
-// DELETE /api/sprints/[id] — unlinks sprint tasks (back to backlog),
-// deletes the sprint and notifies everyone affected.
+// DELETE /api/sprints/[id] — releases every row that references the sprint, deletes it,
+// and notifies everyone affected.
 export async function DELETE(_request: Request, context: RouteContext) {
   const { id: idParam } = await context.params
   try {
@@ -373,8 +364,21 @@ export async function DELETE(_request: Request, context: RouteContext) {
       .where(and(eq(tasks.sprintId, id), openStatusSql(tasks.status)))
       .then((r) => r[0]?.count ?? 0)
 
-    await db.update(tasks).set({ sprintId: null, updatedAt: new Date() }).where(eq(tasks.sprintId, id))
-    const [deleted] = await db.delete(sprints).where(eq(sprints.id, id)).returning()
+    // Three tables carry an ON DELETE NO ACTION key to sprints.id, so the sprint cannot go while
+    // any of them still points at it. Nullable links are pushed back to the backlog; the
+    // analytics row only describes this sprint, so it dies with it. One transaction: the old
+    // handler moved every task out first and then tripped the key, so a failed delete still
+    // scattered the sprint.
+    const deleted = await db.transaction(async (tx) => {
+      await tx.update(tasks).set({ sprintId: null, updatedAt: new Date() }).where(eq(tasks.sprintId, id))
+      await tx
+        .update(kanbanTasks)
+        .set({ sprintId: null, updatedAt: new Date() })
+        .where(eq(kanbanTasks.sprintId, id))
+      await tx.delete(sprintAnalytics).where(eq(sprintAnalytics.sprintId, id))
+      const [row] = await tx.delete(sprints).where(eq(sprints.id, id)).returning()
+      return row
+    })
 
     const bodyText = `${sprint.name} (${sprint.startDate} → ${sprint.endDate}) was removed; its ${openTaskCount || "linked"} tasks moved to the backlog.`
     await createNotification({
