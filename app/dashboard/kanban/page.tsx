@@ -102,6 +102,7 @@ import { CADENCES, CADENCE_LABEL, isCadence, type Cadence } from "@/lib/cadence"
 import { parseChecklistItems, type ChecklistItem } from "@/lib/tasks/checklist"
 import { boardDayParam, boardDayTitle, resolveBoardDay } from "@/lib/tasks/board-day"
 import { localDay, shiftDays } from "@/lib/worklog/local-day"
+import { activeSprints, capacityPct, progressPct, summarizeActiveSprints } from "@/lib/sprints/active"
 import { DateField } from "@/components/ui/date-range-picker"
 
 /* ------------------------------------------------------------------ types */
@@ -605,7 +606,7 @@ function KanbanBoard() {
 
   const memberById = useMemo(() => new Map(members.map((m) => [m.id, m])), [members])
   const sprintById = useMemo(() => new Map(sprints.map((s) => [s.id, s])), [sprints])
-  const activeSprint = useMemo(() => sprints.find((s) => s.status === "active") ?? null, [sprints])
+  const running = useMemo(() => activeSprints(sprints), [sprints])
 
   const visibleTasks = useMemo(() => {
     const q = search.trim().toLowerCase()
