@@ -140,7 +140,9 @@ export async function GET(request: Request) {
       )
     }
 
-    // `scope=mine`: the member's own board only lists sprints they hold tasks in.
+    // `scope=mine`: the member's own board only lists sprints they hold tasks in. A sprint with no
+    // tasks yet is invisible here by definition, so this belongs on a list of what you are inside —
+    // never on a picker, which must offer every sprint a card could name. Pickers send scope=all.
     if (searchParams.get("scope") === "mine") {
       const mySprintRows = await db
         .selectDistinct({ sprintId: tasks.sprintId })

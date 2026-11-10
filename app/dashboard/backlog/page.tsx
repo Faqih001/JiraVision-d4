@@ -203,7 +203,7 @@ export default function DashboardBacklog() {
       setTasks(collected)
 
       const [spRes, ovRes] = await Promise.all([
-        fetch(`/api/sprints?${scopeParam}`),
+        fetch("/api/sprints?scope=all"),
         fetch("/api/dashboard/overview?scope=member"),
       ])
       const spJson = await spRes.json()
