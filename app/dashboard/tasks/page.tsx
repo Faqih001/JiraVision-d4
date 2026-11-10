@@ -75,6 +75,7 @@ import {
 import { useToast } from "@/hooks/use-toast"
 import { LIVE_REFRESH_MS, useLiveRefresh } from "@/hooks/use-live-refresh"
 import { cn } from "@/lib/utils"
+import { activeSprints, defaultSprintId, summarizeActiveSprints } from "@/lib/sprints/active"
 import { CADENCES, CADENCE_LABEL, type Cadence } from "@/lib/cadence"
 import { parseChecklistItems, type ChecklistItem, type ChecklistResponse } from "@/lib/tasks/checklist"
 import { planInstanceWindow } from "@/lib/tasks/instance-window"
@@ -121,7 +122,17 @@ type ApiTask = {
   checklistItems?: unknown
 }
 
-type SprintOption = { id: number; name: string; status: string }
+type SprintOption = {
+  id: number
+  name: string
+  status: string
+  capacity: number
+  totalPoints: number
+  donePoints: number
+  startDate: string
+  endDate: string
+  daysLeft: number
+}
 
 type TaskDraft = {
   id?: number
