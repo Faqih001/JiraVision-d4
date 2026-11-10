@@ -901,7 +901,9 @@ export default function TasksWorkspacePage() {
           <h1 className="text-xl font-semibold tracking-tight">Tasks workspace</h1>
           <p className="text-sm text-muted-foreground">
             {pagination.total} matching · {allTasks.length} total · {kpis.myOpen} assigned to you
-            {overview.activeSprint ? ` · ${overview.activeSprint.name}` : " · no active sprint"}
+            {running.length === 0
+              ? " · no active sprint"
+              : ` · ${running.length === 1 ? running[0].name : `${running.length} active sprints`}`}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -926,7 +928,7 @@ export default function TasksWorkspacePage() {
           { label: "My open", value: kpis.myOpen, hint: `of ${allTasks.filter((t) => t.assigneeId === myId).length} assigned to you`, tone: undefined },
           { label: "In progress", value: kpis.inProgress, hint: "team-wide", tone: undefined },
           { label: "Blocked", value: kpis.blocked, hint: "need unblocking", tone: kpis.blocked > 0 ? "text-red-500" : undefined },
-          { label: "Done this sprint", value: kpis.doneThisSprint, hint: overview.activeSprint ? overview.activeSprint.name : "current sprint", tone: undefined },
+          { label: "Done this sprint", value: kpis.doneThisSprint, hint: running.length === 0 ? "no sprint running" : running.length === 1 ? running[0].name : `${running.length} active sprints`, tone: undefined },
           { label: "Overdue", value: kpis.overdue, hint: "past due date", tone: kpis.overdue > 0 ? "text-red-500" : undefined },
         ].map((k) => (
           <Card key={k.label}>
@@ -1659,9 +1661,11 @@ export default function TasksWorkspacePage() {
       <Card>
         <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4">
           <p className="text-xs text-muted-foreground">
-            {overview.activeSprint
-              ? `${overview.activeSprint.name}: ${overview.activeSprint.donePoints}/${overview.activeSprint.totalPoints} points done · ${overview.activeSprint.daysLeft} day${overview.activeSprint.daysLeft === 1 ? "" : "s"} left`
-              : "No active sprint — plan one to keep work flowing."}
+            {running.length === 0
+              ? "No active sprint — plan one to keep work flowing."
+              : running.length === 1
+                ? `${running[0].name}: ${running[0].donePoints}/${running[0].totalPoints} points done · ${running[0].daysLeft} day${running[0].daysLeft === 1 ? "" : "s"} left`
+                : `${running.length} active sprints: ${runningSummary.done}/${runningSummary.committed} points done · next closes ${runningSummary.nextEnds}`}
           </p>
           <div className="flex gap-2">
             <Button asChild size="sm" variant="outline">
