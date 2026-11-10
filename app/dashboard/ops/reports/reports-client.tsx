@@ -333,7 +333,7 @@ export default function ReportsClient() {
           <Link href="/dashboard/ops/kpis">KPIs</Link>
         </Button>
         <Button size="sm" variant="outline" asChild>
-          <Link href="/dashboard/reports-work">All work reports</Link>
+          <Link href="/dashboard/reports-work">All period reports</Link>
         </Button>
       </div>
     </div>
