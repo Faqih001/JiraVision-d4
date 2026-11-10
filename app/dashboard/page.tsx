@@ -98,7 +98,19 @@ import {
 
 /* ------------------------------------------------------------------ types */
 
-type SprintOption = { id: number; name: string; status: string }
+type SprintOption = {
+  id: number
+  name: string
+  status: string
+  capacity: number
+  totalPoints: number
+  donePoints: number
+  taskCount: number
+  progressPct: number
+  daysLeft: number
+  startDate: string
+  endDate: string
+}
 
 // The home dashboard is this member's own work, not the workspace's. The team,
 // analytics and copilot pages read the same endpoint without the scope, keeping
