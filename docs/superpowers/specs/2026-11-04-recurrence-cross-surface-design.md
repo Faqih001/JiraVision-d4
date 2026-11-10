@@ -738,3 +738,17 @@ page's default), `tests/unit/done-window-kanban.test.ts` (12), `tests/unit/done-
 literal and the `boardPath` extraction. The board's column branch names `DONE_COLUMN` instead of
 comparing a status to the literal "done", which is what the swept-page rule in
 `recurrence-cross-surface-guards.test.ts` enforces.
+- **Ship-out correction (2026-11-10): the window's edges are bound as ISO strings, not `Date`s.** The
+  first deploy of this section emptied the entire board — every column, not only Done — because
+  `doneWindowSql` and `doneEarlierSql` interpolated `bounds.from` / `bounds.to` as `Date` objects inside
+  `sql` fragments. A `sql` fragment parameterizes by value, and postgres.js routes a bare `Date` to its
+  string encoder, which throws `ERR_INVALID_ARG_TYPE`. The throw surfaced on the `select COUNT(*) from
+  (…)` wrapper — the first query `getPaginatedTasks` runs — whose catch answers an empty page with HTTP
+  200, so `/api/tasks` reported success with no rows and the UI had nothing to show. `windowEdges()` now
+  renders both bounds with `.toISOString()`, the form already used at `lib/data-access.ts:444`; Postgres
+  infers the parameter's type from the comparison and an ISO instant parses as `timestamptz`. Verified
+  read-only against production: `all` 76 rows / 0 earlier, `week` 61 / 15, `day` 35 / 41, with the open
+  counts (30 in progress, 3 review, 1 todo) identical across all three windows — the window still cannot
+  touch outstanding work. The guard that missed this rendered the fragment and asserted the `Date` *was*
+  bound, so it pinned the bug; `done-window-read.test.ts` now asserts no parameter may be a `Date`,
+  because "renders" is not the claim "serializes" is.

@@ -1868,5 +1868,7 @@ into a pile: every card ever finished, on every day the board draws. The owner n
   three views each carry the date line). `board-day-navigation.test.ts` and `dashboard-member-boards.test.ts`
   were re-cut for the longer fetch literal and the `boardPath` extraction; `recurrence-cross-surface-guards.test.ts`
   forced the board's column branch onto a named `DONE_COLUMN` rather than a bare `col.status === "done"`,
-  which is what its swept-page rule is for. Gates: `tsc --noEmit` clean, 181 files / 2,933 tests.
+  which is what its swept-page rule is for. `done-window-read.test.ts` (11) is the one that renders the
+  fragment rather than reading the source, and its serializable-params test is what now stands between
+  a window predicate and a silent empty board. Gates: `tsc --noEmit` clean, 181 files / 2,934 tests.
 
