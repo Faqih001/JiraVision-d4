@@ -1686,3 +1686,59 @@ column is the window minus a 250px sidebar.
   Gates: `tsc --noEmit` clean, 178 files / 2944 tests, lint at the documented 82-problem / 4-error
   baseline. Layout itself is for the owner to confirm in the browser: the tasks bar on one row at
   desktop, and a sprint or assignee dropdown wide enough to read.
+
+---
+
+## 55. A newly created sprint is visible, deletable, and the board tells the truth about four of them (2026-11-10)
+
+The owner added a sprint on `/dashboard/sprints` and could not see it. That one symptom opened onto four
+sprint bugs, each the same shape: **a surface asked a shared question and answered it with a private
+rule.** The rules now live in `lib/sprints/`, where every surface reads the same one.
+
+- **The picker asked "which sprints am I inside?"** `/api/sprints?scope=mine` means *sprints this member
+  holds an assigned task in* — right for a personal list, a trap for a dropdown: a sprint with no tasks
+  is by definition invisible there, so a card saved into a fresh sprint rendered with **no sprint label
+  at all**. All five pickers (kanban, tasks, calendar, backlog, `/dashboard`) now fetch
+  `/api/sprints?scope=all`. The board's own *My board / Workspace* toggle is untouched — it decides which
+  **tasks** are drawn — and `tests/unit/sprint-picker-scope.test.ts` (5) sweeps every page under
+  `app/dashboard`, so the next dropdown that grows cannot repeat the mistake. The sprint board itself is
+  the one exempt page: its toggle is the point, and it is guarded on opening in Workspace instead.
+- **Sprints could not be deleted.** `tasks.sprint_id` and `task_schedules.sprint_id` are `ON DELETE SET
+  NULL` and `retros.sprint_id` is `ON DELETE CASCADE`, but the route's pre-check counted only
+  `taskStatusEvents`, so a sprint full of tasks was promised as deletable and then died on a foreign key.
+  The count query returns all four dependents now, the message says *unlink* rather than *remove* because
+  the tasks survive, and the whole sequence runs in `db.transaction()` — a partial delete used to leave a
+  sprint half-dissociated from its own history. Same sweep, same page: `/dashboard/sprints` was opening on
+  `scope=mine`, i.e. the page whose job is creating sprints opened on the one scope that cannot show what
+  it just made, so its default flipped, and its empty state no longer says "create your first sprint" when
+  the workspace has sprints the viewer is simply outside.
+- **One of four running sprints was called *the* active sprint.** This workspace runs four `active`
+  sprints at once and three surfaces each quietly picked the first one it saw: the kanban header and
+  capacity panel, `/dashboard`'s sprint strip, and the sprint pre-filled into a new task dialog. Naming
+  one of four is not a filter and not a summary — it is a wrong statement about the workspace.
+  `lib/sprints/active.ts` owns the answer now: `activeSprints()` returns the set,
+  `summarizeActiveSprints()` adds points, capacity and progress across it and reports `nextEnds` (the
+  deadline that binds is the one that closes **first**), `capacityPct()` / `progressPct()` are one rule
+  instead of three copies, and `defaultSprintId()` refuses to guess — a drafted card pre-fills a sprint
+  only when exactly one is running. The kanban header reads `4 active sprints · next closes …`; the
+  capacity panel meters the sprint you filtered to, otherwise the summed load with a row per sprint;
+  `/dashboard` shows a card per running sprint under a workspace total. Capacity stays advisory (the bar
+  goes red past it, nothing is blocked), and completion is a state rather than a percentage: a
+  100%-done or over-capacity sprint still reports its own numbers.
+- **`sprints.completed` was a column only its own PUT ever wrote.** Close a task and `donePoints`
+  (aggregated live from the task rows) moves while `completed` does not, so `/dashboard` and the sprint
+  page quoted different capacity numbers about the same sprint. `lib/sprints/completed.ts` makes the rule
+  explicit: a sprint with tasks reports the **live** tally, and the stored column is authoritative only
+  for the task-less rows imported history has. Both sprint reads pass through `reportedCompleted()`; the
+  PUT still maintains the column, so a future read can keep using it.
+- **Tests.** `sprint-picker-scope.test.ts` (5), `sprint-active-view.test.ts` (17),
+  `sprint-completed-live.test.ts` (5), `sprint-active-surface.test.ts` (7),
+  `sprint-create-visibility.test.ts` (4), `sprint-delete-dependents.test.ts` (3), plus
+  `dashboard-member-boards.test.ts` re-cut: it used to *require* the sprint list to ride the board scope —
+  exactly the bug this wave fixed — so it now pins the task reads to the scope and the sprint read to the
+  workspace. Gates: `tsc --noEmit` clean, 189 files / 2,960+ tests.
+- **Deliberately not built:** the optional due-date range filter for `/dashboard/tasks`. The page already
+  filters by sprint, status, priority, assignee, cadence and text, and the kanban day navigator (§51) is
+  where past and future occurrences are actually read — so an eighth control on a bar that was just
+  fought back onto one row (§54) would have cost more than it returned.
+
