@@ -651,10 +651,47 @@ function KanbanBoard() {
     [boardTasks],
   )
 
-  const capacitySprint = useMemo(
-    () => (sprintFilter !== "all" && sprintFilter !== "backlog" ? sprintById.get(Number(sprintFilter)) ?? null : activeSprint),
-    [sprintFilter, sprintById, activeSprint],
-  )
+  // What the capacity panel meters: the sprint you filtered to, else every sprint actually running.
+  // Four running sprints are one load, so their points are added rather than one being quoted as
+  // "the" sprint.
+  const capacityMeter = useMemo(() => {
+    const picked =
+      sprintFilter === "all" || sprintFilter === "backlog" ? null : sprintById.get(Number(sprintFilter)) ?? null
+    const rows = picked ? [picked] : running
+    if (rows.length === 0) return null
+
+    const totals = picked
+      ? { committed: picked.totalPoints, done: picked.donePoints, capacity: picked.capacity, nextEnds: picked.endDate }
+      : summarizeActiveSprints(running)
+    const meter = { committed: totals.committed, capacity: totals.capacity }
+
+    return {
+      label: rows.length === 1 ? rows[0].name : `${rows.length} active sprints`,
+      status: picked ? picked.status : "active",
+      detail:
+        rows.length === 1
+          ? `${rows[0].startDate} → ${rows[0].endDate}`
+          : `next closes ${totals.nextEnds ?? "—"}`,
+      rows: rows.map((s) => ({
+        id: s.id,
+        name: s.name,
+        committed: s.totalPoints,
+        done: s.donePoints,
+        capacity: s.capacity,
+        endDate: s.endDate,
+      })),
+      committed: totals.committed,
+      done: totals.done,
+      capacity: totals.capacity,
+      capacityPct: capacityPct(meter),
+      fillPct: (() => {
+        const pct = capacityPct(meter)
+        return pct === null ? (totals.committed > 0 ? 100 : 0) : Math.min(100, pct)
+      })(),
+      overCapacity: totals.capacity > 0 && totals.committed > totals.capacity,
+      progressPct: progressPct({ totalPoints: totals.committed, donePoints: totals.done }),
+    }
+  }, [sprintFilter, sprintById, running])
 
   const atRisk = useMemo(
     () => visibleTasks.filter((t) => t.status === "blocked" || isOverdue(t)),
@@ -878,7 +915,11 @@ function KanbanBoard() {
           <h1 className="text-xl font-semibold tracking-tight">Kanban board</h1>
           <p className="text-sm text-muted-foreground">
             {visibleTasks.length} of {tasks.length} cards
-            {activeSprint ? ` · ${activeSprint.name} · ends ${activeSprint.endDate}` : " · no active sprint"}
+            {running.length === 0
+              ? " · no active sprint"
+              : running.length === 1
+                ? ` · ${running[0].name} · ends ${running[0].endDate}`
+                : ` · ${running.length} active sprints · next closes ${summarizeActiveSprints(running).nextEnds}`}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
