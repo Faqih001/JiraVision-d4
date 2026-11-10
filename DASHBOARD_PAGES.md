@@ -133,7 +133,7 @@ What a member did, on the day they say they did it. URL is the state; every muta
 | U | `/api/worklog/entries/[id]` (PUT), `/api/worklog/entries/bulk`, `/api/worklog/deliverables/[id]` (PUT) | edited entry, bulk kind/task/time change, deliverable state |
 | D | `/api/worklog/entries/[id]` (DELETE), `/api/worklog/entries/bulk`, `/api/worklog/deliverables/[id]` (DELETE) | removed entry / deliverable |
 
-### `/dashboard/reports-work` — Work Reports
+### `/dashboard/reports-work` — Period Reports
 
 The period-report builder: draft → submitted → acknowledged, with the numbers computed only on the
 server.
@@ -333,7 +333,7 @@ The unprioritised pool, ranked, with grooming tools.
 
 ### `/dashboard/planner` — Planning (AI plan extraction)
 
-Linked from the career Growth panel and the registers page rather than the sidebar.
+The Planning group item in the sidebar; also linked from the career Growth panel and the registers page.
 
 | Section | What it does |
 | --- | --- |
@@ -377,7 +377,7 @@ not a code fault.
 
 ### `/dashboard/assistant` — AI Assistant
 
-Opened from the top-bar assistant panel.
+The AI Features item in the sidebar, which is also the entry on mobile where the top-bar popover is hidden.
 
 | Section | What it does |
 | --- | --- |
@@ -526,7 +526,7 @@ and its milestones; `/skill-tree` lists them.
 | U | `/api/analytics/reports/[id]` (PATCH) | renamed/retargeted saved report |
 | D | `/api/analytics/reports/[id]` (DELETE) | removed saved report |
 
-### `/dashboard/reports` — Reports (scheduled)
+### `/dashboard/reports` — Report Builder (scheduled)
 
 | Section | What it does |
 | --- | --- |
@@ -662,7 +662,7 @@ and its milestones; `/skill-tree` lists them.
 
 ### `/dashboard/integrations` — Integrations
 
-Reached from Settings and the docs index rather than the sidebar.
+The Applications group item in the sidebar; also reached from Settings and the docs index.
 
 | Section | What it does |
 | --- | --- |

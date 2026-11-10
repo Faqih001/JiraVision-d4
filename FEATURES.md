@@ -1882,3 +1882,37 @@ into a pile: every card ever finished, on every day the board draws. The owner n
   fragment rather than reading the source, and its serializable-params test is what now stands between
   a window predicate and a silent empty board. Gates: `tsc --noEmit` clean, 182 files / 2,939 tests.
 
+
+## 58. Three pages join the sidebar, and four labels stop colliding (2026-11-10)
+
+The audit of every dashboard surface found the same root cause behind most of its "looks unfinished"
+reports: the sidebar is the only route discovery this workspace has — no command palette for routes,
+no dashboard sitemap — so a page absent from `navCategories` is effectively undeployed however
+complete its code is. Three built pages were in that position, and four nav labels collided.
+
+- **Planner, Integrations and the assistant are now items.** `components/dashboard-layout.tsx` gains
+  "Planner" (`GanttChartSquare`, first in Planning, `startsWith` so a future `/dashboard/planner/[id]`
+  stays lit), "Integrations" (`Plug`, in Applications after Billing) and "AI Assistant" (`Sparkles`,
+  in AI Features after AI Scrum Master). The third is also the mobile fix: the top bar hides the
+  assistant popover under `!isMobile`, so the drawer item is the only assistant entry a phone has.
+- **Four labels that meant four different things.** "Reports"/"Work Reports"/"Report previews" and
+  "Playbook previews" named three report surfaces and one of two playbook surfaces. They are now
+  **Period Reports** (`/dashboard/reports-work`, the builder that reads the work log), **Report
+  Builder** (`/dashboard/reports`, scheduled dataset reports), **Pack Reports** and **Pack Playbooks**
+  (`/dashboard/ops/*`, the read-only previews of what the role pack declares). The `/dashboard/playbooks`
+  item keeps the unqualified "Playbooks": it is the library you write, the pack items are previews.
+- **The rename followed the label everywhere a user could see it.** Page `<h1>`s and the toast titles,
+  the operations overview and config cross-links, the "All work reports" handoff, the Automation
+  cross-link array, `DASHBOARD_SECTIONS` (`lib/packs/types.ts:30`) — the strip on `/dashboard` that
+  orders the pack's sections — and the `work_reports` dataset label in `app/api/reports/_shared.ts`.
+  The assistant prompt heading (`lib/assistant/context.ts:297`) moves too, because a member who reads
+  an answer citing "Work Reports" is being told about a page they cannot now find.
+- **Historical records keep their wording.** `docs/superpowers/plans/*` and the dated FEATURES.md
+  entries for Phases 3/16/29 describe the labels as they shipped, and are left alone.
+- **Tests.** `tests/unit/dashboard-nav-labels.test.ts` (15) is the guard, written first and observed
+  failing 14/15. Two halves: coverage — every item's `title`/`href` pair, and every nav `href` asserted
+  against a real `app/**/page.tsx` on disk (so the guard fails the next time an item points at nothing,
+  which is the same failure class it just fixed); and vocabulary — the retired labels may not reappear,
+  `it.each` over the renamed surfaces in both the sidebar and the page bodies. `ops-playbooks.test.ts`
+  and `assistant-context.test.ts` were re-cut for the new strings rather than exempted. Gates:
+  `tsc --noEmit` clean, 196 files / 3,127 tests.
