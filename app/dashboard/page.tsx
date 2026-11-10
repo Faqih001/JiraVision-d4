@@ -69,6 +69,7 @@ import {
 import { LIVE_REFRESH_MS, useLiveRefresh } from "@/hooks/use-live-refresh"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
+import { activeSprints, capacityPct, defaultSprintId, summarizeActiveSprints } from "@/lib/sprints/active"
 import { isCompletedTaskStatus } from "@/lib/tasks/statuses"
 import type { DashboardOverview } from "@/lib/dashboard-data"
 import type { OnboardingView } from "@/lib/onboarding/read"
@@ -354,11 +355,22 @@ export default function DashboardHome() {
       const spJson = await spRes.json()
       if (spJson.success)
         setSprints(
-          spJson.data.map((s: { id: number; name: string; status: string }) => ({
-            id: s.id,
-            name: s.name,
-            status: s.status,
-          })),
+          (spJson.data as { id: number }[]).map((row) => {
+            const s = row as SprintOption
+            return {
+              id: s.id,
+              name: s.name,
+              status: s.status,
+              capacity: s.capacity,
+              totalPoints: s.totalPoints,
+              donePoints: s.donePoints,
+              taskCount: s.taskCount,
+              progressPct: s.progressPct,
+              daysLeft: s.daysLeft,
+              startDate: s.startDate,
+              endDate: s.endDate,
+            }
+          }),
         )
       // A failed read stays a failure: the strip falls back to a link instead of reporting a
       // day of zeros the member never checked.
