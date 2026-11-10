@@ -420,6 +420,11 @@ export default function DashboardHome() {
   // rows, so work created elsewhere is not left behind an old render.
   useLiveRefresh(reloadQuiet, { intervalMs: LIVE_REFRESH_MS })
 
+  // Every sprint actually running. The overview payload quotes one of them, which is a wrong
+  // statement the moment the workspace runs several.
+  const running = useMemo(() => activeSprints(sprints), [sprints])
+  const runningSummary = useMemo(() => summarizeActiveSprints(running), [running])
+
   /* ---- task mutations ---- */
 
   const openCreate = () => {
@@ -430,7 +435,7 @@ export default function DashboardHome() {
       priority: "medium",
       storyPoints: 1,
       assigneeId: overview?.user.id ?? "",
-      sprintId: overview?.activeSprint?.id ?? "",
+      sprintId: defaultSprintId(sprints) ?? "",
       dueDate: "",
       tags: "",
     })
@@ -635,7 +640,7 @@ export default function DashboardHome() {
     )
   }
 
-  const { kpis, activeSprint } = overview
+  const { kpis } = overview
   const hour = new Date().getHours()
   const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening"
   const priorityMax = Math.max(1, ...overview.priorityBreakdown.map((x) => x.value))
