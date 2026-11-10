@@ -563,23 +563,29 @@ deleted, the 6 missing ones from `11-06` to `12-11` inserted, `start_date` set t
 before-values are in `backups/reanchor-grid-2026-11-08T16-29-31/`. No read can perform this repair — `horizonDates`
 never invents a date in the past, and the cap stops it writing at all once the tail is the due date.
 
-### I3 — The board draws today's occurrence
+### I3 — The board draws the day's occurrence
 
 §D removed templates from the dashboard's counts; the kanban went further and now draws the *day*.
 
-`GET /api/tasks` attaches `todayInstance: { id, status } | null` to every row via
-`todayOccurrencesFor(rows, todayIso, writableAssigneeIds)` in `lib/tasks/today-occurrence.ts`. `null` means
-"not due today", which is a real answer for a weekly schedule read on the wrong day, not a missing row. The
-reader tops a grid up when today's row is absent, under the same three bounds §C3 set for the calendar: only
-schedules whose assignee the caller may write for, at most `TODAY_TOP_UP_LIMIT = 25` per request, at most
-`HORIZON_OCCURRENCES` rows each; awaited serially, swallowed on failure — and a failed top-up still returns
-the rows the first read found. `loadVisibleMemberIds` is only called when the page actually holds a schedule.
+`GET /api/tasks` attaches `dayInstance: { id, status } | null` to every row via
+`occurrencesForDay(rows, dayIso, writableAssigneeIds, topUpIso)` in `lib/tasks/day-occurrence.ts`. `null` means
+"not due on the day being drawn", which is a real answer for a weekly schedule read on the wrong day, not a
+missing row. The reader tops a grid up when that day's row is absent, under the same three bounds §C3 set for
+the calendar: only schedules whose assignee the caller may write for, at most `DAY_TOP_UP_LIMIT = 25` per
+request, at most `HORIZON_OCCURRENCES` rows each; awaited serially, swallowed on failure — and a failed top-up
+still returns the rows the first read found. `loadVisibleMemberIds` is only called when the page actually holds
+a schedule.
+
+Written first as `todayInstance` against today only. §K below widened the same read to any requested day, and
+the two days must stay apart: `dayIso` (the day drawn) appears only in a SELECT, while `topUpIso` — the
+member's real today — is the only anchor a grid grows from. A browsed day behind today writes nothing at all,
+because a forward-walking horizon cannot birth a past row.
 
 On the page, `boardStatus(t)` is the column a card draws in, or `null` when it draws none: a schedule draws
-today's occurrence and nothing else, and a `skipped` row is nobody's outstanding work. `boardTasks`, `columns`,
+the day's occurrence and nothing else, and a `skipped` row is nobody's outstanding work. `boardTasks`, `columns`,
 `lanes`, `myCards`, `isOverdue`, "open here" and "done total" all read through it, so a template's own
 forever-`in_progress` status never leaks onto a card. §2a: the To do column names what it is holding back —
-"N schedules not due today" — so a hidden card does not read as a lost one.
+"N schedules not due on this day" — so a hidden card does not read as a lost one.
 
 `moveTask` writes the occurrence, not the task, when the card has one: `PATCH /api/task-instances/:id`, which
 already enforces ownership and stamps `completed_at`/`completed_by`. `allowedStatuses` gives an occurrence card
@@ -590,7 +596,7 @@ gets §F4's refusal on the finished words.
 This is what makes a daily land back in To do tomorrow: the row that moved is dated today, the schedule's own
 status never changes, and tomorrow's row is already in the grid.
 
-Guards: `tests/unit/board-today-occurrence.test.ts` (16). Date maths: `tests/unit/task-recurrence.test.ts` (36).
+Guards: `tests/unit/board-today-occurrence.test.ts` (14). Date maths: `tests/unit/task-recurrence.test.ts` (36).
 
 ## J — The board creates schedules too (added after I shipped)
 

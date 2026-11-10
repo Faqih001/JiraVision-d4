@@ -1556,17 +1556,20 @@ already written held Saturday and Sunday rows for work nobody does.
   a monthly date can shift a day. This is the same one-way behaviour `computeNextRun` already has for a 31st
   (Jan 31 → Mar 3); holding the true anchor needs a column the schema does not have. Four alternatives were
   worked through and rejected — see §I2 of the cross-surface spec.
-- **The board draws today's occurrence, not the schedule.** `GET /api/tasks` attaches
-  `todayInstance: { id, status } | null` to every row; `null` means "not due today", which is a real answer for
-  a weekly read on the wrong day. `lib/tasks/today-occurrence.ts` tops a grid up when today's row is missing,
-  under the same three bounds the calendar read uses — only schedules this member may write for, at most 25 per
-  request, at most `HORIZON_OCCURRENCES` rows each, serial and swallowed on failure. A failed top-up still
-  returns the rows the first read found, and the member list is only loaded when the page holds a schedule.
+- **The board draws the day's occurrence, not the schedule.** `GET /api/tasks` attaches
+  `dayInstance: { id, status } | null` to every row; `null` means "not due on the day being drawn", which
+  is a real answer for a weekly read on the wrong day. `lib/tasks/day-occurrence.ts` tops a grid up when
+  that day's row is missing, under the same three bounds the calendar read uses — only schedules this
+  member may write for, at most 25 per request, at most `HORIZON_OCCURRENCES` rows each, serial and
+  swallowed on failure. A failed top-up still returns the rows the first read found, and the member list
+  is only loaded when the page holds a schedule. (Written as `todayInstance` against today; §56 widened
+  the same read to any requested day and renamed the field, because the top-up must stay anchored on the
+  member's real today while the drawn day moves.)
 - **One drawn status, everywhere on the page.** `boardStatus(t)` is the column a card draws in, or `null` when
   it draws none, and the columns, the swimlanes, My cards, the overdue flag, "open here" and "done total" all
   read through it — so a template's forever-`in_progress` status never leaks onto a card, and a `skipped` day
-  is nobody's outstanding work. The To do column names what it is holding back ("N schedules not due today") so
-  a hidden card does not read as a lost one.
+  is nobody's outstanding work. The To do column names what it is holding back ("N schedules not due on this
+  day") so a hidden card does not read as a lost one.
 - **Moving a card moves the day.** `moveTask` PATCHes `/api/task-instances/:id` when the card has an
   occurrence — the route that already enforces assignee ownership and stamps `completed_at` — and offers only
   the three states an occurrence row can hold, because `task_instances` has no `review` and no `blocked`. A drag
@@ -1575,7 +1578,7 @@ already written held Saturday and Sunday rows for work nobody does.
   today, the schedule itself never changes, and tomorrow's row is already in the grid.
 - **Tests.** `tests/unit/task-recurrence.test.ts` (36 — the rolled dates, a stale grid walking up to today
   without inventing the missed days, and "never returns a weekend date, whatever the cadence") and
-  `tests/unit/board-today-occurrence.test.ts` (16 guards — the drawn-status wiring, the instance door and its
+  `tests/unit/board-today-occurrence.test.ts` (14 guards — the drawn-status wiring, the instance door and its
   refusals, the reader's three bounds, the weekend rule on all three date doors, `lib/cadence.ts` staying free
   of it, and the reconcile script settling only untouched rows from a backup taken first).
 
@@ -1617,7 +1620,7 @@ the tasks page first. Adding it surfaced a rule the two dialogs disagreed about.
   production confirms it — #134 `done`, #135 `done`, #136 `blocked`, all created that day, and not one `todo` row in
   the table. Two real mechanisms produce the symptom instead, and both are about schedules:
   the header button opens the modal with `status = "todo"` no matter which column you are looking at, and for a
-  cadence the board draws `todayInstance.status`, never the template's — while `generateInitialInstances` births
+  cadence the board draws `dayInstance.status`, never the template's — while `generateInitialInstances` births
   every occurrence as `todo`. A schedule therefore *never* shows the status it was created with, on the board.
 - **The defect that would have shipped.** `recurringStatusError` (lib/task-updates.ts:182) refuses a finished status
   on a template, and PUT `/api/tasks/[id]` enforced it with a 409 — POST `/api/tasks` did not. The moment the board
@@ -1738,7 +1741,53 @@ rule.** The rules now live in `lib/sprints/`, where every surface reads the same
   exactly the bug this wave fixed — so it now pins the task reads to the scope and the sprint read to the
   workspace. Gates: `tsc --noEmit` clean, 189 files / 2,960+ tests.
 - **Deliberately not built:** the optional due-date range filter for `/dashboard/tasks`. The page already
-  filters by sprint, status, priority, assignee, cadence and text, and the kanban day navigator (§51) is
+  filters by sprint, status, priority, assignee, cadence and text, and the kanban day navigator (§56) is
   where past and future occurrences are actually read — so an eighth control on a bar that was just
   fought back onto one row (§54) would have cost more than it returned.
+
+## 56. The board can be turned to another day, and tomorrow is a preview (2026-11-08)
+
+§51 made the kanban draw the day's occurrence. It drew exactly one day — today, unasked — so the board
+could not answer "did the backup run last Friday" or "what lands next week". The owner asked for both
+directions, and then said to build them.
+
+> "is it wise to have calendar and able to filter tasks according to the day to see past and future for
+> kanban and tasks page filters" → "build for future and past"
+
+- **Two days, and the whole design is keeping them apart.** `/api/tasks` takes `?date=` and
+  `lib/tasks/board-day.ts` resolves it: junk, a timestamp, or 29 February in a common year falls back to
+  the member's today rather than querying a day nobody asked for. The **drawn day** (`dayIso`) only ever
+  appears in a SELECT. The **top-up anchor** (`topUpIso`) is the member's real today and is the only day a
+  grid may grow from — `lib/tasks/day-occurrence.ts` (renamed from `today-occurrence.ts`, and
+  `todayInstance` with it) reads the browsed day first and grows a horizon only from today, so paging
+  into December cannot fabricate a month of occurrences. Looking *behind* today writes nothing at all: a
+  forward-walking horizon cannot birth a past row, so a top-up there would be pure write traffic on a
+  look back. `?date=` is dropped from the address on today and kept for any other day, so a reload or a
+  shared link lands on the day it named.
+- **The server, not the open tab, decides whether a day may be written.** Every response carries
+  `day: { date, today, relation, readOnly }`. The page trusts that verdict for the day the server
+  actually drew and falls back to the same pure rule while a new day is in flight, so a future day is
+  never briefly draggable; a tab left open overnight, or a member in another timezone, cannot disagree
+  with the board about which day is still ahead. Related trap: the page sends the **raw** URL value and
+  lets the route resolve it — resolving it client-side first would make the query depend on the
+  response, and the read would chase its own tail.
+- **A day ahead is a preview, not a place to record work.** Marking next Friday's backup done should not
+  be possible by paging forward, so those days refuse the drag at every door: no drag start, no drop
+  target, no enabled status button, and `moveTask` returns before the optimistic write with a toast that
+  names the day and offers today. The panel turns amber, carries a Lock · Preview badge and one line
+  saying what is still editable — a card's *details* change the task itself, which is not this day's row.
+  A day **behind** today stays fully actionable: a missed occurrence is owed work.
+- **The navigator says which day is on screen.** Chevrons step a day, a `DateField` jumps anywhere, Today
+  is disabled when already there, and the title (`boardDayTitle`) reads "Today · Sun 8 Nov" / "Tomorrow
+  · Mon 9 Nov" / "Fri 13 Nov" / "Mon 4 Jan 2027" — assembled from `Intl` parts so a locale's punctuation
+  cannot leak into the header, with the year only when it is not this one. The title is `aria-live`, and
+  a spinner marks the swap, because a board that silently changed days is the defect this section is
+  written against. "N schedules not due on this day" moved with it, so a hidden card never reads as lost.
+- **Tests.** `tests/unit/board-day.test.ts` (11 — the fallbacks, a leap day in a leap year, past actionable,
+  future read-only however far forward it pages, the parameter appearing only off today) and
+  `tests/unit/board-day-navigation.test.ts` (17 — the read draws the asked-for day, "never lets the browsed
+  day become the horizon anchor", nothing written behind today, the top-up stays bounded and inside the
+  caller's writable members, a failed top-up still returns found rows, the URL round-trip, and the four
+  doors a preview closes). `board-today-occurrence.test.ts` (14) still guards the reader's bounds and the
+  drawn-status wiring.
 
