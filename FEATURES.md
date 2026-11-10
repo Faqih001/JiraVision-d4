@@ -1845,6 +1845,20 @@ into a pile: every card ever finished, on every day the board draws. The owner n
 - **One thing to know:** a row whose finish is only inferable from `updated_at` can change day when it
   is edited later — the fallback is the best available answer, not a record. The 2 affected rows are
   imported history.
+- **The first deploy emptied the whole board, and the bug was a type of param.** `doneWindowSql` bound
+  `bounds.from` / `bounds.to` as `Date` objects inside ``sql`…` `` fragments. A `sql` fragment
+  parameterizes by *value*, and postgres.js hands a bare `Date` to its string encoder: `TypeError: The
+  "string" argument must be of type string or an instance of Buffer or ArrayBuffer` (`ERR_INVALID_ARG_TYPE`).
+  It threw on the `select COUNT(*) from (…)` wrapper — the first query to run — and `getPaginatedTasks`'
+  catch answered an empty page with HTTP 200, so `/api/tasks` said `success: true` with no rows and every
+  column read "0 cards". Nothing on screen was wrong; the production log had the throw. The fix is the
+  form this repo already uses at `lib/data-access.ts:444` (`now.toISOString()`): `windowEdges()` renders
+  both bounds as ISO strings, which Postgres infers as `timestamptz` from the comparison. Verified
+  against production read-only: `all` 76 rows / 0 earlier, `week` 61 / 15, `day` 35 / 41, and the open
+  counts (30 in progress, 3 review, 1 todo) identical in all three — the window still cannot touch
+  outstanding work. The guard that missed it rendered the fragment and asserted the `Date` was bound
+  (`params.filter(p => p instanceof Date)`), which pinned the bug; `done-window-read.test.ts` now asserts
+  the opposite — no parameter may be a `Date` — because *renders* is not the same claim as *serializes*.
 - **Tests.** `completed-on.test.ts` (28 — window resolution and its junk fallback, the timezone day
   maths, group order, the older-than-window count, a fallback row's day, the parameter appearing only
   off the page's own default) and the wiring guards `done-window-kanban.test.ts` (12 — the read is
