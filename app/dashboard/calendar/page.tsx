@@ -311,7 +311,7 @@ export default function CalendarWorkspace() {
       const [evRes, ovRes, spRes, tkRes, ntRes] = await Promise.all([
         fetch(`/api/calendar/events?${scopeParam}&viewMode=${viewMode}`),
         fetch("/api/dashboard/overview?scope=member"),
-        fetch(`/api/sprints?${scopeParam}`),
+        fetch("/api/sprints?scope=all"),
         fetch(`/api/tasks?pageSize=100&${scopeParam}`),
         fetch("/api/notifications?limit=50"),
       ])

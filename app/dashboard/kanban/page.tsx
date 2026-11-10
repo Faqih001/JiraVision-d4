@@ -327,7 +327,7 @@ function KanbanBoard() {
   const load = useCallback(async () => {
     const [tasksRes, sprintsRes, overviewRes, notifRes] = await Promise.all([
       fetch(`/api/tasks?pageSize=200&${scopeParam}${dateQuery}`),
-      fetch(`/api/sprints?${scopeParam}`),
+      fetch("/api/sprints?scope=all"),
       fetch("/api/dashboard/overview?scope=member"),
       fetch("/api/notifications?limit=30"),
     ])

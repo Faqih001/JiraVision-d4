@@ -302,7 +302,7 @@ export default function TasksWorkspacePage() {
     try {
       const [ovRes, spRes] = await Promise.all([
         fetch("/api/dashboard/overview?scope=member"),
-        fetch(`/api/sprints?${scopeParam}`),
+        fetch("/api/sprints?scope=all"),
       ])
       const ovJson = await ovRes.json()
       if (!ovJson.success) throw new Error(ovJson.message ?? "Failed to load dashboard")
@@ -322,7 +322,7 @@ export default function TasksWorkspacePage() {
     } finally {
       setPageLoading(false)
     }
-  }, [loadRawTasks, toast, scopeParam])
+  }, [loadRawTasks, toast])
 
   const loadVisible = useCallback(async (quiet = false) => {
     if (!quiet) setListLoading(true)
