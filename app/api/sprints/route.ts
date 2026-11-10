@@ -86,7 +86,7 @@ function serializeSprint(sprint: SprintRow, agg: SprintAggregates): SprintDto {
     endDate: sprint.endDate,
     status: sprint.status,
     capacity: sprint.capacity,
-    completed: sprint.completed,
+    completed: reportedCompleted(sprint.completed, agg),
     createdAt: sprint.createdAt ? new Date(sprint.createdAt).toISOString() : null,
     updatedAt: sprint.updatedAt ? new Date(sprint.updatedAt).toISOString() : null,
     ...agg,
