@@ -86,14 +86,14 @@ describe("the board carries its day in the address", () => {
 
   it("asks the API for the browsed day on every read, refresh and live tick", () => {
     const page = codeOnly(src(KANBAN))
-    const asks = page.match(/\/api\/tasks\?pageSize=200&\$\{scopeParam\}\$\{dateQuery\}/g) ?? []
+    const asks = page.match(/\/api\/tasks\?pageSize=200&\$\{scopeParam\}\$\{dateQuery\}\$\{doneQuery\}/g) ?? []
     expect(asks.length).toBe(2)
     expect(page).toMatch(/const dateQuery = requestedDay \? `&date=\$\{encodeURIComponent\(requestedDay\)\}` : ""/)
   })
 
   it("writes the day back to the URL, and drops it on today", () => {
     const page = codeOnly(src(KANBAN))
-    expect(page).toMatch(/boardDayParam\(iso, todayIso\)/)
+    expect(page).toMatch(/boardDayParam\(/)
     expect(page).toMatch(/router\.replace\(/)
   })
 

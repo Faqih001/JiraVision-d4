@@ -47,7 +47,7 @@ export function resolveDoneWindow(
 }
 
 /**
- * The `?done=` value, or null when the page is already showing its own default.
+ * The `?doneWindow=` value, or null when the page is already showing its own default.
  *
  * Same rule as `boardDayParam`: a URL is an address, and an address that repeats what the page
  * does anyway cannot be told apart from one a member chose on purpose.

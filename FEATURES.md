@@ -1791,3 +1791,68 @@ directions, and then said to build them.
   doors a preview closes). `board-today-occurrence.test.ts` (14) still guards the reader's bounds and the
   drawn-status wiring.
 
+## 57. The Done column is a window, not an archive (2026-11-10)
+
+§51 dated the board's occurrence cards and left the one-off cards all-time, so the Done column grew
+into a pile: every card ever finished, on every day the board draws. The owner named the symptom.
+
+> "on the cards done displays many cards can we be able to filter and show cards done per day or which
+> approach is best for this" → (asked whether To do / In progress / Review / Blocked need the same
+> treatment) → Done-only window → "implement"
+
+- **A finished one-off already said when it finished; nobody was asking.** `tasks` has no
+  `completed_at`, but `task_events` carries a row per status change with its `at`. On production that is
+  40 of the 42 finished one-offs; the 2 that have no event are imported seed rows, so `updated_at` covers
+  them and no migration was needed. `lib/tasks/completed-on.ts` turns the latest event into a finished
+  **day in the member's own timezone** (`lib/worklog/local-day.ts` again — a UTC day would put a 9pm
+  finish on the wrong card of the wrong date), and `/api/tasks` returns it per row as `completedOn`.
+  Timezone comes from the session and never from the query string: a day a caller can type is a day a
+  caller can impersonate.
+- **The filter is SQL, not a `.filter()` after the fact.** The pile was not only ugly, it was eating the
+  read: the board asks for `pageSize=200` and finished one-offs were spending most of that budget on
+  work from weeks ago. `lib/tasks/completed-on-read.ts` builds the predicate
+  (`doneWindowSql`) and `getPaginatedTasks` puts it in the WHERE list before the query is built, so
+  `pagination.total`, the rows and the page count all respect the window. `?doneWindow=day|week|all` is
+  anchored on the day already on screen (`?date=`), so a board turned to a past Friday is a view *as of
+  that Friday* — the upper bound (midnight after the drawn day, in the member's zone) is always present.
+  The week is 7 days ending on that day, inclusive. A row the read cannot date at all stays visible:
+  `coalesce(<inside>, true)`, because Postgres would otherwise drop an undatable finish out of every
+  window, including "All".
+- **Schedules are provably outside the window.** A schedule's card is drawn by its `dayInstance` for the
+  day on screen (§51), and `completedOn` is set only for a finished **one-off** — a template that is
+  `done` is a data error, not a day. So in the grouping rule a schedule takes the drawn day, and hiding
+  history cannot hide an occurrence.
+- **The board asks, and the address remembers.** The Done column header wears a Day · Week · All
+  segment (`DoneWindowSegment` in `components/dashboard-kit.tsx`, on the bar's own `h-8` tier — it sits
+  on a row of its own inside the column, so the control-height ladder sees one rung per row as before).
+  The choice rides `?doneWindow=` exactly like `?date=` does — `boardPath` now builds both, so stepping
+  a day cannot drop the window and vice versa — and, same rule as the day, the parameter is dropped when
+  the page is already showing its default. The cards then group under small-caps day headers ("Today ·
+  1", "Tue 4 Nov · 5") and everything the window left out collapses to one line, "31 done earlier — Show
+  all", which flips the segment instead of holding an expand state of its own; it renders only when the
+  payload's `window` is the one on screen, so an in-flight response cannot mislabel the count. Default
+  is **Week**: on the owner's board that turned 42 cards into 9. The "done total" KPI reads the window
+  it shows, so its phrase now names it ("done this week").
+- **The tasks page wears the same control and starts wide.** It is a query tool — the point of it is to
+  find the row, including the old one — so the default is **All** and the segment sits in the existing
+  filter bar. Two decisions came from reading the page rather than from the design: the window rides
+  only `loadVisible` (the KPI strip and every chart are counted from `loadRawTasks`, and narrowing the
+  list must not silently narrow the numbers), and the page keeps its view state in local state — it has
+  no URL round-trip for filter, sort, page or view mode today, so the window matches its neighbours
+  instead of being the one thing that survives a reload. Changing it returns to page 1, because no
+  existing effect does that for any other filter. Every finished row gains a "Done · Tue 4 Nov" line in
+  all three views, and the showing line names the window it counted.
+- **One thing to know:** a row whose finish is only inferable from `updated_at` can change day when it
+  is edited later — the fallback is the best available answer, not a record. The 2 affected rows are
+  imported history.
+- **Tests.** `completed-on.test.ts` (28 — window resolution and its junk fallback, the timezone day
+  maths, group order, the older-than-window count, a fallback row's day, the parameter appearing only
+  off the page's own default) and the wiring guards `done-window-kanban.test.ts` (12 — the read is
+  asked with the window on both paths, the segment appears only in the Done column, the collapse line
+  reads the server's `earlier` and never a local length, a schedule card is dated by the drawn day) and
+  `done-window-tasks.test.ts` (8 — the window leaves the all-time read alone, the page resets, the
+  three views each carry the date line). `board-day-navigation.test.ts` and `dashboard-member-boards.test.ts`
+  were re-cut for the longer fetch literal and the `boardPath` extraction; `recurrence-cross-surface-guards.test.ts`
+  forced the board's column branch onto a named `DONE_COLUMN` rather than a bare `col.status === "done"`,
+  which is what its swept-page rule is for. Gates: `tsc --noEmit` clean, 181 files / 2,933 tests.
+

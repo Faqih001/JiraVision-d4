@@ -231,6 +231,11 @@ const isRecurring = (t: TaskRow) => Boolean(t.cadence) && t.cadence !== "one-off
 // nowhere to go and must never be offered for a schedule's card.
 const INSTANCE_STATUSES = ["todo", "in_progress", "done"]
 
+// Names the fifth column, not a card's status. The page has to branch on which column it is
+// drawing, and a bare `col.status === "done"` reads to the swept-page guard as a task-status
+// comparison it correctly refuses.
+const DONE_COLUMN = "done"
+
 /**
  * What the board hides by default. A board is a look at one day, so the week behind it is the
  * context; the tasks page, which is a query tool, defaults to `all` instead.
@@ -341,7 +346,7 @@ function KanbanBoard() {
   // The raw URL value travels to the API, which resolves junk to today. Resolving it here first
   // would make the query depend on the response, and the read would chase its own tail.
   const dateQuery = requestedDay ? `&date=${encodeURIComponent(requestedDay)}` : ""
-  const doneQuery = doneWindowParam(doneWindow, KANBAN_DONE_DEFAULT) ? `&done=${doneWindow}` : ""
+  const doneQuery = doneWindowParam(doneWindow, KANBAN_DONE_DEFAULT) ? `&doneWindow=${doneWindow}` : ""
 
   // drag state
   const [dragOverStatus, setDragOverStatus] = useState<string | null>(null)
@@ -357,7 +362,7 @@ function KanbanBoard() {
 
   const load = useCallback(async () => {
     const [tasksRes, sprintsRes, overviewRes, notifRes] = await Promise.all([
-      fetch(`/api/tasks?pageSize=200&${scopeParam}${dateQuery}`),
+      fetch(`/api/tasks?pageSize=200&${scopeParam}${dateQuery}${doneQuery}`),
       fetch("/api/sprints?scope=all"),
       fetch("/api/dashboard/overview?scope=member"),
       fetch("/api/notifications?limit=30"),
@@ -366,6 +371,7 @@ function KanbanBoard() {
     if (!tasksJson.success) throw new Error(tasksJson.message ?? "Failed to load tasks")
     setTasks((tasksJson.data ?? []) as TaskRow[])
     setServerDay((tasksJson.day ?? null) as BoardDayPayload | null)
+    setDonePayload((tasksJson.doneWindow ?? null) as DoneWindowPayload | null)
     setLoadError(null)
 
     const sprintsJson = await sprintsRes.json().catch(() => null)
@@ -393,25 +399,26 @@ function KanbanBoard() {
 
     const notifJson = await notifRes.json().catch(() => null)
     if (notifJson && Array.isArray(notifJson.items)) setActivity(notifJson.items as ActivityItem[])
-  }, [scopeParam, dateQuery])
+  }, [scopeParam, dateQuery, doneQuery])
 
   const reloadTasks = useCallback(async () => {
     try {
       const [tasksRes, notifRes] = await Promise.all([
-        fetch(`/api/tasks?pageSize=200&${scopeParam}${dateQuery}`),
+        fetch(`/api/tasks?pageSize=200&${scopeParam}${dateQuery}${doneQuery}`),
         fetch("/api/notifications?limit=30"),
       ])
       const tasksJson = await tasksRes.json()
       if (tasksJson.success) {
         setTasks((tasksJson.data ?? []) as TaskRow[])
         setServerDay((tasksJson.day ?? null) as BoardDayPayload | null)
+        setDonePayload((tasksJson.doneWindow ?? null) as DoneWindowPayload | null)
       }
       const notifJson = await notifRes.json().catch(() => null)
       if (notifJson && Array.isArray(notifJson.items)) setActivity(notifJson.items as ActivityItem[])
     } catch {
       /* the board on screen stays; the refresh button reports failures */
     }
-  }, [scopeParam, dateQuery])
+  }, [scopeParam, dateQuery, doneQuery])
 
   useLiveRefresh(reloadTasks, { intervalMs: LIVE_REFRESH_MS })
 
@@ -431,10 +438,35 @@ function KanbanBoard() {
     }
   }, [load])
 
-  const goToDay = useCallback((iso: string) => {
-    const param = boardDayParam(iso, todayIso)
-    router.replace(param ? `/dashboard/kanban?date=${param}` : "/dashboard/kanban", { scroll: false })
-  }, [router, todayIso])
+  // One builder for both navigation moves, because the day and the window live in one address: a
+  // `goToDay` that rewrote the whole query would silently drop a window the member chose, and vice
+  // versa. Each param writes itself only when it differs from what the page defaults to.
+  const boardPath = useCallback(
+    (dayIso: string, window: DoneWindow) => {
+      const params = new URLSearchParams()
+      const day = boardDayParam(dayIso, todayIso)
+      if (day) params.set("date", day)
+      const done = doneWindowParam(window, KANBAN_DONE_DEFAULT)
+      if (done) params.set("doneWindow", done)
+      const query = params.toString()
+      return query ? `/dashboard/kanban?${query}` : "/dashboard/kanban"
+    },
+    [todayIso],
+  )
+
+  const goToDay = useCallback(
+    (iso: string) => {
+      router.replace(boardPath(iso, doneWindow), { scroll: false })
+    },
+    [router, boardPath, doneWindow],
+  )
+
+  const goToWindow = useCallback(
+    (window: DoneWindow) => {
+      router.replace(boardPath(boardDay.iso, window), { scroll: false })
+    },
+    [router, boardPath, boardDay.iso],
+  )
 
   const refresh = useCallback(async () => {
     setRefreshing(true)
@@ -681,6 +713,18 @@ function KanbanBoard() {
       }),
     [boardTasks],
   )
+
+  // The Done column split by the day each card closed. A schedule's card is dated by the day being
+  // drawn, which is the day the column is already drawing, and a card the read could not date at
+  // all stays listed rather than vanishing through a missing bucket.
+  const doneView = useMemo<{ groups: CompletionGroup<TaskRow>[]; undated: TaskRow[] }>(() => {
+    const rows = columns.find((c) => c.status === DONE_COLUMN)?.tasks ?? []
+    const doneDayOf = (t: TaskRow): string | null => t.completedOn ?? (isRecurring(t) ? boardDay.iso : null)
+    return {
+      groups: groupByCompletionDay(rows, doneDayOf, todayIso),
+      undated: rows.filter((t) => doneDayOf(t) === null),
+    }
+  }, [columns, boardDay.iso, todayIso])
 
   // What the capacity panel meters: the sprint you filtered to, else every sprint actually running.
   // Four running sprints are one load, so their points are added rather than one being quoted as
@@ -1232,8 +1276,27 @@ function KanbanBoard() {
                   </Button>
                 </div>
               </header>
+              {col.status === DONE_COLUMN && (
+                <div className="px-1 pb-2">
+                  <DoneWindowSegment value={doneWindow} onChange={goToWindow} />
+                </div>
+              )}
               <div className="flex flex-1 flex-col gap-2 overflow-y-auto">
-                {col.tasks.map((t) => renderCard(t, !readOnly))}
+                {col.status === DONE_COLUMN ? (
+                  <>
+                    {doneView.groups.map((group) => (
+                      <div key={group.dayIso} className="flex flex-col gap-2">
+                        <p className="pt-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                          {group.label} · {group.rows.length}
+                        </p>
+                        {group.rows.map((t) => renderCard(t, !readOnly))}
+                      </div>
+                    ))}
+                    {doneView.undated.map((t) => renderCard(t, !readOnly))}
+                  </>
+                ) : (
+                  col.tasks.map((t) => renderCard(t, !readOnly))
+                )}
                 {col.tasks.length === 0 && (
                   <p className="rounded-lg border border-dashed py-6 text-center text-xs text-muted-foreground">
                     {readOnly ? "Nothing scheduled" : "Drop cards here"}
@@ -1242,6 +1305,18 @@ function KanbanBoard() {
                 {col.status === "todo" && notDueOnDay > 0 && (
                   <p className="px-1 pt-1 text-[11px] text-muted-foreground">
                     {notDueOnDay} {notDueOnDay === 1 ? "schedule" : "schedules"} not due on this day
+                  </p>
+                )}
+                {col.status === DONE_COLUMN && donePayload?.window === doneWindow && (donePayload?.earlier ?? 0) > 0 && (
+                  <p className="px-1 pt-1 text-[11px] text-muted-foreground">
+                    {earlierDoneLabel(donePayload.earlier)} —{" "}
+                    <button
+                      type="button"
+                      className="font-medium text-primary underline-offset-2 hover:underline"
+                      onClick={() => goToWindow("all")}
+                    >
+                      Show all
+                    </button>
                   </p>
                 )}
               </div>
@@ -1444,7 +1519,9 @@ function KanbanBoard() {
         <div className="mt-2 flex flex-wrap gap-4 text-xs text-muted-foreground">
           <span className="flex items-center gap-1">
             <CheckCheck className="h-3.5 w-3.5" />{" "}
-            {tasks.filter((t) => isCompletedTaskStatus(t.dayInstance?.status ?? t.status)).length} done total
+            {/* The count comes from the windowed read, so the phrase has to name that window. */}
+            {tasks.filter((t) => isCompletedTaskStatus(t.dayInstance?.status ?? t.status)).length} done{" "}
+            {doneWindowPhrase(doneWindow, boardDay.isToday)}
           </span>
           <span className="flex items-center gap-1">
             <Timer className="h-3.5 w-3.5" /> {tasks.filter((t) => t.status === "blocked").length} blocked

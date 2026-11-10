@@ -88,6 +88,7 @@ import type { DashboardOverview } from "@/lib/dashboard-data"
 import {
   AXIS,
   AvatarCircle,
+  DoneWindowSegment,
   EmptyNote,
   PRIORITIES,
   PriorityPill,
@@ -102,6 +103,13 @@ import {
   FILTER_SEARCH,
   FILTER_TRIGGER,
 } from "@/components/dashboard-kit"
+import {
+  completionDayLabel,
+  doneWindowParam,
+  doneWindowPhrase,
+  earlierDoneLabel,
+  type DoneWindow,
+} from "@/lib/tasks/completed-on"
 
 /* ------------------------------------------------------------------ types */
 
@@ -120,7 +128,11 @@ type ApiTask = {
   updatedAt: string | null
   cadence?: string | null
   checklistItems?: unknown
+  completedOn?: string | null
 }
+
+/** What /api/tasks says about the Done window it applied, echoed back so the page can trust it. */
+type DoneWindowPayload = { window: string; from: string | null; to: string; earlier: number }
 
 type SprintOption = {
   id: number
@@ -164,6 +176,11 @@ type SortKey = "updated" | "created" | "due" | "priority" | "title"
 const PRIORITY_RANK: Record<string, number> = { urgent: 0, high: 1, medium: 2, low: 3 }
 const BACKLOG = "backlog"
 const PAGE_SIZES = [10, 25, 50]
+
+// This page is a query tool: the point of it is to find the row, including the old one. The board
+// hides history on purpose and starts on a week; here the window starts wide and a member narrows
+// it when they want to.
+const TASKS_DONE_DEFAULT: DoneWindow = "all"
 
 /* ---------------------------------------------------------------- helpers */
 
@@ -250,6 +267,8 @@ export default function TasksWorkspacePage() {
   const [assigneeFilter, setAssigneeFilter] = useState("all")
   const [sprintFilter, setSprintFilter] = useState("all")
   const [cadenceFilter, setCadenceFilter] = useState<string>("all")
+  const [doneWindow, setDoneWindow] = useState<DoneWindow>(TASKS_DONE_DEFAULT)
+  const [donePayload, setDonePayload] = useState<DoneWindowPayload | null>(null)
   const scopeParam = boardScope === "mine" ? "scope=mine" : "scope=all"
   const switchScope = (next: "mine" | "workspace") => {
     setBoardScope(next)
@@ -360,6 +379,11 @@ export default function TasksWorkspacePage() {
       if (sprintFilter !== "all" && sprintFilter !== BACKLOG) params.set("sprintId", sprintFilter)
       if (search.trim()) params.set("search", search.trim())
 
+      // The window rides only this read. The KPI strip and the charts are counted from loadRawTasks,
+      // which stays all-time on purpose: narrowing the list must not silently narrow the numbers.
+      const windowParam = doneWindowParam(doneWindow, TASKS_DONE_DEFAULT)
+      if (windowParam) params.set("doneWindow", windowParam)
+
       // Cadence is a client-side filter — the tasks API doesn't expose it as a query param,
       // so we widen the page when cadence is filtered and drop rows below.
       if (cadenceFilter !== "all") params.set("pageSize", "500")
@@ -378,13 +402,21 @@ export default function TasksWorkspacePage() {
       if (cadenceFilter !== "all") rows = rows.filter((t) => (t.cadence ?? "one-off") === cadenceFilter)
       if (sprintFilter === BACKLOG || assigneeFilter === "none" || cadenceFilter !== "all") total = rows.length
       setTasks(rows)
+      setDonePayload((json.doneWindow ?? null) as DoneWindowPayload | null)
       setPagination((p) => ({ ...p, total, pageCount: Math.max(1, Math.ceil(total / p.pageSize)) }))
     } catch (err) {
       if (!quiet) toast({ variant: "destructive", title: "Tasks", description: (err as Error).message })
     } finally {
       if (!quiet) setListLoading(false)
     }
-  }, [pagination.page, pagination.pageSize, statusFilter, priorityFilter, assigneeFilter, sprintFilter, cadenceFilter, search, scopeParam, toast])
+  }, [pagination.page, pagination.pageSize, statusFilter, priorityFilter, assigneeFilter, sprintFilter, cadenceFilter, search, scopeParam, doneWindow, toast])
+
+  // Two windows are two different questions about the same rows, so the second one starts at the
+  // top of the list rather than on whatever page the first had reached.
+  const changeDoneWindow = (next: DoneWindow) => {
+    setDoneWindow(next)
+    setPagination((p) => ({ ...p, page: 1 }))
+  }
 
   useEffect(() => {
     loadBase()
@@ -853,6 +885,19 @@ export default function TasksWorkspacePage() {
     setCadenceFilter("all")
   }
 
+  /**
+   * The day a finished row finished, in the row's own words. A schedule never carries
+   * `completedOn` — its occurrences are what get done — so only a settled one-off says anything.
+   */
+  const doneLine = (t: ApiTask) => {
+    if (!t.completedOn) return null
+    return (
+      <span className="text-[11px] text-muted-foreground">
+        Done · {completionDayLabel(t.completedOn, todayIso)}
+      </span>
+    )
+  }
+
   /* ---- render ---- */
 
   if (pageLoading && !overview) {
@@ -962,6 +1007,9 @@ export default function TasksWorkspacePage() {
               Workspace
             </Button>
           </div>
+          {/* Which days of finished work are in the list at all — the same three-way the board's
+              Done column wears, and on this page's h-8 bar tier. */}
+          <DoneWindowSegment value={doneWindow} onChange={changeDoneWindow} />
           <div className={FILTER_SEARCH}>
             <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -1082,6 +1130,9 @@ export default function TasksWorkspacePage() {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs text-muted-foreground">
           Showing {sortedTasks.length} of {pagination.total} · page {pagination.page} of {pagination.pageCount}
+          {doneWindow !== TASKS_DONE_DEFAULT && (
+            <span> · finished {doneWindowPhrase(doneWindow, true)}</span>
+          )}
         </p>
         <div className="flex items-center gap-1 rounded-md border p-0.5" role="group" aria-label="View mode">
           {(
@@ -1105,6 +1156,21 @@ export default function TasksWorkspacePage() {
           ))}
         </div>
       </div>
+
+      {/* What the window left out is one line, not a scroll: widening it is the same choice the
+          segment makes, so the line carries no expand state of its own. */}
+      {donePayload?.window === doneWindow && (donePayload?.earlier ?? 0) > 0 && (
+        <p className="text-xs text-muted-foreground">
+          {earlierDoneLabel(donePayload.earlier)} —{" "}
+          <button
+            type="button"
+            className="font-medium text-primary underline-offset-2 hover:underline"
+            onClick={() => changeDoneWindow("all")}
+          >
+            Show all
+          </button>
+        </p>
+      )}
 
       {visibleSelected.length > 0 && (
         <Card className="border-primary/40 bg-primary/5">
@@ -1222,6 +1288,7 @@ export default function TasksWorkspacePage() {
                           {assignee.name.split(" ")[0]}
                         </span>
                       )}
+                      {doneLine(t)}
                     </div>
                     {t.dueDate && (
                       <span className={cn(isOverdue(t, todayIso) && "font-semibold text-red-500")}>{t.dueDate}</span>
@@ -1289,6 +1356,7 @@ export default function TasksWorkspacePage() {
                               </Badge>
                             ))}
                           <CadenceBadge cadence={t.cadence} />
+                          {doneLine(t)}
                         </div>
                       </td>
                       <td className="px-2 py-2">
@@ -1366,6 +1434,7 @@ export default function TasksWorkspacePage() {
                   <PriorityPill priority={t.priority} />
                   <StatusPill status={t.status} />
                   <CadenceBadge cadence={t.cadence} />
+                  {doneLine(t)}
                   <span className={cn("w-20 shrink-0 text-right text-xs tabular-nums", isOverdue(t, todayIso) && "font-semibold text-red-500")}>
                     {t.dueDate ?? "—"}
                   </span>

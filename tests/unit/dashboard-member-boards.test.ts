@@ -63,10 +63,10 @@ describe("personal boards open on the member's own rows", () => {
   it("kanban reads its cards through the scope but its sprint list without it", () => {
     // The scope decides which *tasks* are drawn. Which sprints exist is not a personal fact —
     // see tests/unit/sprint-picker-scope.test.ts.
-    expect(kanban).toContain("fetch(`/api/tasks?pageSize=200&${scopeParam}${dateQuery}`)")
+    expect(kanban).toContain("fetch(`/api/tasks?pageSize=200&${scopeParam}${dateQuery}${doneQuery}`)")
     expect(kanban).toContain('fetch("/api/sprints?scope=all")')
     expect(kanban).toContain('fetch("/api/dashboard/overview?scope=member")')
-    expect(kanban.match(/scopeParam, dateQuery\]/g)?.length ?? 0).toBeGreaterThanOrEqual(2)
+    expect(kanban.match(/scopeParam, dateQuery, doneQuery\]/g)?.length ?? 0).toBeGreaterThanOrEqual(2)
   })
 
   it("tasks reads both the table and the KPI list through the scope", () => {

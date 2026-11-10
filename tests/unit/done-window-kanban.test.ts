@@ -37,7 +37,7 @@ describe("the board carries its Done window in the address", () => {
   it("defaults the board to a week", () => {
     const page = codeOnly(src(KANBAN))
     expect(page).toMatch(/const KANBAN_DONE_DEFAULT: DoneWindow = "week"/)
-    expect(page).toMatch(/resolveDoneWindow\(urlParams\.get\("done"\), KANBAN_DONE_DEFAULT\)/)
+    expect(page).toMatch(/resolveDoneWindow\(urlParams\.get\("doneWindow"\), KANBAN_DONE_DEFAULT\)/)
   })
 
   it("asks the API for the window on both the load and the live tick", () => {
@@ -45,7 +45,7 @@ describe("the board carries its Done window in the address", () => {
     const asks = page.match(/\/api\/tasks\?pageSize=200&\$\{scopeParam\}\$\{dateQuery\}\$\{doneQuery\}/g) ?? []
     expect(asks.length).toBe(2)
     expect(page).toMatch(
-      /const doneQuery = doneWindowParam\(doneWindow, KANBAN_DONE_DEFAULT\) \? `&done=\$\{doneWindow\}` : ""/,
+      /const doneQuery = doneWindowParam\(doneWindow, KANBAN_DONE_DEFAULT\) \? `&doneWindow=\$\{doneWindow\}` : ""/,
     )
   })
 
@@ -65,7 +65,9 @@ describe("the Done column shows the window it asked for", () => {
     const page = codeOnly(src(KANBAN))
     const board = page.slice(page.indexOf("{view === \"board\" ? ("))
     expect(board.match(/<DoneWindowSegment/g)?.length).toBe(1)
-    expect(board).toMatch(/col\.status === "done"[\s\S]{0,200}<DoneWindowSegment/)
+    expect(board).toMatch(/col\.status === DONE_COLUMN[\s\S]{0,200}<DoneWindowSegment/)
+    // and the day groups are the Done branch, not a second list beside it
+    expect(board).toMatch(/col\.status === DONE_COLUMN \? \([\s\S]{0,400}doneView\.groups\.map/)
   })
 
   it("groups the cards under the day each one closed", () => {
@@ -81,7 +83,7 @@ describe("the Done column shows the window it asked for", () => {
     expect(page).toMatch(/goToWindow\("all"\)/)
     // The line reads the server's count of the rows the window hid, never a length of the rows it
     // was already given, and it stays silent when nothing was hidden.
-    expect(page).toMatch(/\(donePayload\?\.earlier ?? 0\) > 0/)
+    expect(page).toMatch(/\(donePayload\?\.earlier \?\? 0\) > 0/)
     expect(page).not.toMatch(/earlierDoneLabel\(doneTasks\.length\)/)
   })
 
