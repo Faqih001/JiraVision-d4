@@ -291,6 +291,10 @@ export default function TasksWorkspacePage() {
     [sprints],
   )
 
+  const running = useMemo(() => activeSprints(sprints), [sprints])
+  const runningSummary = useMemo(() => summarizeActiveSprints(running), [running])
+  const runningIds = useMemo(() => new Set(running.map((s) => s.id)), [running])
+
   /* ---- data loading ---- */
 
   const loadRawTasks = useCallback(async () => {
@@ -321,11 +325,20 @@ export default function TasksWorkspacePage() {
       const spJson = await spRes.json()
       if (spJson.success)
         setSprints(
-          spJson.data.map((s: { id: number; name: string; status: string }) => ({
-            id: s.id,
-            name: s.name,
-            status: s.status,
-          })),
+          (spJson.data as { id: number }[]).map((row) => {
+            const s = row as SprintOption
+            return {
+              id: s.id,
+              name: s.name,
+              status: s.status,
+              capacity: s.capacity,
+              totalPoints: s.totalPoints,
+              donePoints: s.donePoints,
+              startDate: s.startDate,
+              endDate: s.endDate,
+              daysLeft: s.daysLeft,
+            }
+          }),
         )
       await loadRawTasks()
     } catch (err) {
@@ -419,7 +432,7 @@ export default function TasksWorkspacePage() {
       priority: "medium",
       storyPoints: 1,
       assigneeId: overview?.user.id ?? "",
-      sprintId: overview?.activeSprint?.id ?? "",
+      sprintId: defaultSprintId(sprints) ?? "",
       dueDate: "",
       tags: "",
       cadence: "one-off",
