@@ -221,13 +221,13 @@ export default function OperationsOverviewPage() {
           <Button variant="outline" size="sm" asChild>
             <Link href="/dashboard/ops/reports">
               <FileBarChart2 className="mr-2 h-4 w-4" />
-              Reports
+              Pack reports
             </Link>
           </Button>
           <Button variant="outline" size="sm" asChild>
             <Link href="/dashboard/ops/playbooks">
               <BookOpenCheck className="mr-2 h-4 w-4" />
-              Playbooks
+              Pack playbooks
             </Link>
           </Button>
           <Button variant="outline" size="sm" asChild>

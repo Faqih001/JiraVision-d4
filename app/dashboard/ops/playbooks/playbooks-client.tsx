@@ -173,7 +173,7 @@ export default function OpsPlaybooksClient() {
   if (!pack?.hasOpsConfig || !pack?.packKey) {
     return (
       <div className="space-y-4 p-4 md:p-6">
-        <h1 className="text-2xl font-bold">Playbook previews</h1>
+        <h1 className="text-2xl font-bold">Pack playbooks</h1>
         <SectionCard title="No operations configured" icon={<BookOpenCheck className="h-4 w-4" />}>
           <EmptyNote>
             Your role pack has no operations configuration yet, so there are no runbooks to preview.{" "}
@@ -193,7 +193,7 @@ export default function OpsPlaybooksClient() {
         <div className="space-y-1">
           <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight">
             <BookOpenCheck className="h-5 w-5" aria-hidden />
-            Playbook previews
+            Pack playbooks
           </h1>
           <p className="text-sm text-muted-foreground">
             {pack.discipline ? pack.discipline : "Your"} operations &middot; the runbooks your role pack
@@ -233,7 +233,7 @@ export default function OpsPlaybooksClient() {
           <Link href="/dashboard/ops/logs">Activity logs</Link>
         </Button>
         <Button size="sm" variant="outline" asChild>
-          <Link href="/dashboard/ops/reports">Report previews</Link>
+          <Link href="/dashboard/ops/reports">Pack reports</Link>
         </Button>
       </div>
     </div>

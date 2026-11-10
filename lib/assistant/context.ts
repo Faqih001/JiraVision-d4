@@ -292,9 +292,9 @@ export function formatContextForPrompt(context: AssistantContext): string {
     })
   }
 
-  // Work reports
+  // Period reports
   if (context.workReports.length > 0) {
-    sections.push(`\n## Work Reports (${context.workReports.length})`)
+    sections.push(`\n## Period Reports (${context.workReports.length})`)
     context.workReports.forEach((report) => {
       const submitted = report.submittedAt ? "submitted" : "draft"
       sections.push(

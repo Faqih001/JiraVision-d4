@@ -59,7 +59,7 @@ describe("ops playbook previews page", () => {
 
   it("links the sidebar and the overview top bar to the previews page", () => {
     const layout = src("components/dashboard-layout.tsx")
-    expect(layout).toContain("Playbook previews")
+    expect(layout).toContain("Pack Playbooks")
     expect(layout).toContain("/dashboard/ops/playbooks")
 
     const overview = src("app/dashboard/ops/page.tsx")

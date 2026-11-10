@@ -177,7 +177,7 @@ export default function ReportsClient() {
         }
       }
     } catch (error) {
-      toast({ variant: "destructive", title: "Work reports", description: (error as Error).message })
+      toast({ variant: "destructive", title: "Period reports", description: (error as Error).message })
     } finally {
       setLoading(false)
     }
@@ -463,7 +463,7 @@ export default function ReportsClient() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="text-xl font-semibold">Work reports</h1>
+          <h1 className="text-xl font-semibold">Period reports</h1>
           <p className="text-sm text-muted-foreground">
             A period, read back from the work log: what moved, what shipped, what is stuck.
             {source === "snapshot" && report?.metrics

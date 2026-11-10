@@ -40,6 +40,7 @@ import {
   FileSpreadsheet,
   FileBarChart2,
   FileText,
+  GanttChartSquare,
   Gamepad2,
   Heart,
   Home,
@@ -51,6 +52,7 @@ import {
   Menu,
   MessageSquare,
   Moon,
+  Plug,
   Repeat,
   Search,
   Settings,
@@ -58,6 +60,7 @@ import {
   Shield,
   ShieldCheck,
   SlidersHorizontal,
+  Sparkles,
   Sprout,
   Sun,
   Target,
@@ -322,7 +325,7 @@ export default function DashboardLayout({
           active: pathname === "/dashboard/worklog",
         },
         {
-          title: "Work Reports",
+          title: "Period Reports",
           icon: <FileText className="h-5 w-5" />,
           href: "/dashboard/reports-work",
           active: pathname === "/dashboard/reports-work",
@@ -383,13 +386,13 @@ export default function DashboardLayout({
                 active: pathname === "/dashboard/ops/kpis",
               },
               {
-                title: "Report previews",
+                title: "Pack Reports",
                 icon: <FileBarChart2 className="h-5 w-5" />,
                 href: "/dashboard/ops/reports",
                 active: pathname === "/dashboard/ops/reports",
               },
               {
-                title: "Playbook previews",
+                title: "Pack Playbooks",
                 icon: <BookOpenCheck className="h-5 w-5" />,
                 href: "/dashboard/ops/playbooks",
                 active: pathname === "/dashboard/ops/playbooks",
@@ -413,6 +416,12 @@ export default function DashboardLayout({
     {
       title: "Planning",
       items: [
+        {
+          title: "Planner",
+          icon: <GanttChartSquare className="h-5 w-5" />,
+          href: "/dashboard/planner",
+          active: pathname === "/dashboard/planner" || pathname.startsWith("/dashboard/planner/"),
+        },
         {
           title: "Goals & OKRs",
           icon: <Target className="h-5 w-5" />,
@@ -441,6 +450,14 @@ export default function DashboardLayout({
           icon: <Brain className="h-5 w-5" />,
           href: "/dashboard/ai-scrum-master",
           active: pathname === "/dashboard/ai-scrum-master",
+        },
+        {
+          // The top-bar popover is the quick path on a wide screen and is hidden on mobile, so
+          // this is the entry that works everywhere.
+          title: "AI Assistant",
+          icon: <Sparkles className="h-5 w-5" />,
+          href: "/dashboard/assistant",
+          active: pathname === "/dashboard/assistant" || pathname.startsWith("/dashboard/assistant/"),
         },
       ],
     },
@@ -496,7 +513,7 @@ export default function DashboardLayout({
           active: pathname === "/dashboard/analytics",
         },
         {
-          title: "Reports",
+          title: "Report Builder",
           icon: <FileSpreadsheet className="h-5 w-5" />,
           href: "/dashboard/reports",
           active: pathname === "/dashboard/reports",
@@ -530,6 +547,12 @@ export default function DashboardLayout({
           icon: <CreditCard className="h-5 w-5" />,
           href: "/dashboard/billing",
           active: pathname === "/dashboard/billing",
+        },
+        {
+          title: "Integrations",
+          icon: <Plug className="h-5 w-5" />,
+          href: "/dashboard/integrations",
+          active: pathname === "/dashboard/integrations",
         },
         {
           title: "Settings",

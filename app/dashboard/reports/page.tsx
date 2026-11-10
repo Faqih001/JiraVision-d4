@@ -724,7 +724,7 @@ export default function ReportsPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight">
-            <FileSpreadsheet className="h-6 w-6 text-emerald-600" /> Reports
+            <FileSpreadsheet className="h-6 w-6 text-emerald-600" /> Report Builder
           </h1>
           <p className="text-sm text-muted-foreground">
             Build datasets from live workspace data, schedule recurring reports and export real CSV/JSON files.

@@ -265,7 +265,7 @@ export default function ReportsClient() {
   if (!pack?.hasOpsConfig || !pack?.packKey) {
     return (
       <div className="space-y-4 p-4 md:p-6">
-        <h1 className="text-2xl font-bold">Report previews</h1>
+        <h1 className="text-2xl font-bold">Pack reports</h1>
         <SectionCard title="No operations configured" icon={<FileBarChart2 className="h-4 w-4" />}>
           <EmptyNote>
             Your role pack has no operations configuration yet, so there are no report templates to
@@ -288,7 +288,7 @@ export default function ReportsClient() {
         <div className="space-y-1">
           <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight">
             <FileBarChart2 className="h-5 w-5" aria-hidden />
-            Report previews
+            Pack reports
           </h1>
           <p className="text-sm text-muted-foreground">
             {pack.discipline ? pack.discipline : "Your"} operations &middot; {monthLabel(month)} &middot;

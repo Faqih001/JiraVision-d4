@@ -905,7 +905,7 @@ export default function AutomationPage() {
         {[
           { href: "/dashboard", label: "Dashboard" },
           { href: "/dashboard/tasks", label: "Tasks" },
-          { href: "/dashboard/reports", label: "Reports" },
+          { href: "/dashboard/reports", label: "Report Builder" },
           { href: "/dashboard/activity", label: "Activity" },
         ].map((l) => (
           <Link key={l.href} href={l.href}>

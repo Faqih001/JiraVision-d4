@@ -66,7 +66,7 @@ export const DATASETS = {
     valueLabel: "plans",
   },
   work_reports: {
-    label: "Work reports",
+    label: "Period reports",
     groupBys: [
       { key: "status", label: "Status" },
       { key: "template", label: "Template" },

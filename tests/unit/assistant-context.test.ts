@@ -171,7 +171,7 @@ describe("formatContextForPrompt", () => {
     }
 
     const result = formatContextForPrompt(context)
-    expect(result).toContain("## Work Reports (1)")
+    expect(result).toContain("## Period Reports (1)")
     expect(result).toContain("Week 43 Report")
     expect(result).toContain("weekly")
     expect(result).toContain("submitted")

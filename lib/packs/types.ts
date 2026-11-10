@@ -27,7 +27,7 @@ export const DASHBOARD_SECTIONS = [
   { key: "registers", label: "Registers" },
   { key: "tasks", label: "Tasks" },
   { key: "worklog", label: "Work log" },
-  { key: "reports", label: "Work reports" },
+  { key: "reports", label: "Period reports" },
   { key: "career", label: "Career" },
 ] as const
 
