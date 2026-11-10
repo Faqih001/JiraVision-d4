@@ -631,3 +631,47 @@ the work log is where yesterday gets recorded.
 
 Guards: `tests/unit/task-create-status.test.ts` (12), and the write-door census in
 `tests/unit/recurrence-gap-guards.test.ts` now includes `app/api/tasks/route.ts`.
+
+## K — The board can be turned to another day (added after I shipped)
+
+§I made the board draw *today's* occurrence. The owner asked for the other direction as well: "able to
+filter tasks according to the day to see past and future … build for future and past". A board pinned to
+today cannot answer "did the backup run last Friday" or "what lands next week", and both questions are
+about occurrence rows the grid already holds.
+
+- **Browsing is a read, and one parameter carries it.** `?date=` on `GET /api/tasks`;
+  `resolveBoardDay(requested, todayIso)` in `lib/tasks/board-day.ts` decides what the board draws and
+  whether anybody may write on it. Anything that is not a real calendar day — junk, a timestamp, 29
+  February in a common year — falls back to the member's today rather than querying a day nobody asked
+  for. `boardDayParam` keeps the value in the address for any other day and drops it on today, so the
+  board's default URL stays clean and a shared link still lands on the day it named.
+- **The two days stay apart, and that is the design.** The drawn day appears only in a SELECT. The grid
+  top-up stays anchored on the member's real `topUpIso`, so paging into December cannot fabricate a month
+  of occurrences; a day behind today writes nothing at all, because a forward-walking horizon cannot birth
+  a past row and the top-up would be pure write traffic on a look back. `occurrencesForDay` still returns
+  the rows the first read found when the top-up fails.
+- **The server owns the writability verdict.** The response carries
+  `day: { date, today, relation, readOnly }`, and the page trusts it for the day actually drawn, falling
+  back to the same pure rule while a day is in flight so a future board is never briefly draggable. The
+  client sends the raw URL value and lets the route resolve it — resolving first on the client would make
+  the query depend on the response.
+- **A day ahead is a preview.** Marking next Friday's backup done should not be possible by paging
+  forward, so those days refuse at every door: no drag start, no drop target, no enabled status button,
+  and `moveTask` returns before the optimistic write with a toast naming the day. The panel shows a
+  Lock · Preview badge and says what remains editable — a card's *details* change the task, which is not
+  this day's row. A day **behind** today stays actionable: a missed occurrence is owed work, and settling
+  it on the board is the same write as settling it today.
+- **The header says which day is on screen.** Prev/next chevrons, a `DateField` for anywhere, a Today
+  button disabled when already there, and `boardDayTitle` — "Today · Sun 8 Nov", "Tomorrow · Mon 9 Nov",
+  "Fri 13 Nov", "Mon 4 Jan 2027" — built from `Intl` parts so a locale's punctuation cannot leak into the
+  heading, with the year only when it is not this one. The title is `aria-live`.
+
+Deliberately not built: the same navigator on `/dashboard/tasks`. Its filter bar was just fought back onto
+one row, and the page asks a different question — it lists tasks matching status, priority, assignee, sprint,
+cadence and text, with a due date only as a column and a dialog field. Which occurrence falls on which day is
+the board's question, so the day control lives on the board.
+
+Guards: `tests/unit/board-day.test.ts` (11 — the fallbacks, a leap day, past actionable, future read-only
+however far forward it pages, the parameter present only off today), `tests/unit/board-day-navigation.test.ts`
+(17 — the read draws the asked-for day, the browsed day never becomes the anchor, nothing written behind
+today, the top-up stays bounded, the URL round-trip, the four doors a preview closes).
