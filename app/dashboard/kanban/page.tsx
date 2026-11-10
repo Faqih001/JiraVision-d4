@@ -607,6 +607,7 @@ function KanbanBoard() {
   const memberById = useMemo(() => new Map(members.map((m) => [m.id, m])), [members])
   const sprintById = useMemo(() => new Map(sprints.map((s) => [s.id, s])), [sprints])
   const running = useMemo(() => activeSprints(sprints), [sprints])
+  const runningSummary = useMemo(() => summarizeActiveSprints(running), [running])
 
   const visibleTasks = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -660,38 +661,42 @@ function KanbanBoard() {
     const rows = picked ? [picked] : running
     if (rows.length === 0) return null
 
-    const totals = picked
-      ? { committed: picked.totalPoints, done: picked.donePoints, capacity: picked.capacity, nextEnds: picked.endDate }
-      : summarizeActiveSprints(running)
-    const meter = { committed: totals.committed, capacity: totals.capacity }
+    const only = rows.length === 1 ? rows[0] : null
+    const totals = only
+      ? {
+          committed: only.totalPoints,
+          done: only.donePoints,
+          capacity: only.capacity,
+          detail: `${only.startDate} → ${only.endDate}`,
+        }
+      : {
+          committed: runningSummary.committed,
+          done: runningSummary.done,
+          capacity: runningSummary.capacity,
+          detail: `next closes ${runningSummary.nextEnds ?? "—"}`,
+        }
+    const pct = capacityPct({ capacity: totals.capacity, totalPoints: totals.committed })
 
     return {
-      label: rows.length === 1 ? rows[0].name : `${rows.length} active sprints`,
-      status: picked ? picked.status : "active",
-      detail:
-        rows.length === 1
-          ? `${rows[0].startDate} → ${rows[0].endDate}`
-          : `next closes ${totals.nextEnds ?? "—"}`,
+      label: only ? only.name : `${rows.length} active sprints`,
+      status: only ? only.status : "active",
+      detail: totals.detail,
       rows: rows.map((s) => ({
         id: s.id,
         name: s.name,
         committed: s.totalPoints,
-        done: s.donePoints,
         capacity: s.capacity,
         endDate: s.endDate,
       })),
       committed: totals.committed,
       done: totals.done,
       capacity: totals.capacity,
-      capacityPct: capacityPct(meter),
-      fillPct: (() => {
-        const pct = capacityPct(meter)
-        return pct === null ? (totals.committed > 0 ? 100 : 0) : Math.min(100, pct)
-      })(),
-      overCapacity: totals.capacity > 0 && totals.committed > totals.capacity,
+      capacityPct: pct,
+      fillPct: pct === null ? (totals.committed > 0 ? 100 : 0) : Math.min(100, pct),
+      overCapacity: pct !== null && pct > 100,
       progressPct: progressPct({ totalPoints: totals.committed, donePoints: totals.done }),
     }
-  }, [sprintFilter, sprintById, running])
+  }, [sprintFilter, sprintById, running, runningSummary])
 
   const atRisk = useMemo(
     () => visibleTasks.filter((t) => t.status === "blocked" || isOverdue(t)),
@@ -919,7 +924,7 @@ function KanbanBoard() {
               ? " · no active sprint"
               : running.length === 1
                 ? ` · ${running[0].name} · ends ${running[0].endDate}`
-                : ` · ${running.length} active sprints · next closes ${summarizeActiveSprints(running).nextEnds}`}
+                : ` · ${running.length} active sprints · next closes ${runningSummary.nextEnds}`}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -1013,40 +1018,45 @@ function KanbanBoard() {
       {/* 2 — WIP / capacity bar */}
       <Card>
         <CardContent className="flex flex-col gap-2 py-3 md:flex-row md:items-center md:gap-6">
-          {capacitySprint ? (
+          {capacityMeter ? (
             <>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <p className="truncate text-sm font-semibold">{capacitySprint.name}</p>
+                  <p className="truncate text-sm font-semibold">{capacityMeter.label}</p>
                   <Badge variant="secondary" className="shrink-0 capitalize">
-                    {capacitySprint.status}
+                    {capacityMeter.status}
                   </Badge>
                 </div>
                 <p className="mt-0.5 text-xs text-muted-foreground">
-                  {capacitySprint.totalPoints} pts committed · {capacitySprint.donePoints} pts done ·{" "}
-                  {capacitySprint.capacity > 0 ? `${capacitySprint.capacity} pts capacity` : "no capacity set"} ·{" "}
-                  {capacitySprint.startDate} → {capacitySprint.endDate}
+                  {capacityMeter.committed} pts committed · {capacityMeter.done} pts done ·{" "}
+                  {capacityMeter.capacity > 0 ? `${capacityMeter.capacity} pts capacity` : "no capacity set"} ·{" "}
+                  {capacityMeter.detail}
                 </p>
+                {capacityMeter.rows.length > 1 && (
+                  <div className="mt-1 flex flex-wrap gap-x-4 gap-y-0.5">
+                    {capacityMeter.rows.map((row) => (
+                      <span key={row.id} className="whitespace-nowrap text-[11px] text-muted-foreground">
+                        {row.name}: {row.committed}
+                        {row.capacity > 0 ? `/${row.capacity}` : ""} pts · closes {row.endDate}
+                      </span>
+                    ))}
+                  </div>
+                )}
                 <Progress
-                  value={
-                    capacitySprint.capacity > 0
-                      ? Math.min(100, Math.round((capacitySprint.totalPoints / capacitySprint.capacity) * 100))
-                      : capacitySprint.totalPoints > 0
-                        ? 100
-                        : 0
-                  }
-                  className={cn(
-                    "mt-2 h-2",
-                    capacitySprint.capacity > 0 && capacitySprint.totalPoints > capacitySprint.capacity && "[&>div]:bg-red-500",
-                  )}
+                  value={capacityMeter.fillPct}
+                  className={cn("mt-2 h-2", capacityMeter.overCapacity && "[&>div]:bg-red-500")}
                 />
               </div>
               <div className="flex items-center gap-4 text-center">
                 <div>
                   <p className="text-lg font-semibold tabular-nums">
-                    {capacitySprint.capacity > 0 ? `${Math.round((capacitySprint.totalPoints / capacitySprint.capacity) * 100)}%` : "—"}
+                    {capacityMeter.capacityPct === null ? "—" : `${capacityMeter.capacityPct}%`}
                   </p>
                   <p className="text-[11px] text-muted-foreground">of capacity</p>
+                </div>
+                <div>
+                  <p className="text-lg font-semibold tabular-nums">{capacityMeter.progressPct}%</p>
+                  <p className="text-[11px] text-muted-foreground">done</p>
                 </div>
                 <div>
                   <p className="text-lg font-semibold tabular-nums">
