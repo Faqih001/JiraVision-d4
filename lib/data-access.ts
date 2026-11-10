@@ -10,6 +10,7 @@ import {
   sprintAnalytics,
   aiInsights,
 } from "../drizzle/schema"
+import { doneEarlierSql, doneWindowSql, type DoneWindowBounds } from "@/lib/tasks/completed-on-read"
 
 // User functions
 export async function getUserProfile(userId: number) {
@@ -242,6 +243,12 @@ export async function getPaginatedTasks(
     search?: string,
     /** The signed-in member's id, set by `scope=mine` on GET /api/tasks. */
     memberUserId?: number,
+    /**
+     * The window a Done column is showing, as the two instants it spans. Absent means no window:
+     * a read that never sees `?doneWindow=` — the reports, the dashboard counts — keeps asking for
+     * all-time history, exactly as it did before.
+     */
+    doneWindow?: DoneWindowBounds,
   }
 ) {
   try {
@@ -278,6 +285,18 @@ export async function getPaginatedTasks(
         )
       }
     }
+
+    // Everything except the window, so the "how much did the window leave out" count can ask the
+    // same question of the same member with the window turned the other way.
+    const baseConditions = [...whereConditions]
+
+    // The window joins this list rather than filtering the rows afterwards, because the page budget
+    // is spent newest-edited first: an all-time Done pile would consume the whole page before the
+    // cards anybody asked to see arrived.
+    if (filters?.doneWindow) {
+      whereConditions.push(doneWindowSql(filters.doneWindow))
+    }
+    const earlierSql = filters?.doneWindow ? doneEarlierSql(filters.doneWindow) : null
     
     // Build query with all conditions at once
     const query = db.select().from(tasks)
@@ -291,6 +310,16 @@ export async function getPaginatedTasks(
       .from(query.as('filtered_tasks'))
       
     const totalCount = Number(countResult[0]?.count || 0)
+
+    // What the window hid, counted on the same filters. `all` has no lower bound and so hides
+    // nothing — the null from `doneEarlierSql` is that answer, not a query that returns zero.
+    let doneEarlier = 0
+    if (earlierSql) {
+      const earlierRows = await db
+        .select({ count: sql<number>`COUNT(*)` })
+        .from(db.select({ id: tasks.id }).from(tasks).where(and(...baseConditions, earlierSql)).as('earlier_tasks'))
+      doneEarlier = Number(earlierRows[0]?.count || 0)
+    }
     
     // Get paginated results
     const results = await query
@@ -300,6 +329,7 @@ export async function getPaginatedTasks(
       
     return {
       tasks: results,
+      doneEarlier,
       pagination: {
         total: totalCount,
         page,
@@ -311,6 +341,7 @@ export async function getPaginatedTasks(
     console.error('Error getting paginated tasks:', error)
     return {
       tasks: [],
+      doneEarlier: 0,
       pagination: {
         total: 0,
         page: page,

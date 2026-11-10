@@ -11,10 +11,22 @@
 // The window is a page preference, not a server one: the board wants the last week, the task list
 // wants everything. Junk therefore resolves to the answer that hides nothing.
 
-import { localDay, shiftDays } from "@/lib/worklog/local-day"
+import { dayStartUtc, localDay, shiftDays } from "@/lib/worklog/local-day"
 
 export const DONE_WINDOWS = ["day", "week", "all"] as const
 export type DoneWindow = (typeof DONE_WINDOWS)[number]
+
+/**
+ * A window as the database sees it: an inclusive lower instant, an exclusive upper one, and a
+ * null lower bound for the window that opens the past.
+ *
+ * Shared by `doneWindowInstants` here and the SQL predicate in lib/tasks/completed-on-read.ts, so
+ * the day a card is grouped on and the window that hid or kept it are cut from the same two dates.
+ */
+export type DoneWindowBounds = {
+  from: Date | null
+  to: Date
+}
 
 /** What an unreadable preference resolves to on the server: a window nobody chose hides nothing. */
 export const SERVER_DONE_WINDOW: DoneWindow = "all"
@@ -35,6 +47,16 @@ export function resolveDoneWindow(
 }
 
 /**
+ * The `?done=` value, or null when the page is already showing its own default.
+ *
+ * Same rule as `boardDayParam`: a URL is an address, and an address that repeats what the page
+ * does anyway cannot be told apart from one a member chose on purpose.
+ */
+export function doneWindowParam(window: DoneWindow, fallback: DoneWindow): string | null {
+  return window === fallback ? null : window
+}
+
+/**
  * The closed range of days a window covers, ending on the day being drawn.
  *
  * The upper bound always exists: a board turned to last Friday is a view as of that day, and a
@@ -48,6 +70,26 @@ export function doneWindowBounds(
   if (window === "all") return { fromIso: null, toIso: dayIso }
   if (window === "week") return { fromIso: shiftDays(dayIso, -(WEEK_WINDOW_DAYS - 1)), toIso: dayIso }
   return { fromIso: dayIso, toIso: dayIso }
+}
+
+/**
+ * The same range as the pair of instants the database compares timestamps against.
+ *
+ * A window is a range of the member's days, so its bounds are their midnights in their own zone:
+ * cutting them at UTC would move a card between columns for anybody west of Greenwich. The upper
+ * bound is always the midnight *after* the day being drawn, which is what makes `< to` include a
+ * finish at any hour of that day.
+ */
+export function doneWindowInstants(
+  window: DoneWindow,
+  dayIso: string,
+  timeZone: string | null | undefined,
+): DoneWindowBounds {
+  const { fromIso, toIso } = doneWindowBounds(window, dayIso)
+  return {
+    from: fromIso ? dayStartUtc(fromIso, timeZone) : null,
+    to: dayStartUtc(shiftDays(toIso, 1), timeZone),
+  }
 }
 
 /**
@@ -76,7 +118,7 @@ export type CompletionGroup<T> = { dayIso: string; label: string; rows: T[] }
 /**
  * Cards bucketed per completion day, newest day first — the order a Done column reads in.
  *
- * `dayOf` is a accessor rather than a field because the two kinds of done card keep their day in
+ * `dayOf` is a function rather than a field because the two kinds of done card keep their day in
  * different places: a one-off has `completedOn`, and a schedule's card was finished when its
  * occurrence closed, which is the day the page is already drawing.
  */

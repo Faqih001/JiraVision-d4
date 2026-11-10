@@ -12,6 +12,9 @@ import { loadVisibleMemberIds } from "@/lib/organizations"
 import { localDay } from "@/lib/worklog/local-day"
 import { isScheduleRow, occurrencesForDay } from "@/lib/tasks/day-occurrence"
 import { resolveBoardDay } from "@/lib/tasks/board-day"
+import { isCompletedTaskStatus } from "@/lib/tasks/statuses"
+import { completedOnFrom, doneWindowInstants, resolveDoneWindow } from "@/lib/tasks/completed-on"
+import { finishEventsFor } from "@/lib/tasks/completed-on-read"
 
 // Anonymous access is a convenience for local development and scripted runs only.
 // The previous expression ORed in ENABLE_TEST_MODE unconditionally, so a stray
@@ -42,6 +45,18 @@ export async function GET(request: Request) {
     const page = parseInt(searchParams.get("page") || "1", 10)
     const pageSize = parseInt(searchParams.get("pageSize") || "10", 10)
     
+    // The day this request is drawing. Read before the filters, because the Done window is anchored
+    // on it: a board turned to last Friday is a view as of that Friday, and its Done column should
+    // hold the cards finished up to then — not the ones finished since.
+    const todayIso = localDay(new Date(), session?.timezone)
+    const boardDay = resolveBoardDay(searchParams.get("date"), todayIso)
+
+    // Which slice of finished history the column asks for. The timezone is the session's and never
+    // the query string's: a parameter that could choose a zone could choose which cards another
+    // member's board hides.
+    const doneWindow = resolveDoneWindow(searchParams.get("doneWindow"))
+    const doneBounds = doneWindowInstants(doneWindow, boardDay.iso, session?.timezone)
+
     // Parse filter parameters
     const filters = {
       status: searchParams.get("status") || undefined,
@@ -55,6 +70,7 @@ export async function GET(request: Request) {
       search: searchParams.get("search") || undefined,
       // `scope=mine` is the member's own board: the session id, never the query string.
       memberUserId: searchParams.get("scope") === "mine" ? session?.id : undefined,
+      doneWindow: doneBounds,
     }
     
     // Get paginated tasks
@@ -64,22 +80,39 @@ export async function GET(request: Request) {
     // `tasks`. Attaching the drawn day's occurrence is what lets the kanban put a daily in To do
     // every morning and let it be marked done once for that day. `null` means "not due on this
     // day", which is a real answer for a weekly schedule read on the wrong day, not a missing row.
-    //
-    // `?date=` browses another day. It only selects; the grid top-up stays anchored on the real
-    // today, so paging forward cannot fabricate occurrences.
     const hasSchedule = result.tasks.some(isScheduleRow)
-    const todayIso = localDay(new Date(), session?.timezone)
-    const boardDay = resolveBoardDay(searchParams.get("date"), todayIso)
     const writableIds = hasSchedule && session ? await loadVisibleMemberIds(session.id) : []
     const occurrences = await occurrencesForDay(result.tasks, boardDay.iso, writableIds, todayIso)
+
+    // The day each finished card was actually finished, so the Done column can group by day without
+    // fetching `task_events` per card. One grouped read for the page; a card missing from the map
+    // has no event and falls back to the row's own clock, the same concession the SQL filter makes.
+    // Only a finished one-off is given a day: a schedule's card is already dated by the occurrence
+    // the page is drawing, and a template's `status` is not a completion at all.
+    const finishEvents = await finishEventsFor(result.tasks.map((task) => task.id))
 
     return NextResponse.json({
       success: true,
       data: result.tasks.map((task) => ({
         ...task,
         dayInstance: occurrences.get(task.id) ?? null,
+        completedOn: completedOnFrom(
+          finishEvents.get(task.id) ?? null,
+          task.updatedAt ?? task.createdAt,
+          session?.timezone,
+          isCompletedTaskStatus(task.status) && !isScheduleRow(task),
+        ),
       })),
       pagination: result.pagination,
+      // The window this response drew, in the shape the page echoes back to the server on the next
+      // request. `earlier` is what the window left out, so a column can say "31 done earlier" with
+      // a real number instead of an estimate.
+      doneWindow: {
+        window: doneWindow,
+        from: doneBounds.from?.toISOString() ?? null,
+        to: doneBounds.to.toISOString(),
+        earlier: result.doneEarlier,
+      },
       // The server owns the verdict on writability: a tab left open overnight, or a member in
       // another zone, must not disagree with it about which day is still ahead.
       day: {

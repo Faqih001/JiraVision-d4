@@ -17,6 +17,8 @@ import {
   completionDayLabel,
   completedOnFrom,
   doneWindowBounds,
+  doneWindowInstants,
+  doneWindowParam,
   doneWindowPhrase,
   earlierDoneLabel,
   groupByCompletionDay,
@@ -76,6 +78,61 @@ describe("the days a window covers", () => {
   it("crosses a month and a year edge without losing days", () => {
     expect(doneWindowBounds("week", "2026-01-03")).toEqual({ fromIso: "2025-12-28", toIso: "2026-01-03" })
     expect(doneWindowBounds("week", "2026-03-04")).toEqual({ fromIso: "2026-02-26", toIso: "2026-03-04" })
+  })
+})
+
+describe("the window as an address", () => {
+  it("keeps the page's default out of the URL", () => {
+    // Mirrors how the board day is written: today's board is `/dashboard/kanban`, not
+    // `?date=<today>`. A URL that spells the default out is noise a member has to read past.
+    expect(doneWindowParam("week", "week")).toBeNull()
+    expect(doneWindowParam("day", "week")).toBe("day")
+    expect(doneWindowParam("all", "week")).toBe("all")
+  })
+
+  it("names the tasks page's default the same way", () => {
+    expect(doneWindowParam("all", "all")).toBeNull()
+    expect(doneWindowParam("day", "all")).toBe("day")
+  })
+})
+
+describe("the instants a window compares against", () => {
+  // The window is a range of days, but the SQL compares timestamps, so this is where a day becomes
+  // a pair of instants — and where a member's midnight has to mean their own, not the database's.
+  it("cuts the day at the member's midnight, not UTC's", () => {
+    // Nairobi is UTC+3 all year, so Sun 8 Nov there opens at 21:00Z the day before.
+    expect(doneWindowInstants("day", TODAY, "Africa/Nairobi")).toEqual({
+      from: new Date("2026-11-07T21:00:00.000Z"),
+      to: new Date("2026-11-08T21:00:00.000Z"),
+    })
+  })
+
+  it("agrees with the day the row is grouped on", () => {
+    // A window that disagreed with `completedOnFrom` would show a card the column then grouped
+    // under a header the window says it does not belong to.
+    const nairobi = doneWindowInstants("day", TODAY, "Africa/Nairobi")
+    expect(completedOnFrom(nairobi.from, null, "Africa/Nairobi")).toBe(TODAY)
+    expect(completedOnFrom(nairobi.to, null, "Africa/Nairobi")).not.toBe(TODAY)
+  })
+
+  it("opens seven days back for a week and stops at the end of the drawn day", () => {
+    expect(doneWindowInstants("week", TODAY, "Africa/Nairobi")).toEqual({
+      from: new Date("2026-11-01T21:00:00.000Z"),
+      to: new Date("2026-11-08T21:00:00.000Z"),
+    })
+  })
+
+  it("has no lower bound for `all`, but never reaches past the day being drawn", () => {
+    const all = doneWindowInstants("all", TODAY, "UTC")
+    expect(all.from).toBeNull()
+    expect(all.to).toEqual(new Date("2026-11-09T00:00:00.000Z"))
+  })
+
+  it("falls back to UTC for an unreadable zone instead of throwing", () => {
+    expect(doneWindowInstants("day", TODAY, "Mars/Olympus_Mons")).toEqual({
+      from: new Date("2026-11-08T00:00:00.000Z"),
+      to: new Date("2026-11-09T00:00:00.000Z"),
+    })
   })
 })
 

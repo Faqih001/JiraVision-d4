@@ -5,8 +5,10 @@
 // pills and chart styling defined by the design tokens in globals.css.
 
 import { CircleDot, Flag } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
+import { DONE_WINDOWS, type DoneWindow } from "@/lib/tasks/completed-on"
 
 export const STATUSES = ["todo", "in_progress", "review", "blocked", "done"]
 export const PRIORITIES = ["urgent", "high", "medium", "low"]
@@ -134,6 +136,44 @@ export function AvatarCircle({
 
 export function EmptyNote({ children }: { children: React.ReactNode }) {
   return <p className="py-6 text-center text-xs text-muted-foreground">{children}</p>
+}
+
+/**
+ * The Day · Week · All choice a Done surface carries.
+ *
+ * One component because the two surfaces that hide a Done pile must offer the same three words in
+ * the same order — a page-local copy is how a member ends up with two boards that disagree about
+ * what "week" means. Only the default differs between them, and that is the caller's business.
+ */
+export function DoneWindowSegment({
+  value,
+  onChange,
+  className,
+}: {
+  value: DoneWindow
+  onChange: (window: DoneWindow) => void
+  className?: string
+}) {
+  return (
+    <div
+      role="group"
+      aria-label="Which days of finished cards to show"
+      className={cn("flex items-center gap-1 rounded-md border p-0.5", className)}
+    >
+      {DONE_WINDOWS.map((w) => (
+        <Button
+          key={w}
+          size="sm"
+          variant={value === w ? "secondary" : "ghost"}
+          className="h-8 px-2 text-xs capitalize"
+          aria-pressed={value === w}
+          onClick={() => onChange(w)}
+        >
+          {w}
+        </Button>
+      ))}
+    </div>
+  )
 }
 
 export function relativeTime(iso: string) {

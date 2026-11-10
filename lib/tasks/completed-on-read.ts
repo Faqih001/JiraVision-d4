@@ -14,13 +14,9 @@ import { and, inArray, sql, type SQL } from "drizzle-orm"
 import { db } from "@/lib/db"
 import { taskEvents, tasks } from "@/drizzle/schema"
 import { completedStatusListSql, completedStatusSql } from "@/lib/tasks/statuses-sql"
+import type { DoneWindowBounds } from "@/lib/tasks/completed-on"
 
-export type DoneWindowBounds = {
-  /** Inclusive lower instant. Null opens the past — the `all` window. */
-  from: Date | null
-  /** Exclusive upper instant: the member's midnight after the day being drawn. */
-  to: Date
-}
+export type { DoneWindowBounds }
 
 /**
  * The last time this task was moved into a finished word.
@@ -59,7 +55,9 @@ export function doneWindowSql(bounds: DoneWindowBounds): SQL {
   const inside = bounds.from
     ? sql`(${instant} >= ${bounds.from} and ${instant} < ${bounds.to})`
     : sql`${instant} < ${bounds.to}`
-  return sql`(${finishedOneOffSql()} and ${instant} is not null and not ${inside} or true)`
+  // `coalesce(..., true)`: a finish that cannot be dated yields NULL here, and an undatable card is
+  // not a card to hide.
+  return sql`(not ${finishedOneOffSql()} or coalesce(${inside}, true))`
 }
 
 /**

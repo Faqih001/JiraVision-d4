@@ -77,6 +77,7 @@ import { cn } from "@/lib/utils"
 import {
   AXIS,
   AvatarCircle,
+  DoneWindowSegment,
   EmptyNote,
   PRIORITIES,
   PriorityPill,
@@ -101,6 +102,15 @@ import { RECURRING_STATUS_HINT } from "@/lib/task-updates"
 import { CADENCES, CADENCE_LABEL, isCadence, type Cadence } from "@/lib/cadence"
 import { parseChecklistItems, type ChecklistItem } from "@/lib/tasks/checklist"
 import { boardDayParam, boardDayTitle, resolveBoardDay } from "@/lib/tasks/board-day"
+import {
+  doneWindowParam,
+  doneWindowPhrase,
+  earlierDoneLabel,
+  groupByCompletionDay,
+  resolveDoneWindow,
+  type CompletionGroup,
+  type DoneWindow,
+} from "@/lib/tasks/completed-on"
 import { localDay, shiftDays } from "@/lib/worklog/local-day"
 import { activeSprints, capacityPct, progressPct, summarizeActiveSprints } from "@/lib/sprints/active"
 import { DateField } from "@/components/ui/date-range-picker"
@@ -124,7 +134,12 @@ type TaskRow = {
   updatedAt: string | null
   /** The drawn day's occurrence of a schedule, or null when it is not due on that day. */
   dayInstance: { id: number; status: string } | null
+  /** The day a finished one-off closed, in the member's own calendar day. Null when it is not done. */
+  completedOn?: string | null
 }
+
+/** The server's verdict on the window it applied: which one, its bounds, and what it left out. */
+type DoneWindowPayload = { window: string; from: string | null; to: string; earlier: number }
 
 /** The server's verdict on the day it drew: which day, whose today, and whether it may be written. */
 type BoardDayPayload = { date: string; today: string; readOnly: boolean }
@@ -217,6 +232,12 @@ const isRecurring = (t: TaskRow) => Boolean(t.cadence) && t.cadence !== "one-off
 const INSTANCE_STATUSES = ["todo", "in_progress", "done"]
 
 /**
+ * What the board hides by default. A board is a look at one day, so the week behind it is the
+ * context; the tasks page, which is a query tool, defaults to `all` instead.
+ */
+const KANBAN_DONE_DEFAULT: DoneWindow = "week"
+
+/**
  * The column a card draws in, or null when the row draws no card at all.
  *
  * A schedule draws the browsed day's occurrence and nothing else: that is what puts a daily in
@@ -281,6 +302,12 @@ function KanbanBoard() {
   const router = useRouter()
   const urlParams = useSearchParams()
   const requestedDay = urlParams.get("date")
+  // A window the member never chose is the page's own default; junk in the address resolves to it
+  // too, so a typo hides nothing rather than hiding everything.
+  const doneWindow = useMemo(
+    () => resolveDoneWindow(urlParams.get("doneWindow"), KANBAN_DONE_DEFAULT),
+    [urlParams],
+  )
 
   // data
   const [tasks, setTasks] = useState<TaskRow[]>([])
@@ -292,7 +319,9 @@ function KanbanBoard() {
   const [refreshing, setRefreshing] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
   // The browser's zone is the best guess until the first response names the member's own today.
+  // The server's verdict on the window behind the rows on screen, including what it left out.
   const [serverDay, setServerDay] = useState<BoardDayPayload | null>(null)
+  const [donePayload, setDonePayload] = useState<DoneWindowPayload | null>(null)
   const [dayLoading, setDayLoading] = useState(false)
 
   const todayIso = serverDay?.today ?? localDay(new Date(), null)
@@ -312,6 +341,7 @@ function KanbanBoard() {
   // The raw URL value travels to the API, which resolves junk to today. Resolving it here first
   // would make the query depend on the response, and the read would chase its own tail.
   const dateQuery = requestedDay ? `&date=${encodeURIComponent(requestedDay)}` : ""
+  const doneQuery = doneWindowParam(doneWindow, KANBAN_DONE_DEFAULT) ? `&done=${doneWindow}` : ""
 
   // drag state
   const [dragOverStatus, setDragOverStatus] = useState<string | null>(null)
