@@ -35,21 +35,32 @@ const PICKERS = [
   "app/dashboard/page.tsx",
 ]
 
+// The sprint board is not a picker. Its My board / Workspace toggle decides which sprints the
+// member is *reading*, which is the one place narrowing the sprint list is the point — so it is
+// exempt from the sweep below and guarded on its default instead.
+const SPRINTS_BOARD = "app/dashboard/sprints/page.tsx"
+
 describe("a sprint picker lists every sprint in the workspace", () => {
   it("finds the dashboard pages it is guarding", () => {
     expect(dashboardPages().length).toBeGreaterThan(20)
     for (const page of PICKERS) expect(dashboardPages()).toContain(page)
   })
 
-  it("narrows no sprint read on any dashboard page", () => {
-    // App-wide rather than per-file: the next page that grows a sprint dropdown should hit this
-    // test instead of repeating the mistake.
+  it("narrows no sprint read on any picker page", () => {
+    // Every dashboard page except the sprint board: the next page that grows a sprint dropdown
+    // should hit this test instead of repeating the mistake.
     for (const page of dashboardPages()) {
+      if (page === SPRINTS_BOARD) continue
       for (const url of sprintFetches(src(page))) {
         expect(`${page} → ${url}`).not.toMatch(/scope=mine/)
         expect(`${page} → ${url}`).not.toMatch(/scopeParam/)
       }
     }
+  })
+
+  it("opens the sprint board where a sprint it just created can be seen", () => {
+    const code = codeOnly(src(SPRINTS_BOARD))
+    expect(code).toMatch(/useState<"mine"\s\|\s"workspace">\("workspace"\)/)
   })
 
   it("asks for the workspace scope out loud where the defect lived", () => {

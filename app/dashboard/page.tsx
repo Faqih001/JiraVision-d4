@@ -730,37 +730,52 @@ export default function DashboardHome() {
         ))}
       </div>
 
-      {/* 3 — Active sprint strip */}
-      {activeSprint && (
+      {/* 3 — Every sprint running, each with its own progress. The overview payload quotes one. */}
+      {running.length > 0 && (
         <Card>
-          <CardContent className="flex flex-col gap-3 py-4 md:flex-row md:items-center md:gap-6">
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <p className="truncate text-sm font-semibold">{activeSprint.name}</p>
-                <Badge variant="secondary" className="shrink-0 capitalize">
-                  {activeSprint.status}
-                </Badge>
-              </div>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                {activeSprint.taskCount} tasks · {activeSprint.donePoints}/{activeSprint.totalPoints} points · ends{" "}
-                {activeSprint.endDate}
-              </p>
-              <Progress value={activeSprint.progressPct} className="mt-2 h-2" />
-            </div>
-            <div className="flex items-center gap-6 text-center">
-              <div>
-                <p className="text-lg font-semibold tabular-nums">{activeSprint.progressPct}%</p>
-                <p className="text-[11px] text-muted-foreground">complete</p>
-              </div>
-              <div>
-                <p className="text-lg font-semibold tabular-nums">{activeSprint.daysLeft}</p>
-                <p className="text-[11px] text-muted-foreground">days left</p>
+          <CardContent className="py-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold">
+                  {running.length === 1 ? running[0].name : `${running.length} active sprints`}
+                </p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {runningSummary.done}/{runningSummary.committed} points done ·{" "}
+                  {runningSummary.capacity > 0
+                    ? `${runningSummary.capacity} pts capacity`
+                    : "no capacity set"}{" "}
+                  · next closes {runningSummary.nextEnds ?? "—"}
+                </p>
               </div>
               <Button asChild size="sm" variant="outline">
                 <Link href="/dashboard/sprints">
                   Sprint board <ArrowRight className="ml-1 h-4 w-4" />
                 </Link>
               </Button>
+            </div>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {running.map((s) => {
+                const pct = capacityPct(s)
+                return (
+                  <div key={s.id} className="min-w-0 rounded-lg border p-3">
+                    <div className="flex items-center gap-2">
+                      <p className="truncate text-sm font-semibold">{s.name}</p>
+                      <Badge variant="secondary" className="shrink-0 capitalize">
+                        {s.status}
+                      </Badge>
+                    </div>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      {s.taskCount} tasks · {s.donePoints}/{s.totalPoints} points · ends {s.endDate}
+                    </p>
+                    <Progress value={progressPct(s)} className="mt-2 h-2" />
+                    <div className="mt-2 flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
+                      <p className="tabular-nums">{progressPct(s)}% complete</p>
+                      <p className="tabular-nums">{pct === null ? "no capacity set" : `${pct}% of capacity`}</p>
+                      <p className="tabular-nums">{s.daysLeft}d left</p>
+                    </div>
+                  </div>
+                )
+              })}
             </div>
           </CardContent>
         </Card>
