@@ -60,9 +60,11 @@ describe("personal boards open on the member's own rows", () => {
     expect(source).toMatch(/>\s*Workspace\s*</)
   })
 
-  it("kanban reads its cards and sprint filter through the scope", () => {
+  it("kanban reads its cards through the scope but its sprint list without it", () => {
+    // The scope decides which *tasks* are drawn. Which sprints exist is not a personal fact —
+    // see tests/unit/sprint-picker-scope.test.ts.
     expect(kanban).toContain("fetch(`/api/tasks?pageSize=200&${scopeParam}${dateQuery}`)")
-    expect(kanban).toContain("fetch(`/api/sprints?${scopeParam}`)")
+    expect(kanban).toContain('fetch("/api/sprints?scope=all")')
     expect(kanban).toContain('fetch("/api/dashboard/overview?scope=member")')
     expect(kanban.match(/scopeParam, dateQuery\]/g)?.length ?? 0).toBeGreaterThanOrEqual(2)
   })
@@ -70,27 +72,27 @@ describe("personal boards open on the member's own rows", () => {
   it("tasks reads both the table and the KPI list through the scope", () => {
     expect(tasks).toContain("fetch(`/api/tasks?page=${page}&pageSize=100&${scopeParam}`)")
     expect(tasks).toContain("fetch(`/api/tasks?${params.toString()}&${scopeParam}`)")
-    expect(tasks).toContain("fetch(`/api/sprints?${scopeParam}`)")
+    expect(tasks).toContain('fetch("/api/sprints?scope=all")')
     expect(tasks).toContain('fetch("/api/dashboard/overview?scope=member")')
   })
 
   it("backlog reads pages and the quiet refresh through the scope", () => {
     expect(backlog).toContain("fetch(`/api/tasks?pageSize=200&page=${page}&${scopeParam}`)")
     expect(backlog).toContain("fetch(`/api/tasks?pageSize=200&${scopeParam}`)")
-    expect(backlog).toContain("fetch(`/api/sprints?${scopeParam}`)")
+    expect(backlog).toContain('fetch("/api/sprints?scope=all")')
     expect(backlog).toContain('fetch("/api/dashboard/overview?scope=member")')
   })
 
   it("calendar reads deadlines, milestones and the task link search through the scope", () => {
     expect(calendar).toContain("fetch(`/api/tasks?pageSize=100&${scopeParam}`)")
-    expect(calendar).toContain("fetch(`/api/sprints?${scopeParam}`)")
+    expect(calendar).toContain('fetch("/api/sprints?scope=all")')
     expect(calendar).toContain("fetch(`/api/tasks?search=${encodeURIComponent(value.trim())}&pageSize=8&${scopeParam}`)")
     expect(calendar).toContain('fetch("/api/dashboard/overview?scope=member")')
   })
 
-  it("the home sprint strip lists only the member's sprints", () => {
-    expect(home).toContain('fetch("/api/sprints?scope=mine")')
-    expect(home).not.toContain('fetch("/api/sprints")')
+  it("the home dashboard lists every sprint a card could be filed into", () => {
+    expect(home).toContain('fetch("/api/sprints?scope=all")')
+    expect(home).not.toMatch(/\/api\/sprints\?scope=mine/)
   })
 })
 
