@@ -69,7 +69,7 @@ import {
 import { LIVE_REFRESH_MS, useLiveRefresh } from "@/hooks/use-live-refresh"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
-import { activeSprints, capacityPct, defaultSprintId, summarizeActiveSprints } from "@/lib/sprints/active"
+import { activeSprints, capacityPct, defaultSprintId, progressPct, summarizeActiveSprints } from "@/lib/sprints/active"
 import { isCompletedTaskStatus } from "@/lib/tasks/statuses"
 import type { DashboardOverview } from "@/lib/dashboard-data"
 import type { OnboardingView } from "@/lib/onboarding/read"
@@ -654,9 +654,11 @@ export default function DashboardHome() {
             {greeting}, {overview.user.name.split(" ")[0]}
           </h1>
           <p className="text-sm text-muted-foreground">
-            {activeSprint
-              ? `${activeSprint.name} · ${activeSprint.daysLeft} day${activeSprint.daysLeft === 1 ? "" : "s"} left`
-              : "No active sprint right now"}
+            {running.length === 0
+              ? "No active sprint right now"
+              : running.length === 1
+                ? `${running[0].name} · ${running[0].daysLeft} day${running[0].daysLeft === 1 ? "" : "s"} left`
+                : `${running.length} active sprints · next closes ${runningSummary.nextEnds ?? "—"}`}
             {overview.realtimeEnabled && (
               <span className="ml-2 inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
                 <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-current" /> live
@@ -710,7 +712,7 @@ export default function DashboardHome() {
         {[
           { label: "My open tasks", value: kpis.myOpenTasks, icon: <CircleDot className="h-4 w-4" />, hint: `${kpis.myDueThisWeek} due this week`, tone: undefined },
           { label: "Completed this week", value: kpis.myCompletedThisWeek, icon: <CheckCheck className="h-4 w-4" />, hint: "last 7 days", tone: undefined },
-          { label: "Sprint progress", value: `${kpis.sprintProgressPct}%`, icon: <Zap className="h-4 w-4" />, hint: activeSprint ? `${activeSprint.donePoints}/${activeSprint.totalPoints} pts` : "no sprint", tone: undefined },
+          { label: "Sprint progress", value: `${kpis.sprintProgressPct}%`, icon: <Zap className="h-4 w-4" />, hint: runningSummary.count === 0 ? "no sprint running" : `${runningSummary.done}/${runningSummary.committed} pts`, tone: undefined },
           { label: "Blocked tasks", value: kpis.blockedTasks, icon: <Timer className="h-4 w-4" />, hint: "yours", tone: kpis.blockedTasks > 0 ? "text-red-500" : undefined },
           { label: "My wellbeing", value: kpis.myWellbeing, icon: <Sparkles className="h-4 w-4" />, hint: "latest check-in /100", tone: undefined },
           { label: "Level", value: overview.gamification?.level ?? 1, icon: <Trophy className="h-4 w-4" />, hint: `${overview.gamification?.xp ?? 0} XP`, tone: undefined },
