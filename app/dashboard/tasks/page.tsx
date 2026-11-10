@@ -719,12 +719,14 @@ export default function TasksWorkspacePage() {
       myOpen: allTasks.filter((t) => t.assigneeId === myId && isOpen(t)).length,
       inProgress: allTasks.filter((t) => t.status === "in_progress").length,
       blocked: allTasks.filter((t) => t.status === "blocked").length,
-      doneThisSprint: overview?.activeSprint
-        ? allTasks.filter((t) => t.sprintId === overview.activeSprint?.id && isCompletedTaskStatus(t.status)).length
-        : allTasks.filter((t) => isCompletedTaskStatus(t.status) && t.sprintId !== null).length,
+      // "This sprint" is plural the moment a workspace runs more than one, so the count is taken
+      // across every sprint actually running rather than the first one found.
+      doneThisSprint: allTasks.filter(
+        (t) => t.sprintId !== null && runningIds.has(t.sprintId) && isCompletedTaskStatus(t.status),
+      ).length,
       overdue: allTasks.filter((t) => isOverdue(t, todayIso)).length,
     }
-  }, [allTasks, overview, todayIso])
+  }, [allTasks, overview, runningIds, todayIso])
 
   const needsAttention = useMemo(
     () =>
