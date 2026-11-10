@@ -18,6 +18,10 @@ const render = (fragment: Parameters<typeof dialect.sqlToQuery>[0]) => dialect.s
 const FROM = new Date("2026-11-02T00:00:00.000Z")
 const TO = new Date("2026-11-09T00:00:00.000Z")
 
+/** A bound window edge: an ISO instant carried as the string the driver can serialize. */
+const isInstant = (param: unknown): param is string =>
+  typeof param === "string" && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(param)
+
 describe("a narrowed Done column filters where the rows are counted", () => {
   it("asks the events table for the finish, not the row behind the card", () => {
     const { sql } = render(doneWindowSql({ from: FROM, to: TO }))
@@ -65,9 +69,26 @@ describe("a narrowed Done column filters where the rows are counted", () => {
     const { sql, params } = render(doneWindowSql({ from: null, to: TO }))
     expect(sql).not.toContain(">=")
     expect(sql).toContain(" < ")
-    const iso = params.filter((p) => p instanceof Date).map((p) => (p as Date).toISOString())
-    expect(iso).not.toContain("2026-11-02T00:00:00.000Z")
-    expect(iso).toContain("2026-11-09T00:00:00.000Z")
+    const instants = params.filter(isInstant)
+    expect(instants).not.toContain("2026-11-02T00:00:00.000Z")
+    expect(instants).toContain("2026-11-09T00:00:00.000Z")
+  })
+
+  it("binds only what the driver can write to the socket", () => {
+    // The failure this pins is silent: postgres.js serializes a `sql` fragment's parameters by
+    // value, and a bare Date reaches its string encoder and throws ERR_INVALID_ARG_TYPE. The throw
+    // lands in getPaginatedTasks' catch, which answers an empty page with HTTP 200 — so the board
+    // reads "0 of 0 cards" and nothing anywhere says why. Rendering the fragment is not enough;
+    // the parameters have to be serializable, which is what the rest of this repo does
+    // (lib/data-access.ts binds `now.toISOString()` the same way).
+    for (const bounds of [{ from: FROM, to: TO }, { from: null, to: TO }]) {
+      for (const fragment of [doneWindowSql(bounds), doneEarlierSql(bounds)]) {
+        if (!fragment) continue
+        for (const param of render(fragment).params) {
+          expect(param, `Date in ${String(param)}`).not.toBeInstanceOf(Date)
+        }
+      }
+    }
   })
 })
 

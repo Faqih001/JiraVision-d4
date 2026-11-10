@@ -52,21 +52,36 @@ function finishedOneOffSql(): SQL {
  */
 export function doneWindowSql(bounds: DoneWindowBounds): SQL {
   const instant = completedInstantSql()
-  const inside = bounds.from
-    ? sql`(${instant} >= ${bounds.from} and ${instant} < ${bounds.to})`
-    : sql`${instant} < ${bounds.to}`
+  const [from, to] = windowEdges(bounds)
+  const inside = from
+    ? sql`(${instant} >= ${from} and ${instant} < ${to})`
+    : sql`${instant} < ${to}`
   // `coalesce(..., true)`: a finish that cannot be dated yields NULL here, and an undatable card is
   // not a card to hide.
   return sql`(not ${finishedOneOffSql()} or coalesce(${inside}, true))`
 }
 
 /**
+ * The window's edges as the driver must receive them: ISO strings, never `Date` objects.
+ *
+ * A `sql` fragment parameterizes by value, and postgres.js hands a bare `Date` to its string
+ * encoder, which throws `ERR_INVALID_ARG_TYPE`. That throw is caught inside `getPaginatedTasks`,
+ * which answers an empty page with HTTP 200 — so a `Date` here does not look like an error, it
+ * looks like a member with no tasks. Postgres infers the parameter's type from the comparison, and
+ * an ISO instant parses as a `timestamptz`.
+ */
+function windowEdges(bounds: DoneWindowBounds): [string | null, string] {
+  return [bounds.from?.toISOString() ?? null, bounds.to.toISOString()]
+}
+
+/**
  * The finished one-offs that sit before the window — the count behind "31 done earlier".
- * Null for `all`, which is the window that hides nothing and so has nothing to name.
+ * Null for `all`, which is the window that opens the past and so has nothing to name.
  */
 export function doneEarlierSql(bounds: DoneWindowBounds): SQL | null {
   if (!bounds.from) return null
-  return sql`(${finishedOneOffSql()} and ${completedInstantSql()} < ${bounds.from})`
+  const [from] = windowEdges(bounds)
+  return sql`(${finishedOneOffSql()} and ${completedInstantSql()} < ${from})`
 }
 
 /**
