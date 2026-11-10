@@ -5,6 +5,7 @@ import { sprints, tasks, users, sprintAnalytics, kanbanTasks } from "@/drizzle/s
 import { and, desc, eq, isNotNull, sql } from "drizzle-orm"
 import { createNotification, notifyMany } from "@/lib/notifications"
 import { SPRINT_STATUSES, normalizeSprintStatus, sprintTransition, type SprintTransition } from "@/lib/sprints/statuses"
+import { reportedCompleted } from "@/lib/sprints/completed"
 import { isCompletedTaskStatus } from "@/lib/tasks/statuses"
 import { completedStatusSql, openStatusSql } from "@/lib/tasks/statuses-sql"
 
@@ -190,6 +191,7 @@ export async function GET(_request: Request, context: RouteContext) {
       data: {
         ...serializeSprint(sprint),
         ...aggregates,
+        completed: reportedCompleted(sprint.completed, aggregates),
         burndown: buildBurndown(sprint, sprintTasks),
         teamCapacity,
         scopeChanges: getScopeChanges(sprint, sprintTasks),
@@ -287,9 +289,12 @@ export async function PUT(request: Request, context: RouteContext) {
       return NextResponse.json({ success: false, message: "Sprint not found" }, { status: 404 })
     }
     const aggregates = await getAggregates(fresh)
-    if (aggregates.donePoints !== fresh.completed) {
-      await db.update(sprints).set({ completed: aggregates.donePoints }).where(eq(sprints.id, id))
-      fresh.completed = aggregates.donePoints
+    // The column follows the task rows when there are any, and keeps the recorded total when
+    // there are none — an edit to an imported history sprint must not zero its spreadsheet figure.
+    const live = reportedCompleted(fresh.completed, aggregates)
+    if (live !== fresh.completed) {
+      await db.update(sprints).set({ completed: live }).where(eq(sprints.id, id))
+      fresh.completed = live
     }
 
     if (transition) {

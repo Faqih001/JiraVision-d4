@@ -6,6 +6,7 @@ import { and, asc, desc, eq, inArray, isNotNull, sql } from "drizzle-orm"
 import { createNotification, notifyMany } from "@/lib/notifications"
 import { completedStatusSql } from "@/lib/tasks/statuses-sql"
 import { SPRINT_STATUSES } from "@/lib/sprints/statuses"
+import { reportedCompleted } from "@/lib/sprints/completed"
 
 export const dynamic = "force-dynamic"
 
