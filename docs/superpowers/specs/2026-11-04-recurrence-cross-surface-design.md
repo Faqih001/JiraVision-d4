@@ -743,7 +743,7 @@ comparing a status to the literal "done", which is what the swept-page rule in
   `doneWindowSql` and `doneEarlierSql` interpolated `bounds.from` / `bounds.to` as `Date` objects inside
   `sql` fragments. A `sql` fragment parameterizes by value, and postgres.js routes a bare `Date` to its
   string encoder, which throws `ERR_INVALID_ARG_TYPE`. The throw surfaced on the `select COUNT(*) from
-  (…)` wrapper — the first query `getPaginatedTasks` runs — whose catch answers an empty page with HTTP
+  (…)` wrapper — the first query `getPaginatedTasks` runs — whose catch then answered an empty page with HTTP
   200, so `/api/tasks` reported success with no rows and the UI had nothing to show. `windowEdges()` now
   renders both bounds with `.toISOString()`, the form already used at `lib/data-access.ts:444`; Postgres
   infers the parameter's type from the comparison and an ISO instant parses as `timestamptz`. Verified
@@ -752,3 +752,22 @@ comparing a status to the literal "done", which is what the swept-page rule in
   touch outstanding work. The guard that missed this rendered the fragment and asserted the `Date` *was*
   bound, so it pinned the bug; `done-window-read.test.ts` now asserts no parameter may be a `Date`,
   because "renders" is not the claim "serializes" is.
+- **Ship-out correction (2026-11-10): a read that cannot answer says so.** The bullet above names the
+  real bug, but the reason it was invisible is `getPaginatedTasks`' catch, which turned any query failure
+  into `{tasks: [], doneEarlier: 0, pagination: {total: 0, …}}`. `/api/tasks` wrapped that in
+  `success: true` and answered HTTP 200, so a driver error on the board looked exactly like a member
+  with nothing assigned — nothing on screen was wrong, so nothing was reported. The catch now logs and
+  rethrows, matching the file's own `updateTask` / `deleteTask`, and both callers (`app/api/tasks/route.ts`,
+  `app/api/test/tasks/route.ts`) already sit inside a try whose catch answers
+  `{success: false, …}` with status 500. From there the existing surfaces do the rest: the board's `load()`
+  throws on `!success` and renders its load-error screen (`app/dashboard/kanban/page.tsx:865`), and the
+  tasks page raises a destructive toast. No UI work was needed — only the truth had to reach them.
+  `reloadTasks` on the board stays quiet on purpose, so a failed background refresh cannot replace a
+  visible board with an error screen. Guard: `tests/unit/paginated-tasks-failure.test.ts` (5) — two
+  behavioural tests against a mocked driver that must reject (the `ERR_INVALID_ARG_TYPE` string and a
+  plain `Failed query` with a window bound), one characterization test that a *successful* read still
+  answers rows, total, `pageCount` and `doneEarlier`, so the fix cannot decay into "always throw", plus
+  per-route source guards. The sweep found the same swallowing in ~15 other `lib/data-access.ts` readers;
+  all are dead except `getTaskById`, whose `null` a caller cannot distinguish from a missing row —
+  `app/api/tasks/[id]/route.ts:39,90,225` would answer a query failure as 404 "Task with ID N not found".
+  That one is reported for a decision, not bundled here.

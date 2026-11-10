@@ -65,10 +65,11 @@ export function doneWindowSql(bounds: DoneWindowBounds): SQL {
  * The window's edges as the driver must receive them: ISO strings, never `Date` objects.
  *
  * A `sql` fragment parameterizes by value, and postgres.js hands a bare `Date` to its string
- * encoder, which throws `ERR_INVALID_ARG_TYPE`. That throw is caught inside `getPaginatedTasks`,
- * which answers an empty page with HTTP 200 — so a `Date` here does not look like an error, it
- * looks like a member with no tasks. Postgres infers the parameter's type from the comparison, and
- * an ISO instant parses as a `timestamptz`.
+ * encoder, which throws `ERR_INVALID_ARG_TYPE`. The first deploy of the window did exactly that, and
+ * `getPaginatedTasks`' then-silent catch turned the throw into an empty page: a board with no cards,
+ * not an error. The read now rethrows, so the same mistake would answer 500 — but a `Date` here is
+ * still the wrong thing to bind. Postgres infers the parameter's type from the comparison, and an
+ * ISO instant parses as a `timestamptz`.
  */
 function windowEdges(bounds: DoneWindowBounds): [string | null, string] {
   return [bounds.from?.toISOString() ?? null, bounds.to.toISOString()]

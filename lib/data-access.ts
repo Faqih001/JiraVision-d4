@@ -338,17 +338,13 @@ export async function getPaginatedTasks(
       }
     }
   } catch (error) {
+    // Rethrown, and deliberately not turned into an empty page. `GET /api/tasks` answers 500 from
+    // here, which the board renders as its load error and the tasks page as a toast — because an
+    // empty result is a real answer a member can have, and a read that never ran is not that
+    // answer. The first Done-window deploy returned `{tasks: [], total: 0}` for a driver error and
+    // looked, on screen, exactly like a member with nothing assigned.
     console.error('Error getting paginated tasks:', error)
-    return {
-      tasks: [],
-      doneEarlier: 0,
-      pagination: {
-        total: 0,
-        page: page,
-        pageSize: pageSize,
-        pageCount: 0
-      }
-    }
+    throw error
   }
 }
 

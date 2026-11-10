@@ -77,8 +77,10 @@ describe("a narrowed Done column filters where the rows are counted", () => {
   it("binds only what the driver can write to the socket", () => {
     // The failure this pins is silent: postgres.js serializes a `sql` fragment's parameters by
     // value, and a bare Date reaches its string encoder and throws ERR_INVALID_ARG_TYPE. The throw
-    // lands in getPaginatedTasks' catch, which answers an empty page with HTTP 200 — so the board
-    // reads "0 of 0 cards" and nothing anywhere says why. Rendering the fragment is not enough;
+    // lands in getPaginatedTasks' catch, which at the time answered an empty page with HTTP 200 — so the
+    // board read "0 of 0 cards" and nothing anywhere said why. (The read rethrows now; see
+    // paginated-tasks-failure.test.ts. A `Date` bound here is still the wrong thing.) Rendering the
+    // fragment is not enough;
     // the parameters have to be serializable, which is what the rest of this repo does
     // (lib/data-access.ts binds `now.toISOString()` the same way).
     for (const bounds of [{ from: FROM, to: TO }, { from: null, to: TO }]) {

@@ -1859,6 +1859,16 @@ into a pile: every card ever finished, on every day the board draws. The owner n
   outstanding work. The guard that missed it rendered the fragment and asserted the `Date` was bound
   (`params.filter(p => p instanceof Date)`), which pinned the bug; `done-window-read.test.ts` now asserts
   the opposite — no parameter may be a `Date` — because *renders* is not the same claim as *serializes*.
+- **The empty page is gone, so the next failure will be seen.** `getPaginatedTasks`' `catch` no longer
+  returns `{tasks: [], total: 0}`; it logs and rethrows, which is what its neighbours in the same file
+  already do (`updateTask`, `deleteTask`). Both handlers that call it wrap it in a `try`, so the read
+  now answers **HTTP 500** with `success: false`, the board renders its load-error screen with Retry
+  (`app/dashboard/kanban/page.tsx:865`) and the tasks page raises a destructive toast. A background
+  refresh stays quiet on purpose — `reloadTasks` keeps the cards already on screen rather than
+  replacing a visible board with an error. `paginated-tasks-failure.test.ts` (5) holds the contract:
+  the two failure tests are behavioural against a mocked driver — the old catch made them resolve,
+  which is exactly what production could not tell apart from an idle member — and the third proves a
+  successful read still returns rows, the total and `doneEarlier`, so the fix cannot be "always throw".
 - **Tests.** `completed-on.test.ts` (28 — window resolution and its junk fallback, the timezone day
   maths, group order, the older-than-window count, a fallback row's day, the parameter appearing only
   off the page's own default) and the wiring guards `done-window-kanban.test.ts` (12 — the read is
@@ -1870,5 +1880,5 @@ into a pile: every card ever finished, on every day the board draws. The owner n
   forced the board's column branch onto a named `DONE_COLUMN` rather than a bare `col.status === "done"`,
   which is what its swept-page rule is for. `done-window-read.test.ts` (11) is the one that renders the
   fragment rather than reading the source, and its serializable-params test is what now stands between
-  a window predicate and a silent empty board. Gates: `tsc --noEmit` clean, 181 files / 2,934 tests.
+  a window predicate and a silent empty board. Gates: `tsc --noEmit` clean, 182 files / 2,939 tests.
 
