@@ -1434,9 +1434,11 @@ than a date borrowed from `created_at` or `updated_at`.
 ## 49. A recurring task keeps a horizon instead of running out (2026-11-04)
 
 The recurrence system pre-materialises a grid of `task_instances` rows when a template is created — 30 days for
-daily, 12 for weekly — and nothing extended it. There is no cron in `vercel.json`. So the day after the owner
-closed today's instance, the panel showed the tail of next month (the list sorted descending and cut ten rows),
-today was nowhere to complete, and a template nobody opened for a month handed out dates in the past.
+daily, 12 for weekly — and nothing extended it. There was no cron in `vercel.json` (one hourly schedule
+arrived on 2026-11-11, §59, and it does not touch `task_instances` — the horizon is still maintained on read).
+So the day after the owner closed today's instance, the panel showed the tail of next month (the list sorted
+descending and cut ten rows), today was nowhere to complete, and a template nobody opened for a month handed
+out dates in the past.
 
 - **The window, not the grid.** `planInstanceWindow(instances, todayIso)` in `lib/tasks/instance-window.ts` is a
   pure selector returning `{ today, upcoming, missedDates, missedCount }`: rows from today forward, ascending,

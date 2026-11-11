@@ -331,6 +331,12 @@ The unprioritised pool, ranked, with grooming tools.
 | U | `/api/automation/[id]` (PATCH) | enabled/disabled, edited condition or action |
 | D | `/api/automation/[id]` (DELETE) | removed rule |
 
+**Scheduled runs (2026-11-11).** An active rule is also executed by the hourly maintenance schedule
+(`vercel.json` → `GET /api/cron/hourly` → `app/api/automation/_scheduler.ts`): it selects rules whose
+`last_run_at` is null or older than 55 minutes and calls the same `executeRule` the manual Run button uses,
+with the actor recorded as "Hourly schedule". Those runs land in the same history and are not announced to
+the owner. The 55-minute ceiling is the duplicate guard — `executeRule` already owns `last_run_at`.
+
 ### `/dashboard/planner` — Planning (AI plan extraction)
 
 The Planning group item in the sidebar; also linked from the career Growth panel and the registers page.
@@ -544,6 +550,13 @@ and its milestones; `/skill-tree` lists them.
 | U | `/api/reports/[id]` (PATCH) | edited schedule |
 | D | `/api/reports/[id]` (DELETE) | removed schedule (runs cascade) |
 
+**Scheduled runs (2026-11-11).** `next_run_at` is now honoured. The hourly maintenance schedule
+(`GET /api/cron/hourly` → `app/api/reports/_runner.ts`) claims each due active schedule with
+`UPDATE report_schedules SET next_run_at = <next cadence> WHERE id = ? AND is_active AND next_run_at <= now()
+RETURNING …`, then runs it through the same `runSchedule()` the manual Run button calls. A claim that returns
+no row is skipped, so a duplicate delivery cannot double-run. A scheduled run writes the run and its dataset
+exactly as the button does — it does not email the recipients.
+
 ### `/dashboard/activity` — Activity
 
 | Section | What it does |
@@ -570,11 +583,12 @@ and its milestones; `/skill-tree` lists them.
 
 | Section | What it does |
 | --- | --- |
-| Weekly digest composer | Cadence, audience, template; save or queue |
-| Message templates | Editable subject/body with placeholder preview |
+| Digest delivery banner | The hourly contract: ≤25 rows per run, member addresses only, digest-off stops mail |
+| Weekly digest composer | Cadence, audience, template; save or queue — queuing writes a real `queued` row |
+| Message templates | Editable subject/body with placeholder preview; saving a body queues a preview row |
 | Template preview (placeholders resolved) | Renders against the member's own values |
-| Event subscription matrix | Which notification types send mail |
-| Digest queue — stored message timeline | Queued/sent digest rows |
+| Event subscription matrix | The digest column gates the hourly mail; the bell column is a stored hint |
+| Digest queue — message timeline | queued / delivered / failed rows; re-queue, or mark delivered by hand |
 | Digest activity — rows queued per day (14d) | Volume chart |
 | Notification inbox (bell feed cross-view) | The same notifications the bell shows |
 | Where everything on this page is stored | Table-by-table provenance note |
@@ -585,6 +599,16 @@ and its milestones; `/skill-tree` lists them.
 | C | `/api/email/templates` (POST), `/api/email/digest` (POST) | new template; queued digest |
 | U | `/api/email/templates/[id]` (PATCH), `/api/email/preferences` (PUT), `/api/email/digest/[id]` (PATCH) | edited template, subscriptions, digest |
 | D | `/api/email/templates/[id]`, `/api/email/digest/[id]` (DELETE), `/api/notifications/[id]` | removed template/digest/dismissed notice |
+
+**Delivery (2026-11-11).** Queued rows are really mailed by the hourly maintenance schedule
+(`GET /api/cron/hourly` → `app/api/email/_dispatcher.ts`), at most 25 per run, through `lib/email.ts`.
+Two rules decide the outcome: `to_email` must match a `users.email` in this workspace — any other address is
+marked `failed`, never sent — and an event type whose `email_preferences` entry has `digest: false` is not
+mailed (also marked `failed`, with the reason logged; the table has no `skipped` status). The claim is
+`UPDATE … SET status='delivered' WHERE id=? AND status='queued'`, so a re-delivery cannot re-send, and a
+provider rejection corrects the row to `failed`. "Mark delivered" by hand records an operator's claim and
+sends nothing. Delivery needs `CRON_SECRET` (bearer for the schedule) and a working `JIRAVISION_RESEND_API`
+on the deployment; the settings page's `notifyEmail` switch is not read by this path.
 
 ### `/dashboard/calendar` — Calendar
 

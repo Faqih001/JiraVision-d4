@@ -13,7 +13,8 @@ hits (lines 230–266) are the plan's own log, not code.
 
 | Where | What must be confirmed/replaced | Severity |
 |---|---|---|
-| `JIRAVISION_RESEND_API` in `.env.local` (REDESIGN_PLAN V2-2 owner action; `/status` publishes "email delivery degraded") | Invalid key returns 401. Forms store fine but team notification + newsletter confirm emails do not send. Provide valid Resend key + verified sender domain (`lib/email.ts`; fallback from is `onboarding@resend.dev` — must not ship) | blocks launch |
+| `JIRAVISION_RESEND_API` + `JIRAVISION_EMAIL_FROM` (REDESIGN_PLAN V2-2 owner action; `/status` publishes "email delivery degraded") | **Measured 2026-11-11:** the local key is valid — a read-only `GET https://api.resend.com/domains` answers 200, not the 401 this row used to claim. Its only domain, `guriflex.co.ke`, is in status `failed`, and `JIRAVISION_EMAIL_FROM` is unset, so `EMAIL_FROM` falls back to `JiraVision <onboarding@resend.dev>` (must not ship). Verify a sender domain and set the from address. Until then form notifications, newsletter confirms and the hourly digest delivery (FEATURES.md §59) can be rejected by the provider; a rejected digest row is marked `failed`, so the queue shows it | blocks launch |
+| `CRON_SECRET` on Vercel production (added 2026-11-11, FEATURES.md §59) | Documented in `.env.example` and generated into `.env.local`, but **not set on the deployment**: production lists 14 environment variables and none is `CRON_SECRET`. Until it is added Vercel sends no `Authorization` header, every hourly run of `/api/cron/hourly` answers 401, and report schedules, automation rules and the digest queue stay frozen. Generate with `openssl rand -hex 32`, add it under Vercel > Project > Settings > Environment Variables (Production), then redeploy — the value is read from the deployment that becomes current | blocks launch |
 | `content/site.ts:239` (`contactDetails`) | `sales@` / `partners@` mailboxes, phone/WhatsApp and hours inherited from v0, unconfirmed — owner to verify or correct | blocks launch |
 | `content/careers.ts:2` (`jobOpenings`) | Openings inherited from v0 are illustrative. Confirm which roles are genuinely open + real descriptions before public careers page | blocks launch |
 | `content/home.ts:262` pricing teaser ("owner: confirm current prices before launch") and `seatModel` ($9/$19/$49, 14-day trial, 20% annual) | Confirm actual prices/trial/discount everywhere they render (home, /pricing, /one-pager) | blocks launch |
@@ -62,7 +63,7 @@ All four rows are resolved as of 2026-10-25. What remains is owner-supplied mate
 ## 6. Launch checklist (must-do before public launch)
 
 1. Revoke the old Google Maps API key; issue a restricted key via env var.
-2. Configure valid `JIRAVISION_RESEND_API` + `JIRAVISION_EMAIL_FROM` (verified sender domain); flip the `/status` email row from degraded.
+2. Verify a Resend sender domain and set `JIRAVISION_EMAIL_FROM` (the key itself is valid as of 2026-11-11; `guriflex.co.ke` is `failed` and the from address falls back to `onboarding@resend.dev`); flip the `/status` email row from degraded.
 3. Confirm/correct contact mailboxes, phone/WhatsApp and hours in `content/site.ts`.
 4. Confirm real prices/trial/annual discount (`content/home.ts` + `content/pricing-page.ts`) or soften claims; resolve proration/tax/discount FAQ hedges with billing reality.
 5. Set the true `legalLastReviewed` date (and per-doc review status) in `content/legal.ts`.
@@ -73,6 +74,7 @@ All four rows are resolved as of 2026-10-25. What remains is owner-supplied mate
 10. Re-verify compare-page rows against vendor sites (`content/compare.ts` header rule).
 11. Update `onePagerBuildDate` before circulating print/PDF; refresh `statusUpdatedAt` after the final review pass.
 12. (Ops, not placeholder but launch-relevant from FEATURES.md: hosted data persistence for form submissions before real traffic, and V2-6b SEO items — sitemap/robots/metadata.)
+13. Set `CRON_SECRET` on Vercel production and redeploy (FEATURES.md §59). Without it the hourly schedule is delivered with no `Authorization` header, `/api/cron/hourly` answers 401, and report schedules, automation rules and the digest queue never run. Confirm the first green run in Vercel > Schedules > execution history.
 
 ## 7. Work log UI (phase 2, 2026-10-26) — no new placeholder
 
