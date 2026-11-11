@@ -67,7 +67,7 @@ below with its real implementation status; §3 lists gaps honestly.
 | Reading progress | exists only as the desktop bottom-bar float percentage, not per-article | Partial |
 | Printable one-pagers **per product** | one consolidated `/one-pager` covering all products | Partial |
 | Responsible-AI "transparency center" as a destination | shipped as pieces instead: homepage `ResponsibleAi` section, sandbox per-ticket rationale, equity "Why this number?" panel, `/products/ethical-metrics` refusal list — no standalone center route | Partial / redistributed |
-| Playwright smoke tests + unit tests for calculator logic | SHIPPED: `tests/unit/` is 17 files / 212 tests under `npm test` (vitest) — burnout, ROI, XP, migration-plan, plan, fit-quiz, cms-registry, search-index, markdown-lite and the four resource catalogues. `tests/e2e/smoke.spec.ts` + `playwright.config.ts` run under `npm run test:e2e` | Done |
+| Playwright smoke tests + unit tests for calculator logic | SHIPPED and far past the brief: `tests/unit/` + `tests/integration/` are 203 files / 3,216 tests under `npm test` (vitest), covering the calculators (burnout, ROI, XP, migration-plan, plan, fit-quiz), cms-registry, search-index, markdown-lite, the four resource catalogues, and every dashboard wave since — including the cron schedule, runner, scheduler and dispatcher guards (§59). `tests/e2e/smoke.spec.ts` + `playwright.config.ts` run under `npm run test:e2e` | Done |
 | SEO: sitemap, robots, OG/Twitter, JSON-LD | Shipped except JSON-LD. `app/sitemap.ts` and `app/robots.ts` generate at runtime (no static `public/` copies); the sitemap derives blog and changelog dates from the content modules, and robots disallows `/api/`, `/dashboard` and the four auth routes. 41 of 45 marketing pages export metadata — the exceptions are `login`, `signup`, `forgot-password` and `reset-password`, which are `"use client"` pages and therefore *cannot* export metadata. They inherit the root title in the browser tab, but robots already blocks them, so there is no indexing impact. **No `application/ld+json` exists anywhere in the repo** | Partial: JSON-LD not shipped |
 | Lighthouse 90+ perf pass, a11y audit pass | V2-6d ran as a QA/cleanup pass but no Lighthouse or automated a11y run was ever recorded. A11y was handled by construction instead (single `<main>` per route, `aria-pressed`/`aria-labelledby` on filters, `prefers-reduced-motion` kill-switch, token contrast) rather than measured. A visitor-facing **accessibility menu** shipped 2026-10-25 (row 20) — that is self-service adjustment, not an audit: still unmeasured | Not verified |
 
@@ -78,8 +78,12 @@ below with its real implementation status; §3 lists gaps honestly.
 - Forms store to local JSON via the adapter; in production (serverless) writes to
   `data/*.json` will not persist across cold starts until the hosted adapter lands
   (roadmap "Hosted data layer", listed as exploratory).
-- Team emails currently do not send: `JIRAVISION_RESEND_API` returns 401 (see
-  `PLACEHOLDERS.md`). Submissions still store and report success.
+- Mail delivery is **configured but unproven**, and the old "invalid key" note was wrong. A read-only
+  `GET /domains` with the local `JIRAVISION_RESEND_API` answers 200 (valid key); its only domain,
+  `guriflex.co.ke`, is in status `failed`, and `JIRAVISION_EMAIL_FROM` is unset so the sender falls back to
+  `JiraVision <onboarding@resend.dev>`. Form submissions still store and report success. Since 2026-11-11
+  the hourly schedule (§59) also delivers `email_digest` rows through the same sender, and marks a row
+  `failed` when the provider rejects it — so a rejected send is visible in the queue instead of silent.
 - `GoogleMap` on `/contact` renders only when `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` is set;
   otherwise a fallback card links to Google Maps search (`components/google-map.tsx`).
 - Legacy `/resources` fabrications: **documentation, webinars, case-studies and blog are all
@@ -1916,3 +1920,79 @@ complete its code is. Three built pages were in that position, and four nav labe
   `it.each` over the renamed surfaces in both the sidebar and the page bodies. `ops-playbooks.test.ts`
   and `assistant-context.test.ts` were re-cut for the new strings rather than exempted. Gates:
   `tsc --noEmit` clean, 196 files / 3,127 tests.
+
+## 59. One hourly schedule runs the three things nothing was running (2026-11-11)
+
+The same audit found the product gap behind three surfaces that looked finished: report schedules stored a
+`next_run_at` that nothing ever compared against the clock, automation rules stored `is_active` that nothing
+ever polled, and the email workspace queued `email_digest` rows that nothing ever delivered. All three had
+a manual button and no timer. `vercel.json` carried no schedule at all.
+
+- **One schedule, not three.** `vercel.json` declares `schedules.workspace-maintenance` — `"0 * * * *"`,
+  `path: "/api/cron/hourly"`, `requestMethod: "GET"`. The method is explicit because Vercel defaults a path
+  schedule to POST and the route exports only GET. There is no legacy `crons` key beside it: keeping both
+  would fire the same path twice an hour. Hobby allows at most one run per 15 minutes and always applies a
+  15-minute jitter, so the run lands somewhere in the hour, not on the dot.
+- **The gate is a bearer secret, and it fails closed.** `app/api/cron/_auth.ts` exports
+  `isAuthorizedCron(request, secret = process.env.CRON_SECRET)`: an exact compare against
+  `Authorization: Bearer <secret>`, false when the variable is unset. `proxy.ts` only matches
+  `/dashboard/*` and `/onboarding/*`, so this header is the route's only gate — an unconfigured deployment
+  runs nothing rather than running unauthenticated. Vercel reads `CRON_SECRET` from the deployment's own
+  environment, so the value sent and the value checked always come from the same build.
+- **Three jobs, isolated.** `app/api/cron/hourly/route.ts` (`maxDuration = 60`) runs each job in its own
+  try/catch and answers `200 {success:true,data:{jobs:{reports,rules,digest}}}` — or 500 with the same shape
+  when any job threw, because Vercel does not retry a failed run and the status is what shows in the
+  schedule's execution history. A throw in the first job must not freeze the other two for the day.
+- **Reports claim before they run.** `app/api/reports/_runner.ts` selects due rows
+  (`is_active AND next_run_at <= now()`) and claims each with
+  `UPDATE report_schedules SET next_run_at = <computeNextRun(cadence)> WHERE id = ? AND is_active AND next_run_at <= now() RETURNING …`.
+  Zero rows back means someone else claimed it, so the run skips — that is what makes a duplicate delivery
+  harmless. `runSchedule()` was extracted from `app/api/reports/[id]/run/route.ts`, so the button and the
+  timer execute one implementation. A scheduled run does exactly what the button does: it writes the run and
+  its dataset. It does not email recipients.
+- **Automation uses a ceiling, not a claim.** `app/api/automation/_scheduler.ts` selects
+  `is_active AND (last_run_at IS NULL OR last_run_at <= now() - interval '55 minutes')` and calls the existing
+  `executeRule(rule, { actorName: "Hourly schedule" })`, isolating per-rule failures. The 55-minute ceiling is
+  the idempotency guard here because `executeRule` already owns `last_run_at`, `run_count` and
+  `automation_runs`; a second claim column would need a migration. Residual risk, stated: two runs delivered
+  in the same minute could both pass the ceiling and double-apply an action such as `bump_priority`. Runs are
+  not announced to the owner — 24 notifications a day would be noise.
+- **The digest queue now really sends.** `app/api/email/_dispatcher.ts` takes at most 25 `queued` rows per
+  run and mails them through `lib/email.ts` `sendEmail()`. Two rules decide the outcome: `to_email` must
+  match a `users.email` in this workspace (anything else is marked `failed` and logged — the open-relay rule
+  that got `/api/aitopia` deleted), and an event type whose `email_preferences` entry has `digest: false` is
+  not mailed. Unsubscribed rows are marked `failed` too, with the reason in the log: the table's status
+  vocabulary is queued/delivered/failed and adding `skipped` would need a migration. The claim is
+  `UPDATE … SET status='delivered' WHERE id=? AND status='queued'`, so a re-delivery cannot re-send. It marks
+  before the provider call and corrects to `failed` on error — a crash inside that window would leave a false
+  `delivered`, which is the cheaper of the two lies.
+- **The email surfaces stopped claiming nothing is sent.** 17 copy sites on `app/dashboard/email/page.tsx`,
+  the header comments and notification bodies of four `app/api/email/*` routes, and the `notifyEmail` line on
+  `/dashboard/settings` were rewritten to state the real contract: hourly, ≤25 rows per run, member addresses
+  only, digest-off stops mail, `CRON_SECRET` + `JIRAVISION_RESEND_API` required, a provider rejection marks the
+  row failed, and marking a row delivered by hand records an operator's claim. The settings switch now points
+  at the subscription matrix, because nothing in the mail path reads `users.preferences.notifyEmail`.
+- **`CRON_SECRET` is documented and generated locally; production is still unset.** `.env.example` carries the
+  key with generation (`openssl rand -hex 32`) and placement instructions, and `.env.local` has a value.
+  Vercel production has 14 environment variables and none of them is `CRON_SECRET`, so until the owner adds it
+  every hourly run answers 401 and the execution history shows red. That is the intended fail-closed state,
+  not a bug — but it is the one step that needs a human.
+- **What the mail provider actually does, measured.** The stale note in §4 and `PLACEHOLDERS.md` said
+  `JIRAVISION_RESEND_API` returns 401. A read-only `GET https://api.resend.com/domains` with the local key
+  answers **200** — the key is valid. Its only domain, `guriflex.co.ke`, is in status `failed`, and
+  `JIRAVISION_EMAIL_FROM` is unset, so `EMAIL_FROM` falls back to `JiraVision <onboarding@resend.dev>`.
+  Delivery therefore depends on a sender the provider accepts; no test message was sent. A rejection is
+  handled: the row is marked `failed`.
+- **No migration, and the first runs are no-ops.** A read-only census of production found 0 report schedules,
+  0 automation rules and 0 digest rows, so nothing was due and nothing needed a schema change. The three
+  tables stay raw-SQL (they are absent from `drizzle/schema.ts`, which is owned elsewhere).
+- **Tests.** Seven files, 88 new cases, all written first and observed failing: `cron-auth.test.ts` (7),
+  `cron-hourly.test.ts` (5, including "no job runs on a 401"), `report-runner-due.test.ts` (8, asserting the
+  rendered SQL and its bound params), `automation-scheduler.test.ts` (7), `email-dispatcher.test.ts` (15),
+  `email-delivery-copy.test.ts` (40, a comment-stripped source guard over every silence claim) and
+  `cron-wiring.test.ts` (6). The wiring guard is the deploy-time net: exactly one schedule, no `crons` key,
+  the path resolves to a real `route.ts` exporting the declared method, and a hand-evaluated cron window
+  proves the interval is ≥15 minutes — mutation-checked by setting `*/10 * * * *` (fails: "fires every 10 min")
+  and `requestMethod: "POST"` (fails: no POST handler). `schema-safety.test.ts` learned `isAuthorizedCron` as
+  an auth check, so the anonymous-route census still enumerates `/api/cron/hourly` and still fails if the gate
+  is removed. Gates: `tsc --noEmit` clean, 203 files / 3,216 tests.
