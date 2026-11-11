@@ -3,5 +3,12 @@
   "devCommand": "npm run dev",
   "installCommand": "npm install",
   "framework": "nextjs",
-  "outputDirectory": ".next"
+  "outputDirectory": ".next",
+  "schedules": {
+    "workspace-maintenance": {
+      "schedule": "0 * * * *",
+      "path": "/api/cron/hourly",
+      "requestMethod": "GET"
+    }
+  }
 }

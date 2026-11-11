@@ -14,7 +14,7 @@ const config = JSON.parse(read("vercel.json")) as Record<string, unknown>
 type Schedule = { schedule?: string; path?: string; function?: string; requestMethod?: string }
 const schedules = Object.entries((config.schedules ?? {}) as Record<string, Schedule>)
 
-/** Values a cron field admits, supporting `*`, `a`, `a-b`, `*/n` and comma lists. */
+/** Values a cron field admits: wildcard, single value, range, step and comma lists. */
 function field(spec: string, min: number, max: number): Set<number> {
   const out = new Set<number>()
   for (const part of spec.split(",")) {
