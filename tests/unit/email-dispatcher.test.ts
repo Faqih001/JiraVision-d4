@@ -181,9 +181,12 @@ describe("flushing the outbox", () => {
 
   it("does not mail a member who switched this event's digest off", async () => {
     queue([queuedRow({ prefs: { task: { digest: false, inApp: true } } })], [])
+    const logged = vi.spyOn(console, "info").mockImplementation(() => {})
     expect(await flushDigestQueue()).toEqual({ ok: true, due: 1, delivered: 0, failed: 0, refused: 1 })
     expect(state.sent).toEqual([])
     expect(bound()[2]).toContain("failed")
+    expect(logged).toHaveBeenCalled()
+    logged.mockRestore()
   })
 
   it("still mails an event the member has no preference row for", async () => {
