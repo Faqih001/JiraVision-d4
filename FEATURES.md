@@ -67,7 +67,7 @@ below with its real implementation status; §3 lists gaps honestly.
 | Reading progress | exists only as the desktop bottom-bar float percentage, not per-article | Partial |
 | Printable one-pagers **per product** | one consolidated `/one-pager` covering all products | Partial |
 | Responsible-AI "transparency center" as a destination | shipped as pieces instead: homepage `ResponsibleAi` section, sandbox per-ticket rationale, equity "Why this number?" panel, `/products/ethical-metrics` refusal list — no standalone center route | Partial / redistributed |
-| Playwright smoke tests + unit tests for calculator logic | SHIPPED and far past the brief: `tests/unit/` + `tests/integration/` are 203 files / 3,216 tests under `npm test` (vitest), covering the calculators (burnout, ROI, XP, migration-plan, plan, fit-quiz), cms-registry, search-index, markdown-lite, the four resource catalogues, and every dashboard wave since — including the cron schedule, runner, scheduler and dispatcher guards (§59). `tests/e2e/smoke.spec.ts` + `playwright.config.ts` run under `npm run test:e2e` | Done |
+| Playwright smoke tests + unit tests for calculator logic | SHIPPED and far past the brief: `tests/unit/` + `tests/integration/` are 203 files / 3,217 tests under `npm test` (vitest), covering the calculators (burnout, ROI, XP, migration-plan, plan, fit-quiz), cms-registry, search-index, markdown-lite, the four resource catalogues, and every dashboard wave since — including the cron schedule, runner, scheduler and dispatcher guards (§59). `tests/e2e/smoke.spec.ts` + `playwright.config.ts` run under `npm run test:e2e` | Done |
 | SEO: sitemap, robots, OG/Twitter, JSON-LD | Shipped except JSON-LD. `app/sitemap.ts` and `app/robots.ts` generate at runtime (no static `public/` copies); the sitemap derives blog and changelog dates from the content modules, and robots disallows `/api/`, `/dashboard` and the four auth routes. 41 of 45 marketing pages export metadata — the exceptions are `login`, `signup`, `forgot-password` and `reset-password`, which are `"use client"` pages and therefore *cannot* export metadata. They inherit the root title in the browser tab, but robots already blocks them, so there is no indexing impact. **No `application/ld+json` exists anywhere in the repo** | Partial: JSON-LD not shipped |
 | Lighthouse 90+ perf pass, a11y audit pass | V2-6d ran as a QA/cleanup pass but no Lighthouse or automated a11y run was ever recorded. A11y was handled by construction instead (single `<main>` per route, `aria-pressed`/`aria-labelledby` on filters, `prefers-reduced-motion` kill-switch, token contrast) rather than measured. A visitor-facing **accessibility menu** shipped 2026-10-25 (row 20) — that is self-service adjustment, not an audit: still unmeasured | Not verified |
 
@@ -1993,13 +1993,19 @@ a manual button and no timer. `vercel.json` carried no schedule at all.
 - **No migration, and the first runs are no-ops.** A read-only census of production found 0 report schedules,
   0 automation rules and 0 digest rows, so nothing was due and nothing needed a schema change. The three
   tables stay raw-SQL (they are absent from `drizzle/schema.ts`, which is owned elsewhere).
-- **Tests.** Seven files, 88 new cases, all written first and observed failing: `cron-auth.test.ts` (7),
+- **Tests.** Seven files, 89 new cases, all written first and observed failing: `cron-auth.test.ts` (7),
   `cron-hourly.test.ts` (5, including "no job runs on a 401"), `report-runner-due.test.ts` (8, asserting the
   rendered SQL and its bound params), `automation-scheduler.test.ts` (7), `email-dispatcher.test.ts` (15),
   `email-delivery-copy.test.ts` (40, a comment-stripped source guard over every silence claim) and
-  `cron-wiring.test.ts` (6). The wiring guard is the deploy-time net: exactly one schedule, no `crons` key,
+  `cron-wiring.test.ts` (7). The wiring guard is the deploy-time net: exactly one schedule, no `crons` key,
   the path resolves to a real `route.ts` exporting the declared method, and a hand-evaluated cron window
   proves the interval is ≥15 minutes — mutation-checked by setting `*/10 * * * *` (fails: "fires every 10 min")
-  and `requestMethod: "POST"` (fails: no POST handler). `schema-safety.test.ts` learned `isAuthorizedCron` as
-  an auth check, so the anonymous-route census still enumerates `/api/cron/hourly` and still fails if the gate
-  is removed. Gates: `tsc --noEmit` clean, 203 files / 3,216 tests.
+  and `requestMethod: "POST"` (fails: no POST handler). Its two `.env.example` guards anchor on the
+  `# ---- Scheduled maintenance` header rather than a character count (the first version used a 700-char
+  window and failed once the wording grew past it), and one of them asserts the block says to leave the
+  committed template empty. `schema-safety.test.ts` learned `isAuthorizedCron` as an auth check, so the
+  anonymous-route census still enumerates `/api/cron/hourly` — adding the route made that census fail
+  17-vs-16 before the vocabulary was taught, which is the evidence it is counted rather than exempted. The
+  "delete the gate" mutation was deliberately not run: the auto-commit watcher could have pushed an
+  unauthenticated cron route mid-mutation, and `cron-hourly.test.ts` proves the 401 without that risk.
+  Gates: `tsc --noEmit` clean, 203 files / 3,217 tests.

@@ -608,7 +608,9 @@ mailed (also marked `failed`, with the reason logged; the table has no `skipped`
 `UPDATE … SET status='delivered' WHERE id=? AND status='queued'`, so a re-delivery cannot re-send, and a
 provider rejection corrects the row to `failed`. "Mark delivered" by hand records an operator's claim and
 sends nothing. Delivery needs `CRON_SECRET` (bearer for the schedule) and a working `JIRAVISION_RESEND_API`
-on the deployment; the settings page's `notifyEmail` switch is not read by this path.
+on the deployment; the settings page's `notifyEmail` switch is not read by this path. `CRON_SECRET` is set on
+production as of 2026-11-11 and the schedule's first run succeeded, so the remaining mail blocker is the sender
+domain, not the schedule (PLACEHOLDERS.md §1).
 
 ### `/dashboard/calendar` — Calendar
 
