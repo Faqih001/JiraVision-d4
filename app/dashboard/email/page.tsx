@@ -307,8 +307,8 @@ export default function EmailWorkspace() {
         title: "Digest row updated",
         description:
           status === "queued"
-            ? `Row #${id} re-queued for the next digest run — stored locally, not sent.`
-            : `Row #${id} recorded as delivered by an operator — no email was sent by this app.`,
+            ? `Row #${id} re-queued — the hourly schedule will try to deliver it on its next run.`
+            : `Row #${id} marked delivered by hand — this records an operator's claim, it does not send.`,
       })
       void loadSummaryQuietly()
     } catch (err) {
@@ -407,12 +407,12 @@ export default function EmailWorkspace() {
       setTemplateDialogOpen(false)
       setTemplateDraft(null)
 
-      // honest toast: describe the persisted linkage, never claim delivery
+      // describe the persisted linkage and what the hourly run will do with the queued row
       toast({
         title: templateDraft.id !== undefined ? "Template updated" : "Template saved",
         description:
           json.data.previewDigestId !== null
-            ? `Persisted in email_templates; a preview row (#${json.data.previewDigestId}) was queued in the digest table and a system notification references it. Nothing was emailed.`
+            ? `Persisted in email_templates; a preview row (#${json.data.previewDigestId}) was queued in the digest table and a system notification references it. The hourly digest run delivers that row to your account address unless its event type has digest switched off.`
             : "Persisted in email_templates. A body with content queues a preview digest row on save.",
       })
       void loadSummaryQuietly()
@@ -435,7 +435,7 @@ export default function EmailWorkspace() {
       setTemplates((prev) => prev.map((t) => (t.id === tpl.id ? json.data.item : t)))
       toast({
         title: enabled ? "Template enabled" : "Template disabled",
-        description: `"${tpl.name}" toggled in email_templates — stored state only, no messages were sent.`,
+        description: `"${tpl.name}" toggled in email_templates — the flag on its own neither queues nor delivers a message.`,
       })
     } catch (err) {
       toast({ variant: "destructive", title: "Toggle failed", description: (err as Error).message })
@@ -455,7 +455,7 @@ export default function EmailWorkspace() {
       setPrefsDirty(false)
       toast({
         title: "Subscription matrix saved",
-        description: "Written as one JSONB row in email_preferences. These are stored routing hints — no email is sent.",
+        description: "Written as one JSONB row in email_preferences. The hourly digest run reads it: an event type with digest off is not mailed.",
       })
     } catch (err) {
       toast({ variant: "destructive", title: "Could not save preferences", description: (err as Error).message })
@@ -530,7 +530,7 @@ export default function EmailWorkspace() {
         `Included sections: ${weeklyIncludes.join(", ")}.`,
         `Unread notifications at queue time: ${unreadCount}.`,
         "",
-        "Stored in email_digest only — this application does not send email.",
+        "Queued in email_digest — the hourly schedule delivers it to JiraVision member addresses only.",
       ].join("\n")
       const res = await fetch("/api/email/digest", {
         method: "POST",
@@ -542,7 +542,7 @@ export default function EmailWorkspace() {
       void loadSummaryQuietly()
       toast({
         title: "Weekly digest queued",
-        description: `Row #${json.data.item.id} stored in email_digest with status "queued" — it is a draft log entry, not a sent message.`,
+        description: `Row #${json.data.item.id} queued in email_digest — the hourly schedule delivers it if the address belongs to a JiraVision user, and marks it failed otherwise.`,
       })
     } catch (err) {
       toast({ variant: "destructive", title: "Could not queue weekly digest", description: (err as Error).message })
@@ -609,8 +609,8 @@ export default function EmailWorkspace() {
             Email &amp; Digest Center
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            A message and notification digest workspace. Everything you see here is stored in your own database
-            tables — nothing is delivered.
+            A message and notification digest workspace. Rows are stored in your own database tables, and
+            the hourly schedule delivers the queued ones to JiraVision members.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -629,17 +629,23 @@ export default function EmailWorkspace() {
         </div>
       </div>
 
-      {/* 2 — honest status banner */}
+      {/* 2 — delivery rules */}
       <Card className="border-amber-500/40 bg-amber-500/5">
         <CardContent className="flex items-start gap-3 py-4">
           <MailWarning className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
           <div className="text-sm">
-            <p className="font-medium">Digest center — messages are stored, not delivered</p>
+            <p className="font-medium">Digest delivery — hourly, members only</p>
             <p className="mt-1 text-muted-foreground">
-              JiraVision does not send real email from this page. Rows you create here land in the{" "}
-              <code className="rounded bg-muted px-1">email_digest</code> table with a lifecycle status you manage
-              by hand. Marking a row &quot;delivered&quot; records an operator&apos;s claim — it never sends anything.
-              In-app alerts are handled by the shared notification bell feed
+              Rows you create here land in the <code className="rounded bg-muted px-1">email_digest</code>{" "}
+              table with status &quot;queued&quot;. The hourly schedule (
+              <code className="rounded bg-muted px-1">/api/cron/hourly</code>) delivers up to 25 queued rows
+              per run, and only to addresses that belong to a JiraVision user — any other address is marked
+              failed. An event type with its digest box unticked in the matrix below is not mailed. Delivery
+              needs <code className="rounded bg-muted px-1">CRON_SECRET</code> and{" "}
+              <code className="rounded bg-muted px-1">JIRAVISION_RESEND_API</code> set on the deployment, and a
+              provider rejection marks the row failed. Marking a row &quot;delivered&quot; by hand records an
+              operator&apos;s claim — it does not send. In-app alerts are handled by the shared notification
+              bell feed
               {realtimeEnabled ? " (realtime updates active)" : " (polling mode)"}.
             </p>
           </div>
@@ -660,14 +666,14 @@ export default function EmailWorkspace() {
           icon={<Inbox className="h-4 w-4" />}
           label="Queued"
           value={digestSummary.queued}
-          hint="waiting in the local queue"
+          hint="waiting for the hourly run"
         />
         <KpiCard
           loading={loading}
           icon={<Truck className="h-4 w-4" />}
-          label="Delivered (recorded by ops)"
+          label="Delivered"
           value={digestSummary.delivered}
-          hint="manual status, not verified sends"
+          hint="sent by the schedule, or marked by hand"
         />
         <KpiCard
           loading={loading}
@@ -689,7 +695,7 @@ export default function EmailWorkspace() {
         {/* 4 — digest timeline */}
         <SectionCard
           className="xl:col-span-2"
-          title="Digest queue — stored message timeline"
+          title="Digest queue — message timeline"
           icon={<Archive className="h-4 w-4 text-muted-foreground" />}
           action={
             <Select value={digestStatusFilter} onValueChange={setDigestStatusFilter}>
@@ -798,7 +804,8 @@ export default function EmailWorkspace() {
               </table>
               <p className="mt-2 text-[11px] text-muted-foreground">
                 Showing {filteredDigest.length} of {digestItems.length} loaded rows (most recent 200 kept in view).
-                Actions update the stored status in email_digest — nothing network-sends.
+                Re-queueing hands a row back to the hourly schedule; marking it delivered records an
+                operator&apos;s claim without sending.
               </p>
             </div>
           )}
@@ -859,7 +866,8 @@ export default function EmailWorkspace() {
               </table>
               <p className="mt-2 text-[11px] text-muted-foreground">
                 {prefsStored ? "Saved copy loaded from email_preferences (JSONB)." : "Defaults shown — not saved yet; press Save matrix to persist."}{" "}
-                These flags are stored routing hints; delivery channels beyond the in-app bell are not wired.
+                The digest column is read by the hourly run: an event type with digest off is not mailed. The
+                bell column is a stored hint — the in-app feed is written by the app&apos;s notification writers.
               </p>
             </>
           )}
@@ -924,8 +932,8 @@ export default function EmailWorkspace() {
                 {queueingWeekly ? "Queueing…" : "Queue weekly digest"}
               </Button>
               <p className="text-[10px] text-muted-foreground">
-                Queuing writes a real row into email_digest with status &quot;queued&quot; and refreshes the counters —
-                it does not email anyone.
+                Queuing writes a real row into email_digest with status &quot;queued&quot; and refreshes the counters.
+                The hourly schedule then delivers it — to a JiraVision member address only.
               </p>
             </div>
           )}
@@ -1118,8 +1126,9 @@ export default function EmailWorkspace() {
       <SectionCard title="Where everything on this page is stored" icon={<Database className="h-4 w-4 text-muted-foreground" />}>
         <ul className="grid gap-2 text-xs text-muted-foreground sm:grid-cols-2">
           <li className="rounded-md border px-3 py-2">
-            <span className="font-medium text-foreground">email_digest</span> — queue rows with lifecycle status
-            (queued / delivered / failed). The timeline, weekly composer and CSV export all read this table.
+            <span className="font-medium text-foreground">email_digest</span> — the outbox: rows with lifecycle
+            status (queued / delivered / failed). The hourly schedule claims a queued row, mails it and records
+            the outcome. The timeline, weekly composer and CSV export all read this table.
           </li>
           <li className="rounded-md border px-3 py-2">
             <span className="font-medium text-foreground">email_templates</span> — template name, subject, body, event
@@ -1164,8 +1173,8 @@ export default function EmailWorkspace() {
           <DialogHeader>
             <DialogTitle>{templateDraft?.id !== undefined ? "Edit template" : "New template"}</DialogTitle>
             <DialogDescription>
-              Stored in email_templates. If the body is non-empty on save, a preview digest row is queued and a system
-              notification references it — no email leaves this app.
+              Stored in email_templates. If the body is non-empty on save, a preview digest row is queued and a
+              system notification references it; the hourly digest run delivers that row to your account address.
             </DialogDescription>
           </DialogHeader>
           {templateDraft && (
