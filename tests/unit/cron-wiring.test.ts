@@ -99,9 +99,18 @@ describe("the cron secret is documented without being committed", () => {
   it("says where it goes and how to generate one", () => {
     const at = example.search(/^CRON_SECRET=/m)
     expect(at).toBeGreaterThan(-1)
-    const block = example.slice(Math.max(0, at - 700), at)
+    // The whole comment block above the key, not a fixed character count — the wording grows.
+    const block = example.slice(example.indexOf("# ---- Scheduled maintenance"), at)
     expect(block.toLowerCase()).toContain("vercel")
     expect(block).toContain("openssl rand -hex 32")
     expect(block.toLowerCase()).toContain("authorization")
+  })
+
+  it("tells the reader to keep the committed template empty", () => {
+    const at = example.search(/^CRON_SECRET=/m)
+    const block = example.slice(example.indexOf("# ---- Scheduled maintenance"), at)
+    // A real secret pasted here is a secret in git history.
+    expect(block).toContain("Leave this template empty")
+    expect(block).toContain(".env.local")
   })
 })
