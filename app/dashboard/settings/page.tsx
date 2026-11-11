@@ -900,7 +900,7 @@ export default function SettingsWorkspace() {
               <div className={cn("flex items-center justify-between border-b", rowPad)}>
                 <div>
                   <p className="font-medium">Email notifications</p>
-                  <p className="text-[11px] text-muted-foreground">Stored preference — the mail sender is not wired to this flag yet.</p>
+                  <p className="text-[11px] text-muted-foreground">Stored preference. Digest mail is gated by the subscription matrix at /dashboard/email, not by this switch.</p>
                 </div>
                 <Switch checked={bool(draftSettings.notifyEmail, true)} onCheckedChange={(c) => setSetting("notifyEmail", c)} />
               </div>

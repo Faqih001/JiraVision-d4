@@ -1,8 +1,8 @@
 // PATCH/DELETE /api/email/templates/[id] — edit or remove a template.
 // PATCH accepts partial updates (name/subject/body/eventType/enabled).
-// When a PATCH changes the body to a non-empty value, the same honest linkage
-// as POST applies: a preview digest row is queued and a system notification
-// references it. Nothing is ever sent.
+// When a PATCH changes the body to a non-empty value, the same linkage as POST
+// applies: a preview digest row is queued and a system notification references
+// it. The hourly digest run delivers that row.
 
 import { NextRequest, NextResponse } from "next/server"
 import { sql } from "drizzle-orm"
@@ -84,7 +84,7 @@ export async function PATCH(request: NextRequest, context: Context) {
         title: `Template "${name}" updated`,
         body:
           previewDigestId !== null
-            ? `Edited with a body — queued preview digest row #${previewDigestId}. Nothing was sent; this app stores digests only.`
+            ? `Edited with a body — queued preview digest row #${previewDigestId}. The hourly digest run delivers it to your account address.`
             : "Edited with a body, but the preview digest row could not be queued.",
         link: "/dashboard/email",
         metadata: { templateId, previewDigestId },

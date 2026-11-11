@@ -1,8 +1,9 @@
 // GET/POST /api/email/templates — message templates for the email workspace.
-// Honesty rule: saving a template with a body does NOT send anything. It
+// Saving a template with a body does not mail it on the spot. It
 // (1) inserts a real preview row into email_digest with status 'queued' and
 // (2) fires a "system" notification whose body references that digest row id,
-// so the linkage between template save → persisted queue is verifiable.
+// so the linkage between template save → persisted queue is verifiable. The
+// hourly digest run delivers that queued row to the saver's account address.
 
 import { NextRequest, NextResponse } from "next/server"
 import { sql } from "drizzle-orm"
@@ -80,7 +81,8 @@ export async function POST(request: NextRequest) {
     `)) as unknown as TemplateRow[]
 
     // A saved template with a body queues a real preview digest row (status
-    // 'queued') and a notification that references it by id. Nothing is sent.
+    // 'queued') and a notification that references it by id. The hourly digest
+    // run delivers that row.
     let previewDigestId: number | null = null
     if (body.trim() !== "") {
       const [preview] = (await db.execute(sql`
@@ -96,7 +98,7 @@ export async function POST(request: NextRequest) {
         title: `Template "${name}" saved`,
         body:
           previewDigestId !== null
-            ? `Saved with a body — queued preview digest row #${previewDigestId} in the email workspace. Nothing was sent; this app stores digests only.`
+            ? `Saved with a body — queued preview digest row #${previewDigestId} in the email workspace. The hourly digest run delivers it to your account address.`
             : "Saved with a body, but the preview digest row could not be queued.",
         link: "/dashboard/email",
         metadata: { templateId: template.id, previewDigestId },

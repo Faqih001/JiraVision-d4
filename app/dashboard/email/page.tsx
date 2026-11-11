@@ -1136,7 +1136,7 @@ export default function EmailWorkspace() {
           </li>
           <li className="rounded-md border px-3 py-2">
             <span className="font-medium text-foreground">email_preferences</span> — the subscription matrix as one
-            JSONB blob per user, kept separate from settings storage.
+            JSONB blob per user, kept separate from settings storage. The hourly digest run reads its digest flags.
           </li>
           <li className="rounded-md border px-3 py-2">
             <span className="font-medium text-foreground">notifications</span> — the shared bell feed. Saving a template

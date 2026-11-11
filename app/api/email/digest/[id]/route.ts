@@ -1,7 +1,7 @@
 // PATCH/DELETE /api/email/digest/[id] — update the lifecycle status of a
 // persisted digest row (re-queue / mark delivered / mark failed) or remove it.
-// "delivered" means an operator recorded delivery by hand; the app itself
-// never sends email.
+// "delivered" set here is an operator's claim; the hourly dispatcher sets the
+// same status after a real send. Re-queueing hands the row back to that run.
 
 import { NextRequest, NextResponse } from "next/server"
 import { sql } from "drizzle-orm"

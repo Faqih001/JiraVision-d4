@@ -1,5 +1,7 @@
-// GET/POST /api/email/digest — the persisted digest "outbox" for the email
-// workspace. Rows are stored, NOT delivered: this app does not send real email.
+// GET/POST /api/email/digest — the digest outbox for the email workspace.
+// POST stores a row with status 'queued'; it does not mail anything itself. The
+// hourly schedule (app/api/cron/hourly → app/api/email/_dispatcher.ts) is what
+// delivers queued rows, and only to an address that belongs to a user of this app.
 // Raw parameterized SQL against the email_digest table created by
 // scripts/create-email-tables.mjs (schema.ts is owned elsewhere, so we cannot
 // add a drizzle table definition here). Placeholders (${}) only.
