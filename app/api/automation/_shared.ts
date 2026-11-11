@@ -88,7 +88,7 @@ interface RuleRawRow {
   updated_at: string
 }
 
-const RULE_PROJECTION = sql`
+export const RULE_PROJECTION = sql`
   ar.id, ar.user_id, ar.name, ar.description, ar.trigger::text AS trigger,
   ar.conditions, ar.actions, ar.is_active, ar.run_count,
   to_char(ar.last_run_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS last_run_at,
