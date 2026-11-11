@@ -1974,11 +1974,16 @@ a manual button and no timer. `vercel.json` carried no schedule at all.
   only, digest-off stops mail, `CRON_SECRET` + `JIRAVISION_RESEND_API` required, a provider rejection marks the
   row failed, and marking a row delivered by hand records an operator's claim. The settings switch now points
   at the subscription matrix, because nothing in the mail path reads `users.preferences.notifyEmail`.
-- **`CRON_SECRET` is documented and generated locally; production is still unset.** `.env.example` carries the
-  key with generation (`openssl rand -hex 32`) and placement instructions, and `.env.local` has a value.
-  Vercel production has 14 environment variables and none of them is `CRON_SECRET`, so until the owner adds it
-  every hourly run answers 401 and the execution history shows red. That is the intended fail-closed state,
-  not a bug — but it is the one step that needs a human.
+- **`CRON_SECRET` is set, and the first run is green.** `.env.example` carries the key with generation
+  (`openssl rand -hex 32`) and placement instructions and **stays empty** — it is committed, so a real value
+  there is a value in git history. `.env.local` has its own value; Vercel production has a separate one, added
+  as a Secret on 2026-11-11 with the owner's approval (15 environment variables, was 14) and followed by a
+  rebuild, because Vercel fixes the sent value at build time rather than reading it per request. Verified live:
+  an unsigned `GET https://jiravision.vercel.app/api/cron/hourly` answers **401**
+  `{"success":false,"message":"Unauthorized"}` with `x-matched-path: /api/cron/hourly`, and
+  `vercel schedules invoke workspace-maintenance` — Vercel signs that call itself, so the secret never passes
+  through a shell — recorded **Succeeded**, 1 invocation / 0 failed / 373ms. `vercel schedules list` reads
+  `workspace-maintenance · Active · Cron · 0 * * * * · Path: /api/cron/hourly`.
 - **What the mail provider actually does, measured.** The stale note in §4 and `PLACEHOLDERS.md` said
   `JIRAVISION_RESEND_API` returns 401. A read-only `GET https://api.resend.com/domains` with the local key
   answers **200** — the key is valid. Its only domain, `guriflex.co.ke`, is in status `failed`, and
