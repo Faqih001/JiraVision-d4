@@ -97,7 +97,7 @@ describe("the cron secret is documented without being committed", () => {
   })
 
   it("says where it goes and how to generate one", () => {
-    const at = example.indexOf("CRON_SECRET")
+    const at = example.search(/^CRON_SECRET=/m)
     expect(at).toBeGreaterThan(-1)
     const block = example.slice(Math.max(0, at - 700), at)
     expect(block.toLowerCase()).toContain("vercel")
