@@ -176,9 +176,12 @@ describe("running the due queue", () => {
       [], // update 8
     ]
     state.failAt = 3
+    const logged = vi.spyOn(console, "error").mockImplementation(() => {})
 
     const result = await runDueSchedules()
     expect(result).toEqual({ ok: false, due: 2, ran: 1, failed: 1 })
+    expect(logged).toHaveBeenCalled()
+    logged.mockRestore()
 
     const sql = statements()
     expect(sql.some((s) => s.includes("insert into report_runs") && s.includes("'error'"))).toBe(true)
