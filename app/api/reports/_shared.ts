@@ -380,7 +380,7 @@ export interface RunDto {
   createdAt: string
 }
 
-const SCHEDULE_PROJECTION = sql`
+export const SCHEDULE_PROJECTION = sql`
   rs.id, rs.user_id, rs.name, rs.description, rs.dataset, rs.config, rs.cadence,
   rs.recipients, rs.is_active,
   to_char(rs.last_run_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS last_run_at,
