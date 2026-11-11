@@ -151,9 +151,12 @@ describe("no anonymous route leaks the schema or relays mail", () => {
   // phase 13's pair for /api/career/*, guarded by tests/unit/career-review-routes.test.ts.
   // `registerSession` is phase 15's helper for /api/registers/*, guarded by
   // tests/unit/register-routes.test.ts. `playbookSession` is phase 16's for /api/playbooks/*,
-  // guarded by tests/unit/playbook-routes.test.ts.
+  // guarded by tests/unit/playbook-routes.test.ts. `isAuthorizedCron` is the bearer check on
+  // /api/cron/*: Vercel signs those calls with CRON_SECRET instead of a cookie, so they have no
+  // session but are not anonymous. tests/unit/cron-hourly.test.ts proves the route answers 401
+  // and runs no job when the header is missing or wrong.
   const authGated = (file: string) =>
-    /getCurrentUser|getSession|worklogSession|reportSession|careerSession|careerAdmin|registerSession|playbookSession|agentSession|opsSession|isSuperAdmin|requireSuperAdmin|requireRole|requireUser|requireAdmin|verifySession/.test(
+    /getCurrentUser|getSession|worklogSession|reportSession|careerSession|careerAdmin|registerSession|playbookSession|agentSession|opsSession|isSuperAdmin|requireSuperAdmin|requireRole|requireUser|requireAdmin|verifySession|isAuthorizedCron/.test(
       codeOnly(src(file)),
     )
 
