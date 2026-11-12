@@ -47,7 +47,7 @@ export function SchedulerHeartbeat({ className }: { className?: string }) {
 
   if (!loaded) return null
 
-  const view = failed ? { tone: "failed" as const, text: HEARTBEAT_NEVER } : heartbeatView(heartbeat)
+  const view = failed ? { tone: "failed" as const, text: HEARTBEAT_UNKNOWN } : heartbeatView(heartbeat)
 
   return (
     <p

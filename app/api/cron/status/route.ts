@@ -13,7 +13,7 @@ import { readHeartbeat } from "../_heartbeat"
 
 export const dynamic = "force-dynamic"
 
-export async function GET() {
+export async function GET(_request: Request) {
   const session = await getSession()
   if (!session || typeof session.id !== "number") {
     return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 })
