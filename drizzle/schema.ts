@@ -1,5 +1,5 @@
-import { pgTable, serial, bigserial, text, varchar, timestamp, boolean, date, integer, smallint, char, decimal, jsonb, primaryKey, unique, uniqueIndex, uuid, index, type AnyPgColumn } from "drizzle-orm/pg-core"
-import { relations } from "drizzle-orm"
+import { pgTable, serial, bigserial, text, varchar, timestamp, boolean, date, integer, smallint, char, decimal, jsonb, primaryKey, unique, uniqueIndex, uuid, index, check, type AnyPgColumn } from "drizzle-orm/pg-core"
+import { relations, sql } from "drizzle-orm"
 
 // Users table
 export const users = pgTable("users", {

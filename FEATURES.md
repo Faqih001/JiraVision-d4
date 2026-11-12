@@ -2069,4 +2069,69 @@ found"**, so a member whose Neon compute was waking was told their task had been
   with `throw error` fails the create case the same way. The first draft of the POST guard asserted
   `try {` immediately before the call and was wrong — `instanceCount = await` sits between them — so it
   was replaced with a behavioural route test rather than loosened.
-  Gates: `tsc --noEmit` clean, **206 files / 3,295 tests**.
+  Gates: `tsc --noEmit` clean, **206 files / 3,296 tests**.
+
+## 61. The schedule says it fired, even when it found nothing to do (2026-11-12)
+
+§59 gave the workspace an hourly schedule and a green first run. What it did not give anyone was a way
+to *see* that from inside the product. Reports and automation already stamp a per-row "Last run", and the
+cron writes both — but production holds **0 report schedules, 0 automation rules and 0 digest rows**, so
+every one of those indicators reads "Never run". A healthy scheduler with empty queues and a dead
+scheduler render identically. The email surface was worse: 17 prose mentions of "the hourly schedule"
+and no timestamp anywhere, because `email_digest` has no delivered-at column at all.
+
+- **One table, one row — not a log.** `scheduler_heartbeat` (`id smallint PK default 1`,
+  `last_fired_at`, `ok`, `jobs jsonb`, `updated_at`) with `CONSTRAINT scheduler_heartbeat_singleton
+  CHECK (id = 1)`, so "one row" is structural rather than a convention. Per-job failure history already
+  lives in `report_runs`, `automation_runs` and `email_digest.status`; the only fact none of them records
+  is *the hour fired and found nothing*. `recordHeartbeatSql` is an `INSERT … ON CONFLICT (id) DO UPDATE`
+  on a bound `HEARTBEAT_ID = 1`, the same constant `heartbeatSql` reads by, so the write and the read
+  cannot disagree. **No seed row:** an empty table has to mean "never fired".
+- **The cron records it, and a failed record does not fail the run.** After the three jobs,
+  `app/api/cron/hourly/route.ts` upserts row 1 with `ok` and the per-job counts inside its own try/catch.
+  This is §60's second rule applied literally: the reports, rules and mail have *already gone out*, and
+  Vercel does not retry, so a 500 here would claim they never did. The tolerance lives at the call site,
+  where "the jobs ran" is a known fact, and says so in a comment.
+- **`GET /api/cron/status` is session-gated, not bearer-gated.** It sits beside the route that writes it
+  but the two gates are opposites: `/api/cron/hourly` takes a bearer secret and no cookie, this takes a
+  cookie and no secret. A cron bearer header opens nothing here. `data: null` means the table is empty;
+  `readHeartbeat` **rethrows** on a driver failure and the route answers 500, so §60's rule holds —
+  "never fired" can never also mean "the read failed".
+- **One component, three mounts, no new page.** `components/dashboard/scheduler-heartbeat.tsx` renders a
+  single 11px line in "Saved schedules" (`app/dashboard/reports/page.tsx:975`), "Rules"
+  (`app/dashboard/automation/page.tsx:620`) and the amber delivery panel
+  (`app/dashboard/email/page.tsx:652`). No nav entry, no route. The label logic is a pure module,
+  `lib/cron/heartbeat-view.ts`, because the repo has no DOM harness and the three states deserve real
+  assertions rather than JSX regexes: fired, never fired, unreadable. A failed job prints
+  `reports failed`, not `undefined` — a job that threw reports `{ok:false,error}` and carries no counts.
+  Counts are work done (`ran`/`delivered`), not rows examined (`due`).
+- **One deliberate deviation from the approved design.** The design said `12 Nov, 14:03`; the shipped
+  line says `12m ago`, using the house `relativeTime` so it matches the per-row "Last run 12m ago" on the
+  same card. To avoid duplicating that logic, `relativeTime` moved to `lib/relative-time.ts` (gaining an
+  optional `now` for deterministic tests) and `components/dashboard-kit.tsx:179` re-exports it — all 96
+  call sites across ~25 pages keep their existing import.
+- **Rejected: derive it from `MAX(last_run_at)`.** Zero migration, but it reads "never" on a healthy
+  empty workspace — the exact case this exists to answer — and it counts a manual Run press as a
+  scheduled fire.
+- **Tests.** Three new files plus four cases on `cron-hourly.test.ts`: **30 new**, all written first and
+  observed failing. `cron-heartbeat.test.ts` (9 — upsert-not-append, bound outcome and `jobs` with no
+  job name pasted into the statement, `now()` instead of a bound `Date` per §52, and a read that throws
+  rather than reporting "never"), `cron-status.test.ts` (6 — 401 with no session and **zero reads**, 401
+  for a non-numeric id, 401 for a cron bearer header, 200 with the DTO, 200 with `null`, 500 with the
+  driver message), `scheduler-heartbeat.test.ts` (11 — the six label states on real output plus five
+  comment-stripped source guards), and `cron-hourly.test.ts` (+4 — records the fire when all three jobs
+  found nothing, records `ok:false` when one fails, records nothing unsigned, and stays green when the
+  heartbeat write itself throws).
+  **Mutation-checked three ways, and two guards were strengthened because of it.** Replacing the cron's
+  catch body with `throw error` fails exactly the tolerance case. The first draft of the mount guard
+  only asserted the page contained `SchedulerHeartbeat` — which an *unused import* satisfies — so it now
+  requires the JSX element `/<SchedulerHeartbeat[\s/>]/`; deleting the reports mount then fails exactly
+  one case. Likewise the component guard only checked that `HEARTBEAT_UNKNOWN` appeared, which the
+  import line alone satisfies; it now pins the failed branch to that constant and forbids the component
+  from naming `HEARTBEAT_NEVER` at all, and collapsing the two states fails exactly one case.
+  Gates: `tsc --noEmit` clean, **209 files / 3,326 tests**.
+- **Not live yet — the table needs its own approval.** `scripts/create-scheduler-heartbeat-table.mjs`
+  (additive, 1 `CREATE TABLE`, 0 rows affected) and `scripts/rollback-scheduler-heartbeat-table.mjs` are
+  written but **not applied**. Until they are, `/api/cron/status` answers 500 and all three surfaces read
+  "Can't read the scheduler status" — which is the honest answer, not a bug. The hourly run logs
+  `Cron heartbeat write failed` and still returns 200, exactly the designed tolerance.

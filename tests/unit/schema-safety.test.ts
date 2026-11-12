@@ -230,3 +230,36 @@ describe("phase 1 worklog migration", () => {
     expect(code).toMatch(/WORKLOG_ROLLBACK !== "yes"/)
   })
 })
+
+describe("the scheduler heartbeat migration", () => {
+  // Same contract as the worklog tables: one reviewed additive script, never drizzle-kit push.
+  it("creates the table without touching anything else, and seeds no row", () => {
+    const code = codeOnly(src("scripts/create-scheduler-heartbeat-table.mjs"))
+    expect(code).not.toMatch(/\bDROP\b/i)
+    expect(code).not.toMatch(/DELETE FROM/i)
+    expect(code).not.toMatch(/TRUNCATE/i)
+    expect(code).not.toMatch(/ALTER COLUMN/i)
+    expect(code).toMatch(/CREATE TABLE IF NOT EXISTS scheduler_heartbeat/i)
+    expect(code).toMatch(/information_schema/i)
+    // A seeded row would claim a fire that never happened. Empty has to mean "never fired".
+    expect(code).not.toMatch(/INSERT INTO/i)
+  })
+
+  it("makes one row structural, in both the script and the schema declaration", () => {
+    // Declared here so this table does not join the undeclared-in-schema backlog. The CHECK is
+    // what stops a second row, so both copies have to carry it.
+    expect(codeOnly(src("scripts/create-scheduler-heartbeat-table.mjs"))).toMatch(
+      /CHECK \(id = 1\)/,
+    )
+    const schema = codeOnly(src("drizzle/schema.ts"))
+    expect(schema).toMatch(/pgTable\(\s*"scheduler_heartbeat"/)
+    expect(schema).toMatch(/scheduler_heartbeat_singleton[\s\S]{0,120}id.*=.*1/)
+  })
+
+  it("the rollback drops only the heartbeat, whose loss is one timestamp", () => {
+    const code = codeOnly(src("scripts/rollback-scheduler-heartbeat-table.mjs"))
+    expect(code).toMatch(/DROP TABLE IF EXISTS scheduler_heartbeat/i)
+    // Per-item history lives in report_runs, automation_runs and email_digest — not here.
+    expect(code).not.toMatch(/DROP TABLE IF EXISTS (?!scheduler_heartbeat)/i)
+  })
+})
