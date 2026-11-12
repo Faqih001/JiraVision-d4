@@ -2118,7 +2118,7 @@ and no timestamp anywhere, because `email_digest` has no delivered-at column at 
 - **Rejected: derive it from `MAX(last_run_at)`.** Zero migration, but it reads "never" on a healthy
   empty workspace — the exact case this exists to answer — and it counts a manual Run press as a
   scheduled fire.
-- **Tests.** Three new files plus four cases on `cron-hourly.test.ts`: **30 new**, all written first and
+- **Tests.** Three new files plus seven added cases: **33 new**, all written first and
   observed failing. `cron-heartbeat.test.ts` (9 — upsert-not-append, bound outcome and `jobs` with no
   job name pasted into the statement, `now()` instead of a bound `Date` per §52, and a read that throws
   rather than reporting "never"), `cron-status.test.ts` (6 — 401 with no session and **zero reads**, 401
@@ -2126,15 +2126,19 @@ and no timestamp anywhere, because `email_digest` has no delivered-at column at 
   driver message), `scheduler-heartbeat.test.ts` (11 — the six label states on real output plus five
   comment-stripped source guards), and `cron-hourly.test.ts` (+4 — records the fire when all three jobs
   found nothing, records `ok:false` when one fails, records nothing unsigned, and stays green when the
-  heartbeat write itself throws).
-  **Mutation-checked three ways, and two guards were strengthened because of it.** Replacing the cron's
+  heartbeat write itself throws), and `schema-safety.test.ts` (+3 — the migration script is additive
+  and seeds no row, the singleton CHECK appears in both the script and the schema declaration, and the
+  rollback drops only the heartbeat).
+  **Mutation-checked four ways, and two guards were strengthened because of it.** Replacing the cron's
   catch body with `throw error` fails exactly the tolerance case. The first draft of the mount guard
   only asserted the page contained `SchedulerHeartbeat` — which an *unused import* satisfies — so it now
   requires the JSX element `/<SchedulerHeartbeat[\s/>]/`; deleting the reports mount then fails exactly
   one case. Likewise the component guard only checked that `HEARTBEAT_UNKNOWN` appeared, which the
   import line alone satisfies; it now pins the failed branch to that constant and forbids the component
-  from naming `HEARTBEAT_NEVER` at all, and collapsing the two states fails exactly one case.
-  Gates: `tsc --noEmit` clean, **209 files / 3,326 tests**.
+  from naming `HEARTBEAT_NEVER` at all, and collapsing the two states fails exactly one case. Weakening
+  the schema's CHECK to `id < 99` fails exactly the singleton case, so that guard reads the constraint
+  and not merely the table name.
+  Gates: `tsc --noEmit` clean, **209 files / 3,329 tests**.
 - **Not live yet — the table needs its own approval.** `scripts/create-scheduler-heartbeat-table.mjs`
   (additive, 1 `CREATE TABLE`, 0 rows affected) and `scripts/rollback-scheduler-heartbeat-table.mjs` are
   written but **not applied**. Until they are, `/api/cron/status` answers 500 and all three surfaces read
