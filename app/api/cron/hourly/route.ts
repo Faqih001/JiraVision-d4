@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
   try {
     await recordHeartbeat(ok, jobs)
   } catch (error) {
-    console.error("Cron heartbeat write failed:", error)
+    throw error
   }
 
   return NextResponse.json({ success: ok, data: { jobs } }, { status: ok ? 200 : 500 })
