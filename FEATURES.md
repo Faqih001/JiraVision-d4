@@ -2139,8 +2139,20 @@ and no timestamp anywhere, because `email_digest` has no delivered-at column at 
   the schema's CHECK to `id < 99` fails exactly the singleton case, so that guard reads the constraint
   and not merely the table name.
   Gates: `tsc --noEmit` clean, **209 files / 3,329 tests**.
-- **Not live yet — the table needs its own approval.** `scripts/create-scheduler-heartbeat-table.mjs`
-  (additive, 1 `CREATE TABLE`, 0 rows affected) and `scripts/rollback-scheduler-heartbeat-table.mjs` are
-  written but **not applied**. Until they are, `/api/cron/status` answers 500 and all three surfaces read
-  "Can't read the scheduler status" — which is the honest answer, not a bug. The hourly run logs
-  `Cron heartbeat write failed` and still returns 200, exactly the designed tolerance.
+- **Live on production, and the first scheduled fire proved it.** Applied 2026-11-12 under its own
+  approval: `scripts/create-scheduler-heartbeat-table.mjs` ran 1 `CREATE TABLE`, **0 rows affected, no
+  seed row**, on `ep-….c-7.us-east-2.aws.neon.tech/neondb` (CLI project `snowy-truth-57678083`).
+  Verified after: five columns, `PRIMARY KEY (id)`, and `scheduler_heartbeat_singleton => CHECK ((id = 1))`.
+  While the table was still empty the reader's own SQL returned 0 rows — `null`, not a throw — so the
+  surfaces said "Scheduler has never fired" rather than an error. Then the **10:02:43 scheduled run**
+  (`schx_5RXKBT5VAKY3445WA28JTF7X3A`, Succeeded, `Source: Scheduled`) wrote row 1:
+  `last_fired_at 2026-11-12T07:02:44Z`, `ok true`, all three jobs `{due:0, ran:0, failed:0}` — and the
+  table still holds **exactly 1 row**, so the singleton is doing its job. Feeding that real row to the
+  real `heartbeatView` renders `Scheduler last fired 8m ago · ok · reports 0 · rules 0 · digest 0`.
+  That is the whole point of the table: the hour fired, found nothing to do, and says so instead of
+  looking dead. `scripts/rollback-scheduler-heartbeat-table.mjs` drops only this table; the loss would
+  be one timestamp, since per-item history lives elsewhere.
+- **One link is not machine-verified.** The browser paint itself. Both available browser contexts had
+  no session, so the chain DB row → reader DTO → `heartbeatView` → string is proven on live data, but
+  the three lines were not seen rendered on the page. The mounts are covered by comment-stripped source
+  guards that require the JSX element, and the label logic by assertions on real output.
