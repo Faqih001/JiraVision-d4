@@ -972,7 +972,7 @@ export default function ReportsPage() {
 
       {/* 5 — schedule list */}
       <SectionCard title="Saved schedules" icon={<LayoutGrid className="h-4 w-4" />}>
-        <SchedulerHeartbeat className="mb-3" data-mutation-check="removed" />
+        <SchedulerHeartbeat className="mb-3" />
         {filteredSchedules.length === 0 ? (
           <EmptyNote>
             No schedules yet — build a preview above and hit “Save as schedule”, or create one directly.

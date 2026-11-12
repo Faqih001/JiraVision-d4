@@ -106,7 +106,10 @@ describe("the three surfaces that show the heartbeat", () => {
   })
 
   it("the component renders all three states rather than defaulting to 'never'", () => {
-    expect(component).toContain("HEARTBEAT_UNKNOWN")
+    // The failed flag has to select UNKNOWN. Merely importing the constant proves nothing.
+    expect(component).toMatch(/failed[\s\S]{0,80}HEARTBEAT_UNKNOWN/)
+    // "Never fired" belongs to heartbeatView(null); the component must not name it itself.
+    expect(component).not.toContain("HEARTBEAT_NEVER")
     expect(component).toContain("heartbeatView")
     expect(component).toMatch(/catch/)
   })
@@ -117,7 +120,8 @@ describe("the three surfaces that show the heartbeat", () => {
     ["app/dashboard/email/page.tsx", "Digest delivery"],
   ])("%s mounts it in the %s section", (path) => {
     const page = source(path)
-    expect(page).toContain("SchedulerHeartbeat")
     expect(page).toMatch(/import\s*\{[^}]*SchedulerHeartbeat/)
+    // An unused import would satisfy a bare name check; the mount is the JSX element.
+    expect(page).toMatch(/<SchedulerHeartbeat[\s/>]/)
   })
 })
