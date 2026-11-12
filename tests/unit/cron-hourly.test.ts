@@ -15,17 +15,24 @@ const SECRET = "0123456789abcdef0123456789abcdef"
 const state = vi.hoisted(() => {
   const calls: string[] = []
   const fail: Record<string, boolean> = {}
+  const heartbeats: { ok: boolean; jobs: Record<string, unknown> }[] = []
   const job = (key: string) => async () => {
     calls.push(key)
     if (fail[key]) throw new Error(`${key} exploded`)
     return { ok: true, ran: 0 }
   }
-  return { calls, fail, job }
+  return { calls, fail, heartbeats, heartbeatFails: false, job }
 })
 
 vi.mock("@/app/api/reports/_runner", () => ({ runDueSchedules: state.job("reports") }))
 vi.mock("@/app/api/automation/_scheduler", () => ({ runActiveRules: state.job("rules") }))
 vi.mock("@/app/api/email/_dispatcher", () => ({ flushDigestQueue: state.job("digest") }))
+vi.mock("@/app/api/cron/_heartbeat", () => ({
+  recordHeartbeat: async (ok: boolean, jobs: Record<string, unknown>) => {
+    state.heartbeats.push({ ok, jobs })
+    if (state.heartbeatFails) throw new Error("heartbeat write failed")
+  },
+}))
 
 import { GET } from "@/app/api/cron/hourly/route"
 
@@ -40,6 +47,8 @@ function call(authorization?: string) {
 describe("the hourly maintenance route", () => {
   beforeEach(() => {
     state.calls.length = 0
+    state.heartbeats.length = 0
+    state.heartbeatFails = false
     for (const key of Object.keys(state.fail)) delete state.fail[key]
     vi.stubEnv("CRON_SECRET", SECRET)
     vi.spyOn(console, "error").mockImplementation(() => {})
@@ -96,5 +105,54 @@ describe("the hourly maintenance route", () => {
     const body = await response.json()
     expect(body.data.jobs.reports.ok).toBe(true)
     expect(body.data.jobs.digest.ok).toBe(false)
+  })
+})
+
+// The heartbeat is the only record of a run that found nothing to do. Without it an empty workspace
+// is indistinguishable from a dead cron: every per-item "Last run" reads "Never run" either way.
+describe("the hourly route records that it fired", () => {
+  beforeEach(() => {
+    state.calls.length = 0
+    state.heartbeats.length = 0
+    state.heartbeatFails = false
+    for (const key of Object.keys(state.fail)) delete state.fail[key]
+    vi.stubEnv("CRON_SECRET", SECRET)
+    vi.spyOn(console, "error").mockImplementation(() => {})
+  })
+
+  afterEach(() => {
+    vi.unstubAllEnvs()
+    vi.restoreAllMocks()
+  })
+
+  it("records the fire even when all three jobs found nothing", async () => {
+    const response = await call(`Bearer ${SECRET}`)
+    expect(response.status).toBe(200)
+    expect(state.heartbeats).toHaveLength(1)
+    expect(state.heartbeats[0].ok).toBe(true)
+    expect(Object.keys(state.heartbeats[0].jobs).sort()).toEqual(["digest", "reports", "rules"])
+  })
+
+  it("records a run with a failed job as not ok", async () => {
+    state.fail.rules = true
+    await call(`Bearer ${SECRET}`)
+    expect(state.heartbeats).toHaveLength(1)
+    expect(state.heartbeats[0].ok).toBe(false)
+  })
+
+  it("records nothing for an unsigned call", async () => {
+    await call()
+    expect(state.heartbeats).toEqual([])
+  })
+
+  it("does not turn a green run red when the heartbeat write itself fails", async () => {
+    // The three jobs already ran. Reporting 500 because a convenience write failed would tell
+    // Vercel the maintenance run failed when the reports, rules and mail all went out.
+    state.heartbeatFails = true
+    const response = await call(`Bearer ${SECRET}`)
+    expect(response.status).toBe(200)
+    const body = await response.json()
+    expect(body.success).toBe(true)
+    expect(state.calls).toEqual(["reports", "rules", "digest"])
   })
 })

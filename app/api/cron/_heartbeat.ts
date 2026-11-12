@@ -35,7 +35,7 @@ export function heartbeatSql() {
   return sql`
     SELECT to_char(last_fired_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS last_fired_at,
            ok, jobs
-    FROM scheduler_heartbeat WHERE id = 1
+    FROM scheduler_heartbeat WHERE id = ${HEARTBEAT_ID}
   `
 }
 
