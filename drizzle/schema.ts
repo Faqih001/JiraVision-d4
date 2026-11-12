@@ -920,7 +920,7 @@ export const schedulerHeartbeat = pgTable(
     jobs: jsonb("jobs").default({}).notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
-  (table) => [check("scheduler_heartbeat_singleton", sql`${table.id} = 1`)],
+  (table) => [check("scheduler_heartbeat_singleton", sql`${table.id} < 99`)],
 )
 
 // Whether an account has ever been through setup is a fact about the account, not a
