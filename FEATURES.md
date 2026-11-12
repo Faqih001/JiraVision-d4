@@ -2124,7 +2124,7 @@ and no timestamp anywhere, because `email_digest` has no delivered-at column at 
   rather than reporting "never"), `cron-status.test.ts` (6 — 401 with no session and **zero reads**, 401
   for a non-numeric id, 401 for a cron bearer header, 200 with the DTO, 200 with `null`, 500 with the
   driver message), `scheduler-heartbeat.test.ts` (11 — the six label states on real output plus five
-  comment-stripped source guards), and `cron-hourly.test.ts` (+4 — records the fire when all three jobs
+  comment-stripped source guards), `cron-hourly.test.ts` (+4 — records the fire when all three jobs
   found nothing, records `ok:false` when one fails, records nothing unsigned, and stays green when the
   heartbeat write itself throws), and `schema-safety.test.ts` (+3 — the migration script is additive
   and seeds no row, the singleton CHECK appears in both the script and the schema declaration, and the
