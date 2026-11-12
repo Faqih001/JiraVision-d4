@@ -906,6 +906,23 @@ export const authSessions = pgTable(
   (table) => [index("auth_sessions_user_idx").on(table.userId)],
 )
 
+// When the hourly schedule last fired and what it found. One row, upserted — not a log: per-item
+// history already lives in report_runs, automation_runs and email_digest.status. The fact none of
+// them holds is "the hour ran and found nothing", which is the only thing that distinguishes a live
+// scheduler with empty queues from a dead one. The CHECK makes one row structural. No seed row:
+// an empty table has to mean "never fired".
+export const schedulerHeartbeat = pgTable(
+  "scheduler_heartbeat",
+  {
+    id: smallint("id").primaryKey().default(1),
+    lastFiredAt: timestamp("last_fired_at", { withTimezone: true }).defaultNow().notNull(),
+    ok: boolean("ok").default(true).notNull(),
+    jobs: jsonb("jobs").default({}).notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [check("scheduler_heartbeat_singleton", sql`${table.id} = 1`)],
+)
+
 // Whether an account has ever been through setup is a fact about the account, not a
 // preference, so it gets its own row: one row per user, created by the gate on first
 // contact or by the backfill for accounts that predate the wizard. The answers themselves
