@@ -2087,6 +2087,11 @@ and no timestamp anywhere, because `email_digest` has no delivered-at column at 
   is *the hour fired and found nothing*. `recordHeartbeatSql` is an `INSERT … ON CONFLICT (id) DO UPDATE`
   on a bound `HEARTBEAT_ID = 1`, the same constant `heartbeatSql` reads by, so the write and the read
   cannot disagree. **No seed row:** an empty table has to mean "never fired".
+- **Declared in the schema too, so it does not join the undeclared backlog.** `drizzle/schema.ts`
+  carries `schedulerHeartbeat` with the same `check("scheduler_heartbeat_singleton", sql\`${table.id} = 1\`)`,
+  matching how `opsConfigAudit` and `authSessions` are declared alongside their additive scripts. The
+  schema file is still never pushed — `drizzle-kit push` can drop what the file does not declare, and
+  this database is production.
 - **The cron records it, and a failed record does not fail the run.** After the three jobs,
   `app/api/cron/hourly/route.ts` upserts row 1 with `ok` and the per-job counts inside its own try/catch.
   This is §60's second rule applied literally: the reports, rules and mail have *already gone out*, and
