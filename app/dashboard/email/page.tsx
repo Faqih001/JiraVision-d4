@@ -70,6 +70,7 @@ import {
   TOOLTIP_STYLE,
   relativeTime,
 } from "@/components/dashboard-kit"
+import { SchedulerHeartbeat } from "@/components/dashboard/scheduler-heartbeat"
 import type { DashboardOverview } from "@/lib/dashboard-data"
 
 /* ------------------------------------------------------------------ types */
@@ -648,6 +649,7 @@ export default function EmailWorkspace() {
               bell feed
               {realtimeEnabled ? " (realtime updates active)" : " (polling mode)"}.
             </p>
+            <SchedulerHeartbeat className="mt-2" />
           </div>
         </CardContent>
       </Card>

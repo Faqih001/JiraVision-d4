@@ -64,6 +64,7 @@ import {
   TOOLTIP_STYLE,
   relativeTime,
 } from "@/components/dashboard-kit"
+import { SchedulerHeartbeat } from "@/components/dashboard/scheduler-heartbeat"
 import {
   ACTIONS,
   ACTION_KEYS,
@@ -616,6 +617,7 @@ export default function AutomationPage() {
 
       {/* 4 — rules list */}
       <SectionCard title="Rules" icon={<Zap className="h-4 w-4" />}>
+        <SchedulerHeartbeat className="mb-3" />
         {filtered.length === 0 ? (
           <EmptyNote>
             {query.trim() !== "" || fTrigger !== "all" || fState !== "all"
