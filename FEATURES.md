@@ -2009,3 +2009,64 @@ a manual button and no timer. `vercel.json` carried no schedule at all.
   "delete the gate" mutation was deliberately not run: the auto-commit watcher could have pushed an
   unauthenticated cron route mid-mutation, and `cron-hourly.test.ts` proves the 401 without that risk.
   Gates: `tsc --noEmit` clean, 203 files / 3,217 tests.
+
+## 60. A read that cannot answer says so, and a committed save is never called a failure (2026-11-12)
+
+§57's board showed 0 of 0 cards because `getPaginatedTasks` caught a driver error and returned an empty
+page. That fix was one function. This is the rest of the class: **20 readers** across `lib/data-access.ts`
+(15) and `lib/data-access-task-instances.ts` (5) logged a query failure and then resolved `[]`, `null` or
+`0` — an answer the caller reads as "nothing matched". An outage was indistinguishable from an empty
+workspace, and on the task routes it was worse than empty: `null` became **404 "Task with ID N not
+found"**, so a member whose Neon compute was waking was told their task had been deleted.
+
+- **The rule.** `null` and `[]` now mean only *the database answered and nothing matched*. All 20 catches
+  keep their `console.error` and add `throw error`; the caller's own catch answers 500 with the driver's
+  message. No new result vocabulary — a discriminated `{ok, error}` would have changed six call sites to
+  buy nothing, because all six already sit inside a try that answers 500.
+- **`getTaskById` → 404, decided.** Rethrow, and keep `null` for a genuine miss. The six call sites
+  (`app/api/tasks/[id]/route.ts:37,89,224` and `app/api/test/tasks/[id]/route.ts:34,81,161`) turn `null`
+  into 404 and a throw into 500, which is the distinction the member needs: "gone" versus "ask again".
+- **13 of the 15 are dead code, and were fixed anyway.** `getActiveSprint`, `getSprintById`,
+  `getSprintHistory`, `getTasksByAssignee`, `getTasksByStatus`, `getTeamWellbeing`, `getUserWellbeing`,
+  `getUserGamification`, `getTeamLeaderboard`, `getLatestEthicalMetrics`, `getActiveAIInsights`,
+  `getSprintAnalytics` and `getTeamMembers` have no caller anywhere in `app/`, `components/`, `lib/`,
+  `hooks/` or `scripts/`. Only `getTasksBySprintId` (`app/api/sprints/[id]/tasks/route.ts:33`) and
+  `getTaskById` are live. One line each is exactly what was asked, so they rethrow too; **deleting them
+  is reported for the dead-code batch, not done here.**
+- **Two writers tell the truth, and their tolerance moved to the call site.** `generateNextInstance` and
+  `generateInitialInstances` both run *after* a commit — the instance PATCH has already stored the
+  member's done, and POST has already inserted the task row. Bubbling a failure from there would report a
+  successful save as failed and invite a duplicate. So the lib function throws, and each of the two call
+  sites (`app/api/task-instances/[id]/route.ts:100-110`, `app/api/tasks/route.ts:224-244`) catches
+  explicitly with the reason written down. HTTP behaviour at both endpoints is unchanged: 200 with the
+  saved row, `nextInstance: null` / `instanceCount: 0`. The tolerance belongs where "the save landed" is a
+  known fact, not in a reader where every future caller inherits the lie.
+- **One more of the same class, found by the sweep.** `lib/tasks/day-occurrence.ts` caught its *primary*
+  occurrence read into an empty Map, so a daily finished this morning reappeared as To do — and the
+  comment above it said "losing the read costs the whole board", which is exactly what the catch did.
+  That `.catch` is gone. The bounded top-up below it keeps its tolerance: it is a write inside a read, and
+  a board that cannot grow a grid still shows the rows already there.
+- **Six tolerances stay, deliberately.** `ensureInstanceHorizon` (best-effort top-up),
+  `lib/worklog/capture.ts` (losing one event is better than losing the member's edit) and the four
+  `lib/validate-image.ts` probes (a URL that cannot be fetched is not a valid image). Each says so in a
+  comment. `lib/worklog/member-discipline.ts` keeps its fallback too: it computes a *default*, not an
+  answer, and falls back to signals already on the user row.
+- **No page can crash from this.** Every live caller of every changed reader is an `app/api/**` route
+  already inside a try whose catch answers 500. No server component calls any of them, so the error
+  boundaries are not in the path.
+- **Tests.** Three files, 78 new cases, all written first and observed failing:
+  `data-access-failure.test.ts` (49 — a driver-failure case and a genuine-empty case for each of the 15,
+  three happy-path cases, a `getUserProfile` positive control, and a comment-stripped census that reads
+  each reader's own catch), `task-by-id-failure.test.ts` (10 — GET/PUT/DELETE on both task routes answer
+  500 with the driver's message and not "not found", while GET still answers 404 for a real miss and 200
+  for a real row) and `task-grid-failure.test.ts` (19 — the grid readers, the board occurrence read, both
+  call-site tolerances exercised through the real routes, and a census over the instance catches). The 19
+  pre-fix passes in the first file were exactly the characterization cases, which is the evidence the
+  harness distinguishes the two behaviours instead of failing everything for one shared reason.
+  **Mutation-checked three ways:** reverting `getSprintHistory` to `return []` fails exactly 2 cases and
+  names that reader; making `generateNextInstance` rethrow *before* adding the PATCH catch turns the route
+  case red (`expected 500 to be 200`), proving the wrap is load-bearing; and replacing the POST catch body
+  with `throw error` fails the create case the same way. The first draft of the POST guard asserted
+  `try {` immediately before the call and was wrong — `instanceCount = await` sits between them — so it
+  was replaced with a behavioural route test rather than loosened.
+  Gates: `tsc --noEmit` clean, **206 files / 3,295 tests**.

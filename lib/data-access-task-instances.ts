@@ -24,17 +24,19 @@ export async function getTaskInstances(filters: {
     return await db.select().from(taskInstances).where(where)
   } catch (error) {
     console.error("Error fetching task instances:", error)
-    return []
+    throw error
   }
 }
 
+// Null means no row matched, which the instance PATCH turns into 404. A read that failed throws, so
+// an outage cannot be reported as a missing occurrence.
 export async function getTaskInstanceById(id: number): Promise<TaskInstance | null> {
   try {
     const results = await db.select().from(taskInstances).where(eq(taskInstances.id, id)).limit(1)
     return results[0] ?? null
   } catch (error) {
     console.error("Error fetching task instance:", error)
-    return null
+    throw error
   }
 }
 
@@ -159,6 +161,10 @@ export async function materialiseGridOnCadenceChange(
 /**
  * The next occurrence the assignee should act on: the earliest open row from today forward,
  * creating the grid first if it ran out. Null when the schedule has no open occurrence left.
+ *
+ * A failed read throws rather than resolving null, so "nothing is due" cannot also mean "the
+ * query never ran". Callers that reach here after committing a save catch it themselves: the
+ * save happened, and only the call site knows that.
  */
 export async function generateNextInstance(taskId: number, todayIso: string): Promise<TaskInstance | null> {
   try {
@@ -177,7 +183,7 @@ export async function generateNextInstance(taskId: number, todayIso: string): Pr
     return open.find((row) => !isSettledInstanceStatus(row.status)) ?? null
   } catch (error) {
     console.error("Error generating next instance:", error)
-    return null
+    throw error
   }
 }
 
@@ -208,6 +214,6 @@ export async function generateInitialInstances(
     return result.length > 0 ? result.length : rows.length
   } catch (error) {
     console.error("Error generating initial instances:", error)
-    return 0
+    throw error
   }
 }

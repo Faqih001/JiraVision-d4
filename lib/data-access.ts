@@ -95,6 +95,10 @@ export async function updateUserProfile(userId: number, profileData: Partial<typ
 }
 
 // Sprint functions
+// Every reader below logs and rethrows. An empty list or a null is an answer the database gave —
+// "this member has no tasks", "no sprint is active" — and a query that never ran is not that answer.
+// Returning one for a driver error makes an outage indistinguishable from an empty workspace, which
+// is how a board once showed 0 of 0 cards in every column and looked, on screen, like nothing was wrong.
 export async function getActiveSprint() {
   try {
     const result = await db.select().from(sprints).where(eq(sprints.status, "active")).limit(1)
@@ -102,7 +106,7 @@ export async function getActiveSprint() {
     return result[0] || null
   } catch (error) {
     console.error("Error getting active sprint:", error)
-    return null
+    throw error
   }
 }
 
@@ -113,7 +117,7 @@ export async function getSprintById(id: number) {
     return result[0] || null
   } catch (error) {
     console.error(`Error getting sprint ${id}:`, error)
-    return null
+    throw error
   }
 }
 
@@ -129,7 +133,7 @@ export async function getSprintHistory(limit = 3) {
     return result
   } catch (error) {
     console.error("Error getting sprint history:", error)
-    return []
+    throw error
   }
 }
 
@@ -141,7 +145,7 @@ export async function getTasksBySprintId(sprintId: number) {
     return result
   } catch (error) {
     console.error(`Error getting tasks for sprint ${sprintId}:`, error)
-    return []
+    throw error
   }
 }
 
@@ -152,7 +156,7 @@ export async function getTasksByAssignee(userId: number) {
     return result
   } catch (error) {
     console.error(`Error getting tasks for user ${userId}:`, error)
-    return []
+    throw error
   }
 }
 
@@ -163,10 +167,13 @@ export async function getTasksByStatus(status: string) {
     return result
   } catch (error) {
     console.error(`Error getting tasks with status ${status}:`, error)
-    return []
+    throw error
   }
 }
 
+// Null means the database answered and no row matched, which is what the task routes turn into 404.
+// It must not also mean the read failed: a member whose compute was waking was told their task had
+// been deleted. The routes' own catch answers 500 with the driver's message instead.
 export async function getTaskById(id: number) {
   try {
     const result = await db.select().from(tasks).where(eq(tasks.id, id)).limit(1)
@@ -174,7 +181,7 @@ export async function getTaskById(id: number) {
     return result[0] || null
   } catch (error) {
     console.error(`Error getting task with ID ${id}:`, error)
-    return null
+    throw error
   }
 }
 
@@ -360,7 +367,7 @@ export async function getTeamWellbeing() {
     return result
   } catch (error) {
     console.error("Error getting team wellbeing:", error)
-    return []
+    throw error
   }
 }
 
@@ -376,7 +383,7 @@ export async function getUserWellbeing(userId: number) {
     return result[0] || null
   } catch (error) {
     console.error(`Error getting wellbeing for user ${userId}:`, error)
-    return null
+    throw error
   }
 }
 
@@ -388,7 +395,7 @@ export async function getUserGamification(userId: number) {
     return result[0] || null
   } catch (error) {
     console.error(`Error getting gamification for user ${userId}:`, error)
-    return null
+    throw error
   }
 }
 
@@ -411,7 +418,7 @@ export async function getTeamLeaderboard(limit = 4) {
     }))
   } catch (error) {
     console.error("Error getting team leaderboard:", error)
-    return []
+    throw error
   }
 }
 
@@ -423,7 +430,7 @@ export async function getLatestEthicalMetrics() {
     return result[0] || null
   } catch (error) {
     console.error("Error getting latest ethical metrics:", error)
-    return null
+    throw error
   }
 }
 
@@ -444,7 +451,7 @@ export async function getActiveAIInsights() {
     return result
   } catch (error) {
     console.error("Error getting active AI insights:", error)
-    return []
+    throw error
   }
 }
 
@@ -456,7 +463,7 @@ export async function getSprintAnalytics(sprintId: number) {
     return result[0] || null
   } catch (error) {
     console.error(`Error getting analytics for sprint ${sprintId}:`, error)
-    return null
+    throw error
   }
 }
 
@@ -484,6 +491,6 @@ export async function getTeamMembers() {
     }))
   } catch (error) {
     console.error("Error getting team members:", error)
-    return []
+    throw error
   }
 }

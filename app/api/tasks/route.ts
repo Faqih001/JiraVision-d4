@@ -227,12 +227,20 @@ export async function POST(request: Request) {
       // Anchored on the start day (today when the member gave none) and capped by the due date.
       // Anchoring on the due date used to hand out a grid of Fridays that had not arrived yet, so
       // the board drew no card on the day the schedule was made.
-      instanceCount = await generateInitialInstances(
-        newTask.id,
-        cadence as any,
-        newTask.startDate ?? localDay(new Date(), session?.timezone),
-        newTask.dueDate ?? null,
-      )
+      //
+      // The task row already committed above, so a failed insert is reported as a schedule with no
+      // occurrences yet. Bubbling it would tell the member their task was never created, and they
+      // would create it again.
+      try {
+        instanceCount = await generateInitialInstances(
+          newTask.id,
+          cadence as any,
+          newTask.startDate ?? localDay(new Date(), session?.timezone),
+          newTask.dueDate ?? null,
+        )
+      } catch (error) {
+        console.error(`[task_instances] grid birth failed for task ${newTask.id}:`, error)
+      }
     }
 
     if (newTask.assigneeId && newTask.assigneeId !== userId) {

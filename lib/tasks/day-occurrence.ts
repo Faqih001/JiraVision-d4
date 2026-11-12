@@ -67,15 +67,14 @@ export async function occurrencesForDay(
   const schedules = rows.filter(isScheduleRow)
   if (schedules.length === 0) return new Map()
 
-  // Hoisted out of the try so a failed top-up still returns the rows the first read found:
-  // losing the grid growth costs one day's card, losing the read costs the whole board.
+  // This read may not fail quietly. An empty Map draws every schedule card with no day state, so a
+  // daily finished this morning reappears as To do and nothing on screen says the query never ran.
+  // It sits outside the top-up's try because only the top-up is best-effort: losing the grid growth
+  // costs one day's card, losing this read costs the whole board.
   const found = await readRowsFor(
     schedules.map((s) => s.id),
     dayIso,
-  ).catch((error) => {
-    console.error("[task_instances] board occurrence read failed:", error)
-    return new Map<number, DayOccurrence>()
-  })
+  )
 
   if (dayIso < topUpIso) return found
 

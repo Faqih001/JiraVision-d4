@@ -99,7 +99,13 @@ export async function PATCH(
 
     let nextInstance = null
     if (status === "done") {
-      nextInstance = await generateNextInstance(instance.taskId, localDay(new Date(), session?.timezone))
+      // The done above already committed. Asking what comes next is a convenience read, and a
+      // failure there must not report the member's save as failed — they would mark it done again.
+      try {
+        nextInstance = await generateNextInstance(instance.taskId, localDay(new Date(), session?.timezone))
+      } catch (error) {
+        console.error("[task_instances] next occurrence read failed after a committed save:", error)
+      }
     }
 
     return NextResponse.json({

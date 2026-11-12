@@ -769,5 +769,15 @@ comparing a status to the literal "done", which is what the swept-page rule in
   answers rows, total, `pageCount` and `doneEarlier`, so the fix cannot decay into "always throw", plus
   per-route source guards. The sweep found the same swallowing in ~15 other `lib/data-access.ts` readers;
   all are dead except `getTaskById`, whose `null` a caller cannot distinguish from a missing row —
-  `app/api/tasks/[id]/route.ts:39,90,225` would answer a query failure as 404 "Task with ID N not found".
-  That one is reported for a decision, not bundled here.
+  `app/api/tasks/[id]/route.ts:37,89,224` would answer a query failure as 404 "Task with ID N not found".
+  That one was reported for a decision, not bundled here.
+- **Decision and follow-through (2026-11-12): the whole class, not just the one function.** `getTaskById`
+  rethrows and keeps `null` for a genuine miss — no new result vocabulary, because all six of its call
+  sites already answer 500 from their own catch. The sweep was then completed across both data-access
+  files: 20 readers rethrow (15 in `lib/data-access.ts`, 5 in `lib/data-access-task-instances.ts`), 13 of
+  them dead code left in place for the dead-code batch. `generateNextInstance` and
+  `generateInitialInstances` rethrow too, with their tolerance moved to the two call sites that run after
+  a commit, so a saved done or a created task is never reported as failed. The board's primary occurrence
+  read in `lib/tasks/day-occurrence.ts` stopped resolving an empty Map. Six documented tolerances stay
+  (`ensureInstanceHorizon`, worklog capture, four image probes). Recorded in `FEATURES.md` §60; guards in
+  `data-access-failure.test.ts`, `task-by-id-failure.test.ts` and `task-grid-failure.test.ts` (78 cases).
