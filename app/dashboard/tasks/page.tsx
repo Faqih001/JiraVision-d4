@@ -1314,8 +1314,8 @@ export default function TasksWorkspacePage() {
         </div>
       ) : view === "table" ? (
         <Card>
-          <CardContent className="p-0">
-            <table className="w-full text-sm">
+          <CardContent className="overflow-x-auto p-0">
+            <table className="min-w-[760px] w-full text-sm">
               <thead>
                 <tr className="border-b text-left text-[11px] uppercase tracking-wide text-muted-foreground">
                   <th className="w-10 px-4 py-2">
@@ -1418,7 +1418,7 @@ export default function TasksWorkspacePage() {
             {sortedTasks.map((t) => {
               const assignee = t.assigneeId !== null ? userById.get(t.assigneeId) : undefined
               return (
-                <div key={t.id} className={cn("flex items-center gap-3 px-4 py-2 hover:bg-muted/40", selected.includes(t.id) && "bg-primary/5")}>
+                <div key={t.id} className={cn("flex flex-wrap items-center gap-3 px-4 py-2 hover:bg-muted/40", selected.includes(t.id) && "bg-primary/5")}>
                   <Checkbox
                     checked={selected.includes(t.id)}
                     onCheckedChange={() => toggleTaskSelected(t.id)}
