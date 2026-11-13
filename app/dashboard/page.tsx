@@ -1210,7 +1210,7 @@ export default function DashboardHome() {
         }
       >
         {running.length > 0 ? (
-          <div className="space-y-3">
+          <div className="flex h-full flex-col justify-between gap-3">
             <div>
               <p className="text-sm font-semibold">{running.length === 1 ? running[0].name : `${running.length} active sprints`}</p>
               <p className="mt-1 text-xs text-muted-foreground">
@@ -1240,35 +1240,39 @@ export default function DashboardHome() {
           </Button>
         }
       >
-        {todayLoading ? (
-          <Skeleton className="h-24 w-full" />
-        ) : today ? (
-          <div className="space-y-3">
-            <div className="grid grid-cols-3 gap-2 text-center">
-              <div className="rounded-md bg-muted/60 p-2">
-                <p className="text-lg font-semibold tabular-nums">{today.totals.entries}</p>
-                <p className="text-[10px] text-muted-foreground">entries</p>
+        <div className="flex h-full flex-col">
+          {todayLoading ? (
+            <Skeleton className="h-full min-h-24 w-full" />
+          ) : today ? (
+            <div className="flex h-full flex-col justify-between gap-3">
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div className="rounded-md bg-muted/60 p-2">
+                  <p className="text-lg font-semibold tabular-nums">{today.totals.entries}</p>
+                  <p className="text-[10px] text-muted-foreground">entries</p>
+                </div>
+                <div className="rounded-md bg-muted/60 p-2">
+                  <p className="text-lg font-semibold tabular-nums">{formatMinutes(today.totals.minutes)}</p>
+                  <p className="text-[10px] text-muted-foreground">recorded</p>
+                </div>
+                <div className="rounded-md bg-muted/60 p-2">
+                  <p className="text-lg font-semibold tabular-nums">{today.streak.current}</p>
+                  <p className="text-[10px] text-muted-foreground">day streak</p>
+                </div>
               </div>
-              <div className="rounded-md bg-muted/60 p-2">
-                <p className="text-lg font-semibold tabular-nums">{formatMinutes(today.totals.minutes)}</p>
-                <p className="text-[10px] text-muted-foreground">recorded</p>
-              </div>
-              <div className="rounded-md bg-muted/60 p-2">
-                <p className="text-lg font-semibold tabular-nums">{today.streak.current}</p>
-                <p className="text-[10px] text-muted-foreground">day streak</p>
-              </div>
+              {today.openBlockers > 0 ? (
+                <p className="text-[11px] font-medium text-destructive">
+                  {today.openBlockers} open {today.openBlockers === 1 ? "blocker" : "blockers"} in today&apos;s log
+                </p>
+              ) : (
+                <p className="text-[11px] text-muted-foreground">No open blockers recorded today.</p>
+              )}
             </div>
-            {today.openBlockers > 0 ? (
-              <p className="text-[11px] font-medium text-destructive">
-                {today.openBlockers} open {today.openBlockers === 1 ? "blocker" : "blockers"} in today&apos;s log
-              </p>
-            ) : (
-              <p className="text-[11px] text-muted-foreground">No open blockers recorded today.</p>
-            )}
-          </div>
-        ) : (
-          <EmptyNote>Work log data is temporarily unavailable.</EmptyNote>
-        )}
+          ) : (
+            <div className="flex h-full items-center">
+              <EmptyNote>Work log data is temporarily unavailable.</EmptyNote>
+            </div>
+          )}
+        </div>
       </SectionCard>
 
       <SectionCard
@@ -1281,7 +1285,7 @@ export default function DashboardHome() {
         }
       >
         {overview.gamification ? (
-          <div className="space-y-3">
+          <div className="flex h-full flex-col justify-between gap-3">
             <div className="flex items-center gap-3">
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[hsl(var(--chart-pine))] text-sm font-bold text-white">
                 {overview.gamification.level}
