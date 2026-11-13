@@ -766,7 +766,7 @@ export default function DashboardLayout({
                     event.currentTarget.blur()
                   }
                 }}
-                className="h-10 rounded-xl border-border/70 bg-muted/40 pl-9 pr-16 text-sm shadow-sm transition-colors placeholder:text-muted-foreground/80 hover:bg-muted/60 focus-visible:bg-background"
+                className="h-10 rounded-xl border border-border bg-muted/40 pl-9 pr-16 text-sm shadow-sm transition-colors placeholder:text-muted-foreground/80 hover:bg-muted/60 focus-visible:bg-background"
                 onFocus={() => setSearchFocused(true)}
                 onBlur={() => setSearchFocused(false)}
               />

@@ -13,7 +13,10 @@ export function ThemeToggle({ className }: { className?: string }) {
       type="button"
       variant="ghost"
       size="icon"
-      className={cn("relative overflow-hidden", className)}
+      className={cn(
+        "relative overflow-hidden border border-border bg-card hover:border-primary/40 hover:bg-muted",
+        className,
+      )}
       aria-label={`Switch to ${resolvedTheme === "dark" ? "light" : "dark"} theme`}
       onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
     >
