@@ -985,7 +985,7 @@ export default function SprintsWorkspace() {
   })()
 
   const chartsRow = (
-    <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-2`}>
+    <div className={`${DASHBOARD_SECTION_GRID} md:grid-cols-3`}>
       <SectionCard
         title={detail ? `Burndown — ${detail.name}` : "Burndown"}
         icon={<BarChart3 className="h-4 w-4" />}
@@ -1039,7 +1039,7 @@ export default function SprintsWorkspace() {
   )
 
   const scopeRow = (
-    <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-2`}>
+    <div className={`${DASHBOARD_SECTION_GRID} md:grid-cols-3`}>
       <SectionCard
         title="Scope changes"
         icon={<Layers className="h-4 w-4" />}
@@ -1124,7 +1124,7 @@ export default function SprintsWorkspace() {
   )
 
   const achievementRow = (
-    <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-2`}>
+    <div className={`${DASHBOARD_SECTION_GRID} md:grid-cols-3`}>
       <SectionCard title="Completion rate" icon={<Target className="h-4 w-4" />}>
         {donutData.length > 0 ? (
           <div className="flex items-center gap-4">
