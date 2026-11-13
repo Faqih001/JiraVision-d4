@@ -1,23 +1,26 @@
 "use client"
 
-// DateRangePicker + DateField — the shadcn calendar replacements for the native
-// type="date" controls (design: calendar upgrade). The popover opens below the
-// trigger. Monday–Friday are the working days: weekend cells are muted and not
-// selectable unless the "I am needed this weekend" toggle is on, and a range
-// reports its working-day count. Values round-trip as plain "YYYY-MM-DD" strings,
-// so every existing URL state and API filter keeps working unchanged.
+// DateRangePicker + DateField + DateTimeField — the shadcn calendar replacements
+// for the native type="date" / type="datetime-local" controls (design: calendar
+// upgrade). Every popover opens below the trigger. DateField/DateRangePicker
+// default to working days: weekend cells are muted and not selectable unless the
+// "I am needed this weekend" toggle is on; pass allowWeekends to DateField for a
+// general date form where every day is selectable and the toggle is hidden.
+// DateTimeField always allows every day and adds a time row. Values round-trip as
+// plain "YYYY-MM-DD" / "YYYY-MM-DDTHH:mm" strings, so every existing URL state and
+// API filter keeps working unchanged.
 
 import * as React from "react"
 import { CalendarIcon } from "lucide-react"
-import { type DateRange as DayRange, type Matcher } from "react-day-picker"
+import { type DateRange as DayRange } from "react-day-picker"
 
 import { cn } from "@/lib/utils"
 import { formatDay, fromIsoDate, toIsoDate, workingDaysBetween } from "@/lib/working-days"
+import { combineDateTime, disabledDayMatchers, formatDateTime, splitDateTime, WEEKEND } from "@/lib/date-picker"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
+import { Input } from "@/components/ui/input"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-
-const WEEKEND: Matcher = { dayOfWeek: [0, 6] }
 
 const weekendToggle = (
   allowWeekends: boolean,
@@ -65,14 +68,9 @@ export function DateRangePicker({
   const [open, setOpen] = React.useState(false)
   // Per-open, not persisted: excluding weekends is the default, and this week's
   // exception should not silently apply to next month's report.
-  const [allowWeekends, setAllowWeekends] = React.useState(false)
+  const [weekendOverride, setWeekendOverride] = React.useState(false)
   const working = workingDaysBetween(from, to)
-
-  const disabledMatchers: Matcher[] = [
-    ...(allowWeekends ? [] : [WEEKEND]),
-    ...(min ? [{ before: fromIsoDate(min) ?? new Date(min) }] : []),
-    ...(max ? [{ after: fromIsoDate(max) ?? new Date(max) }] : []),
-  ]
+  const disabledMatchers = disabledDayMatchers({ weekendOverride, min, max })
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -101,7 +99,7 @@ export function DateRangePicker({
           defaultMonth={fromIsoDate(from) ?? undefined}
         />
         <div className="flex items-center justify-between gap-3 border-t px-3 py-2">
-          {weekendToggle(allowWeekends, setAllowWeekends)}
+          {weekendToggle(weekendOverride, setWeekendOverride)}
           <div className="flex items-center gap-3">
             {working !== null ? (
               <span className="text-[11px] text-muted-foreground">{working} working {working === 1 ? "day" : "days"}</span>
@@ -131,6 +129,9 @@ export interface DateFieldProps {
   max?: string | null
   className?: string
   disabled?: boolean
+  // General date forms (invoice, retro, goal, project dates) need every day
+  // selectable. When true, weekends are never muted and the toggle is hidden.
+  allowWeekends?: boolean
   "aria-label"?: string
 }
 
@@ -143,15 +144,11 @@ export function DateField({
   max,
   className,
   disabled,
+  allowWeekends = false,
   "aria-label": ariaLabel,
 }: DateFieldProps) {
-  const [allowWeekends, setAllowWeekends] = React.useState(false)
-
-  const disabledMatchers: Matcher[] = [
-    ...(allowWeekends ? [] : [WEEKEND]),
-    ...(min ? [{ before: fromIsoDate(min) ?? new Date(min) }] : []),
-    ...(max ? [{ after: fromIsoDate(max) ?? new Date(max) }] : []),
-  ]
+  const [weekendOverride, setWeekendOverride] = React.useState(false)
+  const disabledMatchers = disabledDayMatchers({ allowWeekends, weekendOverride, min, max })
 
   return (
     <Popover>
@@ -178,12 +175,91 @@ export function DateField({
           selected={fromIsoDate(value) ?? undefined}
           onSelect={(day: Date | undefined) => onChange(day ? toIsoDate(day) : null)}
           disabled={disabledMatchers}
-          modifiers={{ weekend: WEEKEND }}
-          modifiersClassNames={{ weekend: "text-muted-foreground/40" }}
+          modifiers={allowWeekends ? undefined : { weekend: WEEKEND }}
+          modifiersClassNames={allowWeekends ? undefined : { weekend: "text-muted-foreground/40" }}
           defaultMonth={fromIsoDate(value) ?? undefined}
         />
         <div className="flex items-center justify-between gap-3 border-t px-3 py-2">
-          {weekendToggle(allowWeekends, setAllowWeekends)}
+          {!allowWeekends && weekendToggle(weekendOverride, setWeekendOverride)}
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="ml-auto h-6 px-2 text-[11px]"
+            onClick={() => onChange(null)}
+          >
+            Clear
+          </Button>
+        </div>
+      </PopoverContent>
+    </Popover>
+  )
+}
+
+export interface DateTimeFieldProps {
+  value: string | null
+  onChange: (value: string | null) => void
+  id?: string
+  placeholder?: string
+  min?: string | null
+  max?: string | null
+  className?: string
+  disabled?: boolean
+  "aria-label"?: string
+}
+
+export function DateTimeField({
+  value,
+  onChange,
+  id,
+  placeholder = "Pick a date & time",
+  min,
+  max,
+  className,
+  disabled,
+  "aria-label": ariaLabel,
+}: DateTimeFieldProps) {
+  const { date, time } = splitDateTime(value)
+  const disabledMatchers = disabledDayMatchers({ allowWeekends: true, min, max })
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          id={id}
+          type="button"
+          variant="outline"
+          disabled={disabled}
+          aria-label={ariaLabel}
+          className={cn(
+            "w-full justify-start text-left font-normal",
+            !value && "text-muted-foreground",
+            className,
+          )}
+        >
+          <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
+          <span className="truncate">{value ? formatDateTime(value) : placeholder}</span>
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent side="bottom" align="start" className="w-auto p-0">
+        <Calendar
+          mode="single"
+          selected={fromIsoDate(date) ?? undefined}
+          onSelect={(day: Date | undefined) => onChange(combineDateTime(day ? toIsoDate(day) : null, time ?? "00:00"))}
+          disabled={disabledMatchers}
+          defaultMonth={fromIsoDate(date) ?? undefined}
+        />
+        <div className="flex items-center justify-between gap-3 border-t px-3 py-2">
+          <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            Time
+            <Input
+              type="time"
+              className="h-7 w-[110px] text-[12px]"
+              value={time ?? ""}
+              disabled={!date}
+              onChange={(event) => onChange(combineDateTime(date, event.target.value || "00:00"))}
+            />
+          </label>
           <Button
             type="button"
             variant="ghost"
