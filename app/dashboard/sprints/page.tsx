@@ -985,7 +985,7 @@ export default function SprintsWorkspace() {
   })()
 
   const chartsRow = (
-    <div className={`${DASHBOARD_SECTION_GRID} md:grid-cols-3`}>
+    <>
       <SectionCard
         title={detail ? `Burndown — ${detail.name}` : "Burndown"}
         icon={<BarChart3 className="h-4 w-4" />}
@@ -1035,11 +1035,11 @@ export default function SprintsWorkspace() {
           <EmptyNote>Complete a sprint to build velocity history.</EmptyNote>
         )}
       </SectionCard>
-    </div>
+    </>
   )
 
   const scopeRow = (
-    <div className={`${DASHBOARD_SECTION_GRID} md:grid-cols-3`}>
+    <>
       <SectionCard
         title="Scope changes"
         icon={<Layers className="h-4 w-4" />}
@@ -1120,11 +1120,11 @@ export default function SprintsWorkspace() {
           <EmptyNote>Select a sprint to see who carries the load.</EmptyNote>
         )}
       </SectionCard>
-    </div>
+    </>
   )
 
   const achievementRow = (
-    <div className={`${DASHBOARD_SECTION_GRID} md:grid-cols-3`}>
+    <>
       <SectionCard title="Completion rate" icon={<Target className="h-4 w-4" />}>
         {donutData.length > 0 ? (
           <div className="flex items-center gap-4">
@@ -1214,7 +1214,7 @@ export default function SprintsWorkspace() {
           <EmptyNote>Nothing planned ahead. Create a sprint to fill the agenda.</EmptyNote>
         )}
       </SectionCard>
-    </div>
+    </>
   )
 
   /* ---- render ---- */
@@ -1267,13 +1267,14 @@ export default function SprintsWorkspace() {
       </section>
 
       {/* 8/9 — Burndown + velocity */}
-      {chartsRow}
+      <div className={`${DASHBOARD_SECTION_GRID} md:grid-cols-3`}>
+        {chartsRow}
+        {scopeRow}
+        {achievementRow}
+      </div>
 
       {/* 10/11 — Scope changes + team capacity */}
-      {scopeRow}
-
       {/* 12/13 — Completion donut + upcoming agenda */}
-      {achievementRow}
 
       {/* 14 — Create/edit + delete dialogs */}
       <Dialog open={formOpen && draft !== null} onOpenChange={(o) => !o && setFormOpen(false)}>
