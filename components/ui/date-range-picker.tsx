@@ -166,6 +166,8 @@ export function DateField({
           disabled={disabled}
           onBlur={onBlur}
           aria-label={ariaLabel}
+          aria-invalid={ariaInvalid}
+          aria-describedby={ariaDescribedBy}
           className={cn(
             "w-full justify-start text-left font-normal",
             !value && "text-muted-foreground",
