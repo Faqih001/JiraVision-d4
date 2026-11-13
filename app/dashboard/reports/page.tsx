@@ -71,6 +71,8 @@ import {
   SectionCard,
   TOOLTIP_STYLE,
   relativeTime,
+  DASHBOARD_KPI_GRID,
+  DASHBOARD_SECTION_GRID,
 } from "@/components/dashboard-kit"
 import { SchedulerHeartbeat } from "@/components/dashboard/scheduler-heartbeat"
 
@@ -696,7 +698,7 @@ export default function ReportsPage() {
     return (
       <div className="space-y-4 p-6">
         <Skeleton className="h-10 w-64" />
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5">
+        <div className={`${DASHBOARD_KPI_GRID} md:grid-cols-3 xl:grid-cols-5`}>
           {Array.from({ length: 5 }).map((_, i) => (
             <Skeleton key={i} className="h-24" />
           ))}
@@ -745,7 +747,7 @@ export default function ReportsPage() {
       </div>
 
       {/* 2 — KPI strip */}
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5">
+      <div className={`${DASHBOARD_KPI_GRID} md:grid-cols-3 xl:grid-cols-5`}>
         {[
           { label: "Schedules", value: kpis.total, icon: <FileSpreadsheet className="h-4 w-4" /> },
           { label: "Active", value: kpis.active, icon: <Activity className="h-4 w-4" /> },
@@ -1072,7 +1074,7 @@ export default function ReportsPage() {
       </SectionCard>
 
       {/* 6+7 — cadence mix + dataset usage */}
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-2`}>
         <SectionCard title="Cadence mix" icon={<CalendarClock className="h-4 w-4" />}>
           {cadenceMix.length === 0 ? (
             <EmptyNote>No schedules yet.</EmptyNote>

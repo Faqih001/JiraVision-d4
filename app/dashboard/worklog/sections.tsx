@@ -40,7 +40,7 @@ import { Input } from "@/components/ui/input"
 import { DateField } from "@/components/ui/date-range-picker"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { EmptyNote, SectionCard, FILTER_TRIGGER } from "@/components/dashboard-kit"
+import { EmptyNote, SectionCard, FILTER_TRIGGER, DASHBOARD_SECTION_GRID } from "@/components/dashboard-kit"
 import { rangeDays } from "@/lib/worklog/local-day"
 import {
   DELIVERABLE_LABEL,
@@ -99,7 +99,7 @@ export const SECTION_TITLES = [
 
 export function WorklogSkeleton() {
   return (
-    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+    <div className={`${DASHBOARD_SECTION_GRID} md:grid-cols-2 xl:grid-cols-3`}>
       {Array.from({ length: 6 }, (_, i) => (
         <Skeleton key={i} className="h-40 rounded-xl" />
       ))}

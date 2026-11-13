@@ -84,6 +84,8 @@ import {
   TOOLTIP_STYLE,
   relativeTime,
   FILTER_TRIGGER,
+  DASHBOARD_KPI_GRID,
+  DASHBOARD_SECTION_GRID,
 } from "@/components/dashboard-kit"
 
 /* ------------------------------------------------------------------ types */
@@ -748,13 +750,13 @@ export default function TeamWorkspace() {
 
       {/* 2 · KPI strip */}
       {loading ? (
-        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
+        <div className={`${DASHBOARD_KPI_GRID} md:grid-cols-3 xl:grid-cols-5`}>
           {Array.from({ length: 5 }).map((_, i) => (
             <Skeleton key={i} className="h-20 rounded-lg" />
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
+        <div className={`${DASHBOARD_KPI_GRID} md:grid-cols-3 xl:grid-cols-5`}>
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -865,7 +867,7 @@ export default function TeamWorkspace() {
       </div>
 
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className={`${DASHBOARD_SECTION_GRID} md:grid-cols-2 lg:grid-cols-3`}>
           {Array.from({ length: 6 }).map((_, i) => (
             <Skeleton key={i} className="h-44 rounded-lg" />
           ))}
@@ -878,7 +880,7 @@ export default function TeamWorkspace() {
         </Card>
       ) : view === "grid" ? (
         /* 4 · roster cards */
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className={`${DASHBOARD_SECTION_GRID} md:grid-cols-2 lg:grid-cols-3`}>
           {sorted.map((m) => (
             <Card key={m.id} className="transition-colors hover:border-primary/40">
               <CardContent className="p-4 space-y-3">
@@ -1025,7 +1027,7 @@ export default function TeamWorkspace() {
         )}
       </SectionCard>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-2`}>
         {/* 7 · happiness trend */}
         <SectionCard title="Team happiness trend" icon={<Smile className="h-4 w-4 text-muted-foreground" />}>
           {!overview ? (
@@ -1119,7 +1121,7 @@ export default function TeamWorkspace() {
         )}
       </SectionCard>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-2`}>
         {/* 10 · XP leaderboard */}
         <SectionCard title="XP leaderboard" icon={<Trophy className="h-4 w-4 text-muted-foreground" />}>
           {!overview ? (

@@ -43,7 +43,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
-import { EmptyNote, SectionCard } from "@/components/dashboard-kit"
+import { EmptyNote, SectionCard, DASHBOARD_SECTION_GRID, DASHBOARD_KPI_GRID } from "@/components/dashboard-kit"
 import {
   isSumMetric,
   type Count,
@@ -89,7 +89,7 @@ import { formatMinutes } from "@/lib/worklog/entries"
 
 export function ReportsSkeleton() {
   return (
-    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+    <div className={`${DASHBOARD_SECTION_GRID} md:grid-cols-2 xl:grid-cols-3`}>
       {Array.from({ length: 6 }, (_, i) => (
         <Skeleton key={i} className="h-40 w-full rounded-xl" />
       ))}
@@ -730,7 +730,7 @@ export function MetricsSection({
     >
       <div className="space-y-4">
         <p className="text-[11px] text-muted-foreground">{sourceLabel}</p>
-        <div className="grid gap-2 sm:grid-cols-3 xl:grid-cols-6">
+        <div className={`${DASHBOARD_KPI_GRID} sm:grid-cols-3 xl:grid-cols-6`}>
           {TEMPLATE_METRICS[template].map((key) => (
             <Stat
               key={key}
@@ -745,7 +745,7 @@ export function MetricsSection({
             The charts read the same figures, so they appear once the period has resolved.
           </EmptyNote>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className={`${DASHBOARD_SECTION_GRID} md:grid-cols-2`}>
             {TEMPLATE_CHARTS[template].map((chart) => (
               <ChartBlock key={chart} chart={chart} data={chartRows(aggregate, chart)} />
             ))}
