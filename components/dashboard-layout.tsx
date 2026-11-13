@@ -155,6 +155,7 @@ export default function DashboardLayout({
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
   const isMobile = useMobile()
+  const [sidebarUsesOverlay, setSidebarUsesOverlay] = useState(false)
   const [searchFocused, setSearchFocused] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   // null while the first read is in flight (or failed) so a badge never claims zero.
@@ -163,6 +164,13 @@ export default function DashboardLayout({
   const [sessionEnded, setSessionEnded] = useState(false)
   // Whether the member's pack has an opsConfig — gates the "My Operations" sidebar group.
   const [hasOpsConfig, setHasOpsConfig] = useState(false)
+
+  useEffect(() => {
+    const updateSidebarMode = () => setSidebarUsesOverlay(window.innerWidth < 1024)
+    updateSidebarMode()
+    window.addEventListener("resize", updateSidebarMode)
+    return () => window.removeEventListener("resize", updateSidebarMode)
+  }, [])
 
   // Toggle sidebar collapse
   const toggleSidebar = () => {
@@ -577,7 +585,7 @@ export default function DashboardLayout({
       <aside
         className={cn(
           "fixed inset-y-0 left-0 z-50 flex h-full flex-col border-r bg-white dark:bg-gray-900 transition-all duration-300 ease-in-out lg:relative",
-          sidebarCollapsed ? "w-[70px]" : "w-[250px]",
+          mobileSidebarOpen && sidebarUsesOverlay ? "w-[250px]" : sidebarCollapsed ? "w-[70px]" : "w-[250px]",
           mobileSidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
           "shadow-lg lg:shadow-none", // Added shadow for better visibility on mobile
         )}
@@ -597,13 +605,6 @@ export default function DashboardLayout({
             </div>
             {!sidebarCollapsed && <span className="font-bold text-xl">JiraVision</span>}
           </Link>
-          <Button variant="ghost" size="icon" className="hidden lg:flex" onClick={toggleSidebar}>
-            {sidebarCollapsed ? (
-              <ChevronDown className="h-5 w-5 rotate-90" />
-            ) : (
-              <ChevronDown className="h-5 w-5 -rotate-90" />
-            )}
-          </Button>
           <Button variant="ghost" size="icon" className="lg:hidden" onClick={toggleMobileSidebar}>
             <X className="h-5 w-5" />
           </Button>
@@ -708,8 +709,19 @@ export default function DashboardLayout({
         {/* Top Navbar */}
         <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-white dark:bg-gray-900 px-3 sm:px-4 lg:px-6">
           <div className="flex items-center gap-2 sm:gap-4">
-            <Button variant="ghost" size="icon" className="h-9 w-9 lg:hidden" onClick={toggleMobileSidebar}>
-              <Menu className="h-5 w-5" />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 shrink-0"
+                onClick={sidebarUsesOverlay ? toggleMobileSidebar : toggleSidebar}
+                aria-label={sidebarUsesOverlay ? "Open sidebar" : sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+                aria-expanded={sidebarUsesOverlay ? mobileSidebarOpen : !sidebarCollapsed}
+            >
+                {sidebarUsesOverlay || sidebarCollapsed ? (
+                <Menu className="h-5 w-5" />
+              ) : (
+                <ChevronDown className="h-5 w-5 -rotate-90" />
+              )}
             </Button>
             <form
               role="search"
@@ -789,7 +801,7 @@ export default function DashboardLayout({
         {/* Page Content */}
         <main className="flex-1 overflow-hidden">
           <div className="h-full overflow-y-auto overflow-x-hidden">
-            <div className="container mx-auto py-4 px-2 sm:px-4 md:px-6 lg:px-8">
+            <div className="w-full py-4 px-3 sm:px-4 lg:px-6">
               {children}
             </div>
           </div>
