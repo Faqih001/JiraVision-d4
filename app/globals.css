@@ -277,6 +277,24 @@
  * Each variant has a dark-mode counterpart; all stay well under text contrast.
  * ------------------------------------------------------------------------- */
 @layer utilities {
+  /*
+   * Dashboard pages are composed by many route-local components. Keep every route
+   * inside the shell's available width, and allow grid children to shrink before
+   * their content can create horizontal overflow.
+   */
+  .dashboard-content {
+    min-width: 0;
+    width: 100%;
+  }
+  .dashboard-content > *,
+  .dashboard-content [class*="grid"] > * {
+    min-width: 0;
+    max-width: 100%;
+  }
+  .dashboard-content table {
+    max-width: 100%;
+  }
+
   .jv-bg-grain {
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
     background-size: 140px 140px;
