@@ -24,7 +24,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
-import { SectionCard, FILTER_TRIGGER, DASHBOARD_KPI_GRID, DASHBOARD_SECTION_GRID } from "@/components/dashboard-kit"
+import { SectionCard, FILTER_TRIGGER, DASHBOARD_SECTION_GRID } from "@/components/dashboard-kit"
 import { LIVE_REFRESH_MS, useLiveRefresh } from "@/hooks/use-live-refresh"
 import { useToast } from "@/hooks/use-toast"
 import { localDay, shiftDays } from "@/lib/worklog/local-day"
@@ -475,7 +475,7 @@ export default function WorklogClient() {
 
   return (
     <div className="space-y-4">
-      <div className={`${DASHBOARD_KPI_GRID} md:grid-cols-2 xl:grid-cols-4`}>
+      <div className="grid min-w-0 grid-cols-1 items-stretch gap-3 md:grid-cols-2">
         <TotalsSection summary={summary} loading={loading} range={range} todayIso={todayIso} />
         <QuickAddSection
           todayIso={todayIso}
