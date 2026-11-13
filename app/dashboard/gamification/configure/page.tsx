@@ -2,15 +2,15 @@
 
 import { useCallback, useEffect, useState } from "react"
 import Link from "next/link"
-import { ArrowLeft, Info, RefreshCw, Save, Settings } from "lucide-react"
+import { ArrowLeft, Bell, CheckCircle2, Info, RefreshCw, Save, Settings, ShieldCheck, Trophy, Users } from "lucide-react"
 import { EmptyNote, SectionCard, DASHBOARD_SECTION_GRID } from "@/components/dashboard-kit"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Switch } from "@/components/ui/switch"
+import { Progress } from "@/components/ui/progress"
 import { useToast } from "@/hooks/use-toast"
 import { jsonFetch, type GamificationSettings } from "../_kit"
 
@@ -94,6 +94,7 @@ export default function GamificationConfigurePage() {
         toast({ variant: "destructive", title: "Configure", description: "XP per level override must be 100–10000 (or empty)." })
         return
       }
+
     }
     setSaving(true)
     try {
@@ -112,6 +113,11 @@ export default function GamificationConfigurePage() {
       setSaving(false)
     }
   }
+
+  const toggle = (key: Toggle["key"]) => TOGGLES.find((item) => item.key === key)
+  const isEnabled = (key: Toggle["key"]) => toggles[key] ?? toggle(key)?.fallback ?? false
+  const progress = data ? Math.min(100, Math.round(((data.xp % data.xpPerLevel) / data.xpPerLevel) * 100)) : 0
+  const xpToNextLevel = data ? data.xpPerLevel - (data.xp % data.xpPerLevel) : 0
 
   return (
     <div className="space-y-6 p-4 md:p-6">
@@ -149,20 +155,21 @@ export default function GamificationConfigurePage() {
 
       {!loading && data && (
         <>
-          <Card>
-            <CardContent className="flex flex-wrap items-center gap-2 p-4 text-xs">
-              <Settings className="h-4 w-4 text-muted-foreground" />
-              <span className="text-muted-foreground">Current config:</span>
-              <Badge variant="secondary">XP/level {data.xpPerLevel}</Badge>
-              <Badge variant="outline">you are level {data.level}</Badge>
-              <Badge variant="outline">{data.xp} XP stored</Badge>
-              <Badge variant="outline">
-                override {data.settings.xpPerLevelOverride === undefined ? "none" : `${data.settings.xpPerLevelOverride} XP`}
-              </Badge>
-            </CardContent>
-          </Card>
+          <div className={`${DASHBOARD_SECTION_GRID} md:grid-cols-2 xl:grid-cols-3`}>
+            <SectionCard title="Current progress" icon={<Trophy className="h-4 w-4" />}>
+              <div className="space-y-3">
+                <div className="flex items-end justify-between gap-3">
+                  <div>
+                    <p className="text-2xl font-semibold">Level {data.level}</p>
+                    <p className="text-xs text-muted-foreground">{data.xp} XP stored</p>
+                  </div>
+                  <Badge variant="secondary">{progress}% to next level</Badge>
+                </div>
+                <Progress value={progress} aria-label={`${progress}% progress to next level`} />
+                <p className="text-[11px] text-muted-foreground">{xpToNextLevel} XP until the next level threshold.</p>
+              </div>
+            </SectionCard>
 
-          <div className={`${DASHBOARD_SECTION_GRID} md:grid-cols-2`}>
             <SectionCard title="XP & levels" icon={<Info className="h-4 w-4" />}>
               <div className="grid gap-3">
                 <div className="grid gap-1.5">
@@ -188,24 +195,115 @@ export default function GamificationConfigurePage() {
               </div>
             </SectionCard>
 
-            <SectionCard title="Toggles & notifications" icon={<Settings className="h-4 w-4" />}>
+            <SectionCard title="Feature availability" icon={<CheckCircle2 className="h-4 w-4" />}>
               <div className="space-y-3">
-                {TOGGLES.map((t) => (
-                  <div key={t.key} className="flex items-center justify-between gap-3">
-                    <div className="min-w-0">
-                      <Label htmlFor={`toggle-${t.key}`} className="text-xs font-medium">
-                        {t.label}
-                      </Label>
-                      <p className="text-[10px] text-muted-foreground">{t.hint}</p>
+                {(["enableGamification", "publicLeaderboard"] as const).map((key) => {
+                  const setting = toggle(key)
+                  if (!setting) return null
+                  return (
+                    <div key={key} className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <Label htmlFor={`toggle-${key}`} className="text-xs font-medium">{setting.label}</Label>
+                        <p className="text-[10px] text-muted-foreground">{setting.hint}</p>
+                      </div>
+                      <Switch
+                        id={`toggle-${key}`}
+                        checked={isEnabled(key)}
+                        onCheckedChange={(v) => setToggles((prev) => ({ ...prev, [key]: !!v }))}
+                      />
                     </div>
-                    <Switch
-                      id={`toggle-${t.key}`}
-                      checked={toggles[t.key] ?? t.fallback}
-                      onCheckedChange={(v) => setToggles((prev) => ({ ...prev, [t.key]: !!v }))}
-                    />
-                  </div>
-                ))}
+                  )
+                })}
               </div>
+            </SectionCard>
+
+            <SectionCard title="Achievement alerts" icon={<Bell className="h-4 w-4" />}>
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <Label htmlFor="toggle-notifyAchievement" className="text-xs font-medium">Achievement notifications</Label>
+                  <p className="text-[10px] text-muted-foreground">{toggle("notifyAchievement")?.hint}</p>
+                </div>
+                <Switch
+                  id="toggle-notifyAchievement"
+                  checked={isEnabled("notifyAchievement")}
+                  onCheckedChange={(v) => setToggles((prev) => ({ ...prev, notifyAchievement: !!v }))}
+                />
+              </div>
+            </SectionCard>
+
+            <SectionCard title="Skill-tree alerts" icon={<Bell className="h-4 w-4" />}>
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <Label htmlFor="toggle-notifySkillTree" className="text-xs font-medium">Skill-tree notifications</Label>
+                  <p className="text-[10px] text-muted-foreground">{toggle("notifySkillTree")?.hint}</p>
+                </div>
+                <Switch
+                  id="toggle-notifySkillTree"
+                  checked={isEnabled("notifySkillTree")}
+                  onCheckedChange={(v) => setToggles((prev) => ({ ...prev, notifySkillTree: !!v }))}
+                />
+              </div>
+            </SectionCard>
+
+            <SectionCard title="Reward alerts" icon={<Bell className="h-4 w-4" />}>
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <Label htmlFor="toggle-notifyRedeem" className="text-xs font-medium">Redemption notifications</Label>
+                  <p className="text-[10px] text-muted-foreground">{toggle("notifyRedeem")?.hint}</p>
+                </div>
+                <Switch
+                  id="toggle-notifyRedeem"
+                  checked={isEnabled("notifyRedeem")}
+                  onCheckedChange={(v) => setToggles((prev) => ({ ...prev, notifyRedeem: !!v }))}
+                />
+              </div>
+            </SectionCard>
+
+            <SectionCard title="Settings alerts" icon={<Settings className="h-4 w-4" />}>
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <Label htmlFor="toggle-notifyConfigure" className="text-xs font-medium">Settings-change notifications</Label>
+                  <p className="text-[10px] text-muted-foreground">{toggle("notifyConfigure")?.hint}</p>
+                </div>
+                <Switch
+                  id="toggle-notifyConfigure"
+                  checked={isEnabled("notifyConfigure")}
+                  onCheckedChange={(v) => setToggles((prev) => ({ ...prev, notifyConfigure: !!v }))}
+                />
+              </div>
+            </SectionCard>
+
+            <SectionCard title="Leaderboard visibility" icon={<Users className="h-4 w-4" />}>
+              <div className="space-y-2">
+                <Badge variant={isEnabled("publicLeaderboard") ? "secondary" : "outline"}>
+                  {isEnabled("publicLeaderboard") ? "Visible to your team" : "Private"}
+                </Badge>
+                <p className="text-[11px] text-muted-foreground">
+                  {isEnabled("publicLeaderboard")
+                    ? "Your XP and rank can appear on the team leaderboard."
+                    : "Your XP and rank are hidden from the team leaderboard."}
+                </p>
+              </div>
+            </SectionCard>
+
+            <SectionCard title="Effective configuration" icon={<ShieldCheck className="h-4 w-4" />}>
+              <div className="flex flex-wrap gap-2 text-xs">
+                <Badge variant="secondary">XP/level {data.xpPerLevel}</Badge>
+                <Badge variant="outline">Level {data.level}</Badge>
+                <Badge variant="outline">{data.settings.xpPerLevelOverride === undefined ? "Default XP curve" : "Custom XP curve"}</Badge>
+              </div>
+              <p className="mt-3 text-[11px] text-muted-foreground">
+                These values are calculated from your saved settings and current gamification progress.
+              </p>
+            </SectionCard>
+
+            <SectionCard title="Persistence & sync" icon={<RefreshCw className="h-4 w-4" />}>
+              <p className="text-xs text-muted-foreground">
+                Changes are stored in your gamification settings and reloaded from the server after saving.
+              </p>
+              <Button variant="outline" size="sm" className="mt-3 gap-1" onClick={load} disabled={loading || saving}>
+                <RefreshCw className="h-3.5 w-3.5" /> Refresh saved values
+              </Button>
             </SectionCard>
           </div>
 
