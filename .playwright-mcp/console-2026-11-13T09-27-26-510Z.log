@@ -1,0 +1,3 @@
+[     338ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3000/_next/static/chunks/504a4_next_dist_ef676604._.js:2298
+[     400ms] [LOG] [HMR] connected @ http://localhost:3000/_next/static/chunks/504a4_next_dist_ef676604._.js:2298
+[   40938ms] [WARNING] WebSocket connection to 'wss://ep-holy-recipe-b5epb0eh.rt.c-7.us-east-2.aws.neon.tech/' failed: WebSocket is closed before the connection is established. @ http://localhost:3000/_next/static/chunks/504a4_%40neon_realtime_dist_client_3e6d10ba._.js:7307
