@@ -43,7 +43,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
-import { AvatarCircle, SectionCard, relativeTime } from "@/components/dashboard-kit"
+import { AvatarCircle, SectionCard, relativeTime, DASHBOARD_KPI_GRID, DASHBOARD_SECTION_GRID } from "@/components/dashboard-kit"
 
 /* ------------------------------------------------------------------ types */
 
@@ -317,7 +317,7 @@ export default function TeamSettingsPage() {
       <div className="space-y-4 p-4 md:p-6">
         <Skeleton className="h-9 w-64" />
         <Skeleton className="h-24 w-full" />
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-2`}>
           <Skeleton className="h-64" />
           <Skeleton className="h-64" />
         </div>
@@ -408,7 +408,7 @@ export default function TeamSettingsPage() {
       )}
 
       {/* 2 — stat strip */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className={`${DASHBOARD_KPI_GRID} sm:grid-cols-2 lg:grid-cols-4`}>
         {[
           { label: "Members", value: stats.members, icon: <Users className="h-4 w-4" />, note: "including admins" },
           {
@@ -444,7 +444,7 @@ export default function TeamSettingsPage() {
         ))}
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-2`}>
         {/* 3 — workspace identity */}
         <SectionCard title="Workspace name" icon={<IdCard className="h-4 w-4" />}>
           <div className="space-y-3">

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { ArrowLeft, ChevronDown, ChevronUp, Minus, Trophy } from "lucide-react"
-import { AvatarCircle, EmptyNote, SectionCard } from "@/components/dashboard-kit"
+import { AvatarCircle, EmptyNote, SectionCard, DASHBOARD_SECTION_GRID } from "@/components/dashboard-kit"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -171,7 +171,7 @@ export default function GamificationLeaderboardPage() {
       </div>
 
       {loading && (
-        <div className="grid gap-3 md:grid-cols-3">
+        <div className={`${DASHBOARD_SECTION_GRID} md:grid-cols-3`}>
           {Array.from({ length: 3 }).map((_, i) => (
             <Skeleton key={i} className="h-32 w-full" />
           ))}
@@ -183,7 +183,7 @@ export default function GamificationLeaderboardPage() {
       )}
 
       {!loading && podium.length > 0 && (
-        <div className="grid gap-3 md:grid-cols-3">
+        <div className={`${DASHBOARD_SECTION_GRID} md:grid-cols-3`}>
           {podium.map(({ player, periodXp }, idx) => (
             <Card key={player.userId} className={player.userId === myUserId ? "border-[hsl(var(--chart-pine))]" : ""}>
               <CardContent className="flex items-center gap-3 p-4">

@@ -29,7 +29,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
-import { EmptyNote, SectionCard, relativeTime } from "@/components/dashboard-kit"
+import { EmptyNote, SectionCard, relativeTime, DASHBOARD_SECTION_GRID } from "@/components/dashboard-kit"
 
 /* ------------------------------------------------------------------ types */
 
@@ -199,7 +199,7 @@ export default function BillingSettingsPage() {
     return (
       <div className="space-y-6 p-4 md:p-6">
         <Skeleton className="h-10 w-64" />
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-2`}>
           {Array.from({ length: 6 }).map((_, i) => (
             <Skeleton key={i} className="h-40" />
           ))}
@@ -266,7 +266,7 @@ export default function BillingSettingsPage() {
         )}
       </SectionCard>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-2`}>
         {/* 3 — Receipts & notifications */}
         <SectionCard title="Receipts & notifications" icon={<MailCheck className="h-4 w-4" />}>
           <div className="space-y-4">
@@ -432,7 +432,7 @@ export default function BillingSettingsPage() {
       </div>
 
       {/* 9 — Provenance + danger zone */}
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-2`}>
         <SectionCard title="Where these values live" icon={<Download className="h-4 w-4" />}>
           <p className="text-xs leading-relaxed text-muted-foreground">
             Every field above is read from and written to{" "}

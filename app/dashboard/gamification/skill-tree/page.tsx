@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react"
 import Link from "next/link"
 import { ArrowLeft, GitBranch, Pencil, Plus, Trash2 } from "lucide-react"
-import { EmptyNote, SectionCard } from "@/components/dashboard-kit"
+import { EmptyNote, SectionCard, DASHBOARD_SECTION_GRID } from "@/components/dashboard-kit"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -173,13 +173,13 @@ export default function SkillTreeEditorPage() {
 
       <SectionCard title="My trees" icon={<GitBranch className="h-4 w-4" />}>
         {loading ? (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className={`${DASHBOARD_SECTION_GRID} sm:grid-cols-2 lg:grid-cols-3`}>
             {Array.from({ length: 3 }).map((_, i) => (
               <Skeleton key={i} className="h-36 w-full" />
             ))}
           </div>
         ) : trees && trees.length > 0 ? (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className={`${DASHBOARD_SECTION_GRID} sm:grid-cols-2 lg:grid-cols-3`}>
             {trees.map((t) => (
               <Card key={t.name} className="p-3">
                 <div className="flex items-center justify-between gap-2">

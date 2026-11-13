@@ -39,7 +39,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
-import { EmptyNote, SectionCard } from "@/components/dashboard-kit"
+import { EmptyNote, SectionCard, DASHBOARD_SECTION_GRID } from "@/components/dashboard-kit"
 import { useToast } from "@/hooks/use-toast"
 import { LIVE_REFRESH_MS, useLiveRefresh } from "@/hooks/use-live-refresh"
 import { cn } from "@/lib/utils"
@@ -135,7 +135,7 @@ export function PlaybooksSkeleton() {
         <Skeleton className="h-9 w-32" />
       </div>
       <Skeleton className="h-20 w-full" />
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+      <div className={`${DASHBOARD_SECTION_GRID} md:grid-cols-2 xl:grid-cols-3`}>
         {Array.from({ length: 6 }).map((_, index) => (
           <Skeleton key={index} className="h-32 w-full" />
         ))}
@@ -423,7 +423,7 @@ export default function PlaybooksClient() {
           </div>
         </SectionCard>
       ) : (
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        <div className={`${DASHBOARD_SECTION_GRID} md:grid-cols-2 xl:grid-cols-3`}>
           {rows.map((row) => (
             <div key={row.id} className="flex flex-col rounded-lg border bg-card p-4">
               <div className="flex items-start justify-between gap-2">

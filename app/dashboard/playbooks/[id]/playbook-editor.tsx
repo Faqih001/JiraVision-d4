@@ -31,7 +31,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
-import { SectionCard } from "@/components/dashboard-kit"
+import { SectionCard, DASHBOARD_SECTION_GRID } from "@/components/dashboard-kit"
 import { useToast } from "@/hooks/use-toast"
 import type { PrecautionSuggestion } from "@/lib/agent/precautions"
 import { exportPlaybookPdf } from "@/lib/export/pdf"
@@ -841,7 +841,7 @@ export default function PlaybookEditor({ id }: { id: string }) {
         )}
       </SectionCard>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-2`}>
         <SectionCard title="Precautions" icon={<AlertTriangle className="h-4 w-4" />}>
           <div className="space-y-2">
             <div className="flex flex-wrap items-center justify-between gap-2">

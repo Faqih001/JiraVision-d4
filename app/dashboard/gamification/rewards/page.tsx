@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react"
 import Link from "next/link"
 import { ArrowLeft, Gift, Pencil, Plus, RefreshCw, Star, Trash2 } from "lucide-react"
-import { EmptyNote, relativeTime, SectionCard } from "@/components/dashboard-kit"
+import { EmptyNote, relativeTime, SectionCard, DASHBOARD_SECTION_GRID } from "@/components/dashboard-kit"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -198,7 +198,7 @@ export default function RewardsCatalogPage() {
         </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className={`${DASHBOARD_SECTION_GRID} sm:grid-cols-3`}>
         <Card>
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">Your spendable XP balance</p>

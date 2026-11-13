@@ -58,7 +58,7 @@ import { languages, allTimezones } from "@/lib/timezones"
 import type { DashboardOverview } from "@/lib/dashboard-data"
 import type { OnboardingView } from "@/lib/onboarding/read"
 import { ONBOARDING_STEP_COUNT } from "@/lib/onboarding/state"
-import { AvatarCircle, EmptyNote, SectionCard, relativeTime } from "@/components/dashboard-kit"
+import { AvatarCircle, EmptyNote, SectionCard, relativeTime, DASHBOARD_SECTION_GRID } from "@/components/dashboard-kit"
 
 /* ------------------------------------------------------------------ types */
 
@@ -653,7 +653,7 @@ export default function SettingsWorkspace() {
       </div>
 
       {loading ? (
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className={`${DASHBOARD_SECTION_GRID} md:grid-cols-2`}>
           {Array.from({ length: 8 }).map((_, i) => (
             <Skeleton key={i} className="h-52 w-full rounded-xl" />
           ))}

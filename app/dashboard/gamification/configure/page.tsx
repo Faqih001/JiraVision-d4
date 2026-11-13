@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react"
 import Link from "next/link"
 import { ArrowLeft, Info, RefreshCw, Save, Settings } from "lucide-react"
-import { EmptyNote, SectionCard } from "@/components/dashboard-kit"
+import { EmptyNote, SectionCard, DASHBOARD_SECTION_GRID } from "@/components/dashboard-kit"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -138,7 +138,7 @@ export default function GamificationConfigurePage() {
       </div>
 
       {loading && (
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className={`${DASHBOARD_SECTION_GRID} md:grid-cols-2`}>
           {Array.from({ length: 2 }).map((_, i) => (
             <Skeleton key={i} className="h-56 w-full" />
           ))}
@@ -162,7 +162,7 @@ export default function GamificationConfigurePage() {
             </CardContent>
           </Card>
 
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className={`${DASHBOARD_SECTION_GRID} md:grid-cols-2`}>
             <SectionCard title="XP & levels" icon={<Info className="h-4 w-4" />}>
               <div className="grid gap-3">
                 <div className="grid gap-1.5">
