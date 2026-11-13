@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { useAuth } from "@/context/auth-context"
 import { cn } from "@/lib/utils"
@@ -158,6 +158,7 @@ export default function DashboardLayout({
   const [sidebarUsesOverlay, setSidebarUsesOverlay] = useState(false)
   const [searchFocused, setSearchFocused] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
+  const searchInputRef = useRef<HTMLInputElement>(null)
   // null while the first read is in flight (or failed) so a badge never claims zero.
   const [newCounts, setNewCounts] = useState<Record<BadgeKey, number | null>>({ activity: null, chat: null })
   // Set when a badge read came back 401: the browser is signed out, so the polling stops.
@@ -272,6 +273,17 @@ export default function DashboardLayout({
       setSidebarCollapsed(true)
     }
   }, [user, status, sessionReason, router, pathname, isMobile])
+
+  useEffect(() => {
+    const focusSearch = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault()
+        searchInputRef.current?.focus()
+      }
+    }
+    window.addEventListener("keydown", focusSearch)
+    return () => window.removeEventListener("keydown", focusSearch)
+  }, [])
 
   if (status === "unavailable") {
     return (
@@ -708,7 +720,7 @@ export default function DashboardLayout({
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Top Navbar */}
         <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-white dark:bg-gray-900 px-3 sm:px-4 lg:px-6">
-          <div className="flex items-center gap-2 sm:gap-4">
+          <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-4">
             <Button
               variant="ghost"
               size="icon"
@@ -733,23 +745,48 @@ export default function DashboardLayout({
                 )
               }}
               className={cn(
-                // The unfocused field stops at 200px and holds there through tablet portrait;
-                // the desktop 300px is what pays for the language switch and name in the bar.
-                "relative flex items-center transition-all",
-                searchFocused ? "w-[180px] sm:w-[240px] lg:w-[400px]" : "w-[150px] sm:w-[200px] lg:w-[300px]",
+                "relative flex min-w-0 items-center transition-[width] duration-200",
+                searchFocused
+                  ? "w-[min(52vw,22rem)] sm:w-[min(42vw,25rem)]"
+                  : "w-[min(44vw,18rem)] sm:w-[min(34vw,20rem)]",
               )}
             >
-              <Search className="absolute left-2.5 h-4 w-4 text-muted-foreground" />
+              <Search className="pointer-events-none absolute left-3 h-4 w-4 text-muted-foreground" />
               <Input
+                ref={searchInputRef}
                 type="search"
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
                 placeholder="Search playbooks..."
                 aria-label="Search playbooks"
-                className="pl-9 h-9 bg-gray-50 dark:bg-gray-800 border-0 text-sm"
+                aria-keyshortcuts="Control+K Meta+K"
+                onKeyDown={(event) => {
+                  if (event.key === "Escape") {
+                    setSearchQuery("")
+                    event.currentTarget.blur()
+                  }
+                }}
+                className="h-10 rounded-xl border-border/70 bg-muted/40 pl-9 pr-16 text-sm shadow-sm transition-colors placeholder:text-muted-foreground/80 hover:bg-muted/60 focus-visible:bg-background"
                 onFocus={() => setSearchFocused(true)}
                 onBlur={() => setSearchFocused(false)}
               />
+              {searchQuery ? (
+                <button
+                  type="button"
+                  aria-label="Clear search"
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => {
+                    setSearchQuery("")
+                    searchInputRef.current?.focus()
+                  }}
+                  className="absolute right-10 flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <X className="h-3.5 w-3.5" aria-hidden="true" />
+                </button>
+              ) : null}
+              <kbd className="pointer-events-none absolute right-2 hidden rounded border bg-background/80 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground shadow-sm sm:inline-flex">
+                ⌘K
+              </kbd>
             </form>
           </div>
           <div className="flex items-center gap-2 sm:gap-2 lg:gap-3">
