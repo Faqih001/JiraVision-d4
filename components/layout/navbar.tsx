@@ -140,7 +140,9 @@ function AccountMenu() {
           aria-label={`Account menu for ${user.name || user.email}`}
         >
           <UserAvatar user={user} className="h-8 w-8" />
-          <span className="hidden max-w-28 truncate text-sm font-medium xl:inline">{user.name}</span>
+          <span className="hidden max-w-28 truncate text-sm font-medium xl:inline">
+            {user.name.trim().split(/\s+/)[0] || user.email}
+          </span>
           <ChevronDown className="hidden h-4 w-4 text-muted-foreground xl:inline" aria-hidden="true" />
         </Button>
       </DropdownMenuTrigger>
@@ -341,7 +343,7 @@ export function Navbar() {
                   &#8984;K
                 </kbd>
               </Button>
-              <ThemeToggle />
+              <ThemeToggle className="h-9 w-9" />
               {/*
                 Three states, never two: a member (avatar), no member (the pair), and a first
                 read still in flight (a placeholder the same size as the avatar). Guessing
@@ -364,7 +366,7 @@ export function Navbar() {
             </div>
 
             <div className="flex items-center gap-1 xl:hidden">
-              <ThemeToggle />
+              <ThemeToggle className="h-9 w-9" />
               <Sheet open={open} onOpenChange={setDrawerOpen}>
                 <SheetTrigger asChild>
                   <Button variant="ghost" size="icon" aria-label="Open menu">
