@@ -474,25 +474,28 @@ export default function WorklogClient() {
       : (deliverables.find((d) => d.id === pendingDeliverableDelete)?.name ?? null)
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-      <TotalsSection summary={summary} loading={loading} range={range} todayIso={todayIso} />
-      <QuickAddSection
-        todayIso={todayIso}
-        saving={saving}
-        setSaving={setSaving}
-        mutate={mutate}
-        refresh={refresh}
-        toast={toast}
-        tasks={tasks}
-      />
-      <FilterSection state={state} patchState={patchState} tasks={tasks} deliverableCount={deliverables.length} />
-      <ViewToolbarSection
-        state={state}
-        patchState={patchState}
-        todayIso={todayIso}
-        refresh={refresh}
-        toast={toast}
-      />
+    <div className="space-y-4">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <TotalsSection summary={summary} loading={loading} range={range} todayIso={todayIso} />
+        <QuickAddSection
+          todayIso={todayIso}
+          saving={saving}
+          setSaving={setSaving}
+          mutate={mutate}
+          refresh={refresh}
+          toast={toast}
+          tasks={tasks}
+        />
+        <FilterSection state={state} patchState={patchState} tasks={tasks} deliverableCount={deliverables.length} />
+        <ViewToolbarSection
+          state={state}
+          patchState={patchState}
+          todayIso={todayIso}
+          refresh={refresh}
+          toast={toast}
+        />
+      </div>
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
       <LogSection
         view={state.view}
         days={viewDaysList}
@@ -614,6 +617,7 @@ export default function WorklogClient() {
         }}
         onConfirm={() => void confirmBulkDelete()}
       />
+      </div>
     </div>
   )
 }
