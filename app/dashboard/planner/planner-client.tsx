@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Skeleton } from "@/components/ui/skeleton"
-import { SectionCard } from "@/components/dashboard-kit"
+import { SectionCard, DASHBOARD_SECTION_GRID } from "@/components/dashboard-kit"
 import { useToast } from "@/hooks/use-toast"
 import { LIVE_REFRESH_MS, useLiveRefresh } from "@/hooks/use-live-refresh"
 
@@ -163,6 +163,7 @@ export default function PlannerClient() {
 
   return (
     <div className="space-y-6">
+      <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-2`}>
       <SectionCard title="Extract a Plan" icon={<Upload className="h-4 w-4" />}>
         <div className="space-y-4">
           <div className="flex gap-2">
@@ -309,6 +310,7 @@ export default function PlannerClient() {
           </div>
         )}
       </SectionCard>
+      </div>
     </div>
   )
 }
