@@ -48,6 +48,47 @@ export const FILTER_BAR =
 export const FILTER_TRIGGER = "h-8 w-auto max-w-[13rem] shrink-0 text-xs"
 export const FILTER_SEARCH = "relative w-full min-w-0 sm:flex-1 sm:basis-40"
 
+/**
+ * Shared page composition primitives. Grids deliberately start with one column: controls and
+ * cards remain usable on narrow screens, then pair at tablet width and gain a third column only
+ * when there is room. `min-w-0` prevents long labels or chart legends from widening the page.
+ */
+export const DASHBOARD_SECTION_GRID =
+  "grid min-w-0 grid-cols-1 items-stretch gap-4 md:grid-cols-2 xl:grid-cols-3"
+export const DASHBOARD_KPI_GRID =
+  "grid min-w-0 grid-cols-2 items-stretch gap-3 sm:grid-cols-3 xl:grid-cols-4"
+export const DASHBOARD_FULL_WIDTH = "col-span-full min-w-0"
+
+export function FilterBand({
+  children,
+  className,
+}: {
+  children: React.ReactNode
+  className?: string
+}) {
+  return <div className={cn("w-full min-w-0 rounded-lg border bg-muted/20 px-3", className)}>{children}</div>
+}
+
+export function DashboardGrid({
+  children,
+  className,
+}: {
+  children: React.ReactNode
+  className?: string
+}) {
+  return <div className={cn(DASHBOARD_SECTION_GRID, className)}>{children}</div>
+}
+
+export function KpiGrid({
+  children,
+  className,
+}: {
+  children: React.ReactNode
+  className?: string
+}) {
+  return <div className={cn(DASHBOARD_KPI_GRID, className)}>{children}</div>
+}
+
 export function SectionCard({
   title,
   icon,

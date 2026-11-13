@@ -95,6 +95,8 @@ import {
   FILTER_BAR,
   FILTER_SEARCH,
   FILTER_TRIGGER,
+  DASHBOARD_KPI_GRID,
+  DASHBOARD_SECTION_GRID,
 } from "@/components/dashboard-kit"
 
 /* ------------------------------------------------------------------ types */
@@ -611,12 +613,12 @@ export default function DashboardHome() {
     return (
       <div className="space-y-6 p-4 md:p-6">
         <Skeleton className="h-10 w-64" />
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className={`${DASHBOARD_SECTION_GRID} sm:grid-cols-2 lg:grid-cols-3`}>
           {Array.from({ length: 6 }).map((_, i) => (
             <Skeleton key={i} className="h-28" />
           ))}
         </div>
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-2`}>
           <Skeleton className="h-72" />
           <Skeleton className="h-72" />
         </div>
@@ -708,7 +710,7 @@ export default function DashboardHome() {
       ) : null}
 
       {/* 2 — KPI cards */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
+      <div className={`${DASHBOARD_KPI_GRID} lg:grid-cols-6`}>
         {[
           { label: "My open tasks", value: kpis.myOpenTasks, icon: <CircleDot className="h-4 w-4" />, hint: `${kpis.myDueThisWeek} due this week`, tone: undefined },
           { label: "Completed this week", value: kpis.myCompletedThisWeek, icon: <CheckCheck className="h-4 w-4" />, hint: "last 7 days", tone: undefined },
@@ -858,7 +860,7 @@ export default function DashboardHome() {
 
       {/* 5 — My tasks grid/list */}
       {view === "grid" ? (
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        <div className={`${DASHBOARD_SECTION_GRID} md:grid-cols-2 xl:grid-cols-3`}>
           {filteredTasks.map((t) => (
             <Card key={t.id} className="transition-colors hover:border-primary/40">
               <CardContent className="flex flex-col gap-2 py-3">
@@ -1014,7 +1016,7 @@ export default function DashboardHome() {
       />
 
       {/* 6+7 — Burndown & velocity */}
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-2`}>
         <SectionCard title="Sprint burndown" icon={<BarChart3 className="h-4 w-4" />}>
           {overview.burndown.length > 0 ? (
             <ResponsiveContainer width="100%" height={220}>
@@ -1053,7 +1055,7 @@ export default function DashboardHome() {
       </div>
 
       {/* 8+9+10 — Status donut, priority bars, throughput */}
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-3`}>
         <SectionCard title="Task status mix" icon={<CircleDot className="h-4 w-4" />}>
           {overview.statusBreakdown.length > 0 ? (
             <ResponsiveContainer width="100%" height={200}>
@@ -1115,7 +1117,7 @@ export default function DashboardHome() {
       {/* 11+12 — Deadlines and events, both this member's own. The workspace's roster
           and schedule live on /dashboard/team and /dashboard/calendar; a home page that
           borrowed them would look populated to an account that has done nothing yet. */}
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-2`}>
         <SectionCard
           title="Upcoming deadlines"
           icon={<Timer className="h-4 w-4" />}
@@ -1204,7 +1206,7 @@ export default function DashboardHome() {
       </div>
 
       {/* 13+14 — Activity feed and this member's wellbeing */}
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-2`}>
         <SectionCard
           title="Activity"
           icon={<Activity className="h-4 w-4" />}
