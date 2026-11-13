@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { ArrowLeft, Award, Pencil, Plus, Trash2 } from "lucide-react"
-import { AvatarCircle, EmptyNote, relativeTime, SectionCard, FILTER_TRIGGER, DASHBOARD_SECTION_GRID } from "@/components/dashboard-kit"
+import { AvatarCircle, EmptyNote, relativeTime, SectionCard, FILTER_TRIGGER } from "@/components/dashboard-kit"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
