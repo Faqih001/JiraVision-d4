@@ -87,7 +87,8 @@ export default function TicketsPage() {
       const value = String(ticket[key] ?? "unrouted")
       counts.set(value, (counts.get(value) ?? 0) + 1)
     }
-    return [counts.entries()].sort((a, b) => b[1] - a[1])
+    const entries: [string, number][] = Array.from(counts.entries())
+    return entries.sort((a, b) => b[1] - a[1])
   }
 
   const load = useCallback(async () => {
