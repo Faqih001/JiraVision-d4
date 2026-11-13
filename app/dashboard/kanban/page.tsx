@@ -92,6 +92,8 @@ import {
   FILTER_BAR,
   FILTER_SEARCH,
   FILTER_TRIGGER,
+  DASHBOARD_KPI_GRID,
+  DASHBOARD_SECTION_GRID,
 } from "@/components/dashboard-kit"
 import {
   creatableStatusesFor,
@@ -261,7 +263,7 @@ function BoardSkeleton() {
       </div>
       <Skeleton className="h-16" />
       <Skeleton className="h-12" />
-      <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-5">
+      <div className={`${DASHBOARD_KPI_GRID} md:grid-cols-3 xl:grid-cols-5`}>
         {Array.from({ length: 5 }).map((_, i) => (
           <Skeleton key={i} className="h-72" />
         ))}
@@ -1213,7 +1215,7 @@ function KanbanBoard() {
 
       {/* 4 — Five-column board by status, HTML5 drag and drop */}
       {view === "board" ? (
-        <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-5">
+        <div className={`${DASHBOARD_KPI_GRID} md:grid-cols-3 xl:grid-cols-5`}>
           {columns.map((col) => (
             <section
               key={col.status}
@@ -1371,7 +1373,7 @@ function KanbanBoard() {
 
       {/* 7 — Cycle snapshot: priority donut per column */}
       <SectionCard title="Cycle snapshot" icon={<Flag className="h-4 w-4" />}>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
+        <div className={`${DASHBOARD_KPI_GRID} sm:grid-cols-3 xl:grid-cols-5`}>
           {columns.map((col) => {
             const data = PRIORITIES.map((p) => ({ name: p, value: col.tasks.filter((t) => t.priority === p).length })).filter(
               (d) => d.value > 0,
@@ -1441,7 +1443,7 @@ function KanbanBoard() {
       </SectionCard>
 
       {/* 9+10 — Activity mini-feed + recently moved */}
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-2`}>
         <SectionCard title="Activity" icon={<Activity className="h-4 w-4" />}>
           {taskFeed.length > 0 ? (
             <ul className="max-h-64 space-y-1 overflow-y-auto">

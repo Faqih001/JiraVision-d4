@@ -79,6 +79,8 @@ import {
   FILTER_BAR,
   FILTER_SEARCH,
   FILTER_TRIGGER,
+  DASHBOARD_KPI_GRID,
+  DASHBOARD_SECTION_GRID,
 } from "@/components/dashboard-kit"
 
 /* ------------------------------------------------------------------ types */
@@ -499,18 +501,18 @@ export default function SprintsWorkspace() {
           <Skeleton className="h-9 w-48" />
           <Skeleton className="h-9 w-32" />
         </div>
-        <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
+        <div className={`${DASHBOARD_KPI_GRID} sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5`}>
           {Array.from({ length: 5 }).map((_, i) => (
             <Skeleton key={i} className="h-24" />
           ))}
         </div>
         <Skeleton className="h-40" />
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div className={`${DASHBOARD_SECTION_GRID} md:grid-cols-2 xl:grid-cols-3`}>
           {Array.from({ length: 3 }).map((_, i) => (
             <Skeleton key={i} className="h-52" />
           ))}
         </div>
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-2`}>
           <Skeleton className="h-72" />
           <Skeleton className="h-72" />
         </div>
@@ -534,7 +536,7 @@ export default function SprintsWorkspace() {
   /* ---- section renderers ---- */
 
   const kpiStrip = (
-    <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
+    <div className={`${DASHBOARD_KPI_GRID} sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5`}>
       {[
         {
           label: "Active sprint",
@@ -830,7 +832,7 @@ export default function SprintsWorkspace() {
   )
 
   const cardsView = (
-    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+    <div className={`${DASHBOARD_SECTION_GRID} md:grid-cols-2 xl:grid-cols-3`}>
       {filtered.map((s) => (
         <Card
           key={s.id}
@@ -988,7 +990,7 @@ export default function SprintsWorkspace() {
   })()
 
   const chartsRow = (
-    <div className="grid gap-4 lg:grid-cols-2">
+    <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-2`}>
       <SectionCard
         title={detail ? `Burndown — ${detail.name}` : "Burndown"}
         icon={<BarChart3 className="h-4 w-4" />}
@@ -1042,7 +1044,7 @@ export default function SprintsWorkspace() {
   )
 
   const scopeRow = (
-    <div className="grid gap-4 lg:grid-cols-2">
+    <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-2`}>
       <SectionCard
         title="Scope changes"
         icon={<Layers className="h-4 w-4" />}
@@ -1127,7 +1129,7 @@ export default function SprintsWorkspace() {
   )
 
   const achievementRow = (
-    <div className="grid gap-4 lg:grid-cols-2">
+    <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-2`}>
       <SectionCard title="Completion rate" icon={<Target className="h-4 w-4" />}>
         {donutData.length > 0 ? (
           <div className="flex items-center gap-4">

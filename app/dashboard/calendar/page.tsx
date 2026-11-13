@@ -100,6 +100,8 @@ import {
   FILTER_BAR,
   FILTER_SEARCH,
   FILTER_TRIGGER,
+  DASHBOARD_KPI_GRID,
+  DASHBOARD_SECTION_GRID,
 } from "@/components/dashboard-kit"
 
 /* ------------------------------------------------------------------ types */
@@ -814,13 +816,13 @@ export default function CalendarWorkspace() {
       <div className="space-y-6 p-4 md:p-6">
         <Skeleton className="h-10 w-72" />
         <Skeleton className="h-9 w-full max-w-2xl" />
-        <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
+        <div className={`${DASHBOARD_KPI_GRID} sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5`}>
           {Array.from({ length: 5 }).map((_, i) => (
             <Skeleton key={i} className="h-24" />
           ))}
         </div>
         <Skeleton className="h-[480px]" />
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-2`}>
           <Skeleton className="h-64" />
           <Skeleton className="h-64" />
         </div>
@@ -958,7 +960,7 @@ export default function CalendarWorkspace() {
       )}
 
       {/* 3 — KPI strip */}
-      <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
+      <div className={`${DASHBOARD_KPI_GRID} sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5`}>
         {[
           { label: "Events this week", value: kpis.thisWeek, hint: "Mon–Sun window" },
           { label: "Events this month", value: kpis.thisMonth, hint: format(cursor, "MMMM") },
@@ -1138,7 +1140,7 @@ export default function CalendarWorkspace() {
       )}
 
       {/* 5 + 6 — today panel and upcoming list */}
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-2`}>
         <SectionCard title="Today by hour" icon={<Clock className="h-4 w-4 text-muted-foreground" />}>
           {todayByHour.length === 0 ? (
             <EmptyNote>
@@ -1219,7 +1221,7 @@ export default function CalendarWorkspace() {
       </div>
 
       {/* 7 + 8 — charts */}
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-2`}>
         <SectionCard title="Events by type" icon={<Target className="h-4 w-4 text-muted-foreground" />}>
           {donutData.length === 0 ? (
             <EmptyNote>No events to chart yet.</EmptyNote>
@@ -1256,7 +1258,7 @@ export default function CalendarWorkspace() {
       </div>
 
       {/* 9 + 10 — sprint milestones and task deadlines */}
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-2`}>
         <SectionCard title="Sprint milestones" icon={<Milestone className="h-4 w-4 text-muted-foreground" />}>
           {sprintMilestones.length === 0 ? (
             <EmptyNote>No upcoming or recent sprints found.</EmptyNote>

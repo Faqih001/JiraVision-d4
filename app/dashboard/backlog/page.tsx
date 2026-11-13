@@ -77,6 +77,8 @@ import {
   FILTER_BAR,
   FILTER_SEARCH,
   FILTER_TRIGGER,
+  DASHBOARD_KPI_GRID,
+  DASHBOARD_SECTION_GRID,
 } from "@/components/dashboard-kit"
 
 /* ------------------------------------------------------------------ types */
@@ -530,13 +532,13 @@ export default function DashboardBacklog() {
     return (
       <div className="space-y-6 p-4 md:p-6">
         <Skeleton className="h-10 w-72" />
-        <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        <div className={`${DASHBOARD_KPI_GRID} sm:grid-cols-3 lg:grid-cols-6`}>
           {Array.from({ length: 6 }).map((_, i) => (
             <Skeleton key={i} className="h-24" />
           ))}
         </div>
         <Skeleton className="h-80" />
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-2`}>
           <Skeleton className="h-64" />
           <Skeleton className="h-64" />
         </div>
@@ -582,7 +584,7 @@ export default function DashboardBacklog() {
       </div>
 
       {/* 2 — KPI strip */}
-      <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      <div className={`${DASHBOARD_KPI_GRID} sm:grid-cols-3 lg:grid-cols-6`}>
         {[
           { label: "Backlog items", value: kpis.count, hint: "no sprint assigned" },
           { label: "Unestimated", value: kpis.unestimated, hint: "0 story points", tone: kpis.unestimated > 0 },
@@ -875,7 +877,7 @@ export default function DashboardBacklog() {
       </SectionCard>
 
       {/* 6 + 7 — Sprint assignment / pull-back */}
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-2`}>
         <SectionCard
           title="Assign to sprint"
           icon={<Rocket className="h-4 w-4" />}
@@ -1024,7 +1026,7 @@ export default function DashboardBacklog() {
       </div>
 
       {/* 8 + 9 — Age analysis + priority mix */}
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-2`}>
         <SectionCard title="Backlog age" icon={<Timer className="h-4 w-4" />}>
           {backlog.length > 0 ? (
             <ResponsiveContainer width="100%" height={200}>
