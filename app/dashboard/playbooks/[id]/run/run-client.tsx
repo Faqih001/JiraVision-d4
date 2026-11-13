@@ -21,7 +21,7 @@ import { DateField } from "@/components/ui/date-range-picker"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
-import { SectionCard } from "@/components/dashboard-kit"
+import { SectionCard, DASHBOARD_SECTION_GRID } from "@/components/dashboard-kit"
 import { useToast } from "@/hooks/use-toast"
 import type { PlaybookStep } from "@/lib/playbooks/method"
 import type { PlaybookStatus } from "@/lib/playbooks/rules"
@@ -262,15 +262,16 @@ export default function RunClient({ id }: { id: string }) {
         submit.
       </p>
 
-      {playbook.method.map((phase, phaseIndex) => {
-        const steps = stepsByPhase.get(phase) ?? []
-        return (
-          <SectionCard
-            key={phase}
-            title={`${phaseIndex + 1}. ${phase}`}
-            icon={<BookOpenCheck className="h-4 w-4" />}
-            action={<Badge variant="outline">{steps.length} steps</Badge>}
-          >
+      <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-2`}>
+        {playbook.method.map((phase, phaseIndex) => {
+          const steps = stepsByPhase.get(phase) ?? []
+          return (
+            <SectionCard
+              key={phase}
+              title={`${phaseIndex + 1}. ${phase}`}
+              icon={<BookOpenCheck className="h-4 w-4" />}
+              action={<Badge variant="outline">{steps.length} steps</Badge>}
+            >
             <div className="space-y-3">
               {steps.length > 0 ? (
                 <ol className="space-y-2">
@@ -309,9 +310,10 @@ export default function RunClient({ id }: { id: string }) {
                 onChange={(next) => setNotes((prev) => ({ ...prev, [phase]: next }))}
               />
             </div>
-          </SectionCard>
-        )
-      })}
+            </SectionCard>
+          )
+        })}
+      </div>
 
       <div className="flex flex-wrap items-center justify-end gap-2 border-t pt-3">
         <Button variant="outline" asChild>

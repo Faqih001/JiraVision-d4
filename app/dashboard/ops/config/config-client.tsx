@@ -30,7 +30,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
-import { SectionCard, EmptyNote, PriorityPill } from "@/components/dashboard-kit"
+import { SectionCard, EmptyNote, PriorityPill, DASHBOARD_SECTION_GRID } from "@/components/dashboard-kit"
 import ConfigPropose from "./config-propose"
 import ConfigAudit from "./config-audit"
 import ConfigCompare from "./config-compare"
@@ -561,7 +561,7 @@ export default function OpsConfigClient() {
 
       <CountStrip config={config} />
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-2`}>
         <div className="space-y-4">
           {Object.entries(config.logs).map(([entityKey, entity]) => (
             <EntityCard key={entityKey} entityKey={entityKey} entity={entity} />

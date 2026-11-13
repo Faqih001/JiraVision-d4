@@ -19,7 +19,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
-import { SectionCard, EmptyNote } from "@/components/dashboard-kit"
+import { SectionCard, EmptyNote, DASHBOARD_SECTION_GRID } from "@/components/dashboard-kit"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 
@@ -89,7 +89,7 @@ export function KpisSkeleton() {
         <Skeleton className="h-8 w-56" />
         <Skeleton className="h-9 w-48" />
       </div>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className={`${DASHBOARD_SECTION_GRID} sm:grid-cols-2 lg:grid-cols-3`}>
         {Array.from({ length: 6 }).map((_, index) => (
           <Skeleton key={index} className="h-32 w-full" />
         ))}
@@ -271,7 +271,7 @@ export default function KpisClient() {
         }
       >
         {listLoading && !payload ? (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className={`${DASHBOARD_SECTION_GRID} sm:grid-cols-2 lg:grid-cols-3`}>
             {Array.from({ length: 6 }).map((_, index) => (
               <Skeleton key={index} className="h-32 w-full" />
             ))}
@@ -279,7 +279,7 @@ export default function KpisClient() {
         ) : (payload?.kpis.length ?? 0) === 0 ? (
           <EmptyNote>No KPI data for {monthLabel(month)} yet. Log some activity to see metrics here.</EmptyNote>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className={`${DASHBOARD_SECTION_GRID} sm:grid-cols-2 lg:grid-cols-3`}>
             {(payload?.kpis ?? []).map((kpi) => (
               <KpiCard key={kpi.id} kpi={kpi} />
             ))}

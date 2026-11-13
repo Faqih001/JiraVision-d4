@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
-import { SectionCard } from "@/components/dashboard-kit"
+import { SectionCard, DASHBOARD_SECTION_GRID } from "@/components/dashboard-kit"
 import { useToast } from "@/hooks/use-toast"
 import Gantt from "@/components/planner/gantt"
 import type { GanttItem, GanttZoom, GanttGroupBy } from "@/lib/planner/gantt-data"
@@ -341,6 +341,7 @@ export default function PlanEditorClient({ params }: { params: Promise<{ id: str
         </div>
       </div>
 
+      <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-2`}>
       <SectionCard title="Plan Details" icon={<Save className="h-4 w-4" />}>
         <div className="space-y-4">
           <div className="space-y-2">
@@ -410,6 +411,7 @@ export default function PlanEditorClient({ params }: { params: Promise<{ id: str
           />
         </SectionCard>
       )}
+      </div>
 
       <SectionCard
         title={`Items (${items.length})`}
