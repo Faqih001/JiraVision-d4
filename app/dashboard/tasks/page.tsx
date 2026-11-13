@@ -904,12 +904,12 @@ export default function TasksWorkspacePage() {
 
   if (pageLoading && !overview) {
     return (
-      <div className="space-y-6 p-4 md:p-6">
+      <div className="space-y-6">
         <div className="flex items-center justify-between">
           <Skeleton className="h-10 w-56" />
           <Skeleton className="h-9 w-32" />
         </div>
-        <div className={`${DASHBOARD_KPI_GRID} lg:grid-cols-6`}>
+        <div className={`${DASHBOARD_KPI_GRID} lg:grid-cols-3 xl:grid-cols-6`}>
           {Array.from({ length: 6 }).map((_, i) => (
             <Skeleton key={i} className="h-24" />
           ))}
@@ -941,7 +941,7 @@ export default function TasksWorkspacePage() {
   const myId = overview.user.id
 
   return (
-    <div className="space-y-5 p-4 md:p-6">
+    <div className="space-y-5">
       {/* 1 — header */}
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
@@ -969,7 +969,7 @@ export default function TasksWorkspacePage() {
       </div>
 
       {/* 2 — KPI strip */}
-      <div className={`${DASHBOARD_KPI_GRID} lg:grid-cols-6`}>
+      <div className={`${DASHBOARD_KPI_GRID} lg:grid-cols-3 xl:grid-cols-6`}>
         {[
           { label: "Total tasks", value: kpis.total, hint: "across all sprints", tone: undefined },
           { label: "My open", value: kpis.myOpen, hint: `of ${allTasks.filter((t) => t.assigneeId === myId).length} assigned to you`, tone: undefined },
