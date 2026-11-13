@@ -799,9 +799,9 @@ export default function DashboardLayout({
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 overflow-hidden">
+        <main className="min-w-0 flex-1 overflow-hidden">
           <div className="h-full overflow-y-auto overflow-x-hidden">
-            <div className="w-full py-4 px-3 sm:px-4 lg:px-6">
+            <div className="dashboard-content w-full min-w-0 py-4 px-3 sm:px-4 lg:px-6">
               {children}
             </div>
           </div>

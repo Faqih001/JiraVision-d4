@@ -43,9 +43,10 @@ export const PRIORITY_COLOR: Record<string, string> = {
  * search field, not the filters, is what absorbs the slack. `max-w` is the ceiling for names that
  * beat it; the shared SelectTrigger truncates there rather than wrapping.
  */
-export const FILTER_BAR = "flex flex-wrap items-center gap-1.5 py-3"
+export const FILTER_BAR =
+  "flex w-full min-w-0 flex-col items-stretch gap-2 py-3 sm:flex-row sm:flex-wrap sm:items-center"
 export const FILTER_TRIGGER = "h-8 w-auto max-w-[13rem] shrink-0 text-xs"
-export const FILTER_SEARCH = "relative min-w-0 flex-1 basis-40"
+export const FILTER_SEARCH = "relative w-full min-w-0 sm:flex-1 sm:basis-40"
 
 export function SectionCard({
   title,
@@ -61,7 +62,7 @@ export function SectionCard({
   children: React.ReactNode
 }) {
   return (
-    <Card className={cn("flex flex-col", className)}>
+    <Card className={cn("flex h-full min-w-0 flex-col", className)}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="flex items-center gap-2 text-sm font-semibold">
           {icon}
