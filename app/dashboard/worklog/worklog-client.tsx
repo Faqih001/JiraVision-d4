@@ -475,7 +475,7 @@ export default function WorklogClient() {
 
   return (
     <div className="space-y-4">
-      <div className="grid min-w-0 grid-cols-1 items-stretch gap-3 md:grid-cols-2">
+      <div className="grid min-w-0 grid-cols-1 items-stretch gap-3">
         <TotalsSection summary={summary} loading={loading} range={range} todayIso={todayIso} />
         <QuickAddSection
           todayIso={todayIso}
@@ -811,7 +811,7 @@ function FilterSection({
       icon={<SlidersHorizontal className="h-4 w-4" />}
       action={
         active > 0 ? (
-          <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={clearAll}>
+          <Button variant="ghost" size="sm" className="h-7 border border-border px-2 text-xs" onClick={clearAll}>
             Clear {active}
           </Button>
         ) : null
@@ -879,7 +879,7 @@ function FilterSection({
           <Button
             variant={state.hasDeliverable ? "default" : "outline"}
             size="sm"
-            className="h-7 text-xs"
+            className="h-7 border border-border text-xs"
             aria-pressed={state.hasDeliverable}
             onClick={() => patchState({ hasDeliverable: !state.hasDeliverable })}
           >
@@ -922,11 +922,11 @@ function ViewToolbarSection({
       icon={<CalendarDays className="h-4 w-4" />}
       action={
         <div className="flex items-center gap-1">
-          <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => void refresh()}>
+          <Button variant="ghost" size="sm" className="h-7 border border-border px-2 text-xs" onClick={() => void refresh()}>
             <RefreshCw className="h-3.5 w-3.5" aria-hidden />
             <span className="sr-only">Reload</span>
           </Button>
-          <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => void copyLink()}>
+          <Button variant="ghost" size="sm" className="h-7 border border-border px-2 text-xs" onClick={() => void copyLink()}>
             <Copy className="h-3.5 w-3.5" aria-hidden />
             <span className="sr-only">Copy link to this view</span>
           </Button>
@@ -940,7 +940,7 @@ function ViewToolbarSection({
               key={v}
               variant={state.view === v ? "default" : "outline"}
               size="sm"
-              className="h-7 px-2 text-xs"
+              className="h-7 border border-border px-2 text-xs"
               aria-pressed={state.view === v}
               onClick={() => patchState({ view: v as WorklogView })}
             >
