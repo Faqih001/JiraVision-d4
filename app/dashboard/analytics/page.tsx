@@ -77,6 +77,8 @@ import {
   relativeTime,
   FILTER_BAR,
   FILTER_TRIGGER,
+  DASHBOARD_KPI_GRID,
+  DASHBOARD_SECTION_GRID,
 } from "@/components/dashboard-kit"
 
 /* ------------------------------------------------------------------ types */
@@ -477,12 +479,12 @@ export default function AnalyticsWorkspace() {
           <Skeleton className="h-9 w-40" />
         </div>
         <Skeleton className="h-16" />
-        <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
+        <div className={`${DASHBOARD_KPI_GRID} sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5`}>
           {Array.from({ length: 5 }).map((_, i) => (
             <Skeleton key={i} className="h-24" />
           ))}
         </div>
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-2`}>
           <Skeleton className="h-72" />
           <Skeleton className="h-72" />
         </div>
@@ -668,7 +670,7 @@ export default function AnalyticsWorkspace() {
       </SectionCard>
 
       {/* 4 — KPI strip */}
-      <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
+      <div className={`${DASHBOARD_KPI_GRID} sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5`}>
         <KpiCard
           label="Avg velocity"
           value={kpis ? `${kpis.avgVelocity}` : "—"}
@@ -697,7 +699,7 @@ export default function AnalyticsWorkspace() {
       </div>
 
       {/* 5+6 — Velocity trend + cumulative flow */}
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-2`}>
         <SectionCard title="Velocity trend" icon={<Swords className="h-4 w-4" />}>
           {overview && overview.velocity.length > 0 ? (
             <ResponsiveContainer width="100%" height={220}>
@@ -757,7 +759,7 @@ export default function AnalyticsWorkspace() {
       </div>
 
       {/* 7+8 — Throughput bars + scope creep */}
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-2`}>
         <SectionCard title="Weekly throughput" icon={<BarChart3 className="h-4 w-4" />}>
           {series && series.throughput.length > 0 ? (
             <ResponsiveContainer width="100%" height={200}>
@@ -806,7 +808,7 @@ export default function AnalyticsWorkspace() {
       </div>
 
       {/* 9+10+11 — Assignee workload, priority mix, due-date histogram */}
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-3`}>
         <SectionCard title="Assignee workload" icon={<Users className="h-4 w-4" />}>
           {series && series.assigneeWorkload.length > 0 ? (
             <ResponsiveContainer width="100%" height={220}>
@@ -864,7 +866,7 @@ export default function AnalyticsWorkspace() {
       </div>
 
       {/* 12+13 — Quality signals + wellbeing vs velocity */}
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-2`}>
         <SectionCard title="Quality signals" icon={<Gauge className="h-4 w-4" />}>
           {kpis ? (
             <div className="space-y-3">
@@ -928,7 +930,7 @@ export default function AnalyticsWorkspace() {
 
       {/* 14 — Cross-check strip: wellbeing trend vs sprint completion */}
       <SectionCard title="Delivery health" icon={<Sparkles className="h-4 w-4" />}>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className={`${DASHBOARD_KPI_GRID} sm:grid-cols-2 lg:grid-cols-4`}>
           {[
             {
               label: "Team happiness now",

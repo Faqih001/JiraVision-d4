@@ -102,6 +102,8 @@ import {
   FILTER_BAR,
   FILTER_SEARCH,
   FILTER_TRIGGER,
+  DASHBOARD_KPI_GRID,
+  DASHBOARD_SECTION_GRID,
 } from "@/components/dashboard-kit"
 import {
   completionDayLabel,
@@ -907,14 +909,14 @@ export default function TasksWorkspacePage() {
           <Skeleton className="h-10 w-56" />
           <Skeleton className="h-9 w-32" />
         </div>
-        <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        <div className={`${DASHBOARD_KPI_GRID} lg:grid-cols-6`}>
           {Array.from({ length: 6 }).map((_, i) => (
             <Skeleton key={i} className="h-24" />
           ))}
         </div>
         <Skeleton className="h-14" />
         <Skeleton className="h-96" />
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-2`}>
           <Skeleton className="h-64" />
           <Skeleton className="h-64" />
         </div>
@@ -967,7 +969,7 @@ export default function TasksWorkspacePage() {
       </div>
 
       {/* 2 — KPI strip */}
-      <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      <div className={`${DASHBOARD_KPI_GRID} lg:grid-cols-6`}>
         {[
           { label: "Total tasks", value: kpis.total, hint: "across all sprints", tone: undefined },
           { label: "My open", value: kpis.myOpen, hint: `of ${allTasks.filter((t) => t.assigneeId === myId).length} assigned to you`, tone: undefined },
@@ -1247,7 +1249,7 @@ export default function TasksWorkspacePage() {
           </EmptyNote>
         </Card>
       ) : view === "grid" ? (
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        <div className={`${DASHBOARD_SECTION_GRID} md:grid-cols-2 xl:grid-cols-3`}>
           {sortedTasks.map((t) => {
             const assignee = t.assigneeId !== null ? userById.get(t.assigneeId) : undefined
             return (
@@ -1498,7 +1500,7 @@ export default function TasksWorkspacePage() {
       )}
 
       {/* 6+7 — needs attention + due this week */}
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-2`}>
         <SectionCard
           title="Needs attention"
           icon={<AlertTriangle className="h-4 w-4 text-red-500" />}
@@ -1579,7 +1581,7 @@ export default function TasksWorkspacePage() {
       </div>
 
       {/* 8+9+10 — assignee, sprint and status distribution */}
-      <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
+      <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-2 xl:grid-cols-3`}>
         <SectionCard title="Tasks per assignee" icon={<Users className="h-4 w-4" />}>
           {assigneeChart.length > 0 ? (
             <ResponsiveContainer width="100%" height={220}>
@@ -1637,7 +1639,7 @@ export default function TasksWorkspacePage() {
       </div>
 
       {/* 11+12 — recently updated + my workload gauge */}
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-2`}>
         <SectionCard title="Recently updated" icon={<History className="h-4 w-4" />}>
           {recentlyUpdated.length > 0 ? (
             <ul className="divide-y">
