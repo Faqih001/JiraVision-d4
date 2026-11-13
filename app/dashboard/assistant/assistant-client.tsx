@@ -216,7 +216,7 @@ export default function AssistantClient() {
 
   return (
     <div className="container mx-auto py-6 px-4 max-w-7xl">
-      <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-6 h-[calc(100vh-12rem)]">
+      <div className="grid min-w-0 grid-cols-1 gap-4 lg:h-[calc(100vh-12rem)] lg:grid-cols-[minmax(240px,300px)_minmax(0,1fr)] lg:gap-6">
         {/* Sidebar: Thread list */}
         <Card className="p-4 flex flex-col">
           <div className="flex items-center justify-between mb-4">

@@ -39,7 +39,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
-import { EmptyNote, SectionCard } from "@/components/dashboard-kit"
+import { EmptyNote, SectionCard, DASHBOARD_KPI_GRID, DASHBOARD_SECTION_GRID } from "@/components/dashboard-kit"
 import { useToast } from "@/hooks/use-toast"
 import type { HandoverPreview, HandoverPlaybookDraft, HandoverRegisterDraft } from "@/lib/agent/handover"
 import {
@@ -584,7 +584,7 @@ export default function AgentClient() {
               ) : null}
 
               <SectionCard title="Pages this will populate" icon={<FileText className="h-4 w-4" />}>
-                <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+                <div className={`${DASHBOARD_KPI_GRID} md:grid-cols-2 lg:grid-cols-4`}>
                   <div className="rounded-lg border bg-card p-3">
                     <p className="text-xs font-medium text-muted-foreground">Registers</p>
                     <p className="mt-1 text-2xl font-bold">{preview.registers.length}</p>
@@ -624,7 +624,7 @@ export default function AgentClient() {
                 {preview.registers.length === 0 ? (
                   <EmptyNote>No register rows yet. Add one or extract from a handover.</EmptyNote>
                 ) : (
-                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                  <div className={`${DASHBOARD_SECTION_GRID} md:grid-cols-2 xl:grid-cols-3`}>
                     {preview.registers.map((row, index) => {
                       const entries = Object.entries(row.fields)
                       const shown = entries.slice(0, 2)
@@ -701,7 +701,7 @@ export default function AgentClient() {
                 {preview.playbooks.length === 0 ? (
                   <EmptyNote>No procedures yet. Add one or extract from a handover.</EmptyNote>
                 ) : (
-                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                  <div className={`${DASHBOARD_SECTION_GRID} md:grid-cols-2 xl:grid-cols-3`}>
                     {preview.playbooks.map((row, index) => (
                       <div
                         key={`${row.title}-${index}`}
