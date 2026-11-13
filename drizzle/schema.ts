@@ -172,6 +172,67 @@ export const tasks = pgTable("tasks", {
   checklistItems: jsonb("checklist_items").default("[]"),
 })
 
+export const ticketDepartments = pgTable("ticket_departments", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  name: varchar("name", { length: 120 }).notNull(),
+  code: varchar("code", { length: 40 }).notNull(),
+  managerId: integer("manager_id").references(() => users.id, { onDelete: "set null" }),
+  active: boolean("active").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  organizationCode: uniqueIndex("ticket_departments_org_code_idx").on(table.organizationId, table.code),
+}))
+
+export const tickets = pgTable("tickets", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  subject: varchar("subject", { length: 255 }).notNull(),
+  description: text("description").notNull(),
+  status: varchar("status", { length: 30 }).notNull().default("new"),
+  priority: varchar("priority", { length: 20 }).notNull().default("medium"),
+  category: varchar("category", { length: 80 }),
+  requesterId: integer("requester_id").notNull().references(() => users.id),
+  createdBy: integer("created_by").notNull().references(() => users.id),
+  assigneeId: integer("assignee_id").references(() => users.id, { onDelete: "set null" }),
+  departmentId: integer("department_id").references(() => ticketDepartments.id, { onDelete: "set null" }),
+  slaDueAt: timestamp("sla_due_at", { withTimezone: true }),
+  resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+  closedAt: timestamp("closed_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  organizationStatus: index("tickets_org_status_idx").on(table.organizationId, table.status),
+  organizationUpdated: index("tickets_org_updated_idx").on(table.organizationId, table.updatedAt),
+  requester: index("tickets_requester_idx").on(table.requesterId),
+  assignee: index("tickets_assignee_idx").on(table.assigneeId),
+}))
+
+export const ticketComments = pgTable("ticket_comments", {
+  id: serial("id").primaryKey(),
+  ticketId: integer("ticket_id").notNull().references(() => tickets.id, { onDelete: "cascade" }),
+  authorId: integer("author_id").notNull().references(() => users.id),
+  body: text("body").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  ticketCreated: index("ticket_comments_ticket_created_idx").on(table.ticketId, table.createdAt),
+}))
+
+export const ticketEvents = pgTable("ticket_events", {
+  id: serial("id").primaryKey(),
+  ticketId: integer("ticket_id").notNull().references(() => tickets.id, { onDelete: "cascade" }),
+  actorId: integer("actor_id").references(() => users.id, { onDelete: "set null" }),
+  type: varchar("type", { length: 40 }).notNull(),
+  fromValue: text("from_value"),
+  toValue: text("to_value"),
+  metadata: jsonb("metadata").notNull().default({}),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  ticketCreated: index("ticket_events_ticket_created_idx").on(table.ticketId, table.createdAt),
+}))
+
 // Wellbeing metrics table
 export const wellbeingMetrics = pgTable("wellbeing_metrics", {
   id: serial("id").primaryKey(),
