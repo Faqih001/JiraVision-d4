@@ -66,7 +66,7 @@ export function DemoForm() {
           <FormField
             control={form.control}
             name="name"
-            render={({ field, fieldState }) => (
+            render={({ field }) => (
               <FormItem>
                 <FormLabel>Full name</FormLabel>
                 <FormControl>
@@ -79,7 +79,7 @@ export function DemoForm() {
           <FormField
             control={form.control}
             name="company"
-            render={({ field, fieldState }) => (
+            render={({ field }) => (
               <FormItem>
                 <FormLabel>Company</FormLabel>
                 <FormControl>
@@ -131,7 +131,7 @@ export function DemoForm() {
           <FormField
             control={form.control}
             name="preferredDate"
-            render={({ field }) => (
+            render={({ field, fieldState }) => (
               <FormItem>
                 <FormLabel>Preferred date</FormLabel>
                 <FormControl>
