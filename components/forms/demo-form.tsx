@@ -79,7 +79,7 @@ export function DemoForm() {
           <FormField
             control={form.control}
             name="company"
-            render={({ field }) => (
+            render={({ field, fieldState }) => (
               <FormItem>
                 <FormLabel>Company</FormLabel>
                 <FormControl>

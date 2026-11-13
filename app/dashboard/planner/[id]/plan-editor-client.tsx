@@ -372,6 +372,7 @@ export default function PlanEditorClient({ params }: { params: Promise<{ id: str
                 allowWeekends
                 value={plan.horizonStart || null}
                 disabled
+                onChange={() => undefined}
               />
             </div>
             <div className="space-y-2">
@@ -381,6 +382,7 @@ export default function PlanEditorClient({ params }: { params: Promise<{ id: str
                 allowWeekends
                 value={plan.horizonEnd || null}
                 disabled
+                onChange={() => undefined}
               />
             </div>
           </div>
