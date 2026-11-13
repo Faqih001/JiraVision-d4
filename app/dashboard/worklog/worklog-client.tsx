@@ -475,7 +475,7 @@ export default function WorklogClient() {
 
   return (
     <div className="space-y-4">
-      <div className="grid min-w-0 grid-cols-1 items-stretch gap-3">
+      <div className="grid min-w-0 grid-cols-1 items-stretch gap-3 md:grid-cols-2">
         <TotalsSection summary={summary} loading={loading} range={range} todayIso={todayIso} />
         <QuickAddSection
           todayIso={todayIso}
@@ -495,7 +495,7 @@ export default function WorklogClient() {
           toast={toast}
         />
       </div>
-      <div className={`${DASHBOARD_SECTION_GRID} md:grid-cols-2 xl:grid-cols-3`}>
+      <div className={`${DASHBOARD_SECTION_GRID} md:grid-cols-2 xl:grid-cols-2`}>
       <LogSection
         view={state.view}
         days={viewDaysList}

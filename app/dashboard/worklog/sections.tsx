@@ -99,7 +99,7 @@ export const SECTION_TITLES = [
 
 export function WorklogSkeleton() {
   return (
-    <div className={`${DASHBOARD_SECTION_GRID} md:grid-cols-2 xl:grid-cols-3`}>
+    <div className={`${DASHBOARD_SECTION_GRID} md:grid-cols-2 xl:grid-cols-2`}>
       {Array.from({ length: 6 }, (_, i) => (
         <Skeleton key={i} className="h-40 rounded-xl" />
       ))}
