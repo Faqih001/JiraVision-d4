@@ -133,6 +133,8 @@ export interface DateFieldProps {
   // selectable. When true, weekends are never muted and the toggle is hidden.
   allowWeekends?: boolean
   "aria-label"?: string
+  "aria-invalid"?: boolean
+  "aria-describedby"?: string
 }
 
 export function DateField({
@@ -146,6 +148,8 @@ export function DateField({
   disabled,
   allowWeekends = false,
   "aria-label": ariaLabel,
+  "aria-invalid": ariaInvalid,
+  "aria-describedby": ariaDescribedBy,
 }: DateFieldProps) {
   const [weekendOverride, setWeekendOverride] = React.useState(false)
   const disabledMatchers = disabledDayMatchers({ allowWeekends, weekendOverride, min, max })
