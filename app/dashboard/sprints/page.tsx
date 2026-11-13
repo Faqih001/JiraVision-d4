@@ -989,6 +989,7 @@ export default function SprintsWorkspace() {
       <SectionCard
         title={detail ? `Burndown — ${detail.name}` : "Burndown"}
         icon={<BarChart3 className="h-4 w-4" />}
+        className="md:order-1"
         action={
           detail && (
             <Badge variant="outline" className="text-[10px]">
@@ -1018,12 +1019,18 @@ export default function SprintsWorkspace() {
         )}
       </SectionCard>
 
-      <SectionCard title="Velocity history" icon={<Swords className="h-4 w-4" />} action={<Badge variant="outline" className="text-[10px]">committed vs completed</Badge>}>
+      <SectionCard title="Velocity history" icon={<Swords className="h-4 w-4" />} className="md:order-2" action={<Badge variant="outline" className="text-[10px]">committed vs completed</Badge>}>
         {velocityData.length > 0 ? (
           <ResponsiveContainer width="100%" height={230}>
             <BarChart data={velocityData}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-              <XAxis dataKey="name" tick={AXIS} interval={0} angle={-12} textAnchor="end" height={48} />
+              <XAxis
+                dataKey="name"
+                tick={AXIS}
+                interval={0}
+                tickFormatter={(value: string) => (value.length > 18 ? `${value.slice(0, 18)}…` : value)}
+                height={36}
+              />
               <YAxis tick={AXIS} width={30} />
               <Tooltip {...TOOLTIP_STYLE} cursor={{ fill: "hsl(var(--muted))" }} />
               <Legend wrapperStyle={{ fontSize: 11 }} />
@@ -1043,6 +1050,7 @@ export default function SprintsWorkspace() {
       <SectionCard
         title="Scope changes"
         icon={<Layers className="h-4 w-4" />}
+        className="md:order-4"
         action={
           detail && (
             <Badge variant={detail.scopeChanges.length > 0 ? "secondary" : "outline"} className="text-[10px]">
@@ -1084,6 +1092,7 @@ export default function SprintsWorkspace() {
       <SectionCard
         title="Team capacity"
         icon={<Users className="h-4 w-4" />}
+        className="md:order-5"
         action={detail && <Badge variant="outline" className="text-[10px]">{detail.teamCapacity.length} members</Badge>}
       >
         {detailLoading ? (
@@ -1125,7 +1134,7 @@ export default function SprintsWorkspace() {
 
   const achievementRow = (
     <>
-      <SectionCard title="Completion rate" icon={<Target className="h-4 w-4" />}>
+      <SectionCard title="Completion rate" icon={<Target className="h-4 w-4" />} className="md:order-3">
         {donutData.length > 0 ? (
           <div className="flex items-center gap-4">
             <div className="relative h-44 w-1/2 max-w-52">
@@ -1179,7 +1188,7 @@ export default function SprintsWorkspace() {
         )}
       </SectionCard>
 
-      <SectionCard title="Upcoming agenda" icon={<CalendarClock className="h-4 w-4" />}>
+      <SectionCard title="Upcoming agenda" icon={<CalendarClock className="h-4 w-4" />} className="md:order-6">
         {upcoming.length > 0 ? (
           <ul className="divide-y">
             {upcoming.map((s) => {
