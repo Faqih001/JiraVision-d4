@@ -221,7 +221,7 @@ function TodayStrip({
                   className="mt-0.5 h-3.5 w-3.5"
                   onChange={() => onToggleInstance(d.id)}
                 />
-                <Link href={`/dashboard/tasks?task=${d.taskId}`} className="underline underline-offset-2">
+                <Link href={`/dashboard/tasks?task=${d.taskId}`} className="min-w-0 break-words underline underline-offset-2">
                   {d.title}
                 </Link>
               </li>
@@ -618,7 +618,7 @@ export default function DashboardHome() {
             <Skeleton key={i} className="h-28" />
           ))}
         </div>
-        <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-2`}>
+        <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-3`}>
           <Skeleton className="h-72" />
           <Skeleton className="h-72" />
         </div>
@@ -710,7 +710,7 @@ export default function DashboardHome() {
       ) : null}
 
       {/* 2 — KPI cards */}
-      <div className={`${DASHBOARD_KPI_GRID} lg:grid-cols-6`}>
+      <div className={`${DASHBOARD_KPI_GRID} lg:grid-cols-3 xl:grid-cols-6`}>
         {[
           { label: "My open tasks", value: kpis.myOpenTasks, icon: <CircleDot className="h-4 w-4" />, hint: `${kpis.myDueThisWeek} due this week`, tone: undefined },
           { label: "Completed this week", value: kpis.myCompletedThisWeek, icon: <CheckCheck className="h-4 w-4" />, hint: "last 7 days", tone: undefined },
@@ -796,7 +796,7 @@ export default function DashboardHome() {
             />
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className={FILTER_TRIGGER}>
+            <SelectTrigger className={cn(FILTER_TRIGGER, "w-full sm:w-auto")}>
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
@@ -809,7 +809,7 @@ export default function DashboardHome() {
             </SelectContent>
           </Select>
           <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-            <SelectTrigger className={FILTER_TRIGGER}>
+            <SelectTrigger className={cn(FILTER_TRIGGER, "w-full sm:w-auto")}>
               <SelectValue placeholder="Priority" />
             </SelectTrigger>
             <SelectContent>
@@ -822,7 +822,7 @@ export default function DashboardHome() {
             </SelectContent>
           </Select>
           <Select value={sprintFilter} onValueChange={setSprintFilter}>
-            <SelectTrigger className={FILTER_TRIGGER}>
+            <SelectTrigger className={cn(FILTER_TRIGGER, "w-full sm:w-auto")}>
               <SelectValue placeholder="Sprint" />
             </SelectTrigger>
             <SelectContent>
@@ -835,7 +835,7 @@ export default function DashboardHome() {
               ))}
             </SelectContent>
           </Select>
-          <div className="ml-auto flex items-center gap-1 rounded-md border p-0.5">
+          <div className="ml-0 flex items-center gap-1 self-end rounded-md border p-0.5 sm:ml-auto sm:self-auto">
             <Button
               size="sm"
               variant={view === "grid" ? "secondary" : "ghost"}
@@ -882,7 +882,7 @@ export default function DashboardHome() {
                     </span>
                   )}
                 </div>
-                <div className="flex gap-1 pt-1">
+                <div className="flex flex-wrap gap-1 pt-1">
                   <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => setDetailTask(t)}>
                     Details <ChevronRight className="ml-0.5 h-3 w-3" />
                   </Button>
@@ -910,8 +910,8 @@ export default function DashboardHome() {
         </div>
       ) : (
         <Card>
-          <CardContent className="p-0">
-            <table className="w-full text-sm">
+          <CardContent className="overflow-x-auto p-0">
+            <table className="min-w-[40rem] w-full text-sm">
               <thead>
                 <tr className="border-b text-left text-[11px] uppercase tracking-wide text-muted-foreground">
                   <th className="px-4 py-2 font-medium">Task</th>
@@ -1016,7 +1016,7 @@ export default function DashboardHome() {
       />
 
       {/* 6+7 — Burndown & velocity */}
-      <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-2`}>
+      <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-3`}>
         <SectionCard title="Sprint burndown" icon={<BarChart3 className="h-4 w-4" />}>
           {overview.burndown.length > 0 ? (
             <ResponsiveContainer width="100%" height={220}>
@@ -1117,7 +1117,7 @@ export default function DashboardHome() {
       {/* 11+12 — Deadlines and events, both this member's own. The workspace's roster
           and schedule live on /dashboard/team and /dashboard/calendar; a home page that
           borrowed them would look populated to an account that has done nothing yet. */}
-      <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-2`}>
+      <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-3`}>
         <SectionCard
           title="Upcoming deadlines"
           icon={<Timer className="h-4 w-4" />}
@@ -1206,7 +1206,7 @@ export default function DashboardHome() {
       </div>
 
       {/* 13+14 — Activity feed and this member's wellbeing */}
-      <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-2`}>
+      <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-3`}>
         <SectionCard
           title="Activity"
           icon={<Activity className="h-4 w-4" />}
