@@ -692,7 +692,7 @@ export default function DashboardLayout({
                 )}
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align={sidebarCollapsed ? "center" : "start"} side="right" className="w-60">
+            <DropdownMenuContent align={sidebarCollapsed ? "center" : "start"} side="top" sideOffset={8} className="w-60">
               <AccountMenuContent />
             </DropdownMenuContent>
           </DropdownMenu>
