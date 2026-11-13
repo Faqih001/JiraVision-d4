@@ -825,7 +825,7 @@ export default function DashboardLayout({
                     <AvatarImage src={user.avatar || "/placeholder.svg"} alt={user.name} />
                     <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
                   </Avatar>
-                  <span className="hidden text-sm lg:inline">{user.name?.split(" ")[0]}</span>
+                  <span className="hidden max-w-36 truncate text-sm lg:inline">{user.name}</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56 sm:w-60">

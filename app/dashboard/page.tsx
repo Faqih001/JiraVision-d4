@@ -1015,7 +1015,7 @@ export default function DashboardHome() {
         onToggleInstance={(id) => void setInstanceDone(id)}
       />
 
-      {/* 6+7 — Burndown & velocity */}
+      {/* Nine analytics cards: three columns on desktop, one column below desktop. */}
       <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-3`}>
         <SectionCard title="Sprint burndown" icon={<BarChart3 className="h-4 w-4" />}>
           {overview.burndown.length > 0 ? (
@@ -1052,10 +1052,7 @@ export default function DashboardHome() {
             <EmptyNote>Complete a sprint to build velocity history.</EmptyNote>
           )}
         </SectionCard>
-      </div>
-
-      {/* 8+9+10 — Status donut, priority bars, throughput */}
-      <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-3`}>
+      
         <SectionCard title="Task status mix" icon={<CircleDot className="h-4 w-4" />}>
           {overview.statusBreakdown.length > 0 ? (
             <ResponsiveContainer width="100%" height={200}>
@@ -1112,12 +1109,10 @@ export default function DashboardHome() {
             <EmptyNote>Nothing completed in the last 7 days.</EmptyNote>
           )}
         </SectionCard>
-      </div>
-
-      {/* 11+12 — Deadlines and events, both this member's own. The workspace's roster
+      
+      {/* Deadlines and events, both this member's own. The workspace's roster
           and schedule live on /dashboard/team and /dashboard/calendar; a home page that
           borrowed them would look populated to an account that has done nothing yet. */}
-      <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-3`}>
         <SectionCard
           title="Upcoming deadlines"
           icon={<Timer className="h-4 w-4" />}
@@ -1203,10 +1198,8 @@ export default function DashboardHome() {
             <EmptyNote>Nothing scheduled ahead.</EmptyNote>
           )}
         </SectionCard>
-      </div>
-
-      {/* 13+14 — Activity feed and this member's wellbeing */}
-      <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-3`}>
+      
+      {/* Activity feed and this member's wellbeing */}
         <SectionCard
           title="Activity"
           icon={<Activity className="h-4 w-4" />}
