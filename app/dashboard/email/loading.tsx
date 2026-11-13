@@ -1,5 +1,4 @@
 import { Skeleton } from "@/components/ui/skeleton"
-import { Loader, PulseLoader } from "@/components/ui/loader"
 
 export default function EmailLoading() {
   return (
@@ -20,9 +19,6 @@ export default function EmailLoading() {
           <Skeleton className="h-10 w-full" />
           
           <div className="relative">
-            <div className="absolute left-2.5 top-2.5">
-              <Loader size="sm" />
-            </div>
             <Skeleton className="h-10 w-full pl-8" />
           </div>
 
@@ -32,9 +28,7 @@ export default function EmailLoading() {
               .map((_, i) => (
                 <div key={`folder-${i}`} className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div className="h-4 w-4 flex items-center justify-center">
-                      <Loader size="sm" className="opacity-25" />
-                    </div>
+                    <Skeleton className="h-4 w-4 rounded" />
                     <Skeleton className="h-4 w-16" />
                   </div>
                   {i < 3 && <Skeleton className="h-4 w-4 rounded-sm" />}
@@ -76,7 +70,7 @@ export default function EmailLoading() {
             <div className="space-y-2">
               <div className="flex items-center justify-between mb-2">
                 <Skeleton className="h-4 w-16" />
-                <Loader size="sm" className="opacity-30" />
+                <Skeleton className="h-4 w-4 rounded" />
               </div>
               <div className="w-full h-2 rounded-full bg-muted">
                 <div className="bg-blue-500 h-2 rounded-full w-[65%] animate-pulse" />
@@ -93,8 +87,8 @@ export default function EmailLoading() {
               <Skeleton className="h-4 w-4 rounded" />
               <Skeleton className="h-8 w-8 rounded" />
               <div className="flex items-center gap-1">
-                <Loader size="sm" className="opacity-50" />
-                <Loader size="sm" className="opacity-50" />
+                <Skeleton className="h-4 w-4 rounded" />
+                <Skeleton className="h-4 w-4 rounded" />
               </div>
             </div>
             <div className="flex items-center gap-1">
@@ -133,7 +127,7 @@ export default function EmailLoading() {
                         </div>
                         {i % 2 === 0 && (
                           <div className="ml-auto flex items-center gap-1">
-                            <Loader size="sm" className="opacity-30" />
+                            <Skeleton className="h-3 w-3 rounded" />
                             <Skeleton className="h-3 w-4" />
                           </div>
                         )}
@@ -146,16 +140,6 @@ export default function EmailLoading() {
               ))}
           </div>
           
-          {/* Loading indicator overlay */}
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-0 hover:opacity-100 transition-opacity">
-            <div className="bg-black/5 backdrop-blur-sm w-full h-full flex items-center justify-center">
-              <div className="flex flex-col items-center">
-                <Loader size="lg" />
-                <p className="mt-4 font-medium">Loading your emails...</p>
-                <PulseLoader className="mt-2" />
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>

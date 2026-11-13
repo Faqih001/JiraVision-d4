@@ -1,5 +1,4 @@
 import { Skeleton } from "@/components/ui/skeleton"
-import { Loader, PulseLoader } from "@/components/ui/loader"
 
 export default function Loading() {
   return (
@@ -12,17 +11,6 @@ export default function Loading() {
         <div className="flex items-center gap-2">
           <Skeleton className="h-9 w-24" />
           <Skeleton className="h-9 w-24" />
-        </div>
-      </div>
-
-      <div className="flex items-center justify-center py-12">
-        <div className="text-center space-y-4">
-          <Loader size="lg" className="mx-auto" />
-          <div className="space-y-2">
-            <h3 className="text-lg font-medium">Loading Team Data</h3>
-            <p className="text-sm text-muted-foreground">Fetching the latest team information</p>
-          </div>
-          <PulseLoader className="justify-center mt-4" />
         </div>
       </div>
 

@@ -1,5 +1,4 @@
 import { Skeleton } from "@/components/ui/skeleton"
-import { Loader } from "@/components/ui/loader"
 
 export default function Loading() {
   return (
@@ -21,9 +20,7 @@ export default function Loading() {
           <div key={i} className="bg-card border rounded-lg p-5 space-y-3">
             <div className="flex items-center justify-between">
               <Skeleton className="h-5 w-28" />
-              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                <Loader size="sm" />
-              </div>
+              <Skeleton className="h-8 w-8 rounded-full" />
             </div>
             <Skeleton className="h-7 w-20" />
             <div className="flex items-center space-x-1">
@@ -52,31 +49,7 @@ export default function Loading() {
             </div>
             
             <div className="h-64 flex items-center justify-center">
-              <div className="relative">
-                <div className="w-16 h-16 flex items-center justify-center">
-                  <Loader size="md" />
-                </div>
-                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                  <svg className="w-32 h-32" viewBox="0 0 100 100">
-                    <circle 
-                      className="text-muted/20 stroke-[2]" 
-                      cx="50" 
-                      cy="50" 
-                      r="45" 
-                      fill="none"
-                    />
-                    <circle 
-                      className="text-primary/70 stroke-[2] animate-dash" 
-                      cx="50" 
-                      cy="50" 
-                      r="45"
-                      fill="none"
-                      strokeDasharray="95, 150"
-                      strokeDashoffset="-25"
-                    />
-                  </svg>
-                </div>
-              </div>
+              <Skeleton className="h-32 w-32 rounded-full" />
             </div>
           </div>
         </div>
@@ -89,9 +62,7 @@ export default function Loading() {
           <div className="p-5 space-y-6">
             {[...Array(4)].map((_, i) => (
               <div key={i} className="flex items-center gap-4">
-                <div className="h-10 w-10 rounded-md bg-primary/10 flex-shrink-0 flex items-center justify-center">
-                  <Loader size="sm" />
-                </div>
+                <Skeleton className="h-10 w-10 rounded-md flex-shrink-0" />
                 <div className="flex-1 space-y-2">
                   <Skeleton className="h-5 w-48" />
                   <div className="flex items-center gap-1">
