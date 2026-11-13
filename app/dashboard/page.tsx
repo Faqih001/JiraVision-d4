@@ -1375,7 +1375,8 @@ export default function DashboardHome() {
           }
         >
           {overview.wellbeingTrend.length > 0 ? (
-            <ResponsiveContainer width="100%" height={180}>
+            <div className="h-full min-h-[220px]">
+              <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={overview.wellbeingTrend}>
                 <defs>
                   <linearGradient id="wbFill" x1="0" y1="0" x2="0" y2="1">
@@ -1391,8 +1392,11 @@ export default function DashboardHome() {
                 <Area type="monotone" dataKey="stress" name="Stress" stroke="hsl(var(--chart-clay))" fill="transparent" strokeDasharray="4 3" />
               </AreaChart>
             </ResponsiveContainer>
+          </div>
           ) : (
-            <EmptyNote>Log a check-in to start your trend.</EmptyNote>
+            <div className="flex h-full min-h-[220px] items-center">
+              <EmptyNote>Log a check-in to start your trend.</EmptyNote>
+            </div>
           )}
         </SectionCard>
       </div>
