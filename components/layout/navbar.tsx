@@ -255,13 +255,15 @@ export function Navbar() {
   }
 
   return (
-    <header
-      className={cn(
-        "sticky top-0 z-50 transition-transform duration-300 ease-out motion-reduce:transition-none",
-        hidden && !open ? "-translate-y-full" : "translate-y-0",
-      )}
-    >
-      <AnnouncementBar />
+    <header className="sticky top-0 z-50">
+      <div
+        className={cn(
+          "overflow-hidden transition-[max-height,opacity] duration-300 ease-out motion-reduce:transition-none",
+          hidden && !open ? "pointer-events-none max-h-0 opacity-0" : "max-h-10 opacity-100",
+        )}
+      >
+        <AnnouncementBar />
+      </div>
       <div
         className={cn(
           "border-b bg-background/95 backdrop-blur transition-[height,box-shadow,border-color] duration-200 motion-reduce:transition-none",
