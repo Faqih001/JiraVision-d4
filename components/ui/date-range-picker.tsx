@@ -66,6 +66,14 @@ export function DateRangePicker({
   disabled,
 }: DateRangePickerProps) {
   const [open, setOpen] = React.useState(false)
+  const [compact, setCompact] = React.useState(false)
+  React.useEffect(() => {
+    const media = window.matchMedia("(max-width: 767px)")
+    const update = () => setCompact(media.matches)
+    update()
+    media.addEventListener("change", update)
+    return () => media.removeEventListener("change", update)
+  }, [])
   // Per-open, not persisted: excluding weekends is the default, and this week's
   // exception should not silently apply to next month's report.
   const [weekendOverride, setWeekendOverride] = React.useState(false)
@@ -85,10 +93,10 @@ export function DateRangePicker({
           <span className="truncate">{triggerLabel(from, to, placeholder)}</span>
         </Button>
       </PopoverTrigger>
-      <PopoverContent side="bottom" align="start" className="w-auto p-0">
+      <PopoverContent side="bottom" align="start" className="max-w-[calc(100vw-1rem)] overflow-x-auto p-0">
         <Calendar
           mode="range"
-          numberOfMonths={2}
+          numberOfMonths={compact ? 1 : 2}
           selected={from || to ? { from: fromIsoDate(from) ?? undefined, to: fromIsoDate(to) ?? undefined } : undefined}
           onSelect={(range: DayRange | undefined) => {
             onChange(range?.from ? toIsoDate(range.from) : null, range?.to ? toIsoDate(range.to) : null)
@@ -98,7 +106,7 @@ export function DateRangePicker({
           modifiersClassNames={{ weekend: "text-muted-foreground/40" }}
           defaultMonth={fromIsoDate(from) ?? undefined}
         />
-        <div className="flex items-center justify-between gap-3 border-t px-3 py-2">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t px-3 py-2">
           {weekendToggle(weekendOverride, setWeekendOverride)}
           <div className="flex items-center gap-3">
             {working !== null ? (
@@ -178,7 +186,7 @@ export function DateField({
           <span className="truncate">{value ? formatDay(value) : placeholder}</span>
         </Button>
       </PopoverTrigger>
-      <PopoverContent side="bottom" align="start" className="w-auto p-0">
+      <PopoverContent side="bottom" align="start" className="max-w-[calc(100vw-1rem)] overflow-x-auto p-0">
         <Calendar
           mode="single"
           selected={fromIsoDate(value) ?? undefined}
@@ -188,7 +196,7 @@ export function DateField({
           modifiersClassNames={allowWeekends ? undefined : { weekend: "text-muted-foreground/40" }}
           defaultMonth={fromIsoDate(value) ?? undefined}
         />
-        <div className="flex items-center justify-between gap-3 border-t px-3 py-2">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t px-3 py-2">
           {!allowWeekends && weekendToggle(weekendOverride, setWeekendOverride)}
           <Button
             type="button"
@@ -250,7 +258,7 @@ export function DateTimeField({
           <span className="truncate">{value ? formatDateTime(value) : placeholder}</span>
         </Button>
       </PopoverTrigger>
-      <PopoverContent side="bottom" align="start" className="w-auto p-0">
+      <PopoverContent side="bottom" align="start" className="max-w-[calc(100vw-1rem)] overflow-x-auto p-0">
         <Calendar
           mode="single"
           selected={fromIsoDate(date) ?? undefined}
@@ -258,7 +266,7 @@ export function DateTimeField({
           disabled={disabledMatchers}
           defaultMonth={fromIsoDate(date) ?? undefined}
         />
-        <div className="flex items-center justify-between gap-3 border-t px-3 py-2">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t px-3 py-2">
           <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
             Time
             <Input
