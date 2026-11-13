@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { chats, chatParticipants, messages, users } from "@/drizzle/schema";
 import { and, eq, inArray, isNull, or, sql } from "drizzle-orm";
 import { getSession } from "@/lib/auth-actions";
+import { SessionUnreachableError } from "@/lib/auth/session-state";
 import {
   DEFAULT_SETTINGS,
   normalizeSettings,
@@ -187,6 +188,12 @@ export async function GET() {
 
     return NextResponse.json(transformed);
   } catch (error) {
+    if (error instanceof SessionUnreachableError) {
+      return NextResponse.json(
+        { error: "Database is waking up. Try again shortly." },
+        { status: 503 },
+      );
+    }
     console.error("API Error fetching chats:", error);
     return NextResponse.json(
       {

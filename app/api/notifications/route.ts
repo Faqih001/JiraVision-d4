@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { getCurrentUser } from "@/lib/session"
+import { SessionUnreachableError } from "@/lib/auth/session-state"
 import {
   NOTIFICATION_TYPES,
   createNotification,
@@ -11,13 +12,22 @@ import {
 export const dynamic = "force-dynamic"
 
 async function requireUser() {
-  const user = await getCurrentUser()
-  return user ? user : null
+  try {
+    const user = await getCurrentUser()
+    return { user: user ?? null, unavailable: false }
+  } catch (error) {
+    if (error instanceof SessionUnreachableError) {
+      return { user: null, unavailable: true }
+    }
+    throw error
+  }
 }
 
 export async function GET(request: NextRequest) {
-  const user = await requireUser()
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const session = await requireUser()
+  if (session.unavailable) return NextResponse.json({ error: "Database is waking up. Try again shortly." }, { status: 503 })
+  if (!session.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const user = session.user
 
   const params = request.nextUrl.searchParams
   const limitRaw = params.get("limit")
@@ -43,8 +53,10 @@ const createSchema = z.object({
 })
 
 export async function POST(request: NextRequest) {
-  const user = await requireUser()
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const session = await requireUser()
+  if (session.unavailable) return NextResponse.json({ error: "Database is waking up. Try again shortly." }, { status: 503 })
+  if (!session.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const user = session.user
 
   const parsed = createSchema.safeParse(await request.json().catch(() => null))
   if (!parsed.success) {
@@ -56,8 +68,10 @@ export async function POST(request: NextRequest) {
 
 // PATCH /api/notifications with { all: true } marks every unread row read.
 export async function PATCH(request: NextRequest) {
-  const user = await requireUser()
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const session = await requireUser()
+  if (session.unavailable) return NextResponse.json({ error: "Database is waking up. Try again shortly." }, { status: 503 })
+  if (!session.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const user = session.user
 
   const body = (await request.json().catch(() => ({}))) as { all?: boolean }
   if (body.all !== true) {
