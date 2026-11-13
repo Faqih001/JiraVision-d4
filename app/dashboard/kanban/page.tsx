@@ -738,6 +738,7 @@ function KanbanBoard() {
         id: s.id,
         name: s.name,
         committed: s.totalPoints,
+        done: s.donePoints,
         capacity: s.capacity,
         endDate: s.endDate,
       })),
@@ -1070,58 +1071,79 @@ function KanbanBoard() {
 
       {/* 2 — WIP / capacity bar */}
       <Card>
-        <CardContent className="flex flex-col gap-2 py-3 md:flex-row md:items-center md:gap-6">
+        <CardContent className="space-y-4 p-4">
           {capacityMeter ? (
             <>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <p className="truncate text-sm font-semibold">{capacityMeter.label}</p>
-                  <Badge variant="secondary" className="shrink-0 capitalize">
-                    {capacityMeter.status}
-                  </Badge>
-                </div>
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  {capacityMeter.committed} pts committed · {capacityMeter.done} pts done ·{" "}
-                  {capacityMeter.capacity > 0 ? `${capacityMeter.capacity} pts capacity` : "no capacity set"} ·{" "}
-                  {capacityMeter.detail}
-                </p>
-                {capacityMeter.rows.length > 1 && (
-                  <div className="mt-1 flex flex-wrap gap-x-4 gap-y-0.5">
-                    {capacityMeter.rows.map((row) => (
-                      <span key={row.id} className="whitespace-nowrap text-[11px] text-muted-foreground">
-                        {row.name}: {row.committed}
-                        {row.capacity > 0 ? `/${row.capacity}` : ""} pts · closes {row.endDate}
-                      </span>
-                    ))}
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-base font-semibold">{capacityMeter.label}</p>
+                    <Badge variant="secondary" className="capitalize">
+                      {capacityMeter.status}
+                    </Badge>
                   </div>
-                )}
-                <Progress
-                  value={capacityMeter.fillPct}
-                  className={cn("mt-2 h-2", capacityMeter.overCapacity && "[&>div]:bg-red-500")}
-                />
-              </div>
-              <div className="flex items-center gap-4 text-center">
-                <div>
-                  <p className="text-lg font-semibold tabular-nums">
-                    {capacityMeter.capacityPct === null ? "—" : `${capacityMeter.capacityPct}%`}
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {capacityMeter.committed} pts committed · {capacityMeter.done} pts done ·{" "}
+                    {capacityMeter.capacity > 0 ? `${capacityMeter.capacity} pts capacity` : "no capacity set"} ·{" "}
+                    {capacityMeter.detail}
                   </p>
-                  <p className="text-[11px] text-muted-foreground">of capacity</p>
                 </div>
-                <div>
-                  <p className="text-lg font-semibold tabular-nums">{capacityMeter.progressPct}%</p>
-                  <p className="text-[11px] text-muted-foreground">done</p>
-                </div>
-                <div>
-                  <p className="text-lg font-semibold tabular-nums">
-                    {boardTasks.filter((t) => !isCompletedTaskStatus(t.dayInstance?.status ?? t.status)).length}
-                  </p>
-                  <p className="text-[11px] text-muted-foreground">open here</p>
-                </div>
-                <Button asChild size="sm" variant="outline">
+                <Button asChild size="sm" variant="outline" className="shrink-0">
                   <Link href="/dashboard/sprints">
                     Sprints <ArrowRight className="ml-1 h-4 w-4" />
                   </Link>
                 </Button>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div className="rounded-lg border bg-muted/20 p-3">
+                  <p className="text-xl font-semibold tabular-nums">
+                    {capacityMeter.capacityPct === null ? "—" : `${capacityMeter.capacityPct}%`}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">of capacity</p>
+                </div>
+                <div className="rounded-lg border bg-muted/20 p-3">
+                  <p className="text-xl font-semibold tabular-nums">{capacityMeter.progressPct}%</p>
+                  <p className="text-[11px] text-muted-foreground">done</p>
+                </div>
+                <div className="rounded-lg border bg-muted/20 p-3">
+                  <p className="text-xl font-semibold tabular-nums">
+                    {boardTasks.filter((t) => !isCompletedTaskStatus(t.dayInstance?.status ?? t.status)).length}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">open here</p>
+                </div>
+              </div>
+
+              <div>
+                <div className="mb-1 flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
+                  <span>Overall sprint progress</span>
+                  <span className="tabular-nums">{capacityMeter.progressPct}%</span>
+                </div>
+                <Progress
+                  value={capacityMeter.fillPct}
+                  className={cn("h-2", capacityMeter.overCapacity && "[&>div]:bg-red-500")}
+                />
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                {capacityMeter.rows.map((row) => {
+                  const donePct = progressPct({ totalPoints: row.committed, donePoints: row.done })
+                  return (
+                    <div key={row.id} className="min-w-0 rounded-lg border p-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="min-w-0 text-sm font-medium leading-snug">{row.name}</p>
+                        <Badge variant="outline" className="shrink-0 text-[10px]">
+                          {donePct}%
+                        </Badge>
+                      </div>
+                      <p className="mt-1 text-[11px] text-muted-foreground">
+                        {row.done}/{row.committed} pts done · {row.capacity > 0 ? `${row.capacity} pts capacity` : "no capacity"}
+                      </p>
+                      <Progress value={donePct} className="mt-2 h-1.5" />
+                      <p className="mt-2 text-[11px] text-muted-foreground">Closes {row.endDate}</p>
+                    </div>
+                  )
+                })}
               </div>
             </>
           ) : (
