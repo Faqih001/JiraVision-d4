@@ -1406,7 +1406,8 @@ function KanbanBoard() {
         </div>
       </SectionCard>
 
-      {/* 8 — My cards rail */}
+      {/* 8-10 — My cards, activity and recently moved */}
+      <div className={`${DASHBOARD_SECTION_GRID} md:grid-cols-2 lg:grid-cols-3`}>
       <SectionCard
         title={me ? `My cards (${myCards.length})` : "My cards"}
         icon={<Timer className="h-4 w-4" />}
@@ -1442,8 +1443,6 @@ function KanbanBoard() {
         )}
       </SectionCard>
 
-      {/* 9+10 — Activity mini-feed + recently moved */}
-      <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-2`}>
         <SectionCard title="Activity" icon={<Activity className="h-4 w-4" />}>
           {taskFeed.length > 0 ? (
             <ul className="max-h-64 space-y-1 overflow-y-auto">
