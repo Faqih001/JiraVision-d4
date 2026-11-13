@@ -136,11 +136,12 @@ function AccountMenu() {
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
-          size="icon"
-          className="rounded-full"
+          className="h-9 gap-2 rounded-full border border-border bg-card px-1 hover:bg-muted sm:px-2"
           aria-label={`Account menu for ${user.name || user.email}`}
         >
           <UserAvatar user={user} className="h-8 w-8" />
+          <span className="hidden max-w-28 truncate text-sm font-medium xl:inline">{user.name}</span>
+          <ChevronDown className="hidden h-4 w-4 text-muted-foreground xl:inline" aria-hidden="true" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-60">
@@ -331,7 +332,7 @@ export function Navbar() {
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="gap-2 text-muted-foreground"
+                className="gap-2 border border-border bg-card text-muted-foreground hover:bg-muted"
                 onClick={() => window.dispatchEvent(new Event(OPEN_SEARCH_EVENT))}
               >
                 <Search className="h-4 w-4" aria-hidden="true" />

@@ -838,7 +838,12 @@ export default function DashboardLayout({
         {/* Page Content */}
         <main className="min-w-0 flex-1 overflow-hidden">
           <div className="h-full overflow-y-auto overflow-x-hidden">
-            <div className="dashboard-content w-full min-w-0 py-4 px-3 sm:px-4 lg:px-6">
+            <div
+              className={cn(
+                "dashboard-content w-full min-w-0 px-3 pb-4 sm:px-4 lg:px-6",
+                pathname === "/dashboard/settings" ? "pt-0" : "pt-4",
+              )}
+            >
               {children}
             </div>
           </div>
