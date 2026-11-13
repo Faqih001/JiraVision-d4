@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
-import { SectionCard, EmptyNote } from "@/components/dashboard-kit"
+import { SectionCard, EmptyNote, DASHBOARD_KPI_GRID, DASHBOARD_SECTION_GRID } from "@/components/dashboard-kit"
 import {
   Activity,
   AlertTriangle,
@@ -148,12 +148,12 @@ export default function OperationsOverviewPage() {
           </div>
           <Skeleton className="h-9 w-24" />
         </div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className={`${DASHBOARD_KPI_GRID} sm:grid-cols-2 lg:grid-cols-4`}>
           {Array.from({ length: 4 }).map((_, i) => (
             <Skeleton key={i} className="h-28" />
           ))}
         </div>
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-2`}>
           <Skeleton className="h-64" />
           <Skeleton className="h-64" />
         </div>
@@ -256,7 +256,7 @@ export default function OperationsOverviewPage() {
         </Card>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className={`${DASHBOARD_KPI_GRID} sm:grid-cols-2 lg:grid-cols-4`}>
         {kpis.slice(0, 8).map((kpi) => (
           <KpiCard key={kpi.id} kpi={kpi} />
         ))}
@@ -269,7 +269,7 @@ export default function OperationsOverviewPage() {
         )}
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-2`}>
         <SectionCard title="Recommendations" icon={<AlertTriangle className="h-4 w-4" />}>
           {recommendations.length === 0 ? (
             <EmptyNote>No recommendations at this time. Everything looks on track.</EmptyNote>

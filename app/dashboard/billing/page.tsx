@@ -67,6 +67,7 @@ import {
   TOOLTIP_STYLE,
   relativeTime,
 } from "@/components/dashboard-kit"
+import { DASHBOARD_KPI_GRID, DASHBOARD_SECTION_GRID } from "@/components/dashboard-kit"
 
 /* ------------------------------------------------------------------ types */
 
@@ -484,12 +485,12 @@ export default function BillingPage() {
           <Skeleton className="h-9 w-28" />
         </div>
         <Skeleton className="h-16" />
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className={`${DASHBOARD_KPI_GRID} sm:grid-cols-2 lg:grid-cols-4`}>
           {Array.from({ length: 4 }).map((_, i) => (
             <Skeleton key={i} className="h-24" />
           ))}
         </div>
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-2`}>
           <Skeleton className="h-72" />
           <Skeleton className="h-72" />
         </div>
@@ -566,7 +567,7 @@ export default function BillingPage() {
       </Card>
 
       {/* 3 — Spend KPI strip */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className={`${DASHBOARD_KPI_GRID} sm:grid-cols-2 lg:grid-cols-4`}>
         {[
           { label: "Spend this month", value: money(derived.thisMonthTotal), hint: "current calendar month, excl. refunds" },
           { label: "Spend last month", value: money(derived.lastMonthTotal), hint: "previous calendar month" },
@@ -609,7 +610,7 @@ export default function BillingPage() {
           </div>
         }
       >
-        <div className="grid gap-3 md:grid-cols-3">
+        <div className={`${DASHBOARD_SECTION_GRID} md:grid-cols-3`}>
           {PLANS.map((tier) => {
             const price = priceFor(tier, cycle)
             const current = state.plan === tier.id
@@ -657,7 +658,7 @@ export default function BillingPage() {
       </SectionCard>
 
       {/* 5 + 6 — Charts */}
-      <div className="grid gap-4 lg:grid-cols-5">
+      <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-5`}>
         <SectionCard title="Spend by month" icon={<BarChart3 className="h-4 w-4" />} className="lg:col-span-3">
           {derived.byMonth.some((m) => m.total > 0) ? (
             <ResponsiveContainer width="100%" height={220}>
@@ -803,7 +804,7 @@ export default function BillingPage() {
       </SectionCard>
 
       {/* 8 + 9 — Renewal + payment method */}
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-2`}>
         <SectionCard title="Upcoming renewal" icon={<CalendarClock className="h-4 w-4" />}>
           {derived.renewal.date ? (
             <div className="space-y-3">
@@ -868,7 +869,7 @@ export default function BillingPage() {
       </div>
 
       {/* 10 + 11 — Tax summary + activity feed */}
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-2`}>
         <SectionCard title="Tax / VAT summary" icon={<Receipt className="h-4 w-4" />}>
           <div className="space-y-2 text-sm">
             {[

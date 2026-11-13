@@ -29,7 +29,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts"
-import { AvatarCircle, AXIS, EmptyNote, relativeTime, SectionCard, TOOLTIP_STYLE } from "@/components/dashboard-kit"
+import { AvatarCircle, AXIS, EmptyNote, relativeTime, SectionCard, TOOLTIP_STYLE, DASHBOARD_SECTION_GRID } from "@/components/dashboard-kit"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -284,7 +284,7 @@ export default function GamificationHubPage() {
       </nav>
 
       {loading && (
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className={`${DASHBOARD_SECTION_GRID} md:grid-cols-2`}>
           {Array.from({ length: 6 }).map((_, i) => (
             <Skeleton key={i} className="h-40 w-full" />
           ))}
@@ -351,7 +351,7 @@ export default function GamificationHubPage() {
           </Card>
 
           {/* 4+5 — leaderboard */}
-          <div className="grid gap-4 lg:grid-cols-[1fr_1.2fr]">
+          <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-[1fr_1.2fr]`}>
             <SectionCard
               title="XP podium"
               icon={<Trophy className="h-4 w-4" />}
@@ -527,7 +527,7 @@ export default function GamificationHubPage() {
           </SectionCard>
 
           {/* 8+9 — rewards catalog + ledger */}
-          <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
+          <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-[1.4fr_1fr]`}>
             <SectionCard
               title="Reward catalog"
               icon={<Gift className="h-4 w-4" />}
@@ -598,7 +598,7 @@ export default function GamificationHubPage() {
           </div>
 
           {/* 10+11 — charts */}
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-2`}>
             <SectionCard title="XP by member" icon={<BarChart3 className="h-4 w-4" />}>
               {pointsByMember.length > 0 ? (
                 <ResponsiveContainer width="100%" height={220}>

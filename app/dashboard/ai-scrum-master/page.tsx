@@ -68,6 +68,7 @@ import {
   TOOLTIP_STYLE,
   relativeTime,
 } from "@/components/dashboard-kit"
+import { DASHBOARD_SECTION_GRID } from "@/components/dashboard-kit"
 
 /* ------------------------------------------------------------------ types */
 
@@ -1007,12 +1008,12 @@ export default function AIScrumMasterPage() {
       <div className="space-y-6 p-4 md:p-6" aria-busy="true" aria-label="Loading AI Scrum Master">
         <Skeleton className="h-10 w-72" />
         <Skeleton className="h-24" />
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div className={`${DASHBOARD_SECTION_GRID} md:grid-cols-2 xl:grid-cols-3`}>
           {Array.from({ length: 6 }).map((_, i) => (
             <Skeleton key={i} className="h-44" />
           ))}
         </div>
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-2`}>
           <Skeleton className="h-72" />
           <Skeleton className="h-72" />
         </div>
@@ -1094,7 +1095,7 @@ export default function AIScrumMasterPage() {
       </Card>
 
       {/* 3 — Sprint health score gauge with the formula shown */}
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-2`}>
         <SectionCard title="Sprint health score" icon={<Gauge className="h-4 w-4" />}>
           {health ? (
             <div className="flex flex-col items-center gap-2 sm:flex-row sm:items-start sm:gap-5">
@@ -1190,7 +1191,7 @@ export default function AIScrumMasterPage() {
           </h2>
         </div>
         {gridItems.length > 0 ? (
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          <div className={`${DASHBOARD_SECTION_GRID} md:grid-cols-2 xl:grid-cols-3`}>
             {gridItems.map((item) => {
               const title = item.kind === "db" ? item.insight.title : item.rec.title
               const description = item.kind === "db" ? item.insight.description : item.rec.description
@@ -1313,7 +1314,7 @@ export default function AIScrumMasterPage() {
       </SectionCard>
 
       {/* 7 — Velocity forecast */}
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-2`}>
         <SectionCard title="Velocity forecast" icon={<Swords className="h-4 w-4" />}>
           {velocityHistory.length > 0 ? (
             <>
