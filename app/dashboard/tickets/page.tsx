@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { Plus, RefreshCw, Send, Ticket } from "lucide-react"
+import { AlertCircle, BarChart3, CheckCircle2, Clock3, Filter, Inbox, Plus, RefreshCw, Send, Ticket, Users } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -60,9 +60,34 @@ export default function TicketsPage() {
   const [description, setDescription] = useState("")
   const [priority, setPriority] = useState("medium")
   const [departmentId, setDepartmentId] = useState("")
+  const [query, setQuery] = useState("")
+  const [statusFilter, setStatusFilter] = useState("all")
+  const [priorityFilter, setPriorityFilter] = useState("all")
+  const [departmentFilter, setDepartmentFilter] = useState("all")
   const [loading, setLoading] = useState(false)
 
   const selected = useMemo(() => tickets.find((ticket) => ticket.id === selectedId) ?? null, [tickets, selectedId])
+  const visibleTickets = useMemo(() => tickets.filter((ticket) => {
+    const text = `${ticket.subject} ${ticket.description} ${ticket.requesterName ?? ""}`.toLowerCase()
+    return (!query.trim() || text.includes(query.trim().toLowerCase()))
+      && (statusFilter === "all" || ticket.status === statusFilter)
+      && (priorityFilter === "all" || ticket.priority === priorityFilter)
+      && (departmentFilter === "all" || String(ticket.departmentId) === departmentFilter)
+  }), [tickets, query, statusFilter, priorityFilter, departmentFilter])
+  const metrics = useMemo(() => ({
+    total: tickets.length,
+    open: tickets.filter((ticket) => !["resolved", "closed"].includes(ticket.status)).length,
+    unassigned: tickets.filter((ticket) => !ticket.assigneeId).length,
+    urgent: tickets.filter((ticket) => ticket.priority === "urgent" && !["resolved", "closed"].includes(ticket.status)).length,
+  }), [tickets])
+  const countBy = (key: "status" | "priority" | "departmentId") => {
+    const counts = new Map<string, number>()
+    for (const ticket of tickets) {
+      const value = String(ticket[key] ?? "unrouted")
+      counts.set(value, (counts.get(value) ?? 0) + 1)
+    }
+    return [...counts.entries()].sort((a, b) => b[1] - a[1])
+  }
 
   const load = useCallback(async () => {
     setLoading(true)
