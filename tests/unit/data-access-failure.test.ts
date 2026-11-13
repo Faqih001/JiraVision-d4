@@ -1,7 +1,9 @@
 // A read that cannot answer must say so. `getPaginatedTasks` learned this the expensive way (see
 // tests/unit/paginated-tasks-failure.test.ts): its catch turned a driver error into an empty page
 // with HTTP 200 on top, so a board with no rows looked exactly like a member with nothing assigned.
-// The sweep that followed found the same catch in every other reader in lib/data-access.ts.
+// The sweep that followed found the same catch in every other reader in lib/data-access.ts. Thirteen
+// of those readers had no caller at all and were deleted with the legacy kanban cluster; the two that
+// pages do call are what remains here, alongside getPaginatedTasks in its own file.
 //
 // This file holds those readers to the same property. `@/lib/db` is mocked because the failure under
 // test happens at the driver, before a database is involved — and a live database cannot be made to
@@ -38,21 +40,8 @@ vi.mock("@/lib/db", () => ({
 }))
 
 import {
-  getActiveSprint,
-  getSprintById,
-  getSprintHistory,
   getTasksBySprintId,
-  getTasksByAssignee,
-  getTasksByStatus,
   getTaskById,
-  getTeamWellbeing,
-  getUserWellbeing,
-  getUserGamification,
-  getTeamLeaderboard,
-  getLatestEthicalMetrics,
-  getActiveAIInsights,
-  getSprintAnalytics,
-  getTeamMembers,
   getUserProfile,
 } from "@/lib/data-access"
 import { readFileSync } from "node:fs"
@@ -64,21 +53,8 @@ const DRIVER_FAILURE = new Error("Failed query: read ETIMEDOUT")
 
 /** `absent` is what a successful read that matched nothing resolves to — a real answer. */
 const READERS = [
-  { name: "getActiveSprint", call: () => getActiveSprint(), absent: null },
-  { name: "getSprintById", call: () => getSprintById(7), absent: null },
-  { name: "getSprintHistory", call: () => getSprintHistory(), absent: [] },
   { name: "getTasksBySprintId", call: () => getTasksBySprintId(7), absent: [] },
-  { name: "getTasksByAssignee", call: () => getTasksByAssignee(1), absent: [] },
-  { name: "getTasksByStatus", call: () => getTasksByStatus("todo"), absent: [] },
   { name: "getTaskById", call: () => getTaskById(7), absent: null },
-  { name: "getTeamWellbeing", call: () => getTeamWellbeing(), absent: [] },
-  { name: "getUserWellbeing", call: () => getUserWellbeing(1), absent: null },
-  { name: "getUserGamification", call: () => getUserGamification(1), absent: null },
-  { name: "getTeamLeaderboard", call: () => getTeamLeaderboard(), absent: [] },
-  { name: "getLatestEthicalMetrics", call: () => getLatestEthicalMetrics(), absent: null },
-  { name: "getActiveAIInsights", call: () => getActiveAIInsights(), absent: [] },
-  { name: "getSprintAnalytics", call: () => getSprintAnalytics(7), absent: null },
-  { name: "getTeamMembers", call: () => getTeamMembers(), absent: [] },
 ] as const
 
 describe("a data-access read that cannot answer says so", () => {
@@ -108,24 +84,6 @@ describe("a data-access read that cannot answer says so", () => {
   it("still returns the row when the read succeeds", async () => {
     state.rows = [{ id: 7, title: "Replace the UPS battery" }]
     await expect(getTaskById(7)).resolves.toEqual({ id: 7, title: "Replace the UPS battery" })
-  })
-
-  it("still maps a joined leaderboard read", async () => {
-    state.rows = [
-      {
-        users: { id: 1, name: "Amina", avatar: null, role: "admin" },
-        gamification: { level: 3, xp: 420 },
-      },
-    ]
-    await expect(getTeamLeaderboard()).resolves.toEqual([
-      { id: 1, name: "Amina", avatar: null, role: "admin", level: 3, xp: 420 },
-    ])
-  })
-
-  it("still parses a member's stored skills", async () => {
-    state.rows = [{ id: 1, name: "Amina", skills: '["networking","firewalls"]' }]
-    const [member] = await getTeamMembers()
-    expect(member.skills).toEqual(["networking", "firewalls"])
   })
 })
 

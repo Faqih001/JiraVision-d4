@@ -203,9 +203,10 @@ Shared behavior across all four:
   `[task_events] capture failed` and never fails the user's save — until the migration has been run
   against an environment, that is the line to look for.
 - Deliberately not captured, and stated in `lib/worklog/capture.ts` so the omissions are decisions:
-  creation is `tasks.created_at`; deletion cascades a task's events away with it, so a `deleted` row
-  would delete itself; the kanban drag/reorder routes mutate `kanban_tasks`, not `tasks`, so a board
-  drag produces no event.
+  a task created open is `tasks.created_at`; deletion cascades a task's events away with it, so a
+  `deleted` row would delete itself. A task created already finished is the exception — it never
+  moves again, so its create route writes a birth row through `captureTaskBirths`. A board drag is
+  captured like any other status change: it goes through `PUT /api/tasks/[id]`.
 - Vocabulary has one owner each: `lib/cadence.ts` (`one-off|daily|weekly|monthly|yearly`, the latter
   two new) and `lib/roles.ts` (`WORK_DISCIPLINES` with labels, icons, colours and a report template
   per discipline). `tests/unit/worklog-reports.test.ts` fails if either is re-declared elsewhere.
@@ -1414,8 +1415,8 @@ than a date borrowed from `created_at` or `updated_at`.
 - **The writer.** `captureTaskBirths()` in `lib/worklog/capture.ts` sits beside `captureStatusChanges()` and
   shares its insert-or-log path — same `[task_events] capture failed` line, now with a `kind` of `birth` or
   `transition`, and the same rule that a capture failure never fails the user's save.
-- **Wired into every path that can land a finished row**: `POST /api/tasks`, `POST /api/test/tasks`,
-  `POST /api/dashboard/tasks`, `POST /api/dashboard/kanban/tasks` (a card created in the Done column) and the
+- **Wired into every path that can land a finished row**: `POST /api/tasks` (also what a card created in the
+  board's Done column calls), `POST /api/test/tasks`, `POST /api/dashboard/tasks` and the
   document-import commit in `lib/ops/import/commit.ts`, which now reads its insert back with `.returning()` so
   the birth row describes the status actually stored rather than the one the extractor guessed.
 - **Deliberately not wired.** The seeds, `lib/onboarding/write.ts` sample rows and the one-off
@@ -1869,7 +1870,7 @@ into a pile: every card ever finished, on every day the board draws. The owner n
   returns `{tasks: [], total: 0}`; it logs and rethrows, which is what its neighbours in the same file
   already do (`updateTask`, `deleteTask`). Both handlers that call it wrap it in a `try`, so the read
   now answers **HTTP 500** with `success: false`, the board renders its load-error screen with Retry
-  (`app/dashboard/kanban/page.tsx:865`) and the tasks page raises a destructive toast. A background
+  (`app/dashboard/kanban/page.tsx:842`) and the tasks page raises a destructive toast. A background
   refresh stays quiet on purpose — `reloadTasks` keeps the cards already on screen rather than
   replacing a visible board with an error. `paginated-tasks-failure.test.ts` (5) holds the contract:
   the two failure tests are behavioural against a mocked driver — the old catch made them resolve,

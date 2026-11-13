@@ -182,29 +182,6 @@ type TaskDraft = {
 
 /* ---------------------------------------------------------------- helpers */
 
-// Legacy board-card type, kept exported for the historical
-// components/kanban/kanban-column.tsx and kanban-task.tsx consumers.
-// The V3 board itself renders TaskRow objects from /api/tasks instead.
-export type KanbanTask = {
-  id: string
-  title: string
-  description?: string
-  priority: "low" | "medium" | "high"
-  dueDate?: string
-  assignee?: {
-    id: string | number
-    name: string
-    avatar?: string
-  }
-  tags: string[]
-  attachments?: number
-  comments?: number
-  subtasks?: {
-    total: number
-    completed: number
-  }
-}
-
 const tagList = (t: TaskRow) => (Array.isArray(t.tags) ? t.tags.map(String) : [])
 
 /** The API hands back the checklist as JSON already-parsed or as text, depending on the driver. */

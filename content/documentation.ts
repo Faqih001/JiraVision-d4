@@ -166,8 +166,8 @@ This walkthrough uses only routes that exist in the app. Follow it top to bottom
    assignee, due date and tags.
 2. Switch between grid and list view with the toggle in the toolbar; filters and search are applied
    server-side through GET /api/tasks.
-3. Drag the same task on /dashboard/kanban. Drops call /api/dashboard/kanban/reorder and
-   /api/dashboard/kanban/update-status.
+3. Drag the same task on /dashboard/kanban. A drop between columns sends PUT /api/tasks/<id> with
+   the new status; dropping a day's occurrence sends PATCH /api/task-instances/<id> instead.
 
 ## 5. Plan a sprint
 
@@ -656,11 +656,11 @@ GET /api/tasks accepts page, pageSize, status, priority, assigneeId, sprintId an
 response is { success, data, pagination }, which is what the grid and list views on /dashboard/tasks
 consume.
 
-## Kanban-specific records
+## The board keeps no records of its own
 
-The board keeps its own column order and card position in kanban_columns and kanban_tasks, plus
-comments and attachments per card. That is why a drag on /dashboard/kanban calls the kanban reorder
-and update-status endpoints rather than the plain task endpoint.
+The columns on /dashboard/kanban are the task statuses and the cards are rows from GET /api/tasks,
+newest edited first. A drag sends the new status to PUT /api/tasks/<id> — or to
+PATCH /api/task-instances/<id> when the card is one day's occurrence of a schedule.
 
 ## Tags
 
@@ -716,9 +716,10 @@ are reading descriptions.
 
 ## Kanban — drag and drop
 
-Columns map to the task statuses. Dragging a card between columns calls the kanban update-status
-endpoint; reordering inside a column calls the kanban reorder endpoint. Cards open to a detail panel
-with comments and attachments, each persisted through their own endpoints.
+Columns map to the task statuses. Dragging a card between columns sends PUT /api/tasks/<id> with the
+new status; a card that is one day's occurrence of a schedule sends PATCH /api/task-instances/<id>
+instead. Cards open to a detail panel that edits the same task row. The day picker above the columns
+chooses which day the board draws, and a day that has not arrived is read-only.
 
 ## Backlog — grooming
 
@@ -745,9 +746,9 @@ Filters, view mode and column order are part of your persisted settings, so a pa
 you left it. Resetting them is a card in /dashboard/settings.
     `,
     endpoints: [
-      { method: "GET", path: "/api/dashboard/kanban", description: "Board columns with their cards." },
-      { method: "POST", path: "/api/dashboard/kanban/reorder", description: "Persist a card position." },
-      { method: "POST", path: "/api/dashboard/kanban/update-status", description: "Move a card to another column." },
+      { method: "GET", path: "/api/tasks?date=&doneWindow=", description: "The board's cards for one day, with its Done window." },
+      { method: "PUT", path: "/api/tasks/<id>", description: "Move a card to another column." },
+      { method: "PATCH", path: "/api/task-instances/<id>", description: "Move one day's occurrence of a schedule." },
       { method: "GET", path: "/api/dashboard/tasks", description: "Task dataset for the grid and list views." },
       { method: "POST", path: "/api/calendar/events", description: "Create a calendar event." },
     ],
@@ -1164,8 +1165,7 @@ Angle brackets mean a path parameter. All routes are same-origin JSON endpoints 
 
 - GET/POST /api/tasks; PATCH/DELETE /api/tasks/<id>; POST /api/tasks/bulk
 - GET /api/dashboard/tasks, /api/dashboard/overview
-- GET /api/dashboard/kanban, /api/dashboard/kanban/tasks
-- POST /api/dashboard/kanban/reorder, /api/dashboard/kanban/update-status
+- GET /api/task-instances; PATCH /api/task-instances/<id>
 - GET/POST /api/sprints; PATCH/DELETE /api/sprints/<id>; GET /api/sprints/<id>/tasks
 - GET/POST /api/goals; PATCH/DELETE /api/goals/<id>; PATCH /api/goals/<id>/progress
 - GET/POST /api/calendar/events; PATCH/DELETE /api/calendar/events/<id>

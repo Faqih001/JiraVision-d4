@@ -55,7 +55,7 @@ Drag-and-drop board over the member's tasks, with column-scoped filters and an i
 
 | Section | What it does |
 | --- | --- |
-| Board columns | Backlog → In progress → Review → Done; a drop writes the new status and position |
+| Board columns | Backlog → In progress → Review → Done; a drop writes the new status |
 | Quick add card | "What needs doing?" input creating a card with assignee/priority/sprint/labels |
 | Card modal | Edit title, description, assignee, priority, sprint, due date, labels; delete the card |
 | Activity | Per-card change feed |
@@ -66,12 +66,14 @@ Drag-and-drop board over the member's tasks, with column-scoped filters and an i
 | --- | --- | --- |
 | R | `/api/tasks?pageSize=200&scope=…`, `/api/sprints`, `/api/dashboard/overview`, `/api/notifications` | cards and columns |
 | C | `/api/tasks` | new card |
-| U | `/api/tasks/[id]` (PUT/PATCH) | drag-drop status + position, field edits |
+| U | `/api/tasks/[id]` (PUT), `/api/task-instances/[id]` (PATCH) | drag-drop status, field edits |
 | D | `/api/tasks/[id]` (DELETE) | removed card |
 
-> `/api/dashboard/kanban`, `/kanban/tasks`, `/kanban/reorder` and `/kanban/update-status` still exist
-> and write the `kanban_tasks` tables, but no dashboard page calls them — the board runs on `/api/tasks`.
-> They are covered by `lib/worklog/capture.ts` and `tests/unit/worklog-reports.test.ts` only.
+> The board has no endpoints of its own. `/api/dashboard/kanban`, `/kanban/tasks`, `/kanban/reorder`
+> and `/kanban/update-status` were deleted along with the `kanban_tasks` writers: nothing called them,
+> and the four tables they wrote are empty on production (`scripts/measure-kanban-retirement.mjs`).
+> A drop on a day's occurrence goes to `/api/task-instances/[id]`; every other drop goes to
+> `/api/tasks/[id]`, which is what `lib/worklog/capture.ts` records.
 
 ### `/dashboard/sprints` — Sprints
 
@@ -731,7 +733,8 @@ The Applications group item in the sidebar; also reached from Settings and the d
 
 - Tables with no owner column are workspace-wide by construction, so a brand-new account still sees
   their seeded rows: `sprints`, `sprint_analytics`, `ethical_metrics`, `ai_insights`,
-  `kanban_columns`, `plan_items`, `career_levels`, `role_packs`.
+  `plan_items`, `career_levels`, `role_packs`.
 - Presence in `/dashboard/chat` is labelled demo data; the message, reaction and notification paths
   are real.
-- `/api/dashboard/kanban*` (the `kanban_tasks` tables) is not called by any dashboard page.
+- The legacy `/api/dashboard/kanban*` routes are deleted. The four `kanban_*` tables still exist on
+  production but nothing reads or writes them; dropping them is a separate, approved step.

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { getSession } from "@/lib/auth-actions"
 import { db } from "@/lib/db"
-import { sprints, tasks, users, sprintAnalytics, kanbanTasks } from "@/drizzle/schema"
+import { sprints, tasks, users, sprintAnalytics } from "@/drizzle/schema"
 import { and, desc, eq, isNotNull, sql } from "drizzle-orm"
 import { createNotification, notifyMany } from "@/lib/notifications"
 import { SPRINT_STATUSES, normalizeSprintStatus, sprintTransition, type SprintTransition } from "@/lib/sprints/statuses"
@@ -369,17 +369,13 @@ export async function DELETE(_request: Request, context: RouteContext) {
       .where(and(eq(tasks.sprintId, id), openStatusSql(tasks.status)))
       .then((r) => r[0]?.count ?? 0)
 
-    // Three tables carry an ON DELETE NO ACTION key to sprints.id, so the sprint cannot go while
-    // any of them still points at it. Nullable links are pushed back to the backlog; the
+    // Two tables carry an ON DELETE NO ACTION key to sprints.id, so the sprint cannot go while
+    // either still points at it. Nullable links are pushed back to the backlog; the
     // analytics row only describes this sprint, so it dies with it. One transaction: the old
     // handler moved every task out first and then tripped the key, so a failed delete still
     // scattered the sprint.
     const deleted = await db.transaction(async (tx) => {
       await tx.update(tasks).set({ sprintId: null, updatedAt: new Date() }).where(eq(tasks.sprintId, id))
-      await tx
-        .update(kanbanTasks)
-        .set({ sprintId: null, updatedAt: new Date() })
-        .where(eq(kanbanTasks.sprintId, id))
       await tx.delete(sprintAnalytics).where(eq(sprintAnalytics.sprintId, id))
       const [row] = await tx.delete(sprints).where(eq(sprints.id, id)).returning()
       return row

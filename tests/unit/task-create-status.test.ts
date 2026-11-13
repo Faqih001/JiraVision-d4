@@ -89,7 +89,7 @@ function between(source: string, open: string, close: string): string {
 
 describe("the kanban add-card modal can create a schedule", () => {
   it("the draft carries cadence and checklist items", () => {
-    const draft = between(kanban, "type TaskDraft", "export type KanbanTask")
+    const draft = between(kanban, "type TaskDraft", "const tagList")
     expect(draft).toMatch(/cadence:\s*Cadence/u)
     expect(draft).toMatch(/checklistItems: ChecklistItem\[\]/u)
   })

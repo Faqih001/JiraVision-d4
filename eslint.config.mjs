@@ -20,7 +20,6 @@ export default [
       "app/dashboard/**",
       "components/dashboard-*.tsx",
       "components/calendar/**",
-      "components/kanban/**",
       "components/ethical-metrics/**",
       "components/ui/**",
       "components/landing-chatbot.tsx",

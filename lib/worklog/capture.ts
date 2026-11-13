@@ -65,17 +65,13 @@ async function insertEvents(
 // Routes that mutate `tasks` but are NOT captured, and why:
 //   DELETE /api/tasks/[id], DELETE /api/dashboard/tasks — task_id cascades, so a
 //     deletion event deletes itself.
-//   PATCH-ish status writers on kanban: /api/dashboard/kanban/update-status and /reorder
-//     write the separate `kanban_tasks` table, not `tasks`. A board drag is therefore not
-//     in this log. See design §4's scope correction; unifying the two boards is a decision
-//     for later, not something capture can quietly paper over.
 //   /api/sprints/[id] (clears sprint_id) and /api/ethical-metrics/apply-recommendation
 //     (reassigns) — neither moves `status`.
-//   The create routes (POST /api/tasks, /api/test/tasks, /api/dashboard/tasks,
-//     /api/dashboard/kanban/tasks) and the import commit call captureTaskBirths, not
-//     captureStatusChanges: a new row has no before-state, and a task that arrives finished
-//     never moves again, so its birth is the only record its completion will ever have. A
-//     task born as `todo` still writes no row — creation stays `tasks.created_at`.
+//   The create routes (POST /api/tasks, /api/test/tasks, /api/dashboard/tasks) and the import
+//     commit call captureTaskBirths, not captureStatusChanges: a new row has no before-state, and
+//     a task that arrives finished never moves again, so its birth is the only record its
+//     completion will ever have. A task born as `todo` still writes no row — creation stays
+//     `tasks.created_at`.
 //   lib/seed-data.ts, lib/seed/*, scripts/seed-tasks.mjs and the onboarding sample seed —
 //     demo and sample rows. Their titles are invented ("MCS Server offline"), so a birth row
 //     for a finished one would put fictional work on a real person's career ladder. Counted

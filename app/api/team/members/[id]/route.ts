@@ -4,9 +4,6 @@ import {
   calendarEvents,
   chatParticipants,
   gamification,
-  kanbanTaskAttachments,
-  kanbanTaskComments,
-  kanbanTasks,
   messages,
   notifications,
   passwordResetTokens,
@@ -307,9 +304,6 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
       await tx.delete(reactions).where(eq(reactions.userId, memberId));
       await tx.delete(messages).where(eq(messages.senderId, memberId));
       await tx.delete(chatParticipants).where(eq(chatParticipants.userId, memberId));
-      await tx.delete(kanbanTaskComments).where(eq(kanbanTaskComments.userId, memberId));
-      await tx.delete(kanbanTaskAttachments).where(eq(kanbanTaskAttachments.userId, memberId));
-      await tx.delete(kanbanTasks).where(eq(kanbanTasks.assigneeId, memberId));
       await tx.delete(calendarEvents).where(eq(calendarEvents.organizerId, memberId));
       await tx.delete(wellbeingMetrics).where(eq(wellbeingMetrics.userId, memberId));
       await tx.delete(gamification).where(eq(gamification.userId, memberId));

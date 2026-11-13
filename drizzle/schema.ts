@@ -1,4 +1,4 @@
-import { pgTable, serial, bigserial, text, varchar, timestamp, boolean, date, integer, smallint, char, decimal, jsonb, primaryKey, unique, uniqueIndex, uuid, index, check, type AnyPgColumn } from "drizzle-orm/pg-core"
+import { pgTable, serial, bigserial, text, varchar, timestamp, boolean, date, integer, smallint, char, decimal, numeric, jsonb, primaryKey, unique, uniqueIndex, uuid, index, check, type AnyPgColumn } from "drizzle-orm/pg-core"
 import { relations, sql } from "drizzle-orm"
 
 // Users table
@@ -990,4 +990,200 @@ export const taskReports = pgTable("task_reports", {
   authorId: integer("author_id").notNull().references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+})
+
+// ---------------------------------------------------------------------------
+// The twelve tables below were created by additive scripts and read with raw SQL
+// by 37 live files, but were never declared here. drizzle-kit push removes what
+// this file does not describe, so an undeclared table is one push away from
+// being dropped from production. Declaring them changes no behaviour and needs
+// no migration: the tables already exist. Each mirrors the DDL in its creating
+// script — scripts/create-goals-table.mjs, create-retro-tables.mjs,
+// create-reports-tables.mjs, create-automation-tables.mjs, create-email-tables.mjs.
+// ---------------------------------------------------------------------------
+
+export const goals = pgTable(
+  "goals",
+  {
+    id: serial("id").primaryKey(),
+    title: varchar("title", { length: 255 }).notNull(),
+    description: text("description"),
+    ownerId: integer("owner_id").notNull().references(() => users.id),
+    quarter: varchar("quarter", { length: 20 }),
+    status: varchar("status", { length: 20 }).notNull().default("on_track"),
+    startDate: date("start_date").notNull().default(sql`CURRENT_DATE`),
+    dueDate: date("due_date"),
+    metricType: varchar("metric_type", { length: 20 }).notNull().default("percent"),
+    baseline: numeric("baseline"),
+    target: numeric("target").notNull(),
+    current: numeric("current").notNull().default("0"),
+    // Deleting a parent keeps its children as roots rather than orphaning them.
+    parentId: integer("parent_id").references((): AnyPgColumn => goals.id, { onDelete: "set null" }),
+    createdBy: integer("created_by").notNull().references(() => users.id),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+  },
+  (table) => [
+    index("goals_owner_idx").on(table.ownerId),
+    index("goals_parent_idx").on(table.parentId),
+    check(
+      "goals_status_check",
+      sql`${table.status} IN ('not_started','on_track','at_risk','behind','achieved','archived')`,
+    ),
+    check(
+      "goals_metric_type_check",
+      sql`${table.metricType} IN ('percent','number','currency','boolean')`,
+    ),
+  ],
+)
+
+export const goalCheckins = pgTable(
+  "goal_checkins",
+  {
+    id: serial("id").primaryKey(),
+    goalId: integer("goal_id").notNull().references(() => goals.id, { onDelete: "cascade" }),
+    value: numeric("value").notNull(),
+    note: text("note"),
+    authorId: integer("author_id").notNull().references(() => users.id),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  },
+  (table) => [index("goal_checkins_goal_idx").on(table.goalId, table.createdAt)],
+)
+
+export const retros = pgTable(
+  "retros",
+  {
+    id: serial("id").primaryKey(),
+    sprintId: integer("sprint_id").references(() => sprints.id, { onDelete: "set null" }),
+    title: varchar("title", { length: 255 }).notNull(),
+    date: date("date").notNull().default(sql`CURRENT_DATE`),
+    status: varchar("status", { length: 20 }).notNull().default("draft"),
+    createdBy: integer("created_by").notNull().references(() => users.id),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  },
+  (table) => [
+    check(
+      "retros_status_check",
+      sql`${table.status} IN ('draft','scheduled','completed','archived')`,
+    ),
+  ],
+)
+
+export const retroNotes = pgTable(
+  "retro_notes",
+  {
+    id: serial("id").primaryKey(),
+    retroId: integer("retro_id").notNull().references(() => retros.id, { onDelete: "cascade" }),
+    category: varchar("category", { length: 30 }).notNull(),
+    body: text("body").notNull(),
+    authorId: integer("author_id").notNull().references(() => users.id),
+    // votes is the derived count of voters; the vote route writes the array.
+    votes: integer("votes").notNull().default(0),
+    voters: jsonb("voters").notNull().default([]),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  },
+  (table) => [
+    index("retro_notes_retro_idx").on(table.retroId),
+    check(
+      "retro_notes_category_check",
+      sql`${table.category} IN ('went_well','went_bad','try_next')`,
+    ),
+  ],
+)
+
+export const retroActions = pgTable(
+  "retro_actions",
+  {
+    id: serial("id").primaryKey(),
+    retroId: integer("retro_id").notNull().references(() => retros.id, { onDelete: "cascade" }),
+    body: text("body").notNull(),
+    ownerId: integer("owner_id").references(() => users.id, { onDelete: "set null" }),
+    dueDate: date("due_date"),
+    done: boolean("done").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  },
+  (table) => [index("retro_actions_retro_idx").on(table.retroId)],
+)
+
+export const reportSchedules = pgTable("report_schedules", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  dataset: varchar("dataset", { length: 40 }).notNull().default("tasks"),
+  config: jsonb("config").notNull().default({}),
+  cadence: varchar("cadence", { length: 20 }).notNull().default("weekly"),
+  recipients: jsonb("recipients").notNull().default([]),
+  isActive: boolean("is_active").notNull().default(true),
+  lastRunAt: timestamp("last_run_at", { withTimezone: true }),
+  nextRunAt: timestamp("next_run_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+})
+
+export const reportRuns = pgTable("report_runs", {
+  id: serial("id").primaryKey(),
+  scheduleId: integer("schedule_id").notNull().references(() => reportSchedules.id, { onDelete: "cascade" }),
+  status: varchar("status", { length: 20 }).notNull().default("ok"),
+  rows: integer("rows").notNull().default(0),
+  detail: text("detail"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+})
+
+export const automationRules = pgTable("automation_rules", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  trigger: varchar("trigger", { length: 40 }).notNull(),
+  conditions: jsonb("conditions").notNull().default({}),
+  actions: jsonb("actions").notNull().default([]),
+  isActive: boolean("is_active").notNull().default(true),
+  runCount: integer("run_count").notNull().default(0),
+  lastRunAt: timestamp("last_run_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+})
+
+export const automationRuns = pgTable("automation_runs", {
+  id: serial("id").primaryKey(),
+  ruleId: integer("rule_id").notNull().references(() => automationRules.id, { onDelete: "cascade" }),
+  status: varchar("status", { length: 20 }).notNull().default("ok"),
+  matched: integer("matched").notNull().default(0),
+  acted: integer("acted").notNull().default(0),
+  detail: text("detail"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+})
+
+// The email workspace was created with TIMESTAMP, not TIMESTAMPTZ. Drizzle appends "+0000" when
+// reading a naive timestamp only if withTimezone is false, so these three must stay naive or every
+// stored instant shifts by the server's offset.
+export const emailTemplates = pgTable("email_templates", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  name: varchar("name", { length: 255 }).notNull(),
+  subject: varchar("subject", { length: 500 }),
+  body: text("body"),
+  eventType: varchar("event_type", { length: 50 }).default("info"),
+  enabled: boolean("enabled").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+})
+
+// One row per member holding the subscription matrix — keyed by user, with no surrogate id.
+export const emailPreferences = pgTable("email_preferences", {
+  userId: integer("user_id").primaryKey().references(() => users.id, { onDelete: "cascade" }),
+  data: jsonb("data").notNull().default({}),
+  updatedAt: timestamp("updated_at").defaultNow(),
+})
+
+export const emailDigest = pgTable("email_digest", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  // RFC 5321 maximum address length.
+  toEmail: varchar("to_email", { length: 320 }),
+  subject: varchar("subject", { length: 500 }),
+  body: text("body"),
+  eventType: varchar("event_type", { length: 50 }),
+  status: varchar("status", { length: 20 }).default("queued"),
+  createdAt: timestamp("created_at").defaultNow(),
 })

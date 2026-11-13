@@ -55,16 +55,6 @@ describe("task_events capture covers every status-writing route", () => {
     expect(notify).toBeGreaterThan(-1)
     expect(capture).toBeLessThan(notify)
   })
-
-  it("leaves the kanban board out, because it writes kanban_tasks not tasks", () => {
-    for (const file of [
-      "app/api/dashboard/kanban/update-status/route.ts",
-      "app/api/dashboard/kanban/reorder/route.ts",
-    ]) {
-      expect(src(file)).not.toMatch(/captureStatusChanges/)
-      expect(src(file)).toMatch(/kanbanTasks/)
-    }
-  })
 })
 
 // A task written with a finished status never moves, so no captureStatusChanges call will ever
@@ -76,7 +66,6 @@ describe("a task that arrives finished records its own birth", () => {
     "app/api/tasks/route.ts",
     "app/api/test/tasks/route.ts",
     "app/api/dashboard/tasks/route.ts",
-    "app/api/dashboard/kanban/tasks/route.ts",
     "lib/ops/import/commit.ts",
   ]
 
