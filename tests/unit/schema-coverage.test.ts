@@ -72,6 +72,10 @@ const PROD_TABLES = [
   "tasks",
   "team_role_audit",
   "team_settings",
+  "ticket_comments",
+  "ticket_departments",
+  "ticket_events",
+  "tickets",
   "user_onboarding",
   "users",
   "wellbeing_metrics",
@@ -96,7 +100,7 @@ function columnOf(tableName: string, columnName: string): PgColumn {
 }
 
 describe("drizzle/schema.ts describes the whole production database", () => {
-  it("declares exactly the 64 tables production holds", () => {
+  it("declares exactly the 68 tables production holds", () => {
     expect(declared.map((table) => getTableConfig(table).name).sort()).toEqual(PROD_TABLES)
   })
 })
