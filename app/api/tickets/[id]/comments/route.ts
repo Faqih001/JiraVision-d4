@@ -5,12 +5,12 @@ import { db } from "@/lib/db"
 import { ticketComments, ticketEvents, users } from "@/drizzle/schema"
 import { loadScopedTicket } from "@/lib/tickets"
 
-type Params = { params: { id: string } }
+type Params = { params: Promise<{ id: string }> }
 
 export async function GET(_request: Request, { params }: Params) {
   const session = await getSession()
   if (!session) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
-  const ticketId = Number(params.id)
+  const ticketId = Number((await params).id)
   if (!Number.isInteger(ticketId) || !(await loadScopedTicket(ticketId, session.id))) {
     return NextResponse.json({ error: "Ticket not found." }, { status: 404 })
   }
@@ -27,7 +27,7 @@ export async function GET(_request: Request, { params }: Params) {
 export async function POST(request: Request, { params }: Params) {
   const session = await getSession()
   if (!session) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
-  const ticketId = Number(params.id)
+  const ticketId = Number((await params).id)
   if (!Number.isInteger(ticketId) || !(await loadScopedTicket(ticketId, session.id))) {
     return NextResponse.json({ error: "Ticket not found." }, { status: 404 })
   }

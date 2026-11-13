@@ -11,12 +11,12 @@ import {
   loadScopedTicket,
 } from "@/lib/tickets"
 
-type Params = { params: { id: string } }
+type Params = { params: Promise<{ id: string }> }
 
 export async function GET(_request: Request, { params }: Params) {
   const session = await getSession()
   if (!session) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
-  const ticketId = Number(params.id)
+  const ticketId = Number((await params).id)
   if (!Number.isInteger(ticketId)) return NextResponse.json({ error: "Invalid ticket id." }, { status: 400 })
 
   const ticket = await loadScopedTicket(ticketId, session.id)
@@ -29,7 +29,7 @@ export async function GET(_request: Request, { params }: Params) {
 export async function PATCH(request: Request, { params }: Params) {
   const session = await getSession()
   if (!session) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
-  const ticketId = Number(params.id)
+  const ticketId = Number((await params).id)
   if (!Number.isInteger(ticketId)) return NextResponse.json({ error: "Invalid ticket id." }, { status: 400 })
 
   const current = await loadScopedTicket(ticketId, session.id)
