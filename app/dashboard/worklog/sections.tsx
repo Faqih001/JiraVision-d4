@@ -500,7 +500,7 @@ export function LogSection({
     <SectionCard
       title={`${VIEW_LABEL[view]} view`}
       icon={<CalendarDays className="h-4 w-4" />}
-      className="md:col-span-2 xl:col-span-3"
+      className="md:col-span-1 xl:col-span-1"
       action={
         <Button variant="outline" size="sm" className="h-7 text-xs" onClick={onAddDay}>
           <Plus className="h-3.5 w-3.5" aria-hidden />
@@ -554,7 +554,7 @@ export function BulkSection({
     <SectionCard
       title={`Selected — ${selected.length} ${selected.length === 1 ? "entry" : "entries"}`}
       icon={<FileStack className="h-4 w-4" />}
-      className="md:col-span-2 xl:col-span-3"
+      className="md:col-span-1 xl:col-span-1"
       action={
         <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={onClear} disabled={busy}>
           <X className="h-3.5 w-3.5" aria-hidden />
@@ -714,7 +714,7 @@ export function DeliverablesSection({
     <SectionCard
       title="Deliverables"
       icon={<FolderKanban className="h-4 w-4" />}
-      className="md:col-span-2 xl:col-span-3"
+      className="md:col-span-1 xl:col-span-1"
       action={
         <Button variant="outline" size="sm" className="h-7 text-xs" onClick={onNew}>
           <Plus className="h-3.5 w-3.5" aria-hidden />
@@ -812,7 +812,7 @@ export function TransitionsSection({
   loading: boolean
 }) {
   return (
-    <SectionCard title="Status changes" icon={<GitBranch className="h-4 w-4" />} className="md:col-span-2">
+    <SectionCard title="Status changes" icon={<GitBranch className="h-4 w-4" />} className="md:col-span-1">
       {loading ? (
         <Skeleton className="h-24 w-full" />
       ) : transitions.length === 0 ? (
@@ -849,7 +849,7 @@ export function TimeByTaskSection({
 }) {
   const rows = tasks.slice(0, 8)
   return (
-    <SectionCard title="Time by task" icon={<Timer className="h-4 w-4" />} className="md:col-span-2 xl:col-span-2">
+    <SectionCard title="Time by task" icon={<Timer className="h-4 w-4" />} className="md:col-span-1 xl:col-span-1">
       {loading ? (
         <Skeleton className="h-24 w-full" />
       ) : rows.length === 0 ? (
@@ -908,7 +908,7 @@ export function DisciplineSplitSection({
     <SectionCard
       title="Where the time went"
       icon={<ChartPie className="h-4 w-4" />}
-      className="md:col-span-2 xl:col-span-2"
+      className="md:col-span-1 xl:col-span-1"
     >
       {loading ? (
         <Skeleton className="h-40 w-full" />
@@ -965,7 +965,7 @@ export function KindMixSection({
     <SectionCard
       title="Mix of work"
       icon={<Shapes className="h-4 w-4" />}
-      className="md:col-span-2 xl:col-span-2"
+      className="md:col-span-1 xl:col-span-1"
       action={
         openBlockers > 0 ? (
           <span className="text-[11px] font-medium text-destructive">
@@ -1016,7 +1016,7 @@ export function CoverageSection({
 }) {
   const spanned = rangeDays(range.from, range.to).length
   return (
-    <SectionCard title="Coverage" icon={<CalendarCheck2 className="h-4 w-4" />} className="md:col-span-2 xl:col-span-3">
+    <SectionCard title="Coverage" icon={<CalendarCheck2 className="h-4 w-4" />} className="md:col-span-1 xl:col-span-1">
       {loading ? (
         <Skeleton className="h-20 w-full" />
       ) : (
