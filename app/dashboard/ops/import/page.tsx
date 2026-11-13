@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { SectionCard, EmptyNote } from "@/components/dashboard-kit"
+import { SectionCard, EmptyNote, DASHBOARD_SECTION_GRID } from "@/components/dashboard-kit"
 import {
   Upload,
   Loader2,
@@ -538,7 +538,7 @@ function PreviewPhase({
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-3 sm:grid-cols-4">
+          <div className={`${DASHBOARD_SECTION_GRID} sm:grid-cols-4`}>
             <SummaryCard
               icon={<Database className="h-4 w-4" />}
               label="Log entries"
@@ -864,7 +864,7 @@ function LogEntriesEditor({
             )}
 
             {declared.length > 0 && (
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className={`${DASHBOARD_SECTION_GRID} sm:grid-cols-2`}>
                 <div className="space-y-1">
                   <Label htmlFor={`imp-when-${i}`} className="text-xs">
                     When
