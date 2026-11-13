@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { getCurrentUser } from "@/lib/session"
+import { SessionUnreachableError } from "@/lib/auth/session-state"
 import { deleteNotification, markNotificationRead } from "@/lib/notifications"
 
 export const dynamic = "force-dynamic"
@@ -14,7 +15,15 @@ async function parseId(context: Context) {
 }
 
 export async function PATCH(request: NextRequest, context: Context) {
-  const user = await getCurrentUser()
+  let user
+  try {
+    user = await getCurrentUser()
+  } catch (error) {
+    if (error instanceof SessionUnreachableError) {
+      return NextResponse.json({ error: "Database is waking up. Try again shortly." }, { status: 503 })
+    }
+    throw error
+  }
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   const id = await parseId(context)
@@ -30,7 +39,15 @@ export async function PATCH(request: NextRequest, context: Context) {
 }
 
 export async function DELETE(_request: NextRequest, context: Context) {
-  const user = await getCurrentUser()
+  let user
+  try {
+    user = await getCurrentUser()
+  } catch (error) {
+    if (error instanceof SessionUnreachableError) {
+      return NextResponse.json({ error: "Database is waking up. Try again shortly." }, { status: 503 })
+    }
+    throw error
+  }
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   const id = await parseId(context)
