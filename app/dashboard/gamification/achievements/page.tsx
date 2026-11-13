@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
+import { DateField } from "@/components/ui/date-range-picker"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -336,11 +337,11 @@ export default function AchievementsAdminPage() {
               </div>
               <div className="grid gap-1.5">
                 <Label htmlFor="ach-date">Unlocked on</Label>
-                <Input
+                <DateField
                   id="ach-date"
-                  type="date"
-                  value={draft.unlockedAt}
-                  onChange={(e) => setDraft({ ...draft, unlockedAt: e.target.value })}
+                  allowWeekends
+                  value={draft.unlockedAt || null}
+                  onChange={(value) => setDraft({ ...draft, unlockedAt: value ?? "" })}
                 />
               </div>
             </div>

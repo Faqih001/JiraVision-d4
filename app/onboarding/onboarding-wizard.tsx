@@ -27,6 +27,7 @@ import { ComboboxInput } from "@/components/ui/combobox-input"
 import { DEPARTMENTS, getDepartmentByCode, getDepartmentName } from "@/lib/departments"
 import { DepartmentSelect } from "@/components/ui/department-select"
 import { Input } from "@/components/ui/input"
+import { DateField } from "@/components/ui/date-range-picker"
 import { autoPopulateFromJobTitle, type AutoPopulateResult } from "@/lib/auto-populate"
 import { getDisciplineForJobTitle } from "@/lib/job-titles"
 import { JobTitleSelect } from "@/components/ui/job-title-select"
@@ -1121,11 +1122,11 @@ export function OnboardingWizard({ initial, inviteToken, account }: Props) {
                     </div>
                     <div className="space-y-1.5">
                       <Label htmlFor="proj-start">Start</Label>
-                      <Input id="proj-start" type="date" value={projectForm.startDate} onChange={(e) => setProjectForm({ ...projectForm, startDate: e.target.value })} />
+                      <DateField id="proj-start" allowWeekends value={projectForm.startDate || null} onChange={(value) => setProjectForm({ ...projectForm, startDate: value ?? "" })} />
                     </div>
                     <div className="space-y-1.5">
                       <Label htmlFor="proj-target">Target</Label>
-                      <Input id="proj-target" type="date" value={projectForm.targetDate} onChange={(e) => setProjectForm({ ...projectForm, targetDate: e.target.value })} />
+                      <DateField id="proj-target" allowWeekends value={projectForm.targetDate || null} onChange={(value) => setProjectForm({ ...projectForm, targetDate: value ?? "" })} />
                     </div>
                   </div>
                 ) : null}

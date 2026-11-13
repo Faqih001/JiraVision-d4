@@ -43,6 +43,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Input } from "@/components/ui/input"
+import { DateField } from "@/components/ui/date-range-picker"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Progress } from "@/components/ui/progress"
@@ -1285,19 +1286,11 @@ export default function GoalsPage() {
                 </div>
                 <div>
                   <Label>Start date</Label>
-                  <Input
-                    type="date"
-                    value={draft.startDate}
-                    onChange={(e) => setDraft({ ...draft, startDate: e.target.value })}
-                  />
+                  <DateField allowWeekends value={draft.startDate || null} onChange={(value) => setDraft({ ...draft, startDate: value ?? "" })} />
                 </div>
                 <div>
                   <Label>Due date</Label>
-                  <Input
-                    type="date"
-                    value={draft.dueDate}
-                    onChange={(e) => setDraft({ ...draft, dueDate: e.target.value })}
-                  />
+                  <DateField allowWeekends value={draft.dueDate || null} onChange={(value) => setDraft({ ...draft, dueDate: value ?? "" })} />
                 </div>
               </div>
               {draft.metricType !== "boolean" && (

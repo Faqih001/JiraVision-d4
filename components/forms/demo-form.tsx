@@ -11,6 +11,7 @@ import { track } from "@/lib/analytics"
 import { Button } from "@/components/ui/button"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
+import { DateField } from "@/components/ui/date-range-picker"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { HoneypotField } from "@/components/forms/honeypot-field"
@@ -65,7 +66,7 @@ export function DemoForm() {
           <FormField
             control={form.control}
             name="name"
-            render={({ field }) => (
+            render={({ field, fieldState }) => (
               <FormItem>
                 <FormLabel>Full name</FormLabel>
                 <FormControl>
@@ -134,7 +135,13 @@ export function DemoForm() {
               <FormItem>
                 <FormLabel>Preferred date</FormLabel>
                 <FormControl>
-                  <Input type="date" min={new Date().toISOString().slice(0, 10)} {...field} />
+                  <DateField
+                    allowWeekends
+                    min={new Date().toISOString().slice(0, 10)}
+                    value={field.value || null}
+                    onChange={(value) => field.onChange(value ?? "")}
+                    aria-invalid={fieldState.invalid}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>

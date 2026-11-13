@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
+import { DateField, DateTimeField } from "@/components/ui/date-range-picker"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
@@ -795,9 +796,9 @@ function FieldWidget({
       ) : def.type === "number" ? (
         <Input id={id} type="number" step="any" value={value} onChange={(e) => onChange(e.target.value)} />
       ) : def.type === "date" ? (
-        <Input id={id} type="date" value={value} onChange={(e) => onChange(e.target.value)} />
+        <DateField id={id} allowWeekends value={value || null} onChange={(next) => onChange(next ?? "")} />
       ) : def.type === "datetime" ? (
-        <Input id={id} type="datetime-local" value={value} onChange={(e) => onChange(e.target.value)} />
+        <DateTimeField id={id} value={value || null} onChange={(next) => onChange(next ?? "")} />
       ) : (
         <Input id={id} value={value} maxLength={200} onChange={(e) => onChange(e.target.value)} />
       )}
@@ -868,11 +869,11 @@ function LogEntriesEditor({
                   <Label htmlFor={`imp-when-${i}`} className="text-xs">
                     When
                   </Label>
-                  <Input
+                  <DateField
                     id={`imp-when-${i}`}
-                    type="date"
-                    value={entry.occurredAt ?? ""}
-                    onChange={(e) => update(i, { occurredAt: e.target.value || null })}
+                    allowWeekends
+                    value={entry.occurredAt ?? null}
+                    onChange={(value) => update(i, { occurredAt: value })}
                   />
                 </div>
                 <div className="space-y-1">

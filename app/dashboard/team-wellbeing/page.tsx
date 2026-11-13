@@ -42,6 +42,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Input } from "@/components/ui/input"
+import { DateField } from "@/components/ui/date-range-picker"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Separator } from "@/components/ui/separator"
@@ -968,7 +969,7 @@ export default function TeamWellbeingPage() {
               </div>
               <div className="space-y-1">
                 <Label htmlFor="ci-date">Date</Label>
-                <Input id="ci-date" type="date" value={draft.date} onChange={(e) => setDraft({ ...draft, date: e.target.value })} />
+                <DateField id="ci-date" allowWeekends value={draft.date || null} onChange={(value) => setDraft({ ...draft, date: value ?? "" })} />
               </div>
               <div className="space-y-1">
                 <Label htmlFor="ci-score">Happiness score · {draft.wellbeingScore}/100</Label>

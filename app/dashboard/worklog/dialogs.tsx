@@ -26,6 +26,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
+import { DateField } from "@/components/ui/date-range-picker"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
@@ -195,14 +196,14 @@ export function EntryDialog({
           <div className="grid gap-3 sm:grid-cols-3">
             <div className="space-y-1.5">
               <Label htmlFor="entry-day">Day</Label>
-              <Input
+              <DateField
                 id="entry-day"
-                type="date"
                 max={todayIso}
-                value={form.workedOn}
+                allowWeekends
+                value={form.workedOn || null}
                 aria-invalid={errors.day ? true : undefined}
                 aria-describedby={errors.day ? "entry-day-error" : undefined}
-                onChange={(event) => set({ workedOn: event.target.value })}
+                onChange={(value) => set({ workedOn: value ?? "" })}
               />
               {errors.day ? (
                 <p id="entry-day-error" className="text-xs text-destructive">
@@ -553,13 +554,13 @@ export function DeliverableDialog({
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label htmlFor="deliverable-produced">Produced on</Label>
-              <Input
+              <DateField
                 id="deliverable-produced"
-                type="date"
-                value={form.producedOn}
+                allowWeekends
+                value={form.producedOn || null}
                 aria-invalid={errors.producedOn ? true : undefined}
                 aria-describedby={errors.producedOn ? "deliverable-produced-error" : undefined}
-                onChange={(event) => set({ producedOn: event.target.value })}
+                onChange={(value) => set({ producedOn: value ?? "" })}
               />
               {errors.producedOn ? (
                 <p id="deliverable-produced-error" className="text-[11px] text-destructive">

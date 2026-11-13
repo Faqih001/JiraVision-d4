@@ -43,6 +43,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Input } from "@/components/ui/input"
+import { DateField } from "@/components/ui/date-range-picker"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Separator } from "@/components/ui/separator"
@@ -1017,14 +1018,14 @@ export default function RetrospectivesWorkspace() {
                             </Select>
                           </td>
                           <td className="py-2 pr-3">
-                            <Input
-                              type="date"
+                            <DateField
+                              allowWeekends
                               className="h-8 w-[150px] text-xs"
                               aria-label={`Due date for action ${a.id}`}
-                              value={a.due_date ?? ""}
+                              value={a.due_date ?? null}
                               disabled={busyActionId === a.id || detail.retro.status === "archived"}
-                              onBlur={(e) => {
-                                const next = e.target.value === "" ? null : e.target.value
+                              onChange={(value) => {
+                                const next = value
                                 if (String(a.due_date ?? "") !== String(next ?? "")) void patchAction(a, { dueDate: next })
                               }}
                             />
@@ -1070,11 +1071,11 @@ export default function RetrospectivesWorkspace() {
                       ))}
                     </SelectContent>
                   </Select>
-                  <Input
-                    type="date"
+                  <DateField
+                    allowWeekends
                     aria-label="New action due date"
-                    value={actionDraft.dueDate}
-                    onChange={(e) => setActionDraft((p) => ({ ...p, dueDate: e.target.value }))}
+                    value={actionDraft.dueDate || null}
+                    onChange={(value) => setActionDraft((p) => ({ ...p, dueDate: value ?? "" }))}
                   />
                   <Button size="sm" disabled={addingAction} onClick={() => void addAction()}>
                     <Plus className="mr-1 h-4 w-4" /> {addingAction ? "Adding…" : "Add action"}
@@ -1238,7 +1239,7 @@ export default function RetrospectivesWorkspace() {
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
                 <Label htmlFor="retro-date">Date</Label>
-                <Input id="retro-date" type="date" value={newDraft.date} onChange={(e) => setNewDraft((p) => ({ ...p, date: e.target.value }))} />
+                <DateField id="retro-date" allowWeekends value={newDraft.date || null} onChange={(value) => setNewDraft((p) => ({ ...p, date: value ?? "" }))} />
               </div>
               <div>
                 <Label htmlFor="retro-status">Initial status</Label>
@@ -1274,7 +1275,7 @@ export default function RetrospectivesWorkspace() {
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
                 <Label htmlFor="edit-date">Date</Label>
-                <Input id="edit-date" type="date" value={editDraft.date} onChange={(e) => setEditDraft((p) => ({ ...p, date: e.target.value }))} />
+                <DateField id="edit-date" allowWeekends value={editDraft.date || null} onChange={(value) => setEditDraft((p) => ({ ...p, date: value ?? "" }))} />
               </div>
               <div>
                 <Label htmlFor="edit-status">Status</Label>

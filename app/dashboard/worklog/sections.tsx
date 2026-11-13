@@ -37,6 +37,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { DateField } from "@/components/ui/date-range-picker"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { EmptyNote, SectionCard, FILTER_TRIGGER } from "@/components/dashboard-kit"
@@ -607,12 +608,12 @@ export function BulkSection({
           <Label htmlFor="bulk-date" className="text-[11px]">
             Re-date to
           </Label>
-          <Input
+          <DateField
             id="bulk-date"
-            type="date"
-            value={workedOn}
+            allowWeekends
+            value={workedOn || null}
             max={todayIso}
-            onChange={(event) => setWorkedOn(event.target.value)}
+            onChange={(value) => setWorkedOn(value ?? "")}
             className={FILTER_TRIGGER}
             disabled={busy}
           />

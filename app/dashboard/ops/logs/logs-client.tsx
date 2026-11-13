@@ -27,6 +27,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
+import { DateField, DateTimeField } from "@/components/ui/date-range-picker"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -470,11 +471,10 @@ export default function LogsClient() {
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
                   <Label htmlFor="draft-occurred">When</Label>
-                  <Input
+                  <DateTimeField
                     id="draft-occurred"
-                    type="datetime-local"
-                    value={draft.occurredAt}
-                    onChange={(event) => setDraft({ ...draft, occurredAt: event.target.value })}
+                    value={draft.occurredAt || null}
+                    onChange={(value) => setDraft({ ...draft, occurredAt: value ?? "" })}
                   />
                 </div>
                 <div>
@@ -531,18 +531,17 @@ export default function LogsClient() {
                         onChange={(event) => setField(name, event.target.value)}
                       />
                     ) : def.type === "date" ? (
-                      <Input
+                      <DateField
                         id={id}
-                        type="date"
-                        value={value}
-                        onChange={(event) => setField(name, event.target.value)}
+                        allowWeekends
+                        value={value || null}
+                        onChange={(next) => setField(name, next ?? "")}
                       />
                     ) : def.type === "datetime" ? (
-                      <Input
+                      <DateTimeField
                         id={id}
-                        type="datetime-local"
-                        value={value}
-                        onChange={(event) => setField(name, event.target.value)}
+                        value={value || null}
+                        onChange={(next) => setField(name, next ?? "")}
                       />
                     ) : (
                       <Input

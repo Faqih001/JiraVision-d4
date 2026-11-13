@@ -129,6 +129,7 @@ export interface DateFieldProps {
   max?: string | null
   className?: string
   disabled?: boolean
+  onBlur?: React.FocusEventHandler<HTMLButtonElement>
   // General date forms (invoice, retro, goal, project dates) need every day
   // selectable. When true, weekends are never muted and the toggle is hidden.
   allowWeekends?: boolean
@@ -146,6 +147,7 @@ export function DateField({
   max,
   className,
   disabled,
+  onBlur,
   allowWeekends = false,
   "aria-label": ariaLabel,
   "aria-invalid": ariaInvalid,
@@ -162,6 +164,7 @@ export function DateField({
           type="button"
           variant="outline"
           disabled={disabled}
+          onBlur={onBlur}
           aria-label={ariaLabel}
           className={cn(
             "w-full justify-start text-left font-normal",

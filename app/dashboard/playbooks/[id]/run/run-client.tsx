@@ -17,6 +17,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { DateField } from "@/components/ui/date-range-picker"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
@@ -230,12 +231,12 @@ export default function RunClient({ id }: { id: string }) {
           <Label htmlFor="run-day" className="text-xs text-muted-foreground">
             Worked on
           </Label>
-          <Input
+          <DateField
             id="run-day"
-            type="date"
-            value={workedOn}
+            allowWeekends
+            value={workedOn || null}
             max={payload.today}
-            onChange={(event) => setWorkedOn(event.target.value)}
+            onChange={(value) => setWorkedOn(value ?? "")}
           />
         </div>
       </header>

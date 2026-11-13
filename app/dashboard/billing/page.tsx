@@ -37,6 +37,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Input } from "@/components/ui/input"
+import { DateField } from "@/components/ui/date-range-picker"
 import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
 import { Separator } from "@/components/ui/separator"
@@ -988,7 +989,7 @@ export default function BillingPage() {
             </div>
             <div className="space-y-1">
               <Label htmlFor="inv-date">Date</Label>
-              <Input id="inv-date" type="date" value={draft.date} onChange={(e) => setDraft({ ...draft, date: e.target.value })} />
+              <DateField id="inv-date" allowWeekends value={draft.date || null} onChange={(value) => setDraft({ ...draft, date: value ?? "" })} />
             </div>
             <div className="space-y-1">
               <Label>Type</Label>

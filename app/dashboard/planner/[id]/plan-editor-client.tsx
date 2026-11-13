@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { Save, Trash2, Rocket, Plus, ArrowLeft, Loader2, List, GanttChart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { DateField } from "@/components/ui/date-range-picker"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import {
@@ -366,22 +367,20 @@ export default function PlanEditorClient({ params }: { params: Promise<{ id: str
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="horizonStart">Horizon Start</Label>
-              <Input
+              <DateField
                 id="horizonStart"
-                type="date"
-                value={plan.horizonStart || ""}
+                allowWeekends
+                value={plan.horizonStart || null}
                 disabled
-                readOnly
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="horizonEnd">Horizon End</Label>
-              <Input
+              <DateField
                 id="horizonEnd"
-                type="date"
-                value={plan.horizonEnd || ""}
+                allowWeekends
+                value={plan.horizonEnd || null}
                 disabled
-                readOnly
               />
             </div>
           </div>
@@ -520,20 +519,20 @@ export default function PlanEditorClient({ params }: { params: Promise<{ id: str
                   <div className="grid grid-cols-3 gap-3">
                     <div className="space-y-2">
                       <Label>Start Date</Label>
-                      <Input
-                        type="date"
-                        value={item.startDate || ""}
-                        onChange={(e) => updateItem(item.id, { startDate: e.target.value || null })}
+                      <DateField
+                        allowWeekends
+                        value={item.startDate || null}
+                        onChange={(value) => updateItem(item.id, { startDate: value })}
                         onBlur={() => saveItem(item)}
                         disabled={!isDraft}
                       />
                     </div>
                     <div className="space-y-2">
                       <Label>Due Date</Label>
-                      <Input
-                        type="date"
-                        value={item.dueDate || ""}
-                        onChange={(e) => updateItem(item.id, { dueDate: e.target.value || null })}
+                      <DateField
+                        allowWeekends
+                        value={item.dueDate || null}
+                        onChange={(value) => updateItem(item.id, { dueDate: value })}
                         onBlur={() => saveItem(item)}
                         disabled={!isDraft}
                       />

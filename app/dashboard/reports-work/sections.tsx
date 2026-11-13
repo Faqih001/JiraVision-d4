@@ -31,7 +31,7 @@ import {
   YAxis,
 } from "recharts"
 import { Button } from "@/components/ui/button"
-import { DateRangePicker } from "@/components/ui/date-range-picker"
+import { DateField, DateRangePicker } from "@/components/ui/date-range-picker"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -143,14 +143,14 @@ export function PeriodSection({
         <div className="flex items-end gap-2">
           <div className="flex-1 space-y-1.5">
             <Label htmlFor="report-anchor">Within the period</Label>
-            <Input
+            <DateField
               id="report-anchor"
-              type="date"
-              value={state.anchor}
+              allowWeekends
+              value={state.anchor || null}
               // Clearing a date input yields an empty string; the previous anchor is kept rather
               // than sent, because an empty day would resolve to the epoch.
-              onChange={(event) => {
-                const next = event.target.value
+              onChange={(value) => {
+                const next = value
                 if (next) patch({ anchor: next })
               }}
             />

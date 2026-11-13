@@ -1698,7 +1698,7 @@ function KanbanBoard() {
               </div>
               <div className="space-y-1">
                 <Label htmlFor="kf-due">Due date</Label>
-                <Input id="kf-due" type="date" value={draft.dueDate} onChange={(e) => setDraft({ ...draft, dueDate: e.target.value })} />
+                <DateField id="kf-due" allowWeekends value={draft.dueDate || null} onChange={(value) => setDraft({ ...draft, dueDate: value ?? "" })} />
               </div>
               <div className="space-y-1">
                 <Label htmlFor="kf-points">Story points</Label>

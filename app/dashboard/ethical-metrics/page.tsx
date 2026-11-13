@@ -59,6 +59,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
+import { DateField } from "@/components/ui/date-range-picker"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Switch } from "@/components/ui/switch"
@@ -1617,7 +1618,7 @@ export default function EthicalMetricsWorkspace() {
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5 sm:col-span-2">
               <Label htmlFor="edit-date">Snapshot date</Label>
-              <Input id="edit-date" type="date" value={editForm.date} onChange={(e) => setEditForm({ ...editForm, date: e.target.value })} />
+              <DateField id="edit-date" allowWeekends value={editForm.date || null} onChange={(value) => setEditForm({ ...editForm, date: value ?? "" })} />
             </div>
             {(
               [
