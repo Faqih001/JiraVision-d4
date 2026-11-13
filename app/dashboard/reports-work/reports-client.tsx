@@ -526,18 +526,21 @@ export default function ReportsClient() {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        <PeriodSection state={state} period={shownPeriod} patch={patchState} />
-        <MyReportsSection
-          reports={reports}
-          loading={loading}
-          openId={state.reportId}
-          missingId={missingId}
-          query={state.q}
-          timezone={timezone}
-          onQuery={(value) => patchState({ q: value })}
-          onOpen={(id) => patchState({ view: "build", reportId: id })}
-        />
+      <div className="space-y-4">
+        <div className="grid gap-4 md:grid-cols-3">
+          <PeriodSection state={state} period={shownPeriod} patch={patchState} />
+          <MyReportsSection
+            reports={reports}
+            loading={loading}
+            openId={state.reportId}
+            missingId={missingId}
+            query={state.q}
+            timezone={timezone}
+            onQuery={(value) => patchState({ q: value })}
+            onOpen={(id) => patchState({ view: "build", reportId: id })}
+          />
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {/* The template's order is the document's order, so every member's report reads the same
             way top to bottom; the `contents` wrapper keeps the grid while giving each row a key. */}
         {state.view === "build"
@@ -552,6 +555,7 @@ export default function ReportsClient() {
             <Skeleton className="h-40 w-full rounded-xl" />
           </div>
         ) : null}
+        </div>
       </div>
 
       {/* Mounted only while open, so the draft's defaults are always the period and template the
