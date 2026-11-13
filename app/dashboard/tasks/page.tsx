@@ -916,7 +916,7 @@ export default function TasksWorkspacePage() {
         </div>
         <Skeleton className="h-14" />
         <Skeleton className="h-96" />
-        <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-2`}>
+        <div className={`${DASHBOARD_SECTION_GRID} md:grid-cols-3`}>
           <Skeleton className="h-64" />
           <Skeleton className="h-64" />
         </div>
@@ -1578,6 +1578,23 @@ export default function TasksWorkspacePage() {
             <EmptyNote>Nothing due in the next 7 days.</EmptyNote>
           )}
         </SectionCard>
+
+        <SectionCard title="Task health" icon={<CheckSquare className="h-4 w-4" />}>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between rounded-md border px-3 py-2">
+              <span className="text-xs text-muted-foreground">Open tasks</span>
+              <span className="font-semibold tabular-nums">{kpis.total - allTasks.filter((t) => isCompletedTaskStatus(t.status)).length}</span>
+            </div>
+            <div className="flex items-center justify-between rounded-md border px-3 py-2">
+              <span className="text-xs text-muted-foreground">In progress</span>
+              <span className="font-semibold tabular-nums">{kpis.inProgress}</span>
+            </div>
+            <div className="flex items-center justify-between rounded-md border px-3 py-2">
+              <span className="text-xs text-muted-foreground">Blocked or overdue</span>
+              <span className={cn("font-semibold tabular-nums", needsAttention.length > 0 && "text-red-500")}>{needsAttention.length}</span>
+            </div>
+          </div>
+        </SectionCard>
       </div>
 
       {/* 8+9+10 — assignee, sprint and status distribution */}
@@ -1639,7 +1656,7 @@ export default function TasksWorkspacePage() {
       </div>
 
       {/* 11+12 — recently updated + my workload gauge */}
-      <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-2`}>
+      <div className={`${DASHBOARD_SECTION_GRID} md:grid-cols-3`}>
         <SectionCard title="Recently updated" icon={<History className="h-4 w-4" />}>
           {recentlyUpdated.length > 0 ? (
             <ul className="divide-y">
@@ -1725,6 +1742,27 @@ export default function TasksWorkspacePage() {
             </div>
           </div>
           )}
+        </SectionCard>
+
+        <SectionCard title="Delivery outlook" icon={<Timer className="h-4 w-4" />}>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">Due this week</span>
+              <span className="text-lg font-semibold tabular-nums">{dueThisWeek.reduce((count, [, rows]) => count + rows.length, 0)}</span>
+            </div>
+            <Progress
+              value={kpis.total > 0 ? Math.round((kpis.doneThisSprint / kpis.total) * 100) : 0}
+              className="h-2"
+              aria-label="Task completion outlook"
+            />
+            <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+              <span>{kpis.doneThisSprint} done in active sprints</span>
+              <span>{running.length} active sprint{running.length === 1 ? "" : "s"}</span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {kpis.overdue > 0 ? `${kpis.overdue} task${kpis.overdue === 1 ? "" : "s"} need attention.` : "No overdue tasks right now."}
+            </p>
+          </div>
         </SectionCard>
       </div>
 
