@@ -1199,7 +1199,55 @@ export default function DashboardHome() {
           )}
         </SectionCard>
       
-      {/* Activity feed and this member's wellbeing */}
+      {/* Progress, activity and wellbeing: three columns on desktop, two on tablet, one on mobile. */}
+      <SectionCard
+        title="Progress & rewards"
+        icon={<Trophy className="h-4 w-4" />}
+        action={
+          <Button asChild size="sm" variant="ghost" className="h-7 text-xs">
+            <Link href="/dashboard/gamification">Skill trees</Link>
+          </Button>
+        }
+      >
+        {overview.gamification ? (
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[hsl(var(--chart-pine))] text-sm font-bold text-white">
+                {overview.gamification.level}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex justify-between text-xs">
+                  <span className="font-medium">{overview.gamification.xp} XP</span>
+                  <span className="text-muted-foreground">next level {overview.gamification.nextLevelXp} XP</span>
+                </div>
+                <Progress value={Math.min(100, Math.round(((overview.gamification.xp % 500) / 500) * 100))} className="mt-1 h-1.5" />
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  {overview.gamification.tasksCompleted} tasks completed · {overview.gamification.achievements} achievements
+                </p>
+              </div>
+            </div>
+            <Separator />
+            {overview.gamification.skillTrees.length > 0 ? (
+              overview.gamification.skillTrees.slice(0, 3).map((s) => (
+                <div key={s.name}>
+                  <div className="flex justify-between text-xs">
+                    <span>{s.name}</span>
+                    <span className="text-muted-foreground">
+                      Lv {s.level} · {s.progress}%
+                    </span>
+                  </div>
+                  <Progress value={s.progress} className="mt-1 h-1.5" />
+                </div>
+              ))
+            ) : (
+              <p className="text-xs text-muted-foreground">Complete tasks to grow skill trees.</p>
+            )}
+          </div>
+        ) : (
+          <EmptyNote>Start closing tasks to earn XP.</EmptyNote>
+        )}
+      </SectionCard>
+
         <SectionCard
           title="Activity"
           icon={<Activity className="h-4 w-4" />}
@@ -1273,56 +1321,6 @@ export default function DashboardHome() {
           )}
         </SectionCard>
       </div>
-
-      {/* 15 — Personal progress. The leaderboard and ethical scores are workspace
-          aggregates; their pages own them, the home does not borrow them. */}
-      <SectionCard
-        title="Progress & rewards"
-        icon={<Trophy className="h-4 w-4" />}
-        action={
-          <Button asChild size="sm" variant="ghost" className="h-7 text-xs">
-            <Link href="/dashboard/gamification">Skill trees</Link>
-          </Button>
-        }
-      >
-        {overview.gamification ? (
-          <div className="space-y-3">
-            <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[hsl(var(--chart-pine))] text-sm font-bold text-white">
-                {overview.gamification.level}
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex justify-between text-xs">
-                  <span className="font-medium">{overview.gamification.xp} XP</span>
-                  <span className="text-muted-foreground">next level {overview.gamification.nextLevelXp} XP</span>
-                </div>
-                <Progress value={Math.min(100, Math.round(((overview.gamification.xp % 500) / 500) * 100))} className="mt-1 h-1.5" />
-                <p className="mt-1 text-[11px] text-muted-foreground">
-                  {overview.gamification.tasksCompleted} tasks completed · {overview.gamification.achievements} achievements
-                </p>
-              </div>
-            </div>
-            <Separator />
-            {overview.gamification.skillTrees.length > 0 ? (
-              overview.gamification.skillTrees.slice(0, 3).map((s) => (
-                <div key={s.name}>
-                  <div className="flex justify-between text-xs">
-                    <span>{s.name}</span>
-                    <span className="text-muted-foreground">
-                      Lv {s.level} · {s.progress}%
-                    </span>
-                  </div>
-                  <Progress value={s.progress} className="mt-1 h-1.5" />
-                </div>
-              ))
-            ) : (
-              <p className="text-xs text-muted-foreground">Complete tasks to grow skill trees.</p>
-            )}
-          </div>
-        ) : (
-          <EmptyNote>Start closing tasks to earn XP.</EmptyNote>
-        )}
-      </SectionCard>
 
       {/* ---- task detail modal ---- */}
       <Dialog open={detailTask !== null} onOpenChange={(o) => !o && setDetailTask(null)}>
