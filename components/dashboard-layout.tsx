@@ -43,6 +43,7 @@ import {
   GanttChartSquare,
   Gamepad2,
   Heart,
+  Ticket,
   Home,
   Inbox,
   LayoutDashboard,
@@ -317,6 +318,12 @@ export default function DashboardLayout({
           icon: <ClipboardList className="h-5 w-5" />,
           href: "/dashboard/tasks",
           active: pathname === "/dashboard/tasks",
+        },
+        {
+          title: "Tickets",
+          icon: <Ticket className="h-5 w-5" />,
+          href: "/dashboard/tickets",
+          active: pathname === "/dashboard/tickets",
         },
         {
           title: "Work Log",

@@ -15,6 +15,13 @@
       "when": 1792833816812,
       "tag": "0001_damp_legion",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792843200000,
+      "tag": "0002_internal_tickets",
+      "breakpoints": true
     }
   ]
 }
