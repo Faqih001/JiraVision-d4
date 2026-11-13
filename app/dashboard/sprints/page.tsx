@@ -740,31 +740,26 @@ export default function SprintsWorkspace() {
             </div>
           </div>
         </div>
-        <div className="flex flex-col items-stretch justify-between gap-3 lg:w-44">
-          <div className="grid grid-cols-2 gap-2 lg:grid-cols-1">
-            <div className="rounded-lg border bg-card p-2 text-center">
+        <div className="grid grid-cols-2 gap-2 lg:w-44 lg:grid-cols-1">
+            <div className="flex h-11 items-center justify-center gap-1 rounded-lg border bg-card px-2 text-center">
               <p className="text-xl font-semibold tabular-nums">{activeSprint.daysLeft}</p>
               <p className="text-[11px] text-muted-foreground">days left</p>
             </div>
-            <div className="rounded-lg border bg-card p-2 text-center">
+            <div className="flex h-11 items-center justify-center gap-1 rounded-lg border bg-card px-2 text-center">
               <p className="text-xl font-semibold tabular-nums">{activeSprint.taskCount - activeSprint.doneCount}</p>
               <p className="text-[11px] text-muted-foreground">tasks open</p>
             </div>
-          </div>
-          <div className="flex gap-2 lg:flex-col">
-            <Button size="sm" variant="outline" className="!h-11 flex-1" onClick={() => openEdit(activeSprint)}>
+            <Button size="sm" variant="outline" onClick={() => openEdit(activeSprint)}>
               <Pencil className="mr-1 h-3.5 w-3.5" /> Edit
             </Button>
             <Button
               size="sm"
-              className="!h-11 flex-1"
               disabled={busyId === activeSprint.id}
               onClick={() => transitionSprint(activeSprint, "completed")}
             >
               <CheckCheck className="mr-1 h-3.5 w-3.5" />
               {busyId === activeSprint.id ? "Saving…" : "Complete"}
             </Button>
-          </div>
         </div>
       </CardContent>
     </Card>
