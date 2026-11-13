@@ -70,6 +70,7 @@ import {
   TOOLTIP_STYLE,
   relativeTime,
 } from "@/components/dashboard-kit"
+import { DASHBOARD_KPI_GRID, DASHBOARD_SECTION_GRID } from "@/components/dashboard-kit"
 import { SchedulerHeartbeat } from "@/components/dashboard/scheduler-heartbeat"
 import type { DashboardOverview } from "@/lib/dashboard-data"
 
@@ -655,7 +656,7 @@ export default function EmailWorkspace() {
       </Card>
 
       {/* 3 — KPI strip */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
+      <div className={`${DASHBOARD_KPI_GRID} md:grid-cols-3 xl:grid-cols-5`}>
         <KpiCard
           loading={loading}
           icon={<LayoutList className="h-4 w-4" />}
@@ -693,7 +694,7 @@ export default function EmailWorkspace() {
         />
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-2">
+      <div className={`${DASHBOARD_SECTION_GRID} xl:grid-cols-2`}>
         {/* 4 — digest timeline */}
         <SectionCard
           className="xl:col-span-2"
@@ -1068,7 +1069,7 @@ export default function EmailWorkspace() {
         }
       >
         {loading ? (
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          <div className={`${DASHBOARD_SECTION_GRID} md:grid-cols-2 xl:grid-cols-3`}>
             {Array.from({ length: 3 }).map((_, i) => (
               <Skeleton key={i} className="h-28 w-full" />
             ))}
@@ -1076,7 +1077,7 @@ export default function EmailWorkspace() {
         ) : templates.length === 0 ? (
           <EmptyNote>No templates stored yet. Add one — saving with a body also queues a preview digest row.</EmptyNote>
         ) : (
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          <div className={`${DASHBOARD_SECTION_GRID} md:grid-cols-2 xl:grid-cols-3`}>
             {templates.map((t) => (
               <Card key={t.id}>
                 <CardContent className="space-y-2 py-4">

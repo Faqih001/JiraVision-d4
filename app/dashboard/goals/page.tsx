@@ -73,6 +73,7 @@ import {
   TOOLTIP_STYLE,
   relativeTime,
 } from "@/components/dashboard-kit"
+import { DASHBOARD_KPI_GRID, DASHBOARD_SECTION_GRID } from "@/components/dashboard-kit"
 import {
   GOAL_STATUS_LABEL,
   METRIC_TYPES,
@@ -536,7 +537,7 @@ export default function GoalsPage() {
     return (
       <div className="space-y-4 p-6">
         <Skeleton className="h-10 w-64" />
-        <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-6">
+        <div className={`${DASHBOARD_KPI_GRID} md:grid-cols-3 lg:grid-cols-6`}>
           {Array.from({ length: 6 }).map((_, i) => (
             <Skeleton key={i} className="h-24" />
           ))}
@@ -588,7 +589,7 @@ export default function GoalsPage() {
       </div>
 
       {/* 2 — KPI strip */}
-      <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-6">
+      <div className={`${DASHBOARD_KPI_GRID} md:grid-cols-3 lg:grid-cols-6`}>
         {[
           { label: "Goals", value: kpis.total, icon: <Target className="h-4 w-4" /> },
           { label: "Avg progress", value: `${kpis.avg}%`, icon: <TrendingUp className="h-4 w-4" /> },
@@ -753,7 +754,7 @@ export default function GoalsPage() {
         ) : filtered.length === 0 ? (
           <EmptyNote>No goals match these filters.</EmptyNote>
         ) : view === "grid" ? (
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          <div className={`${DASHBOARD_SECTION_GRID} md:grid-cols-2 xl:grid-cols-3`}>
             {filtered.map((g) => (
               <button
                 key={g.id}
@@ -836,7 +837,7 @@ export default function GoalsPage() {
 
       {/* 5+6 — selected goal detail + trend */}
       {selected && (
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-2`}>
           <SectionCard
             title={`“${selected.title}”`}
             icon={<Target className="h-4 w-4" />}
@@ -963,7 +964,7 @@ export default function GoalsPage() {
       )}
 
       {/* 7+8 — status mix + quarter comparison */}
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-2`}>
         <SectionCard title="Status mix" icon={<Scale className="h-4 w-4" />}>
           {statusMix.length === 0 ? (
             <EmptyNote>No goals yet.</EmptyNote>

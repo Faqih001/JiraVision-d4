@@ -65,6 +65,7 @@ import {
   TOOLTIP_STYLE,
   relativeTime,
 } from "@/components/dashboard-kit"
+import { DASHBOARD_KPI_GRID, DASHBOARD_SECTION_GRID } from "@/components/dashboard-kit"
 
 /* ------------------------------------------------------------------ types */
 
@@ -813,12 +814,12 @@ export default function IntegrationsWorkspace() {
     return (
       <div className="space-y-6 p-4 md:p-6">
         <Skeleton className="h-10 w-72" />
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className={`${DASHBOARD_KPI_GRID} sm:grid-cols-2 lg:grid-cols-4`}>
           {Array.from({ length: 4 }).map((_, i) => (
             <Skeleton key={i} className="h-24" />
           ))}
         </div>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className={`${DASHBOARD_SECTION_GRID} md:grid-cols-2 lg:grid-cols-3`}>
           {Array.from({ length: 6 }).map((_, i) => (
             <Skeleton key={i} className="h-40" />
           ))}
@@ -872,7 +873,7 @@ export default function IntegrationsWorkspace() {
       </div>
 
       {/* 2 — KPI strip */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className={`${DASHBOARD_KPI_GRID} sm:grid-cols-2 lg:grid-cols-4`}>
         {[
           { label: "Connected", value: kpis.connectedCount, sub: `of ${CATALOG.length} catalog entries` },
           { label: "Events (24h)", value: kpis.eventsToday, sub: "integration notifications in the last day" },
@@ -936,7 +937,7 @@ export default function IntegrationsWorkspace() {
         {connectedEntries.length === 0 ? (
           <EmptyNote>Nothing connected yet. Pick an integration from the catalog below and connect it.</EmptyNote>
         ) : (
-          <div className="grid gap-3 md:grid-cols-2">
+          <div className={`${DASHBOARD_SECTION_GRID} md:grid-cols-2`}>
             {connectedEntries.map(({ def, entry }) => (
               <div key={def.key} className="rounded-lg border p-3">
                 <div className="flex items-start justify-between gap-2">
@@ -999,7 +1000,7 @@ export default function IntegrationsWorkspace() {
           icon={<Puzzle className="h-4 w-4 text-muted-foreground" />}
           action={<Badge variant="outline">{CATALOG.length} available</Badge>}
         >
-          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+          <div className={`${DASHBOARD_SECTION_GRID} md:grid-cols-2 lg:grid-cols-3`}>
             {CATALOG.map((def) => {
               const entry = entries?.[def.key]
               const isConnected = entry?.connected === true
@@ -1316,7 +1317,7 @@ export default function IntegrationsWorkspace() {
         </div>
       </SectionCard>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-2`}>
         {/* 9 — activity feed */}
         <SectionCard
           title="Integration activity feed"

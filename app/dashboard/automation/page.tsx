@@ -64,6 +64,7 @@ import {
   TOOLTIP_STYLE,
   relativeTime,
 } from "@/components/dashboard-kit"
+import { DASHBOARD_KPI_GRID, DASHBOARD_SECTION_GRID } from "@/components/dashboard-kit"
 import { SchedulerHeartbeat } from "@/components/dashboard/scheduler-heartbeat"
 import {
   ACTIONS,
@@ -502,7 +503,7 @@ export default function AutomationPage() {
     return (
       <div className="space-y-4 p-6">
         <Skeleton className="h-10 w-64" />
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5">
+        <div className={`${DASHBOARD_KPI_GRID} md:grid-cols-3 xl:grid-cols-5`}>
           {Array.from({ length: 5 }).map((_, i) => (
             <Skeleton key={i} className="h-24" />
           ))}
@@ -548,7 +549,7 @@ export default function AutomationPage() {
       </div>
 
       {/* 2 — KPI strip */}
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5">
+      <div className={`${DASHBOARD_KPI_GRID} md:grid-cols-3 xl:grid-cols-5`}>
         {[
           { label: "Rules", value: kpis.rules, icon: <Zap className="h-4 w-4" /> },
           { label: "Active", value: kpis.active, icon: <Activity className="h-4 w-4" /> },
@@ -761,7 +762,7 @@ export default function AutomationPage() {
       </SectionCard>
 
       {/* 6+7 — selected rule runs + trigger mix */}
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-2`}>
         <SectionCard
           title={selected ? `Runs — ${selected.name}` : "Runs — select a rule"}
           icon={<History className="h-4 w-4" />}
@@ -867,7 +868,7 @@ export default function AutomationPage() {
 
       {/* 10 — templates */}
       <SectionCard title="Template gallery" icon={<Sparkles className="h-4 w-4" />}>
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        <div className={`${DASHBOARD_SECTION_GRID} md:grid-cols-2 xl:grid-cols-3`}>
           {TEMPLATES.map((t) => {
             const instantiated = rules.some(
               (r) => r.name === t.name && r.trigger === t.trigger,

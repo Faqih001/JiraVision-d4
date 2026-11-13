@@ -87,6 +87,7 @@ import {
   TOOLTIP_STYLE,
   relativeTime,
 } from "@/components/dashboard-kit"
+import { DASHBOARD_KPI_GRID, DASHBOARD_SECTION_GRID } from "@/components/dashboard-kit"
 
 /* ------------------------------------------------------------------- types */
 
@@ -752,13 +753,13 @@ export default function EthicalMetricsWorkspace() {
           </div>
           <Skeleton className="h-9 w-40" />
         </div>
-        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
+        <div className={`${DASHBOARD_KPI_GRID} sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5`}>
           {Array.from({ length: 5 }).map((_, i) => (
             <Skeleton key={i} className="h-36 rounded-xl" />
           ))}
         </div>
         <Skeleton className="h-64 rounded-xl" />
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-2`}>
           <Skeleton className="h-72 rounded-xl" />
           <Skeleton className="h-72 rounded-xl" />
         </div>
@@ -850,7 +851,7 @@ export default function EthicalMetricsWorkspace() {
       {/* 3 — KPI strip */}
       <section aria-label="Key ethical indicators">
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">This week&apos;s live scores</h2>
-        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
+        <div className={`${DASHBOARD_KPI_GRID} sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5`}>
           {live && thresholds ? (
             <>
               <KpiCard
@@ -1171,7 +1172,7 @@ export default function EthicalMetricsWorkspace() {
           {recommendations.length === 0 ? (
             <EmptyNote>No ethical imbalances detected in the current rows. Nothing to apply.</EmptyNote>
           ) : (
-            <div className="grid gap-3 lg:grid-cols-2">
+            <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-2`}>
               {[...pendingRecs, ...resolvedRecs].map((rec) => {
                 const color = SEVERITY_COLOR[rec.severity]
                 return (

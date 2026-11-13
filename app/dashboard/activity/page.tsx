@@ -57,6 +57,7 @@ import {
   FILTER_BAR,
   FILTER_TRIGGER,
 } from "@/components/dashboard-kit"
+import { DASHBOARD_KPI_GRID, DASHBOARD_SECTION_GRID } from "@/components/dashboard-kit"
 
 /* ------------------------------------------------------------------ types */
 
@@ -425,14 +426,14 @@ export default function ActivityCenter() {
     return (
       <div className="space-y-6 p-4 md:p-6">
         <Skeleton className="h-10 w-72" />
-        <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
+        <div className={`${DASHBOARD_KPI_GRID} sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5`}>
           {Array.from({ length: 5 }).map((_, i) => (
             <Skeleton key={i} className="h-24" />
           ))}
         </div>
         <Skeleton className="h-12" />
         <Skeleton className="h-96" />
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-2`}>
           <Skeleton className="h-72" />
           <Skeleton className="h-72" />
         </div>
@@ -485,7 +486,7 @@ export default function ActivityCenter() {
       </div>
 
       {/* 2 — KPI strip */}
-      <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
+      <div className={`${DASHBOARD_KPI_GRID} sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5`}>
         {([
           { label: "Events today", value: String(kpis.eventsToday), hint: "since midnight UTC", tone: undefined, small: false },
           { label: "Events last 7 days", value: String(kpis.events7d), hint: `stream window: ${feed.windowDays}d`, tone: undefined, small: false },
@@ -663,7 +664,7 @@ export default function ActivityCenter() {
       </SectionCard>
 
       {/* 5+6 — Stacked by-kind chart + notifications digest */}
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-2`}>
         <SectionCard title="Activity by kind (daily)" icon={<Zap className="h-4 w-4" />}>
           {chartData.length > 0 ? (
             <ResponsiveContainer width="100%" height={230}>
@@ -799,7 +800,7 @@ export default function ActivityCenter() {
       </SectionCard>
 
       {/* 8+9+10 — Sprint pulse · wellbeing pings · gamification flashes */}
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-3`}>
         <SectionCard
           title="Sprint pulse"
           icon={<Zap className="h-4 w-4" />}

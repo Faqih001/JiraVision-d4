@@ -72,6 +72,7 @@ import {
   TOOLTIP_STYLE,
   relativeTime,
 } from "@/components/dashboard-kit"
+import { DASHBOARD_KPI_GRID, DASHBOARD_SECTION_GRID } from "@/components/dashboard-kit"
 import type { DashboardOverview } from "@/lib/dashboard-data"
 
 /* ------------------------------------------------------------------ types */
@@ -724,7 +725,7 @@ export default function RetrospectivesWorkspace() {
       ) : (
         <>
           {/* 2 · KPI strip */}
-          <section aria-label="Retro KPIs" className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
+          <section aria-label="Retro KPIs" className={`${DASHBOARD_KPI_GRID} md:grid-cols-3 xl:grid-cols-5`}>
             {kpis.map((k) => (
               <Card key={k.label}>
                 <CardContent className="p-4">
@@ -874,7 +875,7 @@ export default function RetrospectivesWorkspace() {
 
           {/* 5–7 · Three-column note board */}
           {detail && !detailLoading && (
-            <div className="grid gap-4 lg:grid-cols-3">
+            <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-3`}>
               {CATEGORY_ORDER.map((category) => {
                 const meta = CATEGORY_META[category]
                 const notes = detail.notes.filter((n) => n.category === category)
@@ -1085,7 +1086,7 @@ export default function RetrospectivesWorkspace() {
             </SectionCard>
           )}
 
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-2`}>
             {/* 9 · Category mix donut */}
             <SectionCard title="Note mix (all retros)" icon={<MessageSquareQuote className="h-4 w-4 text-muted-foreground" />}>
               {categoryMix.reduce((s, c) => s + c.count, 0) === 0 ? (

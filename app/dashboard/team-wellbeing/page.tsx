@@ -65,7 +65,7 @@ import { useToast } from "@/hooks/use-toast"
 import { LIVE_REFRESH_MS, useLiveRefresh } from "@/hooks/use-live-refresh"
 import { cn } from "@/lib/utils"
 import { isCompletedTaskStatus } from "@/lib/tasks/statuses"
-import { AXIS, AvatarCircle, EmptyNote, SectionCard, TOOLTIP_STYLE, relativeTime } from "@/components/dashboard-kit"
+import { AXIS, AvatarCircle, EmptyNote, SectionCard, TOOLTIP_STYLE, relativeTime, DASHBOARD_KPI_GRID, DASHBOARD_SECTION_GRID } from "@/components/dashboard-kit"
 
 /* ------------------------------------------------------------------- types */
 
@@ -487,12 +487,12 @@ export default function TeamWellbeingPage() {
     return (
       <div className="space-y-5 p-4 md:p-6">
         <Skeleton className="h-10 w-72" />
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className={`${DASHBOARD_KPI_GRID} sm:grid-cols-2 lg:grid-cols-4`}>
           {Array.from({ length: 4 }).map((_, i) => (
             <Skeleton key={i} className="h-24" />
           ))}
         </div>
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-2`}>
           <Skeleton className="h-72" />
           <Skeleton className="h-72" />
         </div>
@@ -542,7 +542,7 @@ export default function TeamWellbeingPage() {
       </div>
 
       {/* 2 — KPI strip */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className={`${DASHBOARD_KPI_GRID} sm:grid-cols-2 lg:grid-cols-4`}>
         {[
           {
             label: "Team avg happiness",
@@ -609,7 +609,7 @@ export default function TeamWellbeingPage() {
       </SectionCard>
 
       {/* 4 + 9 — Happiness trend + mood distribution */}
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className={`${DASHBOARD_SECTION_GRID} lg:grid-cols-3`}>
         <SectionCard title="Happiness trend · 14 days" icon={<Activity className="h-4 w-4" />} className="lg:col-span-2">
           {rows.length > 0 ? (
             <ResponsiveContainer width="100%" height={220}>
