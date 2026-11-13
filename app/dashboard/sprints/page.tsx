@@ -752,12 +752,12 @@ export default function SprintsWorkspace() {
             </div>
           </div>
           <div className="flex gap-2 lg:flex-col">
-            <Button size="sm" variant="outline" className="flex-1" onClick={() => openEdit(activeSprint)}>
+            <Button size="sm" variant="outline" className="h-11 flex-1" onClick={() => openEdit(activeSprint)}>
               <Pencil className="mr-1 h-3.5 w-3.5" /> Edit
             </Button>
             <Button
               size="sm"
-              className="flex-1"
+              className="h-11 flex-1"
               disabled={busyId === activeSprint.id}
               onClick={() => transitionSprint(activeSprint, "completed")}
             >
