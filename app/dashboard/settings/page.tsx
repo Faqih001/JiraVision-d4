@@ -846,14 +846,14 @@ export default function SettingsWorkspace() {
               <div className={cn("flex items-center justify-between border-b", rowPad)}>
                 <div>
                   <p className="font-medium">Compact density</p>
-                  <p className="text-[11px] text-muted-foreground">Tightens spacing on this page live; stored for other surfaces.</p>
+                  <p className="text-[11px] text-muted-foreground">Tightens dashboard card padding live across every workspace page.</p>
                 </div>
                 <Switch checked={str(draftSettings.density, "comfortable") === "compact"} onCheckedChange={(c) => setSetting("density", c ? "compact" : "comfortable")} />
               </div>
               <div className={cn("flex items-center justify-between border-b", rowPad)}>
                 <div>
                   <p className="font-medium">Week starts on</p>
-                  <p className="text-[11px] text-muted-foreground">Stored preference for calendar/sprint views.</p>
+                  <p className="text-[11px] text-muted-foreground">Applied live to the calendar grid and work log week ranges.</p>
                 </div>
                 <Select value={str(draftSettings.weekStart, "monday")} onValueChange={(v) => setSetting("weekStart", v)}>
                   <SelectTrigger className="h-8 w-32"><SelectValue /></SelectTrigger>
@@ -880,7 +880,7 @@ export default function SettingsWorkspace() {
               <div className={cn("flex items-center justify-between", rowPad)}>
                 <div>
                   <p className="font-medium">Sprint view default</p>
-                  <p className="text-[11px] text-muted-foreground">First view opened on sprint boards; stored for the board surface.</p>
+                  <p className="text-[11px] text-muted-foreground">Opens the Sprints page in this view until you pick another.</p>
                 </div>
                 <Select value={str(draftSettings.sprintView, "board")} onValueChange={(v) => setSetting("sprintView", v)}>
                   <SelectTrigger className="h-8 w-32"><SelectValue /></SelectTrigger>
@@ -929,11 +929,11 @@ export default function SettingsWorkspace() {
               <div className={cn("grid grid-cols-2 gap-2", rowPad)}>
                 <div className="space-y-1">
                   <Label htmlFor="qh-start" className="text-[11px]">From</Label>
-                  <Input id="qh-start" type="time" value={str(draftSettings.quietHoursStart, "22:00")} onChange={(e) => setSetting("quietHoursStart", e.target.value)} className="h-8 text-xs" disabled={!bool(draftSettings.quietHoursEnabled)} />
+                  <Input id="qh-start" name="quietHoursStart" type="time" value={str(draftSettings.quietHoursStart, "22:00")} onChange={(e) => setSetting("quietHoursStart", e.target.value)} className="h-8 text-xs" disabled={!bool(draftSettings.quietHoursEnabled)} />
                 </div>
                 <div className="space-y-1">
                   <Label htmlFor="qh-end" className="text-[11px]">To</Label>
-                  <Input id="qh-end" type="time" value={str(draftSettings.quietHoursEnd, "07:00")} onChange={(e) => setSetting("quietHoursEnd", e.target.value)} className="h-8 text-xs" disabled={!bool(draftSettings.quietHoursEnabled)} />
+                  <Input id="qh-end" name="quietHoursEnd" type="time" value={str(draftSettings.quietHoursEnd, "07:00")} onChange={(e) => setSetting("quietHoursEnd", e.target.value)} className="h-8 text-xs" disabled={!bool(draftSettings.quietHoursEnabled)} />
                 </div>
               </div>
               <p className="rounded-md bg-muted/60 p-2 text-[11px] leading-relaxed text-muted-foreground">
@@ -986,9 +986,9 @@ export default function SettingsWorkspace() {
                 </Select>
               </div>
               <p className="rounded-md bg-muted/60 p-2 text-[11px] leading-relaxed text-muted-foreground">
-                Consumed by: nothing yet. The dashboard quick-create form has its own defaults;
-                these values are persisted and returned by <code>GET /api/settings</code> so any
-                task surface can adopt them. Honest state, not a dead toggle.
+                Consumed by: the Tasks page quick-create form and the Kanban add-card modal
+                pre-fill priority, story points and sprint from these values. An explicit sprint
+                filter on the board still wins, and a deleted sprint falls back to the active one.
               </p>
             </div>
           </SectionCard>
