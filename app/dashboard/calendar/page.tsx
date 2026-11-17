@@ -966,7 +966,7 @@ export default function CalendarWorkspace() {
       {/* 3 — KPI strip */}
       <div className={`${DASHBOARD_KPI_GRID} sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5`}>
         {[
-          { label: "Events this week", value: kpis.thisWeek, hint: "Mon–Sun window" },
+          { label: "Events this week", value: kpis.thisWeek, hint: `${weekdayShortLabels(weekStart)[0]}–${weekdayShortLabels(weekStart)[6]} window` },
           { label: "Events this month", value: kpis.thisMonth, hint: format(cursor, "MMMM") },
           { label: "Meeting hours", value: `${kpis.meetingHours}h`, hint: "timed events this month" },
           { label: "Task-linked events", value: kpis.taskLinked, hint: "linked to a task" },
