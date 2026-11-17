@@ -41,7 +41,7 @@ describe("calendar consumes weekStart and timeFormat", () => {
   })
 
   it("indexes the busiest weekday relative to the chosen start", () => {
-    expect(calendar).toContain("(getDay() - weekStart + 7) % 7")
+    expect(calendar).toContain(".getDay() - weekStart + 7) % 7")
     expect(calendar).toContain("(busiestIdx + weekStart) % 7")
   })
 
