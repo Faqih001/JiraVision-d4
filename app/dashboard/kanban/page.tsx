@@ -72,6 +72,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useToast } from "@/hooks/use-toast"
+import { useSettings } from "@/hooks/use-settings"
+import { taskCreateDefaults } from "@/lib/settings/preferences"
 import { LIVE_REFRESH_MS, useLiveRefresh } from "@/hooks/use-live-refresh"
 import { cn } from "@/lib/utils"
 import {
@@ -283,6 +285,7 @@ export default function KanbanBoardPage() {
 
 function KanbanBoard() {
   const { toast } = useToast()
+  const { settings } = useSettings()
   const router = useRouter()
   const urlParams = useSearchParams()
   const requestedDay = urlParams.get("date")
@@ -544,14 +547,20 @@ function KanbanBoard() {
   )
 
   const openCreate = (status = "todo") => {
+    const defaults = taskCreateDefaults(settings)
+    // The board's sprint filter is an explicit on-screen choice, so it outranks the stored default.
+    const sprintId =
+      sprintFilter !== "all" && sprintFilter !== "backlog"
+        ? Number(sprintFilter)
+        : defaults.sprintId ?? 0
     setDraft({
       title: "",
       description: "",
       status,
-      priority: "medium",
-      storyPoints: 1,
+      priority: defaults.priority,
+      storyPoints: defaults.storyPoints,
       assigneeId: me?.id ?? "",
-      sprintId: sprintFilter !== "all" && sprintFilter !== "backlog" ? Number(sprintFilter) : 0,
+      sprintId,
       dueDate: "",
       tags: "",
       cadence: "one-off",

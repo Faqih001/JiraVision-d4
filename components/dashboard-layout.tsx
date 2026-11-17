@@ -4,6 +4,7 @@ import type React from "react"
 import { useEffect, useRef, useState } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { useAuth } from "@/context/auth-context"
+import { useSettings } from "@/hooks/use-settings"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import Image from "next/image"
@@ -150,6 +151,7 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   const { user, isLoading, status, sessionReason, retrySession } = useAuth()
+  const { settings } = useSettings()
   const router = useRouter()
   const pathname = usePathname()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
@@ -837,7 +839,10 @@ export default function DashboardLayout({
 
         {/* Page Content */}
         <main className="min-w-0 flex-1 overflow-hidden">
-          <div className="h-full overflow-y-auto overflow-x-hidden">
+          <div
+            className="h-full overflow-y-auto overflow-x-hidden"
+            data-density={settings.density === "compact" ? "compact" : "comfortable"}
+          >
             <div
               className={cn(
                 "dashboard-content w-full min-w-0 px-3 pb-4 sm:px-4 lg:px-6",

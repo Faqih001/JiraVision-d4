@@ -106,6 +106,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { useToast } from "@/hooks/use-toast"
+import { useSettings } from "@/hooks/use-settings"
+import { hour12 } from "@/lib/settings/preferences"
 import { cn } from "@/lib/utils"
 import {
   AXIS,

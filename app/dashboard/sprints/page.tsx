@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   Bar,
   BarChart,
@@ -66,6 +66,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
+import { useSettings } from "@/hooks/use-settings"
+import { sprintViewDefault } from "@/lib/settings/preferences"
 import { LIVE_REFRESH_MS, useLiveRefresh } from "@/hooks/use-live-refresh"
 import { cn } from "@/lib/utils"
 import {
@@ -202,6 +204,7 @@ async function api<T>(url: string, init?: RequestInit): Promise<T> {
 
 export default function SprintsWorkspace() {
   const { toast } = useToast()
+  const { settings, ready } = useSettings()
 
   const [sprints, setSprints] = useState<Sprint[]>([])
   const [stats, setStats] = useState<SprintStats | null>(null)
@@ -210,6 +213,12 @@ export default function SprintsWorkspace() {
   const [loadFailed, setLoadFailed] = useState(false)
 
   const [view, setView] = useState<"cards" | "table" | "timeline">("cards")
+  // The stored sprintView preference decides the opening view, but only until the person
+  // picks one themselves — a late settings fetch must not yank a view they already chose.
+  const viewTouched = useRef(false)
+  useEffect(() => {
+    if (ready && !viewTouched.current) setView(sprintViewDefault(settings.sprintView))
+  }, [ready, settings.sprintView])
   // `scope=mine` means "sprints I hold an assigned task in", so a sprint with no tasks yet is
   // invisible there. This page creates sprints; it has to open where its own output can land.
   const [boardScope, setBoardScope] = useState<"mine" | "workspace">("workspace")
@@ -681,7 +690,10 @@ export default function SprintsWorkspace() {
               size="sm"
               variant={view === v.key ? "secondary" : "ghost"}
               className="h-7 px-2"
-              onClick={() => setView(v.key)}
+              onClick={() => {
+                viewTouched.current = true
+                setView(v.key)
+              }}
               aria-label={v.label}
               aria-pressed={view === v.key}
             >

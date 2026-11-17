@@ -73,6 +73,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
+import { useSettings } from "@/hooks/use-settings"
+import { taskCreateDefaults } from "@/lib/settings/preferences"
 import { LIVE_REFRESH_MS, useLiveRefresh } from "@/hooks/use-live-refresh"
 import { cn } from "@/lib/utils"
 import { activeSprints, defaultSprintId, summarizeActiveSprints } from "@/lib/sprints/active"
@@ -247,6 +249,7 @@ function CadenceBadge({ cadence }: { cadence: string | null | undefined }) {
 
 export default function TasksWorkspacePage() {
   const { toast } = useToast()
+  const { settings } = useSettings()
 
   const [overview, setOverview] = useState<DashboardOverview | null>(null)
   const [sprints, setSprints] = useState<SprintOption[]>([])
@@ -459,14 +462,19 @@ export default function TasksWorkspacePage() {
   /* ---- mutations ---- */
 
   const openCreate = () => {
+    const defaults = taskCreateDefaults(settings)
+    const sprintId =
+      defaults.sprintId !== null && sprints.some((s) => s.id === defaults.sprintId)
+        ? String(defaults.sprintId)
+        : defaultSprintId(sprints) ?? ""
     setDraft({
       title: "",
       description: "",
       status: "todo",
-      priority: "medium",
-      storyPoints: 1,
+      priority: defaults.priority,
+      storyPoints: defaults.storyPoints,
       assigneeId: overview?.user.id ?? "",
-      sprintId: defaultSprintId(sprints) ?? "",
+      sprintId,
       dueDate: "",
       tags: "",
       cadence: "one-off",

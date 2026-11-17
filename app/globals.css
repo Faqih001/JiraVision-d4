@@ -592,3 +592,17 @@ body {
   background-clip: text;
   animation: jv-wordmark-gleam 9s cubic-bezier(0.45, 0, 0.55, 1) infinite;
 }
+
+/* Compact density: intentionally outside @layer so it beats the p-6 utilities on Card parts. */
+[data-density="compact"] [data-slot="card-header"] {
+  padding: 1rem;
+}
+[data-density="compact"] [data-slot="card-header"] > * + * {
+  margin-top: 0.25rem;
+}
+[data-density="compact"] [data-slot="card-content"] {
+  padding: 0 1rem 1rem;
+}
+[data-density="compact"] [data-slot="card-footer"] {
+  padding: 0 1rem 1rem;
+}
