@@ -465,7 +465,7 @@ export default function TasksWorkspacePage() {
     const defaults = taskCreateDefaults(settings)
     const sprintId =
       defaults.sprintId !== null && sprints.some((s) => s.id === defaults.sprintId)
-        ? String(defaults.sprintId)
+        ? defaults.sprintId
         : defaultSprintId(sprints) ?? ""
     setDraft({
       title: "",
