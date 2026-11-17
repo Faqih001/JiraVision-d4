@@ -40,11 +40,13 @@ describe("a filter bar is sized by what it holds", () => {
   })
 
   it("gives the row a gap small enough to hold six controls on one line", () => {
-    expect(kit).toMatch(/export const FILTER_BAR = "flex flex-wrap items-center gap-1\.5/)
+    // The bar stacks on phones and becomes one wrapping row from sm; gap-2 is the
+    // step that still holds six controls on one line at tablet.
+    expect(kit).toMatch(/export const FILTER_BAR =\s*"flex w-full min-w-0 flex-col items-stretch gap-2 py-3 sm:flex-row sm:flex-wrap sm:items-center"/)
   })
 
   it("makes the search field the only thing that stretches or shrinks", () => {
-    expect(kit).toMatch(/export const FILTER_SEARCH = "relative min-w-0 flex-1/)
+    expect(kit).toMatch(/export const FILTER_SEARCH =\s*"relative w-full min-w-0 sm:flex-1/)
   })
 
   it("keeps the sort control in the bar, not on a row of its own", () => {

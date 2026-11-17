@@ -106,29 +106,37 @@ describe("tablet zone (768-1279)", () => {
     expect(layout).toContain('<ThemeSwitch className="hidden lg:inline-flex" />')
     expect(layout).toContain('<ThemeToggle className="h-9 w-9 lg:hidden" />')
     expect(layout).toContain('<GoogleTranslateSelect className="w-[7.5rem] lg:w-auto" />')
-    expect(layout).toContain('className="hidden text-sm lg:inline"')
+    // The name truncates rather than pushing the row wide, so extra classes are allowed.
+    expect(layout).toMatch(/className="hidden[^"]*text-sm lg:inline"/)
   })
 
   it("keeps the workspace top bar inside a 768px tablet", () => {
     // Read the widths the row actually declares rather than trusting a comment. At md the
-    // nav is a drawer, so the bar owns the whole viewport: the left cluster is the 36px menu
-    // trigger, its 16px gap and the search field; the right cluster is four bordered controls
-    // (36 icon switch, the language pill, 36 assistant, 36 bell, 44 avatar) with an 8px gap
-    // between each pair; the header adds 16px of padding on both sides.
-    const mdSearch = Number(layout.match(/ : "w-\[\d+px\] sm:w-\[(\d+)px\]/)?.[1] ?? 0)
-    expect(mdSearch).toBeGreaterThan(0)
-    const mdTranslate = Number(layout.match(/<GoogleTranslateSelect className="w-\[(\d+(?:\.\d+)?rem)\]/)?.[1].replace("rem", "")) * 16
-    const focused = Number(layout.match(/searchFocused \? "w-\[\d+px\] sm:w-\[(\d+)px\]/)?.[1] ?? 0)
-    const left = 36 + 16 + mdSearch
-    const right = 36 + 8 + mdTranslate + 8 + 36 + 8 + 36 + 8 + 44
-    expect(left + right + 32).toBeLessThanOrEqual(768)
-    expect(left - mdSearch + focused + right + 32).toBeLessThanOrEqual(768)
+    // nav is a drawer, so the bar owns the whole viewport. The search field is vw-relative
+    // with a rem cap, so at 768 it is the smaller of the two; the left cluster is the 36px
+    // menu trigger, its 16px sm gap and that field. The right cluster is six controls at sm
+    // (36 icon switch, the 120px language pill, 36 assistant, 36 accessibility, 36 bell, and
+    // the avatar button at 32 + 16 padding + 2 border) with an 8px gap between each pair;
+    // the header adds 16px of padding on both sides from sm.
+    const smCap = (vw: string, rem: string) => Math.min((Number(vw) / 100) * 768, Number(rem) * 16)
+    const idle = layout.match(/: "w-\[min\((\d+)vw,(\d+)rem\)\] sm:w-\[min\((\d+)vw,(\d+)rem\)\]"/)
+    const focused = layout.match(/searchFocused\s*\? "w-\[min\((\d+)vw,(\d+)rem\)\] sm:w-\[min\((\d+)vw,(\d+)rem\)\]"/)
+    expect(idle, "the idle search width is missing").not.toBeNull()
+    expect(focused, "the focused search width is missing").not.toBeNull()
+    const mdTranslate = Number(layout.match(/<GoogleTranslateSelect className="w-\[(\d+(?:\.\d+)?)rem\]/)?.[1].replace("rem", "")) * 16
+    const right = 36 + 8 + mdTranslate + 8 + 36 + 8 + 36 + 8 + 36 + 8 + 50
+    const idleLeft = 36 + 16 + smCap(idle![3], idle![4])
+    const focusedLeft = 36 + 16 + smCap(focused![3], focused![4])
+    expect(idleLeft + right + 32).toBeLessThanOrEqual(768)
+    expect(focusedLeft + right + 32).toBeLessThanOrEqual(768)
   })
 
   it("holds the search field at its small width through tablet", () => {
-    const field = layout.slice(layout.indexOf("relative flex items-center transition-all"))
-    expect(field).toMatch(/w-\[150px\] sm:w-\[200px\] lg:w-\[300px\]/)
-    expect(field).toMatch(/w-\[180px\] sm:w-\[240px\] lg:w-\[400px\]/)
+    // vw-relative with a rem cap: the field narrows with the viewport instead of holding
+    // a fixed px width that would overflow a portrait tablet, and there is no md step.
+    const field = layout.slice(layout.indexOf("relative flex min-w-0 items-center transition-[width]"))
+    expect(field).toMatch(/w-\[min\(44vw,18rem\)\] sm:w-\[min\(34vw,20rem\)\]/)
+    expect(field).toMatch(/w-\[min\(52vw,22rem\)\] sm:w-\[min\(42vw,25rem\)\]/)
     expect(field.slice(0, 400)).not.toContain("md:w-[")
   })
 

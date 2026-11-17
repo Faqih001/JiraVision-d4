@@ -195,7 +195,7 @@ export default function TicketsPage() {
       <section className="flex flex-wrap items-center justify-between gap-3">
         <div><p className="text-sm text-muted-foreground">Internal service desk</p><h1 className="text-2xl font-semibold tracking-tight">Tickets</h1><p className="mt-1 text-sm text-muted-foreground">Route requests, manage ownership, and keep every handoff visible.</p></div>
         <div className="flex gap-2">
-          <Button variant="outline" size="icon" onClick={() => void load()} disabled={loading} aria-label="Refresh tickets">
+          <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => void load()} disabled={loading} aria-label="Refresh tickets">
             <RefreshCw className={loading ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
           </Button>
           <Button size="sm" onClick={() => setShowCreate(true)}>
