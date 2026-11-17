@@ -44,6 +44,8 @@ import {
   startOfMonth,
   startOfWeek,
 } from "date-fns"
+import { useSettings } from "@/hooks/use-settings"
+import { hour12, timePattern, weekStartsOn, weekdayShortLabels } from "@/lib/settings/preferences"
 import {
   Bell,
   CalendarClock,
@@ -214,7 +216,6 @@ const TYPE_COLOR_NAME: Record<string, string> = {
   other: "gray",
 }
 
-const WEEKDAY_SHORT = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 const WEEKDAY_FULL = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
 
 /* ------------------------------------------------------------------ helpers */
@@ -238,9 +239,9 @@ function durationLabel(e: CalendarEvent): string {
   return h > 0 ? `${h}h${m ? ` ${m}m` : ""}` : `${m}m`
 }
 
-function timeRange(e: CalendarEvent): string {
+function timeRange(e: CalendarEvent, pattern: string): string {
   if (e.isAllDay) return "All day"
-  return `${format(parseISO(e.startTime), "HH:mm")} – ${format(parseISO(e.endTime), "HH:mm")}`
+  return `${format(parseISO(e.startTime), pattern)} – ${format(parseISO(e.endTime), pattern)}`
 }
 
 function typeColor(type: string): string {
@@ -264,6 +265,9 @@ const emptyDraft = (day: Date): EventDraft => ({
 
 export default function CalendarWorkspace() {
   const { toast } = useToast()
+  const { settings } = useSettings()
+  const weekStart = weekStartsOn(settings.weekStart)
+  const clockPattern = timePattern(settings.timeFormat)
 
   // data
   const [events, setEvents] = useState<CalendarEvent[]>([])
@@ -410,14 +414,14 @@ export default function CalendarWorkspace() {
   /* ---- grid geometry ---- */
 
   const monthCells = useMemo(() => {
-    const first = startOfWeek(startOfMonth(cursor), { weekStartsOn: 1 })
+    const first = startOfWeek(startOfMonth(cursor), { weekStartsOn: weekStart })
     return Array.from({ length: 42 }, (_, i) => addDays(first, i))
-  }, [cursor])
+  }, [cursor, weekStart])
 
   const weekCells = useMemo(() => {
-    const first = startOfWeek(cursor, { weekStartsOn: 1 })
+    const first = startOfWeek(cursor, { weekStartsOn: weekStart })
     return Array.from({ length: 7 }, (_, i) => addDays(first, i))
-  }, [cursor])
+  }, [cursor, weekStart])
 
   useEffect(() => {
     if (pendingFocus.current) {
@@ -442,10 +446,10 @@ export default function CalendarWorkspace() {
         next = addDays(day, 7)
         break
       case "Home":
-        next = startOfWeek(day, { weekStartsOn: 1 })
+        next = startOfWeek(day, { weekStartsOn: weekStart })
         break
       case "End":
-        next = addDays(startOfWeek(day, { weekStartsOn: 1 }), 6)
+        next = addDays(startOfWeek(day, { weekStartsOn: weekStart }), 6)
         break
       case "Enter":
       case " ":
@@ -465,12 +469,12 @@ export default function CalendarWorkspace() {
   const periodLabel = useMemo(() => {
     if (view === "month") return format(cursor, "MMMM yyyy")
     if (view === "week") {
-      const start = startOfWeek(cursor, { weekStartsOn: 1 })
+      const start = startOfWeek(cursor, { weekStartsOn: weekStart })
       return `Week of ${format(start, "d MMM")}`
     }
     const day = selectedDate ?? focusedDay
     return format(day, "EEEE, d MMMM yyyy")
-  }, [view, cursor, selectedDate, focusedDay])
+  }, [view, cursor, selectedDate, focusedDay, weekStart])
 
   const shiftPeriod = (dir: -1 | 1) => {
     if (view === "month") setCursor((c) => addDays(startOfMonth(c), dir * 31))
@@ -488,8 +492,8 @@ export default function CalendarWorkspace() {
 
   const kpis = useMemo(() => {
     const now = new Date()
-    const weekStart = startOfWeek(now, { weekStartsOn: 1 })
-    const weekEnd = addDays(weekStart, 7)
+    const weekBegin = startOfWeek(now, { weekStartsOn: weekStart })
+    const weekEnd = addDays(weekBegin, 7)
     const monthStart = startOfMonth(cursor)
     const monthEnd = startOfMonth(addDays(monthStart, 32)) // first day of next month
     const inWindow = (e: CalendarEvent, from: number, to: number) => {
@@ -502,18 +506,18 @@ export default function CalendarWorkspace() {
       .reduce((sum, e) => sum + (new Date(e.endTime).getTime() - new Date(e.startTime).getTime()), 0)
     const weekdayCounts = new Array(7).fill(0) as number[]
     for (const e of monthEvents) {
-      // JS getDay is Sun=0; index Monday-first columns instead
-      weekdayCounts[(new Date(e.startTime).getDay() + 6) % 7]++
+      // Index columns relative to the member's chosen week start (JS getDay is Sun=0).
+      weekdayCounts[(new Date(e.startTime).getDay() - weekStart + 7) % 7]++
     }
     const busiestIdx = weekdayCounts.indexOf(Math.max(...weekdayCounts))
     return {
-      thisWeek: filtered.filter((e) => inWindow(e, weekStart.getTime(), weekEnd.getTime())).length,
+      thisWeek: filtered.filter((e) => inWindow(e, weekBegin.getTime(), weekEnd.getTime())).length,
       thisMonth: monthEvents.length,
       meetingHours: (meetingsMs / 3_600_000).toFixed(1),
       taskLinked: events.filter((e) => e.recurringPattern?.linkedTaskId != null).length,
-      busiestWeekday: monthEvents.length > 0 ? WEEKDAY_FULL[(busiestIdx + 1) % 7] : "—",
+      busiestWeekday: monthEvents.length > 0 ? WEEKDAY_FULL[(busiestIdx + weekStart) % 7] : "—",
     }
-  }, [filtered, events, cursor])
+  }, [filtered, events, cursor, weekStart])
 
   /* ---- today panel (events by hour) ---- */
 
@@ -781,7 +785,7 @@ export default function CalendarWorkspace() {
           ev.stopPropagation()
           openEdit(e)
         }}
-        aria-label={`${e.title}, ${timeRange(e)}${recurring ? " (recurring)" : ""}`}
+        aria-label={`${e.title}, ${timeRange(e, clockPattern)}${recurring ? " (recurring)" : ""}`}
         className={cn(
           "block max-w-full truncate rounded px-1 py-0.5 text-left text-[11px] font-medium transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
           fullWidth ? "w-full" : "",
@@ -797,7 +801,7 @@ export default function CalendarWorkspace() {
         }
       >
         <span className="flex items-center gap-1">
-          {e.isAllDay ? "" : `${format(parseISO(e.startTime), "HH:mm")} `}
+          {e.isAllDay ? "" : `${format(parseISO(e.startTime), clockPattern)} `}
           <span className="truncate">{e.title}</span>
           {cadenceLabel && (
             <Badge variant="outline" className="ml-auto shrink-0 text-[9px] leading-none">
@@ -987,7 +991,7 @@ export default function CalendarWorkspace() {
               aria-label={`Month grid for ${format(cursor, "MMMM yyyy")}. Use arrow keys to move between days, Enter to open a day.`}
             >
               <div role="row" className="grid grid-cols-7 border-b pb-1">
-                {WEEKDAY_SHORT.map((d) => (
+                {weekdayShortLabels(weekStart).map((d) => (
                   <div key={d} role="columnheader" className="text-center text-xs font-semibold text-muted-foreground">
                     {d}
                   </div>
@@ -1122,7 +1126,7 @@ export default function CalendarWorkspace() {
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-medium">{e.title}</span>
                       <span className="text-xs text-muted-foreground">
-                        {timeRange(e)} · {durationLabel(e)}
+                        {timeRange(e, clockPattern)} · {durationLabel(e)}
                         {e.location ? ` · ${e.location}` : ""} · {e.eventType}
                       </span>
                     </span>
@@ -1154,7 +1158,7 @@ export default function CalendarWorkspace() {
               {todayByHour.map(([hour, list]) => (
                 <li key={hour} className="flex gap-3">
                   <span className="w-14 shrink-0 pt-1 text-xs font-semibold tabular-nums text-muted-foreground">
-                    {hour === -1 ? "All day" : `${String(hour).padStart(2, "0")}:00`}
+                    {hour === -1 ? "All day" : hour12(settings.timeFormat) ? format(new Date(2000, 0, 1, hour), "h a") : `${String(hour).padStart(2, "0")}:00`}
                   </span>
                   <div className="flex-1 space-y-1.5">
                     {list.map((e) => (
@@ -1171,7 +1175,7 @@ export default function CalendarWorkspace() {
                           </Badge>
                         </span>
                         <span className="text-xs text-muted-foreground">
-                          {timeRange(e)} · {e.attendees.length} attendee{e.attendees.length === 1 ? "" : "s"}
+                          {timeRange(e, clockPattern)} · {e.attendees.length} attendee{e.attendees.length === 1 ? "" : "s"}
                         </span>
                       </button>
                     ))}
@@ -1206,7 +1210,7 @@ export default function CalendarWorkspace() {
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-medium">{e.title}</span>
                       <span className="text-xs text-muted-foreground">
-                        {format(parseISO(e.startTime), "EEE d MMM · HH:mm")}
+                        {format(parseISO(e.startTime), `EEE d MMM · ${clockPattern}`)}
                       </span>
                     </span>
                     <span className="shrink-0 text-[11px] font-medium tabular-nums text-muted-foreground">

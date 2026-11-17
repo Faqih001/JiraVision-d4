@@ -60,6 +60,8 @@ import {
   type ViewState,
   type WorklogView,
 } from "@/lib/worklog/view-state"
+import { weekStartsOn } from "@/lib/settings/preferences"
+import { useSettings } from "@/hooks/use-settings"
 import {
   BulkSection,
   CoverageSection,
@@ -96,6 +98,7 @@ export default function WorklogClient() {
   const router = useRouter()
   const search = useSearchParams()
   const { toast } = useToast()
+  const { settings } = useSettings()
 
   // Until the first response arrives, the browser's own zone is the best guess; the server
   // answers with users.timezone and every day label is recomputed from it.
@@ -219,7 +222,7 @@ export default function WorklogClient() {
   const bulkUrl = "/api/worklog/entries/bulk"
   const deliverableBase = "/api/worklog/deliverables"
 
-  const range = resolveRange(state, todayIso)
+  const range = resolveRange(state, todayIso, weekStartsOn(settings.weekStart))
   // Every body reads the summary's own buckets: the list and the totals above it are the same
   // arithmetic over the same rows, so they cannot disagree with each other.
   const viewDaysList = useMemo(() => summary?.days ?? [], [summary])

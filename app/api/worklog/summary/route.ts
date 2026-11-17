@@ -9,6 +9,7 @@ import { taskEvents, tasks, workLogEntries } from "@/drizzle/schema"
 import { localDay, rangeBoundsUtc } from "@/lib/worklog/local-day"
 import { buildSummary, type TransitionDto } from "@/lib/worklog/summary"
 import { parseViewState, resolveRange, viewDays } from "@/lib/worklog/view-state"
+import { storedWeekStart } from "@/lib/settings/preferences"
 import { entryColumns, entryFilters, mapEntry, serverError, unauthorized, worklogSession } from "../_shared"
 
 export const dynamic = "force-dynamic"
@@ -20,7 +21,8 @@ export async function GET(request: NextRequest) {
   try {
     const today = localDay(new Date(), session.timezone)
     const state = parseViewState(request.nextUrl.searchParams, today)
-    const { from, to } = resolveRange(state, today)
+    const weekStart = storedWeekStart(session.user.preferences)
+    const { from, to } = resolveRange(state, today, weekStart)
 
     const rows = await db
       .select(entryColumns)
@@ -54,7 +56,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: buildSummary({ entries, days: viewDays(state, today), from, to, todayIso: today, transitions }),
+      data: buildSummary({ entries, days: viewDays(state, today, weekStart), from, to, todayIso: today, transitions }),
     })
   } catch (error) {
     return serverError(error, "summarise work log")

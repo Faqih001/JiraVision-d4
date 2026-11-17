@@ -13,6 +13,7 @@ import { memberDisciplineDefault } from "@/lib/worklog/member-discipline"
 import { markInstancesLogged } from "@/lib/worklog/instance-capture"
 import type { WorkDiscipline } from "@/lib/roles"
 import { parseViewState, resolveRange } from "@/lib/worklog/view-state"
+import { storedWeekStart } from "@/lib/settings/preferences"
 import {
   badRequest,
   entryColumns,
@@ -33,7 +34,7 @@ export async function GET(request: NextRequest) {
   try {
     const today = localDay(new Date(), session.timezone)
     const state = parseViewState(request.nextUrl.searchParams, today)
-    const { from, to } = resolveRange(state, today)
+    const { from, to } = resolveRange(state, today, storedWeekStart(session.user.preferences))
 
     const rows = await db
       .select(entryColumns)

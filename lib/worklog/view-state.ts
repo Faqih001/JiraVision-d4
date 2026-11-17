@@ -155,12 +155,12 @@ export function serializeViewState(state: ViewState, todayIso: string): string {
  * the preset, which is the range they said they wanted to see. The day the person is
  * standing on is not a range they asked for, so a preset must not override it.
  */
-export function resolveRange(state: ViewState, todayIso: string): { from: string; to: string } {
+export function resolveRange(state: ViewState, todayIso: string, weekStartsOn: 0 | 1 | 6 = 1): { from: string; to: string } {
   if (state.view === "day") return { from: state.day, to: state.day }
 
   if (state.view === "week") {
-    const monday = weekStartIso(state.day)
-    return { from: monday, to: shiftDays(monday, 6) }
+    const first = weekStartIso(state.day, weekStartsOn)
+    return { from: first, to: shiftDays(first, 6) }
   }
 
   if (state.view === "heat") return monthBoundsIso(state.day)
@@ -173,8 +173,8 @@ export function resolveRange(state: ViewState, todayIso: string): { from: string
       return { from: yesterday, to: yesterday }
     }
     case "this-week": {
-      const monday = weekStartIso(todayIso)
-      return { from: monday, to: shiftDays(monday, 6) }
+      const first = weekStartIso(todayIso, weekStartsOn)
+      return { from: first, to: shiftDays(first, 6) }
     }
     case "last-7":
       return { from: shiftDays(todayIso, -6), to: todayIso }
@@ -196,7 +196,7 @@ export function resolveRange(state: ViewState, todayIso: string): { from: string
 const RANGE_DAY_CAP = 90
 const HEAT_DAY_CAP = 370
 
-export function viewDays(state: ViewState, todayIso: string): string[] {
-  const { from, to } = resolveRange(state, todayIso)
+export function viewDays(state: ViewState, todayIso: string, weekStartsOn: 0 | 1 | 6 = 1): string[] {
+  const { from, to } = resolveRange(state, todayIso, weekStartsOn)
   return rangeDays(from, to, state.view === "heat" ? HEAT_DAY_CAP : RANGE_DAY_CAP)
 }

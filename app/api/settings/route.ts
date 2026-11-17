@@ -5,6 +5,7 @@ import { users } from "@/drizzle/schema"
 import { getSession } from "@/lib/auth-actions"
 import { createNotification } from "@/lib/notifications"
 import { readSettingsPatch } from "@/lib/settings-patch"
+import { DEFAULT_SETTINGS } from "@/lib/settings/preferences"
 import { readOnboardingPatch, readOnboardingState, type OnboardingState } from "@/lib/onboarding/state"
 import { readGateRow } from "@/lib/onboarding/read"
 import { syncOnboardingRow } from "@/lib/onboarding/write"
@@ -16,26 +17,9 @@ export const dynamic = "force-dynamic"
 // API are nested under preferences.settings so unrelated consumers of
 // preferences (language, chat state, billing) are never touched.
 
-export const DEFAULT_SETTINGS: Record<string, unknown> = {
-  // Preferences
-  theme: "system",
-  density: "comfortable",
-  weekStart: "monday",
-  timeFormat: "12h",
-  sprintView: "board",
-  // Notification preferences (stored preference; the realtime bell follows
-  // server-side Neon Realtime availability, not these flags)
-  notifyEmail: true,
-  notifyRealtime: true,
-  notifyPush: false,
-  quietHoursEnabled: false,
-  quietHoursStart: "22:00",
-  quietHoursEnd: "07:00",
-  // Task creation defaults
-  defaultPriority: "medium",
-  defaultStoryPoints: 3,
-  defaultSprintId: null as number | null,
-}
+// The defaults and the stored-value vocabulary live in the pure module so client
+// surfaces map preferences through the same rules the API serves.
+export { DEFAULT_SETTINGS }
 
 type StoredPrefs = Record<string, unknown>
 

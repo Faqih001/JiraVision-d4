@@ -68,6 +68,8 @@ import {
 } from "@/components/ui/select"
 import { LIVE_REFRESH_MS, useLiveRefresh } from "@/hooks/use-live-refresh"
 import { useToast } from "@/hooks/use-toast"
+import { useSettings } from "@/hooks/use-settings"
+import { hour12 } from "@/lib/settings/preferences"
 import { cn } from "@/lib/utils"
 import { activeSprints, capacityPct, defaultSprintId, progressPct, summarizeActiveSprints } from "@/lib/sprints/active"
 import { isCompletedTaskStatus } from "@/lib/tasks/statuses"
@@ -308,6 +310,7 @@ function TodayStrip({
 
 export default function DashboardHome() {
   const { toast } = useToast()
+  const { settings } = useSettings()
   const [overview, setOverview] = useState<DashboardOverview | null>(null)
   const [sprints, setSprints] = useState<SprintOption[]>([])
   const [loading, setLoading] = useState(true)
@@ -1186,7 +1189,7 @@ export default function DashboardHome() {
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium">{e.title}</p>
                       <p className="text-[11px] capitalize text-muted-foreground">
-                        {e.eventType} · {dt.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
+                        {e.eventType} · {dt.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: hour12(settings.timeFormat) })}
                         {e.location ? ` · ${e.location}` : ""}
                       </p>
                     </div>

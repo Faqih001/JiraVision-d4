@@ -233,10 +233,11 @@ function dayLabel(iso: string): string {
   })
 }
 
-function clockTime(iso: string): string {
+function clockTime(iso: string, use12h: boolean): string {
   return new Date(iso).toLocaleTimeString(undefined, {
     hour: "2-digit",
     minute: "2-digit",
+    hour12: use12h,
   })
 }
 
@@ -311,6 +312,7 @@ function MessageSkeleton() {
 export default function ChatWorkspace() {
   const { toast } = useToast()
   const router = useRouter()
+  const { settings } = useSettings()
 
   /* -------------------------------------------------- 1 · global state */
 
@@ -1384,7 +1386,7 @@ export default function ChatWorkspace() {
                             {!groupedWithPrev && (
                               <span className="px-1 text-[11px] font-medium text-muted-foreground">
                                 {own ? "You" : msg.sender.name}
-                                <span className="ml-1.5 font-normal">{clockTime(msg.timestamp)}</span>
+                                <span className="ml-1.5 font-normal">{clockTime(msg.timestamp, hour12(settings.timeFormat))}</span>
                                 {msg.editedAt && (
                                   <span className="ml-1.5 font-normal italic">(edited)</span>
                                 )}
