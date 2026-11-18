@@ -106,6 +106,7 @@ export const SECTION_TITLES = [
   "Where the time went",
   "Mix of work",
   "Coverage",
+  "Week rhythm",
 ] as const
 
 export function WorklogSkeleton() {
@@ -237,12 +238,15 @@ export function DisciplinePicker({
   value,
   onChange,
   compact = false,
+  inline = false,
 }: {
   value: ViewState["discipline"]
   onChange: (discipline: ViewState["discipline"]) => void
   // The filter sits directly in a grid, so the picker must not add a box around the two selects;
   // the dialog wants them side by side inside its own column. Only the spacing differs.
   compact?: boolean
+  // The inline filter row sizes triggers to their content so six dropdowns share one line.
+  inline?: boolean
 }) {
   // A discipline decides its own group, so a draft that arrives already classified — the
   // member's default — opens with its group named instead of "All groups". The stored group
@@ -261,7 +265,7 @@ export function DisciplinePicker({
   return (
     <div className={compact ? "grid gap-2 sm:grid-cols-2" : "contents"}>
       <Select value={group} onValueChange={(v) => pickGroup(v as DisciplineCategory | "all")}>
-        <SelectTrigger className="h-8 text-xs" aria-label="Discipline group">
+        <SelectTrigger className={inline ? FILTER_TRIGGER : "h-8 text-xs"} aria-label="Discipline group">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -278,7 +282,7 @@ export function DisciplinePicker({
         onValueChange={(v) => onChange(v as ViewState["discipline"])}
         disabled={group === "all"}
       >
-        <SelectTrigger className="h-8 text-xs" aria-label="Work discipline">
+        <SelectTrigger className={inline ? FILTER_TRIGGER : "h-8 text-xs"} aria-label="Work discipline">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
