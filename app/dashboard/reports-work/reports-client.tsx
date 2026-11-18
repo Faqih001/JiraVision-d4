@@ -569,7 +569,7 @@ export default function ReportsClient() {
             reports={reports}
             loading={loading}
             openId={state.reportId}
-            missingId={missingId}
+            missingId={state.view === "build" ? missingId : null}
             query={state.q}
             timezone={timezone}
             onQuery={(value) => patchState({ q: value })}

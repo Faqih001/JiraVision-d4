@@ -57,6 +57,14 @@ describe("the reports-work page", () => {
     expect(client()).toMatch(/if \(!adopted\) return/u)
   })
 
+  it("shows the absent-report note only while the builder holds the missing id", () => {
+    // Deleting the open draft leaves a stale refresh in flight: it 404s on the deleted row and
+    // sets missingId, and the list-view refresh never clears it (the clear lives in the build
+    // branch). The note explains the builder's empty state, so it is gated on the build view
+    // rather than chasing the race through state.
+    expect(client()).toMatch(/missingId=\{state\.view === "build" \? missingId : null\}/u)
+  })
+
   it("takes the day from the server, not the browser clock", () => {
     expect(client()).toMatch(/const serverToday = listJson\.data\.today as string/u)
     // Identity matters as much as the value: `refresh` closes over `state` and an effect runs it
