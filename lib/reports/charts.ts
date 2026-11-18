@@ -135,7 +135,7 @@ export function chartRows(aggregate: ReportAggregate, chart: ChartKey): ChartDat
         ),
       )
     default:
-      // `TEMPLATE_CHARTS` can only hold declared keys, so reaching this means a chart was added
+      // `REPORT_CHARTS` can only hold declared keys, so reaching this means a chart was added
       // without data for it. A thrown error in a preview route is better than a blank card.
       throw new Error(`no chart data for ${String(chart)}`)
   }

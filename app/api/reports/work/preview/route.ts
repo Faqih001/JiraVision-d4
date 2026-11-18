@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from "next/server"
 import { localDay } from "@/lib/worklog/local-day"
-import { effectiveTemplate, parseReportView, resolveReportPeriod } from "@/lib/reports/view-state"
+import { parseReportView, resolveReportPeriod } from "@/lib/reports/view-state"
 import { assembleReport, reportSession, serverError, unauthorized } from "../_shared"
 
 export const dynamic = "force-dynamic"
@@ -19,10 +19,9 @@ export async function GET(request: NextRequest) {
     const state = parseReportView(request.nextUrl.searchParams, today)
     const period = resolveReportPeriod(state)
     const aggregate = await assembleReport(session.id, session.timezone, period)
-    const template = effectiveTemplate(state, aggregate)
     return NextResponse.json({
       success: true,
-      data: { period, aggregate, template, today, timezone: session.timezone },
+      data: { period, aggregate, today, timezone: session.timezone },
     })
   } catch (error) {
     return serverError(error, "preview work report")

@@ -9,11 +9,9 @@ import { MAX_PERIOD_DAYS, isPeriodType, type PeriodType } from "./period"
 import type { ReportAggregate } from "./aggregate"
 import {
   MAX_SECTION_TEXT,
-  REPORT_TEMPLATES,
   emptyContent,
   isProseSection,
   isReportSectionKey,
-  isReportTemplate,
   type ReportContent,
   type ReportTemplate,
 } from "./templates"
@@ -41,7 +39,6 @@ export function isDraft(status: unknown): boolean {
 
 export const REPORT_MUTABLE_FIELDS = [
   "title",
-  "template",
   "periodType",
   "periodStart",
   "periodEnd",
@@ -62,6 +59,7 @@ export const FORBIDDEN_REPORT_KEYS = [
   "returnedNote",
   "recipients",
   "discipline",
+  "template",
   "templateSections",
   "createdAt",
   "updatedAt",
@@ -92,7 +90,6 @@ export type ReportDto = {
 
 export type ReportCreateInput = {
   title: string
-  template: ReportTemplate
   periodType: PeriodType
   periodStart: string
   periodEnd: string
@@ -101,7 +98,6 @@ export type ReportCreateInput = {
 
 export type ReportPatch = {
   title?: string
-  template?: ReportTemplate
   periodType?: PeriodType
   periodStart?: string
   periodEnd?: string
@@ -144,9 +140,6 @@ export function readReportCreate(input: unknown): Read<{ value: ReportCreateInpu
 
   const title = readTitle(input)
   if (isFail(title)) return title
-  if (!isReportTemplate(input.template)) {
-    return { error: `template must be one of: ${REPORT_TEMPLATES.join(", ")}` }
-  }
   if (!isPeriodType(input.periodType)) {
     return { error: "periodType must be daily, weekly, monthly, yearly or custom" }
   }
@@ -156,11 +149,10 @@ export function readReportCreate(input: unknown): Read<{ value: ReportCreateInpu
   return {
     value: {
       title: title.value,
-      template: input.template,
       periodType: input.periodType,
       periodStart: range.start,
       periodEnd: range.end,
-      content: emptyContent(input.template),
+      content: emptyContent(),
     },
   }
 }
@@ -204,10 +196,6 @@ export function pickReportUpdates(input: unknown, status: unknown): Read<{ value
     const title = readTitle(input)
     if (isFail(title)) return title
     value.title = title.value
-  }
-  if ("template" in input) {
-    if (!isReportTemplate(input.template)) return { error: `template must be one of: ${REPORT_TEMPLATES.join(", ")}` }
-    value.template = input.template
   }
   if ("periodType" in input) {
     if (!isPeriodType(input.periodType)) return { error: "periodType must be daily, weekly, monthly, yearly or custom" }

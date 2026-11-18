@@ -20,7 +20,6 @@ import {
 
 const valid = {
   title: "Week of 26 Oct",
-  template: "engineering",
   periodType: "weekly",
   periodStart: "2026-10-26",
   periodEnd: "2026-11-01",
@@ -42,7 +41,6 @@ describe("the report vocabulary", () => {
   it("declares the mutable fields and never overlaps them with the forbidden ones", () => {
     expect(REPORT_MUTABLE_FIELDS).toEqual([
       "title",
-      "template",
       "periodType",
       "periodStart",
       "periodEnd",
@@ -62,7 +60,7 @@ describe("readReportCreate", () => {
     expect(isFail(result)).toBe(false)
     if (isFail(result)) return
     expect(result.value.title).toBe("Week of 26 Oct")
-    expect(result.value.template).toBe("engineering")
+    expect("template" in result.value).toBe(false)
     expect(result.value.periodType).toBe("weekly")
     expect(result.value.content).toEqual(Object.fromEntries(PROSE_SECTIONS.map((k) => [k, { text: "" }])))
   })
@@ -81,9 +79,13 @@ describe("readReportCreate", () => {
     })
   })
 
-  it("refuses an unknown template or period type instead of defaulting", () => {
-    expect(readReportCreate({ ...valid, template: "sprint" })).toMatchObject({ error: /template/u })
+  it("refuses an unknown period type instead of defaulting", () => {
     expect(readReportCreate({ ...valid, periodType: "fortnightly" })).toMatchObject({ error: /periodType/u })
+  })
+
+  it("refuses a template from the client — the shape is universal and server-owned now", () => {
+    expect(readReportCreate({ ...valid, template: "engineering" })).toMatchObject({ error: /template/u })
+    expect(pickReportUpdates({ template: "engineering" }, "draft")).toMatchObject({ error: /template/u })
   })
 
   it("refuses a malformed, reversed or impossible date pair", () => {
@@ -103,7 +105,7 @@ describe("readReportCreate", () => {
   it("names a forbidden key rather than dropping it quietly", () => {
     // A client that sends status:"submitted" must be told it cannot file its own report —
     // dropping it silently would leave a draft the member believes went in.
-    for (const key of ["status", "userId", "metrics", "revisionOf", "submittedAt", "acknowledgedAt", "returnedNote"]) {
+    for (const key of ["status", "userId", "metrics", "revisionOf", "submittedAt", "acknowledgedAt", "returnedNote", "template"]) {
       const result = readReportCreate({ ...valid, [key]: "x" })
       expect(result).toMatchObject({ error: expect.stringContaining(key) })
     }

@@ -78,18 +78,15 @@ import { MAX_REPORT_TITLE, type ReportDto, type ReportStatus } from "@/lib/repor
 import {
   CHART_LABEL,
   formatMetricValue,
+  LEADING_METRICS,
   MAX_SECTION_TEXT,
   METRIC_LABEL,
-  REPORT_TEMPLATES,
+  REPORT_CHARTS,
   SECTION_TITLE,
-  TEMPLATE_CHARTS,
-  TEMPLATE_LABEL,
-  TEMPLATE_METRICS,
   type ChartKey,
   type ReportSectionKey,
-  type ReportTemplate,
 } from "@/lib/reports/templates"
-import { AUTO_TEMPLATE, type ReportState, type TemplateChoice } from "@/lib/reports/view-state"
+import type { ReportState } from "@/lib/reports/view-state"
 import { formatMinutes } from "@/lib/worklog/entries"
 
 export function ReportsSkeleton() {
@@ -230,26 +227,6 @@ export function PeriodSection({
           </div>
         ) : null}
 
-        <div className="space-y-1.5">
-          <Label htmlFor="report-template">Template</Label>
-          <Select
-            value={state.template}
-            onValueChange={(value) => patch({ template: value as TemplateChoice })}
-          >
-            <SelectTrigger id="report-template" className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={AUTO_TEMPLATE}>Auto — follow my logged work</SelectItem>
-              {REPORT_TEMPLATES.map((template) => (
-                <SelectItem key={template} value={template}>
-                  {TEMPLATE_LABEL[template]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
         <p className="rounded-lg bg-muted/50 px-3 py-2 text-[12px] tabular-nums text-foreground">
           {period.label}
           <span className="block text-[11px] text-muted-foreground">
@@ -333,7 +310,7 @@ export function MyReportsSection({
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium">{report.title}</p>
                   <p className="truncate text-[11px] text-muted-foreground tabular-nums">
-                    {report.periodStart} to {report.periodEnd} · {TEMPLATE_LABEL[report.template]} ·{" "}
+                    {report.periodStart} to {report.periodEnd} ·{" "}
                     {new Date(report.updatedAt).toLocaleString(undefined, {
                       timeZone: timezone ?? undefined,
                       dateStyle: "medium",
@@ -413,14 +390,12 @@ export function HeaderSection({
   report,
   title,
   period,
-  template,
   sourceLabel,
   onTitle,
 }: {
   report: ReportDto | null
   title: string
   period: Period
-  template: ReportTemplate
   sourceLabel: string
   onTitle: (value: string) => void
 }) {
@@ -448,12 +423,12 @@ export function HeaderSection({
           disabled={report?.status !== "draft"}
         />
         <p className="text-[11px] text-muted-foreground tabular-nums">
-          {period.start} to {period.end} · {TEMPLATE_LABEL[template]} · {sourceLabel}
+          {period.start} to {period.end} · {sourceLabel}
           {report ? ` · ${report.status === "draft" ? "draft" : "report"} #${report.id}` : " · not saved"}
           {report?.revisionOf ? ` · revision of #${report.revisionOf}` : ""}
         </p>
         <p className="text-[11px] text-muted-foreground">
-          The header is computed: the period, template and author come from the report itself, and
+          The header is computed: the period and author come from the report itself, and
           nothing typed here can change them.
         </p>
         {report?.status === "returned" && report.returnedNote && (
@@ -799,11 +774,9 @@ export function ChartBlock({ chart, data }: { chart: ChartKey; data: ChartDatum[
  * 26 October" is the answer.
  */
 export function MetricsSection({
-  template,
   aggregate,
   sourceLabel,
 }: {
-  template: ReportTemplate
   aggregate: ReportAggregate | null
   sourceLabel: string
 }) {
@@ -817,7 +790,7 @@ export function MetricsSection({
       <div className="space-y-4">
         <p className="text-[11px] text-muted-foreground">{sourceLabel}</p>
         <div className={`${DASHBOARD_KPI_GRID} sm:grid-cols-3 xl:grid-cols-6`}>
-          {TEMPLATE_METRICS[template].map((key) => (
+          {LEADING_METRICS.map((key) => (
             <Stat
               key={key}
               label={METRIC_LABEL[key]}
@@ -832,7 +805,7 @@ export function MetricsSection({
           </EmptyNote>
         ) : (
           <div className={`${DASHBOARD_SECTION_GRID} md:grid-cols-2`}>
-            {TEMPLATE_CHARTS[template].map((chart) => (
+            {REPORT_CHARTS.map((chart) => (
               <ChartBlock key={chart} chart={chart} data={chartRows(aggregate, chart)} />
             ))}
           </div>

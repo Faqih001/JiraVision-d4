@@ -5,13 +5,12 @@ import { CHART_UNIT } from "@/lib/reports/charts"
 import { ROW_SECTIONS } from "@/lib/reports/row-sections"
 import {
   CHART_KEYS,
+  LEADING_METRICS,
   PROSE_SECTIONS,
+  REPORT_CHARTS,
   REPORT_SECTIONS,
-  REPORT_TEMPLATES,
+  SECTION_ORDER,
   SECTION_TITLE,
-  TEMPLATE_CHARTS,
-  TEMPLATE_METRICS,
-  sectionsFor,
 } from "@/lib/reports/templates"
 
 const repo = path.resolve(__dirname, "..", "..")
@@ -171,10 +170,16 @@ describe("the builder's write path", () => {
     expect(codeOnly(client())).not.toMatch(/JSON\.stringify\(prose\)/u)
   })
 
-  it("resolves an auto template before creating a draft", () => {
-    // The route only ever stores a real template id; `auto` is a UI choice, not a column value.
-    expect(client()).toMatch(/effectiveTemplate\(state, aggregate\)/u)
-    expect(dialogs()).toMatch(/TEMPLATE_LABEL/u)
+  it("offers no template choice anywhere — one universal report", () => {
+    // Templates only ever reordered the same ten sections; the choice is retired, so no
+    // dropdown, no `tpl` state and no template label may survive in the page's code. The
+    // vocabulary module keeps its filename (stored rows still validate against it), so the
+    // import path is exempt — every identifier and label is not.
+    const withoutModulePath = (src: string) =>
+      codeOnly(src).replaceAll('"@/lib/reports/templates"', '""')
+    expect(withoutModulePath(client())).not.toMatch(/template/iu)
+    expect(withoutModulePath(sectionsFile())).not.toMatch(/template/iu)
+    expect(withoutModulePath(dialogs())).not.toMatch(/template/iu)
   })
 
   it("refuses to save a report it has not loaded", () => {
@@ -255,8 +260,8 @@ describe("the metrics card", () => {
     expect(client()).not.toMatch(/Tasks 1[0-9] add/u)
   })
 
-  it("takes the strip from the template and the numbers from the aggregate", () => {
-    expect(sectionsFile()).toMatch(/TEMPLATE_METRICS\[template\]\.map/u)
+  it("takes the strip from the universal list and the numbers from the aggregate", () => {
+    expect(sectionsFile()).toMatch(/LEADING_METRICS\.map/u)
     expect(sectionsFile()).toMatch(/formatMetricValue\(key, metrics\[key\]\)/u)
     // One home for the arithmetic: the card renders the metrics it is handed.
     expect(codeOnly(sectionsFile())).not.toMatch(/\.reduce\(|aggregateReport\(/u)
@@ -270,8 +275,8 @@ describe("the metrics card", () => {
     expect(sectionsFile()).toMatch(/\? "row" : "rows"/u)
   })
 
-  it("draws each chart the template asks for, in the unit the module declares", () => {
-    expect(sectionsFile()).toMatch(/TEMPLATE_CHARTS\[template\]\.map/u)
+  it("draws each declared chart, in the unit the module declares", () => {
+    expect(sectionsFile()).toMatch(/REPORT_CHARTS\.map/u)
     expect(sectionsFile()).toMatch(/chartRows\(aggregate, chart\)/u)
     expect(sectionsFile()).toMatch(/const unit = CHART_UNIT\[chart\]/u)
     expect(sectionsFile()).toMatch(
@@ -279,11 +284,9 @@ describe("the metrics card", () => {
     )
     expect(sectionsFile()).toMatch(/dataKey="value"/u)
     expect(sectionsFile()).toMatch(/fill=\{cell\.fill\}/u)
-    // The strip and the charts both follow the template, so no template can lose its own figures.
-    for (const template of REPORT_TEMPLATES) {
-      expect(TEMPLATE_METRICS[template].length).toBeGreaterThan(0)
-      expect(TEMPLATE_CHARTS[template].length).toBeGreaterThan(0)
-    }
+    // The strip and the charts are universal, so neither can be empty.
+    expect(LEADING_METRICS.length).toBeGreaterThan(0)
+    expect(REPORT_CHARTS.length).toBeGreaterThan(0)
     // Every chart in the vocabulary has a declared measure, so a new ChartKey cannot draw a
     // tooltip with an undefined unit word.
     for (const chart of CHART_KEYS) expect(CHART_UNIT[chart]).toBeTruthy()
@@ -392,13 +395,12 @@ describe("the finished phase 3", () => {
       .map((name) => src(name))
       .join("\n")
 
-  it("gives every section of every template a card", () => {
-    for (const template of REPORT_TEMPLATES) {
-      for (const key of sectionsFor(template)) {
-        expect(client(), `sectionNodes has no ${key} entry`).toMatch(
-          new RegExp(`^\\s+${key}: `, "mu"),
-        )
-      }
+  it("gives every section a card, in the one canonical order", () => {
+    expect(client()).toMatch(/SECTION_ORDER\.map\(\(key\) =>/u)
+    for (const key of SECTION_ORDER) {
+      expect(client(), `sectionNodes has no ${key} entry`).toMatch(
+        new RegExp(`^\\s+${key}: `, "mu"),
+      )
     }
     // …and nothing outside the declared vocabulary crept in.
     for (const section of REPORT_SECTIONS) expect(SECTION_TITLE[section.key]).toBeTruthy()

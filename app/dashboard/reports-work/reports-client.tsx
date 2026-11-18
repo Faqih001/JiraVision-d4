@@ -1,9 +1,8 @@
 "use client"
 
 // The period report builder. The URL is the state's serialised form, the numbers come from the
-// API and are never recomputed in the browser, and the report's own sections render in the
-// template's order — so a different discipline reads a differently-ordered document, not a
-// differently-stone page.
+// API and are never recomputed in the browser, and every report renders its sections in one
+// fixed order — so every member's document reads the same way top to bottom.
 
 import { useCallback, useEffect, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
@@ -22,7 +21,7 @@ import { resolvePeriod, type Period } from "@/lib/reports/period"
 import type { ReportDto } from "@/lib/reports/report-fields"
 import {
   PROSE_SECTIONS,
-  sectionsFor,
+  SECTION_ORDER,
   type ReportContent,
   type ReportSectionKey,
 } from "@/lib/reports/templates"
@@ -30,7 +29,6 @@ import type { RowSectionKey } from "@/lib/reports/row-sections"
 import {
   adoptServerAnchor,
   defaultReportState,
-  effectiveTemplate,
   metricsSource,
   parseReportView,
   REPORT_VIEW_LABEL,
@@ -214,9 +212,6 @@ export default function ReportsClient() {
   const source = metricsSource(report)
   const aggregate = report?.metrics ?? preview
   const dirty = serializeProse(prose) !== serializeProse(savedProse) || title !== savedTitle
-  // `?tpl=auto` is a UI choice; a draft always stores a real template. Resolving it here, above
-  // the actions, is what lets both the save body and the new-report dialog use the same answer.
-  const templateChoice = effectiveTemplate(state, aggregate)
   const askHref = assistantLink(periodQuestion(shownPeriod.label, shownPeriod.start, shownPeriod.end))
 
   const copyLink = useCallback(async () => {
@@ -241,7 +236,6 @@ export default function ReportsClient() {
       method: "PATCH",
       body: JSON.stringify({
         title,
-        template: templateChoice,
         content: Object.fromEntries(PROSE_SECTIONS.map((key) => [key, { text: prose[key] ?? "" }])),
       }),
     })
@@ -254,7 +248,7 @@ export default function ReportsClient() {
     setSavedTitle(title)
     await refresh()
     toast({ title: "Draft saved", description: title })
-  }, [mutate, prose, refresh, report, templateChoice, title, toast])
+  }, [mutate, prose, refresh, report, title, toast])
 
   const createDraft = useCallback(
     async (draft: NewReportDraft) => {
@@ -271,7 +265,6 @@ export default function ReportsClient() {
           method: "POST",
           body: JSON.stringify({
             title: draft.title,
-            template: draft.template,
             periodType: draft.periodType,
             periodStart: span.start,
             periodEnd: span.end,
@@ -423,16 +416,15 @@ export default function ReportsClient() {
     />
   )
 
-  // The template decides the order; the map decides that a section the template does not lead
-  // with is still present. A report missing its blockers section is the failure mode §6 warns
-  // about, and it is prevented by structure rather than by a reviewer noticing.
+  // SECTION_ORDER decides the order; the map decides that every declared section is present.
+  // A report missing its blockers section is the failure mode §6 warns about, and it is
+  // prevented by structure rather than by a reviewer noticing.
   const sectionNodes: Partial<Record<ReportSectionKey, React.ReactNode>> = {
     header: (
       <HeaderSection
         report={report}
         title={title}
         period={shownPeriod}
-        template={templateChoice}
         sourceLabel={SOURCE_LABEL[source]}
         onTitle={setTitle}
       />
@@ -455,7 +447,6 @@ export default function ReportsClient() {
     metrics: (
       <MetricsSection
         key="metrics"
-        template={templateChoice}
         aggregate={aggregate}
         sourceLabel={SOURCE_LABEL[source]}
       />
@@ -582,10 +573,10 @@ export default function ReportsClient() {
         </div>
         {state.view === "build" ? (
           <div className={`${DASHBOARD_SECTION_GRID} md:grid-cols-2 xl:grid-cols-3`}>
-            {/* The template's order is the document's order, so every member's report reads the
-                same way top to bottom; the `contents` wrapper keeps the grid while giving each
-                row a key. */}
-            {sectionsFor(templateChoice).map((key) => (
+            {/* The fixed section order is the document's order, so every member's report reads
+                the same way top to bottom; the `contents` wrapper keeps the grid while giving
+                each row a key. */}
+            {SECTION_ORDER.map((key) => (
               <div key={key} className="contents">
                 {sectionNodes[key]}
               </div>
@@ -605,15 +596,14 @@ export default function ReportsClient() {
         )}
       </div>
 
-      {/* Mounted only while open, so the draft's defaults are always the period and template the
-          builder is showing. Kept mounted, its first-render defaults would go stale and the
-          create route would refuse the mismatch between periodType and the period sent. */}
+      {/* Mounted only while open, so the draft's defaults are always the period the builder is
+          showing. Kept mounted, its first-render defaults would go stale and the create route
+          would refuse the mismatch between periodType and the period sent. */}
       {newOpen ? (
         <NewReportDialog
           open
           busy={busy}
           defaultTitle={shownPeriod.label}
-          defaultTemplate={templateChoice}
           defaultPeriodType={state.periodType}
           onClose={() => setNewOpen(false)}
           onCreate={(draft) => void createDraft(draft)}

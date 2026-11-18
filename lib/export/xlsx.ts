@@ -73,7 +73,6 @@ export async function exportReportXlsx(data: ReportExportData): Promise<void> {
   reportSheet.addRow({ field: "Title", value: report.title })
   reportSheet.addRow({ field: "Author", value: authorName })
   reportSheet.addRow({ field: "Period", value: metrics.period.label })
-  reportSheet.addRow({ field: "Template", value: report.template })
   reportSheet.addRow({ field: "Status", value: report.status })
   if (report.revisionOf) {
     reportSheet.addRow({ field: "Revision of", value: `#${report.revisionOf}` })

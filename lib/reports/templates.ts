@@ -1,12 +1,8 @@
-// What a report is made of. The section inventory is spec §6's ten, in the order a supervisor
-// reads them; the templates decide order, the leading KPI strip and which charts render — never
-// which facts exist, because two members' reports must be comparable line for line.
-//
-// Deliberate narrowing of §6's "the section list and leading metrics differ": every template
-// carries all ten sections. Dropping a section is how a report ends up with a hole a recipient
-// reads as concealment. The difference is what leads and what is charted.
+// What a report is made of. One universal report: the section inventory is spec §6's ten, in
+// the order a supervisor reads them, and every report carries all of them — dropping a section
+// is how a report ends up with a hole a recipient reads as concealment. Empty row sections hide
+// on screen, but the shape never varies between members, so reports stay comparable line for line.
 
-import { DISCIPLINE_TEMPLATE, isWorkDiscipline, type WorkDiscipline } from "@/lib/roles"
 import { formatMinutes } from "@/lib/worklog/entries"
 import type { Count, MetricKey } from "./aggregate"
 
@@ -60,87 +56,29 @@ export function isProseSection(value: unknown): value is ReportSectionKey {
   return isReportSectionKey(value) && SECTION_SOURCE[value] !== "server"
 }
 
+/**
+ * The stored `template` column's vocabulary. New drafts all write "general"; the other ids only
+ * exist on rows saved before templates were retired, and must still parse when read back.
+ */
 export const REPORT_TEMPLATES = ["general", "engineering", "technical", "assurance", "creative"] as const
 export type ReportTemplate = (typeof REPORT_TEMPLATES)[number]
-
-export const TEMPLATE_LABEL: Record<ReportTemplate, string> = {
-  general: "General",
-  engineering: "Engineering & delivery",
-  technical: "Technical & service",
-  assurance: "Assurance & audit",
-  creative: "Creative & design",
-}
 
 export function isReportTemplate(value: unknown): value is ReportTemplate {
   return typeof value === "string" && (REPORT_TEMPLATES as readonly string[]).includes(value)
 }
 
-const ALL: ReportSectionKey[] = REPORT_SECTIONS.map((s) => s.key)
+/** The one canonical section order — the inventory's own order, header first, notes last. */
+export const SECTION_ORDER: ReportSectionKey[] = REPORT_SECTIONS.map((s) => s.key)
 
-/**
- * Every template holds all ten; the order is what a reader sees first. `engineering` puts the
- * sprint-shaped work before the paperwork, `technical` the opposite, `assurance` opens with what
- * was produced and evidenced, `creative` with the deliverables and their review rounds.
- */
-export const TEMPLATE_SECTIONS: Record<ReportTemplate, ReportSectionKey[]> = {
-  general: ALL,
-  engineering: [
-    "header",
-    "summary",
-    "completed",
-    "inProgress",
-    "blocked",
-    "deliverables",
-    "overdue",
-    "nextPeriod",
-    "metrics",
-    "notes",
-  ],
-  technical: [
-    "header",
-    "summary",
-    "deliverables",
-    "blocked",
-    "inProgress",
-    "completed",
-    "overdue",
-    "nextPeriod",
-    "metrics",
-    "notes",
-  ],
-  assurance: [
-    "header",
-    "summary",
-    "deliverables",
-    "completed",
-    "overdue",
-    "blocked",
-    "inProgress",
-    "nextPeriod",
-    "metrics",
-    "notes",
-  ],
-  creative: [
-    "header",
-    "summary",
-    "deliverables",
-    "inProgress",
-    "completed",
-    "blocked",
-    "overdue",
-    "nextPeriod",
-    "metrics",
-    "notes",
-  ],
-}
-
-export const TEMPLATE_METRICS: Record<ReportTemplate, MetricKey[]> = {
-  general: ["entries", "minutes", "completedTasks", "deliverablesProduced", "blockedTasks"],
-  engineering: ["storyPointsCompleted", "completedTasks", "sprintItems", "inProgressTasks", "minutes", "blockedTasks"],
-  technical: ["deliverablesProduced", "completedTasks", "reviewRounds", "overdueCarried", "blockedTasks", "minutes"],
-  assurance: ["deliverablesProduced", "activeDays", "quietDays", "overdueCarried", "blockedTasks", "entries"],
-  creative: ["deliverablesProduced", "reviewRounds", "inProgressTasks", "minutes", "completedTasks"],
-}
+/** The KPI strip: six tiles, the same six for every report. */
+export const LEADING_METRICS: MetricKey[] = [
+  "entries",
+  "minutes",
+  "completedTasks",
+  "deliverablesProduced",
+  "blockedTasks",
+  "overdueCarried",
+]
 
 /**
  * The KPI strip's copy. `Record<MetricKey, string>` means a new metric in
@@ -177,26 +115,8 @@ export const CHART_LABEL: Record<ChartKey, string> = {
   series: "Per day across the period",
 }
 
-export const TEMPLATE_CHARTS: Record<ReportTemplate, ChartKey[]> = {
-  general: ["discipline", "kind"],
-  engineering: ["series", "taskStatus", "priority"],
-  technical: ["series", "discipline", "kind"],
-  assurance: ["series", "discipline", "taskStatus"],
-  creative: ["discipline", "kind", "taskStatus"],
-}
-
-/** The author's own vocabulary for "what kind of work is this" is the only input to this. */
-export function templateForDiscipline(discipline: string | null | undefined): ReportTemplate {
-  if (isWorkDiscipline(discipline)) {
-    const template = DISCIPLINE_TEMPLATE[discipline as WorkDiscipline]
-    if (isReportTemplate(template)) return template
-  }
-  return "general"
-}
-
-export function sectionsFor(template: ReportTemplate): ReportSectionKey[] {
-  return TEMPLATE_SECTIONS[template] ?? TEMPLATE_SECTIONS.general
-}
+/** Every declared chart, in reading order: the period's shape first, then the splits. */
+export const REPORT_CHARTS: ChartKey[] = ["series", "discipline", "kind", "taskStatus", "priority"]
 
 export const MAX_SECTION_TEXT = 20_000
 
@@ -204,12 +124,9 @@ export type ReportSectionContent = { text: string }
 export type ReportContent = Partial<Record<ReportSectionKey, ReportSectionContent>>
 
 /** A new draft: every prose section present and empty, no server section writable. */
-export function emptyContent(template: ReportTemplate): ReportContent {
-  const order = sectionsFor(template)
+export function emptyContent(): ReportContent {
   const content: ReportContent = {}
-  for (const key of order) {
-    if (isProseSection(key)) content[key] = { text: "" }
-  }
+  for (const key of PROSE_SECTIONS) content[key] = { text: "" }
   return content
 }
 

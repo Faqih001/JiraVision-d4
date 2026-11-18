@@ -28,20 +28,16 @@ import {
 } from "@/components/ui/select"
 import { MAX_REPORT_TITLE, type ReportDto } from "@/lib/reports/report-fields"
 import { PERIOD_LABEL, PERIOD_TYPES, type PeriodType } from "@/lib/reports/period"
-import { REPORT_TEMPLATES, TEMPLATE_LABEL, type ReportTemplate } from "@/lib/reports/templates"
 
 export type NewReportDraft = {
   title: string
-  template: ReportTemplate
   periodType: PeriodType
 }
 
-/** The `auto` template choice is never offered here: a draft is created with a real template id. */
 export function NewReportDialog({
   open,
   busy,
   defaultTitle,
-  defaultTemplate,
   defaultPeriodType,
   onClose,
   onCreate,
@@ -49,14 +45,12 @@ export function NewReportDialog({
   open: boolean
   busy: boolean
   defaultTitle: string
-  defaultTemplate: ReportTemplate
   defaultPeriodType: PeriodType
   onClose: () => void
   onCreate: (draft: NewReportDraft) => void
 }) {
   const [draft, setDraft] = useState<NewReportDraft>({
     title: defaultTitle,
-    template: defaultTemplate,
     periodType: defaultPeriodType,
   })
 
@@ -86,47 +80,25 @@ export function NewReportDialog({
               onChange={(event) => setDraft((prev) => ({ ...prev, title: event.target.value }))}
             />
           </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="new-report-type">Period type</Label>
-              <Select
-                value={draft.periodType}
-                onValueChange={(value) =>
-                  setDraft((prev) => ({ ...prev, periodType: value as PeriodType }))
-                }
-              >
-                <SelectTrigger id="new-report-type" className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {PERIOD_TYPES.map((type) => (
-                    <SelectItem key={type} value={type}>
-                      {PERIOD_LABEL[type]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="new-report-template">Template</Label>
-              <Select
-                value={draft.template}
-                onValueChange={(value) =>
-                  setDraft((prev) => ({ ...prev, template: value as ReportTemplate }))
-                }
-              >
-                <SelectTrigger id="new-report-template" className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {REPORT_TEMPLATES.map((template) => (
-                    <SelectItem key={template} value={template}>
-                      {TEMPLATE_LABEL[template]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="new-report-type">Period type</Label>
+            <Select
+              value={draft.periodType}
+              onValueChange={(value) =>
+                setDraft((prev) => ({ ...prev, periodType: value as PeriodType }))
+              }
+            >
+              <SelectTrigger id="new-report-type" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {PERIOD_TYPES.map((type) => (
+                  <SelectItem key={type} value={type}>
+                    {PERIOD_LABEL[type]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
         <DialogFooter>

@@ -77,12 +77,11 @@ export function exportReportPdf(data: ReportExportData): void {
   doc.setFont("helvetica", "normal")
   doc.text(`Author: ${authorName}`, 14, 35)
   doc.text(`Period: ${metrics.period.label}`, 14, 42)
-  doc.text(`Template: ${report.template}`, 14, 49)
-  doc.text(`Status: ${report.status}`, 14, 56)
+  doc.text(`Status: ${report.status}`, 14, 49)
   if (report.revisionOf) {
-    doc.text(`Revision of: #${report.revisionOf}`, 14, 63)
+    doc.text(`Revision of: #${report.revisionOf}`, 14, 56)
   }
-  doc.text(`Recipients: ${recipientNames.join(", ") || "None"}`, 14, 70)
+  doc.text(`Recipients: ${recipientNames.join(", ") || "None"}`, 14, 63)
 
   // KPI strip
   const kpiY = 85

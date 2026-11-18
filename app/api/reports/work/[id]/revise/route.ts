@@ -39,7 +39,7 @@ export async function POST(_request: Request, context: Context) {
       to: existing.periodEnd,
     })
     const metrics = await assembleReport(session.id, session.timezone, period)
-    const content: ReportContent = emptyContent(existing.template)
+    const content: ReportContent = emptyContent()
 
     const [inserted] = await db
       .insert(workReports)

@@ -1,10 +1,8 @@
 import { describe, expect, it } from "vitest"
 import {
-  AUTO_TEMPLATE,
   SOURCE_LABEL,
   adoptServerAnchor,
   defaultReportState,
-  effectiveTemplate,
   metricsSource,
   parseReportView,
   resolveReportPeriod,
@@ -20,7 +18,6 @@ describe("defaults", () => {
     expect(state.view).toBe("list")
     expect(state.periodType).toBe("weekly")
     expect(state.anchor).toBe(TODAY)
-    expect(state.template).toBe(AUTO_TEMPLATE)
     expect(state.reportId).toBeNull()
     expect(state.open).toBeNull()
     expect(state.q).toBe("")
@@ -34,7 +31,7 @@ describe("defaults", () => {
 describe("parseReportView", () => {
   it("reads every declared parameter", () => {
     const state = parseReportView(
-      search("v=build&p=monthly&d=2026-03-05&tpl=assurance&r=17&open=blocked&q=sprint"),
+      search("v=build&p=monthly&d=2026-03-05&r=17&open=blocked&q=sprint"),
       TODAY,
     )
     expect(state).toEqual({
@@ -43,23 +40,29 @@ describe("parseReportView", () => {
       anchor: "2026-03-05",
       customFrom: TODAY,
       customTo: TODAY,
-      template: "assurance",
       reportId: 17,
       open: "blocked",
       q: "sprint",
     })
   })
 
-  it("ignores an unknown view, period type, template and section rather than adopting it", () => {
+  it("ignores an unknown view, period type and section rather than adopting it", () => {
     const fallback = defaultReportState(TODAY)
     expect(parseReportView(search("v=editor"), TODAY).view).toBe(fallback.view)
     expect(parseReportView(search("p=fortnightly"), TODAY).periodType).toBe(fallback.periodType)
-    expect(parseReportView(search("tpl=sprint"), TODAY).template).toBe(fallback.template)
     expect(parseReportView(search("open=achievements"), TODAY).open).toBeNull()
     // The guard against a hand-typed value reaching a query, same rule as the work log's ?discipline=.
     expect(parseReportView(search("r=abc"), TODAY).reportId).toBeNull()
     expect(parseReportView(search("r=0"), TODAY).reportId).toBeNull()
     expect(parseReportView(search("r=-4"), TODAY).reportId).toBeNull()
+  })
+
+  it("ignores the retired tpl parameter instead of adopting or re-emitting it", () => {
+    // Templates are gone: an old shared link with ?tpl= must open the same universal report,
+    // and the rewrite must drop the parameter rather than carry it forever.
+    const state = parseReportView(search("v=build&tpl=assurance"), TODAY)
+    expect(state).toEqual(parseReportView(search("v=build"), TODAY))
+    expect(serializeReportView(state, TODAY)).not.toMatch(/tpl/u)
   })
 
   it("ignores a malformed anchor and keeps today", () => {
@@ -80,7 +83,7 @@ describe("parseReportView", () => {
     for (const raw of [
       "",
       "v=build&p=yearly&d=2026-01-01",
-      "v=build&p=custom&from=2026-09-01&to=2026-09-30&tpl=technical",
+      "v=build&p=custom&from=2026-09-01&to=2026-09-30",
       "r=8&v=build&open=nextPeriod&q=audit",
     ]) {
       const state = parseReportView(search(raw), TODAY)
@@ -108,33 +111,6 @@ describe("resolveReportPeriod", () => {
       customTo: "2026-10-15",
     })
     expect([custom.start, custom.end]).toEqual(["2026-10-01", "2026-10-15"])
-  })
-})
-
-describe("effectiveTemplate", () => {
-  const aggregate = (discipline: string | null) =>
-    ({
-      byDiscipline:
-        discipline === null
-          ? []
-          : [{ key: discipline, label: discipline, minutes: { value: 60, refs: [] }, count: { value: 1, refs: [] } }],
-    }) as never
-
-  it("keeps an explicit choice", () => {
-    expect(effectiveTemplate({ ...defaultReportState(TODAY), template: "creative" }, aggregate("developer"))).toBe(
-      "creative",
-    )
-  })
-
-  it("follows the discipline with the most logged minutes when set to auto", () => {
-    expect(effectiveTemplate(defaultReportState(TODAY), aggregate("technician"))).toBe("technical")
-    expect(effectiveTemplate(defaultReportState(TODAY), aggregate("auditor"))).toBe("assurance")
-  })
-
-  it("settles on general when there is no logged work to follow", () => {
-    expect(effectiveTemplate(defaultReportState(TODAY), null)).toBe("general")
-    expect(effectiveTemplate(defaultReportState(TODAY), aggregate(null))).toBe("general")
-    expect(effectiveTemplate(defaultReportState(TODAY), aggregate("unassigned"))).toBe("general")
   })
 })
 

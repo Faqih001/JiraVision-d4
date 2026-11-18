@@ -4,14 +4,7 @@
 
 import { isIsoDate } from "@/lib/worklog/local-day"
 import { PERIOD_TYPES, resolvePeriod, type Period, type PeriodType } from "./period"
-import {
-  isReportSectionKey,
-  isReportTemplate,
-  templateForDiscipline,
-  type ReportSectionKey,
-  type ReportTemplate,
-} from "./templates"
-import type { ReportAggregate } from "./aggregate"
+import { isReportSectionKey, type ReportSectionKey } from "./templates"
 import type { ReportDto } from "./report-fields"
 
 export const REPORT_VIEWS = ["list", "build"] as const
@@ -22,10 +15,6 @@ export const REPORT_VIEW_LABEL: Record<ReportView, string> = {
   build: "Builder",
 }
 
-/** "Follow the work I actually logged" — the sentinel is a word, never an empty value. */
-export const AUTO_TEMPLATE = "auto"
-export type TemplateChoice = ReportTemplate | typeof AUTO_TEMPLATE
-
 export type ReportState = {
   view: ReportView
   periodType: PeriodType
@@ -33,7 +22,6 @@ export type ReportState = {
   anchor: string
   customFrom: string
   customTo: string
-  template: TemplateChoice
   reportId: number | null
   /** Which drill-down row list is open, so a shared link can land on an expanded section. */
   open: ReportSectionKey | null
@@ -55,7 +43,6 @@ export function defaultReportState(dayIso: string): ReportState {
     anchor: dayIso,
     customFrom: dayIso,
     customTo: dayIso,
-    template: AUTO_TEMPLATE,
     reportId: null,
     open: null,
     q: "",
@@ -89,7 +76,6 @@ export function parseReportView(search: URLSearchParams, todayIso: string): Repo
 
   const rawId = Number(search.get("r"))
   const rawOpen = search.get("open")
-  const rawTemplate = search.get("tpl")
 
   return {
     view: readEnum<ReportView>(search.get("v"), REPORT_VIEWS, base.view),
@@ -97,7 +83,6 @@ export function parseReportView(search: URLSearchParams, todayIso: string): Repo
     anchor,
     customFrom,
     customTo,
-    template: rawTemplate !== null && isReportTemplate(rawTemplate) ? rawTemplate : AUTO_TEMPLATE,
     reportId: Number.isInteger(rawId) && rawId > 0 ? rawId : null,
     open: rawOpen !== null && isReportSectionKey(rawOpen) ? rawOpen : null,
     q: search.get("q") ?? "",
@@ -114,7 +99,6 @@ export function serializeReportView(state: ReportState, todayIso: string): strin
     params.set("from", state.customFrom)
     params.set("to", state.customTo)
   }
-  if (state.template !== AUTO_TEMPLATE) params.set("tpl", state.template)
   if (state.reportId !== null) params.set("r", String(state.reportId))
   if (state.open !== null) params.set("open", state.open)
   if (state.q.trim()) params.set("q", state.q.trim())
@@ -123,17 +107,6 @@ export function serializeReportView(state: ReportState, todayIso: string): strin
 
 export function resolveReportPeriod(state: ReportState): Period {
   return resolvePeriod(state.periodType, state.anchor, { from: state.customFrom, to: state.customTo })
-}
-
-/**
- * The template is auto by default because §6 wants it to follow the author's discipline, and the
- * only discipline evidence a report has is the work in the period. `unassigned` is the aggregate's
- * own bucket for rows with no discipline, so it is not a discipline and must not pick a template.
- */
-export function effectiveTemplate(state: ReportState, aggregate: ReportAggregate | null): ReportTemplate {
-  if (state.template !== AUTO_TEMPLATE) return state.template
-  const leading = aggregate?.byDiscipline[0]?.key
-  return templateForDiscipline(leading && leading !== "unassigned" ? leading : null)
 }
 
 /**

@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
       .values({
         userId: session.id,
         title: value.title,
-        template: value.template,
+        template: "general",
         periodType: value.periodType,
         periodStart: value.periodStart,
         periodEnd: value.periodEnd,

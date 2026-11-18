@@ -61,7 +61,6 @@ export async function PATCH(request: NextRequest, context: Context) {
     const patch = parsed.value
 
     const title = patch.title ?? existing.title
-    const template = patch.template ?? existing.template
     const periodType = patch.periodType ?? existing.periodType
     const periodStart = patch.periodStart ?? existing.periodStart
     const periodEnd = patch.periodEnd ?? existing.periodEnd
@@ -72,7 +71,6 @@ export async function PATCH(request: NextRequest, context: Context) {
 
     const set: {
       title: string
-      template: string
       periodType: string
       periodStart: string
       periodEnd: string
@@ -83,11 +81,10 @@ export async function PATCH(request: NextRequest, context: Context) {
       // `content` replaces the blob — the page always sends the full prose set it holds, and
       // emptyContent keeps every prose key present so a later reader never meets a missing section.
       title,
-      template,
       periodType,
       periodStart,
       periodEnd,
-      content: patch.content ? { ...emptyContent(template), ...patch.content } : existing.content,
+      content: patch.content ? { ...emptyContent(), ...patch.content } : existing.content,
       updatedAt: new Date(),
     }
 
