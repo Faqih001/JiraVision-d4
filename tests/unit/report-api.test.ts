@@ -44,8 +44,8 @@ describe("every work-report route is session-gated", () => {
 
 describe("the work-report reads", () => {
   it("names the ownership column of every source it reads", () => {
-    // Five different columns, because five different tables own their rows differently. A read
-    // that forgot one would hand another member's work to this report.
+    // Different columns, because different tables own their rows differently. A read that
+    // forgot one would hand another member's work to this report.
     for (const guard of [
       /eq\(workLogEntries\.userId, userId\)/u,
       /eq\(deliverables\.ownerId, userId\)/u,
@@ -53,14 +53,31 @@ describe("the work-report reads", () => {
       /eq\(tasks\.assigneeId, userId\)/u,
       /eq\(agentPlans\.createdBy, userId\)/u,
       /eq\(workReports\.userId, userId\)/u,
+      /eq\(opsLogEntries\.ownerId, userId\)/u,
+      /eq\(registerItems\.ownerId, userId\)/u,
+      /eq\(tickets\.assigneeId, userId\)/u,
+      /eq\(ticketEvents\.actorId, userId\)/u,
+      /eq\(goals\.ownerId, userId\)/u,
+      /eq\(goalCheckins\.authorId, userId\)/u,
+      /eq\(calendarEvents\.organizerId, userId\)/u,
+      /eq\(retroNotes\.authorId, userId\)/u,
+      /eq\(retroActions\.ownerId, userId\)/u,
+      /eq\(careerSignoffs\.userId, userId\)/u,
+      /eq\(careerRequests\.userId, userId\)/u,
+      /eq\(growthReviews\.userId, userId\)/u,
+      /eq\(playbooks\.authorId, userId\)/u,
     ]) {
       expect(shared()).toMatch(guard)
     }
   })
 
+  it("counts a meeting the member attends, not only one they organise", () => {
+    expect(shared()).toMatch(/attendees\} @>/u)
+  })
+
   it("caps every read, so a yearly report cannot fan out into a timeout", () => {
     expect(shared().match(/\.limit\(/gu)).not.toBeUndefined()
-    expect((shared().match(/\.limit\(/gu) ?? []).length).toBeGreaterThanOrEqual(8)
+    expect((shared().match(/\.limit\(/gu) ?? []).length).toBeGreaterThanOrEqual(21)
   })
 
   it("never treats tasks.updated_at as a work date", () => {

@@ -64,6 +64,22 @@ export const METRIC_KEYS = [
   "nextPeriodItems",
   "storyPointsCompleted",
   "sprintItems",
+  "opsEvents",
+  "registerItemsHeld",
+  "registerVerifications",
+  "ticketsResolved",
+  "ticketsOpen",
+  "ticketActions",
+  "goalCheckins",
+  "goalsAchieved",
+  "meetings",
+  "retroNotes",
+  "retroActionsOpen",
+  "careerSignoffs",
+  "careerRequests",
+  "growthReviews",
+  "playbooksPublished",
+  "playbookRuns",
 ] as const
 export type MetricKey = (typeof METRIC_KEYS)[number]
 export type Metrics = Record<MetricKey, Count>

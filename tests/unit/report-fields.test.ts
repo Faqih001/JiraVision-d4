@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { PROSE_SECTIONS } from "@/lib/reports/templates"
-import type { ReportAggregate } from "@/lib/reports/aggregate"
+import { AGGREGATE_ARRAY_KEYS, METRIC_KEYS, type ReportAggregate } from "@/lib/reports/aggregate"
 import {
   FORBIDDEN_REPORT_KEYS,
   MAX_CONTENT_KEYS,
@@ -208,5 +208,27 @@ describe("stored jsonb", () => {
     expect(parseStoredMetrics({ generatedAt: "2026-10-26T00:00:00.000Z", metrics: {} })).toBeNull()
     const aggregate = { generatedAt: "x", isEmpty: true, metrics: {}, period: {}, series: [] } as unknown as ReportAggregate
     expect(parseStoredMetrics(aggregate)).toBe(aggregate)
+  })
+
+  it("zero-fills the metric keys and row arrays an older snapshot never had", () => {
+    // A draft stored before the eight activity modules existed must still open: its old numbers
+    // stay, and every key the current builder reads is present rather than undefined.
+    const old = {
+      generatedAt: "2026-10-26T00:00:00.000Z",
+      isEmpty: false,
+      metrics: { entries: { value: 2, refs: ["entry:1", "entry:2"] } },
+      period: { label: "Week of 26 Oct" },
+      series: [],
+    }
+    const parsed = parseStoredMetrics(old)
+    expect(parsed).not.toBeNull()
+    expect(parsed!.metrics.entries).toEqual({ value: 2, refs: ["entry:1", "entry:2"] })
+    for (const key of METRIC_KEYS) {
+      if (key === "entries") continue
+      expect(parsed!.metrics[key]).toEqual({ value: 0, refs: [] })
+    }
+    for (const key of AGGREGATE_ARRAY_KEYS) {
+      expect(Array.isArray((parsed as unknown as Record<string, unknown>)[key])).toBe(true)
+    }
   })
 })

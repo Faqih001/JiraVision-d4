@@ -83,6 +83,127 @@ const planItem = (over: Partial<ReportSource["planItems"][number]> = {}) => ({
   ...over,
 })
 
+const opsEvent = (over: Partial<ReportSource["opsEvents"][number]> = {}) => ({
+  id: 41,
+  packKey: "it-technician",
+  entityKey: "backup-verify",
+  status: "ok",
+  occurredAt: "2026-10-27T08:00:00.000Z",
+  ...over,
+})
+
+const registerItem = (over: Partial<ReportSource["registerItems"][number]> = {}) => ({
+  id: 51,
+  packKey: "it-technician",
+  kind: "equipment",
+  title: "Spare laptop",
+  status: "in_service",
+  lastVerifiedAt: "2026-10-27",
+  ...over,
+})
+
+const ticket = (over: Partial<ReportSource["tickets"][number]> = {}) => ({
+  id: 61,
+  subject: "Laptop will not boot",
+  status: "in_progress",
+  priority: "high",
+  resolvedAt: null,
+  ...over,
+})
+
+const ticketEvent = (over: Partial<ReportSource["ticketEvents"][number]> = {}) => ({
+  id: 71,
+  ticketId: 61,
+  ticketSubject: "Laptop will not boot",
+  type: "status",
+  fromValue: "new",
+  toValue: "in_progress",
+  at: "2026-10-27T09:00:00.000Z",
+  ...over,
+})
+
+const goal = (over: Partial<ReportSource["goals"][number]> = {}) => ({
+  id: 81,
+  title: "Cut restore time",
+  status: "on_track",
+  current: 40,
+  target: 100,
+  metricType: "percent",
+  dueDate: "2026-12-31",
+  ...over,
+})
+
+const checkin = (over: Partial<ReportSource["goalCheckins"][number]> = {}) => ({
+  id: 91,
+  goalId: 81,
+  goalTitle: "Cut restore time",
+  value: 40,
+  note: "Drill ran clean",
+  at: "2026-10-27T09:00:00.000Z",
+  ...over,
+})
+
+const meeting = (over: Partial<ReportSource["meetings"][number]> = {}) => ({
+  id: 101,
+  title: "Sprint review",
+  eventType: "meeting",
+  startTime: "2026-10-27T09:00:00.000Z",
+  organized: true,
+  ...over,
+})
+
+const retroNote = (over: Partial<ReportSource["retroNotes"][number]> = {}) => ({
+  id: 111,
+  retroTitle: "Sprint 12 retro",
+  category: "went_well",
+  body: "Pairing worked",
+  at: "2026-10-27T09:00:00.000Z",
+  ...over,
+})
+
+const retroAction = (over: Partial<ReportSource["retroActions"][number]> = {}) => ({
+  id: 121,
+  retroTitle: "Sprint 12 retro",
+  body: "Book the drill",
+  done: false,
+  dueDate: "2026-11-05",
+  ...over,
+})
+
+const signoff = (over: Partial<ReportSource["careerSignoffs"][number]> = {}) => ({
+  id: 131,
+  itemKey: "backups.restore-drill",
+  status: "ticked",
+  at: "2026-10-27T09:00:00.000Z",
+  ...over,
+})
+
+const careerRequest = (over: Partial<ReportSource["careerRequests"][number]> = {}) => ({
+  id: 141,
+  discipline: "developer",
+  fromLevel: 2,
+  toLevel: 3,
+  status: "submitted",
+  at: "2026-10-28T09:00:00.000Z",
+  ...over,
+})
+
+const growthReview = (over: Partial<ReportSource["growthReviews"][number]> = {}) => ({
+  id: 151,
+  kind: "quarterly",
+  at: "2026-10-29T09:00:00.000Z",
+  ...over,
+})
+
+const playbook = (over: Partial<ReportSource["playbooks"][number]> = {}) => ({
+  id: 161,
+  title: "Restore drill",
+  status: "published",
+  version: 2,
+  at: "2026-10-27T09:00:00.000Z",
+  ...over,
+})
+
 const source = (over: Partial<ReportSource> = {}): ReportSource => ({
   period,
   todayIso: TODAY,
@@ -92,6 +213,19 @@ const source = (over: Partial<ReportSource> = {}): ReportSource => ({
   transitions: [],
   tasks: [],
   planItems: [],
+  opsEvents: [],
+  registerItems: [],
+  tickets: [],
+  ticketEvents: [],
+  goals: [],
+  goalCheckins: [],
+  meetings: [],
+  retroNotes: [],
+  retroActions: [],
+  careerSignoffs: [],
+  careerRequests: [],
+  growthReviews: [],
+  playbooks: [],
   ...over,
 })
 
@@ -119,6 +253,19 @@ describe("the no-number-without-rows invariant", () => {
         transitions: [transition(), transition({ id: 22, taskId: 6 })],
         tasks: [task(), task({ id: 6, status: "in_progress" })],
         planItems: [planItem()],
+        opsEvents: [opsEvent()],
+        registerItems: [registerItem()],
+        tickets: [ticket()],
+        ticketEvents: [ticketEvent()],
+        goals: [goal()],
+        goalCheckins: [checkin()],
+        meetings: [meeting()],
+        retroNotes: [retroNote()],
+        retroActions: [retroAction()],
+        careerSignoffs: [signoff()],
+        careerRequests: [careerRequest()],
+        growthReviews: [growthReview()],
+        playbooks: [playbook()],
       }),
     )
     for (const key of metricKeys) {
@@ -135,17 +282,49 @@ describe("the no-number-without-rows invariant", () => {
 
   it("prefixes every ref with the table it points at", () => {
     const aggregate = aggregateReport(
-      source({ entries: [entry()], transitions: [transition()], deliverables: [deliverable()], planItems: [planItem()] }),
+      source({
+        entries: [entry()],
+        transitions: [transition()],
+        deliverables: [deliverable()],
+        planItems: [planItem()],
+        opsEvents: [opsEvent()],
+        registerItems: [registerItem()],
+        tickets: [ticket()],
+        ticketEvents: [ticketEvent()],
+        goals: [goal()],
+        goalCheckins: [checkin()],
+        meetings: [meeting()],
+        retroNotes: [retroNote()],
+        retroActions: [retroAction()],
+        careerSignoffs: [signoff()],
+        careerRequests: [careerRequest()],
+        growthReviews: [growthReview()],
+        playbooks: [playbook()],
+      }),
     )
     const refs = [
       ...Object.values(aggregate.metrics).flatMap((m) => m.refs),
       ...aggregate.completed.map((r) => r.ref),
       ...aggregate.inProgress.map((r) => r.ref),
       ...aggregate.nextPeriod.map((r) => r.ref),
+      ...aggregate.opsRows.map((r) => r.ref),
+      ...aggregate.registerRows.map((r) => r.ref),
+      ...aggregate.ticketRows.map((r) => r.ref),
+      ...aggregate.goalRows.map((r) => r.ref),
+      ...aggregate.meetingRows.map((r) => r.ref),
+      ...aggregate.retroRows.map((r) => r.ref),
+      ...aggregate.careerRows.map((r) => r.ref),
+      ...aggregate.playbookRows.map((r) => r.ref),
+      ...aggregate.timeline.map((r) => r.ref),
+      ...aggregate.byModule.flatMap((b) => [...b.count.refs, ...b.minutes.refs]),
       ...aggregate.series.flatMap((b) => [...b.entries.refs, ...b.minutes.refs]),
     ]
     expect(refs.length).toBeGreaterThan(0)
-    for (const value of refs) expect(value).toMatch(/^(entry|task|deliverable|event|plan|day):\S+$/u)
+    for (const value of refs) {
+      expect(value).toMatch(
+        /^(entry|task|deliverable|event|plan|day|ops|register|ticket-event|ticket|goal|checkin|meeting|retro-note|retro-action|signoff|request|review|playbook):\S+$/u,
+      )
+    }
   })
 })
 
@@ -321,6 +500,197 @@ describe("the forward view", () => {
   })
 })
 
+describe("operations", () => {
+  it("counts ops events by their day in the member's timezone, not UTC", () => {
+    const aggregate = aggregateReport(
+      source({
+        opsEvents: [
+          opsEvent(),
+          opsEvent({ id: 42, occurredAt: "2026-10-26T21:20:00.000Z" }),
+          opsEvent({ id: 43, occurredAt: "2026-10-25T20:00:00.000Z" }),
+        ],
+      }),
+    )
+    expect(aggregate.metrics.opsEvents.value).toBe(2)
+    expect(aggregate.metrics.opsEvents.refs).toEqual(["ops:41", "ops:42"])
+    expect(aggregate.opsRows.map((r) => r.ref)).toEqual(["ops:41", "ops:42"])
+    expect(aggregate.opsRows[0]!.detail).toContain("it-technician")
+    expect(aggregate.opsRows[1]!.date).toBe("2026-10-27")
+  })
+})
+
+describe("registers", () => {
+  it("lists held items whenever they were verified, and counts only verifications in the period", () => {
+    const aggregate = aggregateReport(
+      source({
+        registerItems: [
+          registerItem(),
+          registerItem({ id: 52, lastVerifiedAt: "2026-09-01" }),
+          registerItem({ id: 53, lastVerifiedAt: null }),
+        ],
+      }),
+    )
+    expect(aggregate.metrics.registerItemsHeld.value).toBe(3)
+    expect(aggregate.metrics.registerVerifications.value).toBe(1)
+    expect(aggregate.metrics.registerVerifications.refs).toEqual(["register:51"])
+    expect(aggregate.registerRows).toHaveLength(3)
+    expect(aggregate.registerRows[0]!.detail).toContain("equipment")
+  })
+})
+
+describe("service desk", () => {
+  it("separates tickets resolved in the period from tickets still open", () => {
+    const aggregate = aggregateReport(
+      source({
+        tickets: [
+          ticket(),
+          ticket({ id: 62, status: "resolved", resolvedAt: "2026-10-28T10:00:00.000Z" }),
+          ticket({ id: 63, status: "resolved", resolvedAt: "2026-09-01T10:00:00.000Z" }),
+          ticket({ id: 64, status: "closed", resolvedAt: null }),
+        ],
+      }),
+    )
+    expect(aggregate.metrics.ticketsResolved.value).toBe(1)
+    expect(aggregate.metrics.ticketsResolved.refs).toEqual(["ticket:62"])
+    expect(aggregate.metrics.ticketsOpen.value).toBe(1)
+    expect(aggregate.metrics.ticketsOpen.refs).toEqual(["ticket:61"])
+    expect(aggregate.ticketRows.map((r) => r.ref).sort()).toEqual(["ticket:61", "ticket:62"])
+  })
+
+  it("counts the member's ticket actions in the period", () => {
+    const aggregate = aggregateReport(
+      source({ ticketEvents: [ticketEvent(), ticketEvent({ id: 72, at: "2026-10-01T09:00:00.000Z" })] }),
+    )
+    expect(aggregate.metrics.ticketActions.value).toBe(1)
+    expect(aggregate.metrics.ticketActions.refs).toEqual(["ticket-event:71"])
+  })
+})
+
+describe("goals", () => {
+  it("counts check-ins in the period and achieved goals as they stand", () => {
+    const aggregate = aggregateReport(
+      source({
+        goals: [goal(), goal({ id: 82, status: "achieved" })],
+        goalCheckins: [checkin(), checkin({ id: 92, at: "2026-10-01T09:00:00.000Z" })],
+      }),
+    )
+    expect(aggregate.metrics.goalCheckins.value).toBe(1)
+    expect(aggregate.metrics.goalCheckins.refs).toEqual(["checkin:91"])
+    expect(aggregate.metrics.goalsAchieved.value).toBe(1)
+    expect(aggregate.metrics.goalsAchieved.refs).toEqual(["goal:82"])
+    expect(aggregate.goalRows).toHaveLength(2)
+    expect(aggregate.goalRows[0]!.detail).toContain("40")
+  })
+})
+
+describe("meetings", () => {
+  it("counts meetings that started in the period and says which were organised", () => {
+    const aggregate = aggregateReport(
+      source({ meetings: [meeting(), meeting({ id: 102, startTime: "2026-11-05T09:00:00.000Z", organized: false })] }),
+    )
+    expect(aggregate.metrics.meetings.value).toBe(1)
+    expect(aggregate.metrics.meetings.refs).toEqual(["meeting:101"])
+    expect(aggregate.meetingRows[0]).toMatchObject({ ref: "meeting:101", date: "2026-10-27" })
+    expect(aggregate.meetingRows[0]!.detail).toMatch(/organi/u)
+  })
+})
+
+describe("retros", () => {
+  it("counts notes written in the period and actions still open", () => {
+    const aggregate = aggregateReport(
+      source({
+        retroNotes: [retroNote(), retroNote({ id: 112, at: "2026-10-01T09:00:00.000Z" })],
+        retroActions: [retroAction(), retroAction({ id: 122, done: true })],
+      }),
+    )
+    expect(aggregate.metrics.retroNotes.value).toBe(1)
+    expect(aggregate.metrics.retroNotes.refs).toEqual(["retro-note:111"])
+    expect(aggregate.metrics.retroActionsOpen.value).toBe(1)
+    expect(aggregate.metrics.retroActionsOpen.refs).toEqual(["retro-action:121"])
+    expect(aggregate.retroRows.map((r) => r.ref).sort()).toEqual(["retro-action:121", "retro-note:111"])
+  })
+})
+
+describe("career", () => {
+  it("counts sign-offs, requests and growth reviews dated in the period", () => {
+    const aggregate = aggregateReport(
+      source({
+        careerSignoffs: [signoff(), signoff({ id: 132, at: "2026-10-01T09:00:00.000Z" })],
+        careerRequests: [careerRequest()],
+        growthReviews: [growthReview()],
+      }),
+    )
+    expect(aggregate.metrics.careerSignoffs.refs).toEqual(["signoff:131"])
+    expect(aggregate.metrics.careerRequests.refs).toEqual(["request:141"])
+    expect(aggregate.metrics.growthReviews.refs).toEqual(["review:151"])
+    expect(aggregate.careerRows.map((r) => r.ref).sort()).toEqual(["request:141", "review:151", "signoff:131"])
+  })
+})
+
+describe("playbooks", () => {
+  it("counts playbooks published in the period and runs logged against any playbook", () => {
+    const aggregate = aggregateReport(
+      source({
+        playbooks: [
+          playbook(),
+          playbook({ id: 162, status: "draft", at: "2026-10-28T09:00:00.000Z" }),
+          playbook({ id: 163, at: "2026-09-01T09:00:00.000Z" }),
+        ],
+        entries: [entry({ playbookId: 161 }), entry({ id: 2 })],
+      }),
+    )
+    expect(aggregate.metrics.playbooksPublished.value).toBe(1)
+    expect(aggregate.metrics.playbooksPublished.refs).toEqual(["playbook:161"])
+    expect(aggregate.metrics.playbookRuns.value).toBe(1)
+    expect(aggregate.metrics.playbookRuns.refs).toEqual(["entry:1"])
+    expect(aggregate.playbookRows).toHaveLength(3)
+    expect(aggregate.playbookRows[0]!.detail).toContain("v2")
+  })
+})
+
+describe("the merged timeline", () => {
+  it("merges dated activity from every module, newest first, each row naming its source", () => {
+    const aggregate = aggregateReport(
+      source({
+        entries: [entry({ workedOn: "2026-10-27" })],
+        transitions: [transition({ at: "2026-10-28T10:00:00.000Z" })],
+        opsEvents: [opsEvent({ occurredAt: "2026-10-29T08:00:00.000Z" })],
+        meetings: [meeting()],
+      }),
+    )
+    expect(aggregate.timeline.map((r) => r.source)).toEqual(["operations", "tasks", "worklog", "meetings"])
+    for (const row of aggregate.timeline) expect(row.date).not.toBeNull()
+  })
+
+  it("keeps future and out-of-period rows out of the timeline", () => {
+    const aggregate = aggregateReport(
+      source({
+        planItems: [planItem()],
+        opsEvents: [opsEvent({ occurredAt: "2026-10-01T08:00:00.000Z" })],
+        tasks: [task({ status: "in_progress", dueDate: "2026-10-28" })],
+      }),
+    )
+    expect(aggregate.timeline).toEqual([])
+  })
+})
+
+describe("the workspace mix", () => {
+  it("counts each module's rows and carries the worklog minutes", () => {
+    const aggregate = aggregateReport(
+      source({ entries: [entry({ minutes: 90 })], opsEvents: [opsEvent()], meetings: [meeting()] }),
+    )
+    const keys = aggregate.byModule.map((b) => b.key)
+    expect(keys).toContain("worklog")
+    expect(keys).toContain("operations")
+    expect(keys).toContain("meetings")
+    expect(keys).not.toContain("goals")
+    const worklog = aggregate.byModule.find((b) => b.key === "worklog")!
+    expect(worklog.count.value).toBe(1)
+    expect(worklog.minutes.value).toBe(90)
+    expect(aggregate.byModule.find((b) => b.key === "operations")!.count.refs).toEqual(["ops:41"])
+  })
+})
+
 describe("splits", () => {
   it("groups minutes by discipline and files an unset discipline rather than dropping it", () => {
     const aggregate = aggregateReport(
@@ -403,7 +773,24 @@ describe("a period with no activity", () => {
 
   it("yields empty arrays for every section", () => {
     const aggregate = empty()
-    for (const rows of [aggregate.completed, aggregate.inProgress, aggregate.blocked, aggregate.deliverableRows, aggregate.overdue, aggregate.nextPeriod]) {
+    for (const rows of [
+      aggregate.completed,
+      aggregate.inProgress,
+      aggregate.blocked,
+      aggregate.deliverableRows,
+      aggregate.overdue,
+      aggregate.nextPeriod,
+      aggregate.opsRows,
+      aggregate.registerRows,
+      aggregate.ticketRows,
+      aggregate.goalRows,
+      aggregate.meetingRows,
+      aggregate.retroRows,
+      aggregate.careerRows,
+      aggregate.playbookRows,
+      aggregate.timeline,
+      aggregate.byModule,
+    ]) {
       expect(rows).toEqual([])
     }
     expect(aggregate.byDiscipline).toEqual([])
@@ -420,6 +807,14 @@ describe("a period with no activity", () => {
     expect(aggregateReport(source()).isEmpty).toBe(true)
     expect(aggregateReport(source({ entries: [entry()] })).isEmpty).toBe(false)
   })
+
+  it("is not empty when the only activity sits outside the worklog", () => {
+    expect(aggregateReport(source({ opsEvents: [opsEvent()] })).isEmpty).toBe(false)
+    expect(aggregateReport(source({ meetings: [meeting()] })).isEmpty).toBe(false)
+    expect(aggregateReport(source({ registerItems: [registerItem()] })).isEmpty).toBe(false)
+    expect(aggregateReport(source({ ticketEvents: [ticketEvent()] })).isEmpty).toBe(false)
+    expect(aggregateReport(source({ goalCheckins: [checkin()] })).isEmpty).toBe(false)
+  })
 })
 
 describe("the metric registry", () => {
@@ -427,5 +822,8 @@ describe("the metric registry", () => {
     expect(new Set(metricKeys).size).toBe(metricKeys.length)
     expect(SUM_METRIC_KEYS).toEqual(["minutes", "storyPointsCompleted"])
     expect(metricKeys).toContain("deliverablesProduced")
+    for (const key of ["opsEvents", "registerItemsHeld", "ticketsResolved", "goalCheckins", "meetings", "retroNotes", "careerSignoffs", "playbookRuns"]) {
+      expect(metricKeys).toContain(key)
+    }
   })
 })
