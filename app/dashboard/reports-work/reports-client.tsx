@@ -88,6 +88,9 @@ export default function ReportsClient() {
   const [timezone, setTimezone] = useState<string | null>(null)
   const [todayIso, setTodayIso] = useState(() => localDay(new Date(), null))
   const [state, setState] = useState<ReportState>(() => defaultReportState(localDay(new Date(), null)))
+  // The URL is the source of truth until the first parse adopts it; rewriting before that would
+  // strip a deep link on a fresh load.
+  const [adopted, setAdopted] = useState(false)
   const [reports, setReports] = useState<ReportDto[]>([])
   const [report, setReport] = useState<ReportDto | null>(null)
   const [preview, setPreview] = useState<ReportAggregate | null>(null)
@@ -118,16 +121,18 @@ export default function ReportsClient() {
     setState((prev) =>
       serializeReportView(parsed, todayIso) !== serializeReportView(prev, todayIso) ? parsed : prev,
     )
+    setAdopted(true)
   }, [search, todayIso])
 
   useEffect(() => {
+    if (!adopted) return
     const next = serializeReportView(state, todayIso)
     const target = next ? `/dashboard/reports-work?${next}` : "/dashboard/reports-work"
     // location.search keeps its leading `?` and serializeReportView does not, so the two are
     // compared after the strip — otherwise every render rewrites the URL and re-runs this effect.
     const current = window.location.search.replace(/^\?/u, "")
     if (next !== current) router.replace(target, { scroll: false })
-  }, [state, todayIso, router])
+  }, [adopted, state, todayIso, router])
 
   // One write path for the four actions, so a 400 from the route's whitelist is reported the
   // same way as a dropped connection: the message the server sent, in a toast.

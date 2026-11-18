@@ -47,6 +47,16 @@ describe("the reports-work page", () => {
     expect(client()).toMatch(/const current = window\.location\.search\.replace/u)
   })
 
+  it("adopts the query before the first rewrite can fire", () => {
+    // On a fresh deep-link load both effects run once with the initial state: the parse effect's
+    // setState has not landed yet when the rewrite effect compares the default state against
+    // ?v=build&r=2 and replaces the URL with the bare page — the report never reopens. The
+    // rewrite waits until the first parse has adopted the query.
+    expect(client()).toMatch(/const \[adopted, setAdopted\] = useState\(false\)/u)
+    expect(client()).toMatch(/setAdopted\(true\)/u)
+    expect(client()).toMatch(/if \(!adopted\) return/u)
+  })
+
   it("takes the day from the server, not the browser clock", () => {
     expect(client()).toMatch(/const serverToday = listJson\.data\.today as string/u)
     // Identity matters as much as the value: `refresh` closes over `state` and an effect runs it
