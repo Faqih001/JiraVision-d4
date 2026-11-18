@@ -18,7 +18,6 @@ import {
   Play,
   RefreshCw,
   Search,
-  SlidersHorizontal,
   Square,
   TrendingDown,
   TrendingUp,
@@ -28,10 +27,9 @@ import { Button } from "@/components/ui/button"
 import { DateRangePicker } from "@/components/ui/date-range-picker"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
-import { SectionCard, FILTER_TRIGGER, DASHBOARD_SECTION_GRID } from "@/components/dashboard-kit"
+import { SectionCard, FILTER_BAR, FILTER_SEARCH, FILTER_TRIGGER, DASHBOARD_SECTION_GRID } from "@/components/dashboard-kit"
 import { LIVE_REFRESH_MS, useLiveRefresh } from "@/hooks/use-live-refresh"
 import { useToast } from "@/hooks/use-toast"
 import { localDay, shiftDays } from "@/lib/worklog/local-day"
@@ -96,6 +94,7 @@ import {
   LogSection,
   TimeByTaskSection,
   TransitionsSection,
+  WeekRhythmSection,
 } from "./sections"
 import {
   ConfirmBulkDelete,
@@ -648,22 +647,25 @@ export default function WorklogClient() {
         loading={loading}
         totalMinutes={summary?.totals.minutes ?? 0}
       />
-      <KindMixSection
-        kinds={summary?.kinds ?? []}
-        openBlockers={summary?.openBlockers ?? 0}
-        totalEntries={summary?.totals.entries ?? 0}
-        loading={loading}
-      />
-      <CoverageSection
-        gaps={summary?.gaps ?? []}
-        streak={summary?.streak ?? { current: 0, longest: 0 }}
-        unlinked={summary?.unlinked ?? 0}
-        totals={summary?.totals ?? { entries: 0, minutes: 0, activeDays: 0 }}
-        range={range}
-        activity={activity}
-        loading={loading}
-        onPickDay={(day) => patchState({ day, view: "day" })}
-      />
+      <div className="grid gap-4 md:col-span-2 lg:grid-cols-3 xl:col-span-2">
+        <KindMixSection
+          kinds={summary?.kinds ?? []}
+          openBlockers={summary?.openBlockers ?? 0}
+          totalEntries={summary?.totals.entries ?? 0}
+          loading={loading}
+        />
+        <CoverageSection
+          gaps={summary?.gaps ?? []}
+          streak={summary?.streak ?? { current: 0, longest: 0 }}
+          unlinked={summary?.unlinked ?? 0}
+          totals={summary?.totals ?? { entries: 0, minutes: 0, activeDays: 0 }}
+          range={range}
+          activity={activity}
+          loading={loading}
+          onPickDay={(day) => patchState({ day, view: "day" })}
+        />
+        <WeekRhythmSection days={summary?.days ?? []} loading={loading} />
+      </div>
       {deliverableDraft !== null ? (
         <DeliverableDialog
           key={deliverableDraft.id ?? "new"}
@@ -1040,7 +1042,7 @@ function FilterSection({
     })
 
   // Every active filter is a chip with its own remove button, so narrowing the log never
-  // requires opening the popover to find out what is narrowing it.
+  // requires hunting through the dropdowns to find out what is narrowing it.
   const chips = [
     state.kind !== "all"
       ? { key: "kind", label: KIND_LABEL[state.kind], onRemove: () => patchState({ kind: "all" }) }
@@ -1072,9 +1074,9 @@ function FilterSection({
   ].filter((chip): chip is { key: string; label: string; onRemove: () => void } => chip !== null)
 
   return (
-    <section aria-label="Find in the log" className="rounded-xl border border-border/60 bg-card p-3">
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="relative w-full sm:w-64">
+    <section aria-label="Find in the log" className="rounded-xl border border-border/60 bg-card px-3">
+      <div className={FILTER_BAR}>
+        <div className={FILTER_SEARCH}>
           <Search
             className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground"
             aria-hidden
@@ -1090,103 +1092,88 @@ function FilterSection({
             onChange={(event) => patchState({ q: event.target.value })}
           />
         </div>
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs">
-              <SlidersHorizontal className="h-3.5 w-3.5" aria-hidden />
-              Filters
-              {active > 0 ? (
-                <span className="rounded-full bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground">
-                  {active}
-                </span>
-              ) : null}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent align="start" className="w-80 space-y-2">
-            <div className="grid grid-cols-2 gap-2">
-              <Select value={state.kind} onValueChange={(v) => patchState({ kind: v as WorkLogKind | "all" })}>
-                <SelectTrigger className="h-8 text-xs" aria-label="Entry kind">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All kinds</SelectItem>
-                  {WORK_LOG_KINDS.map((k) => (
-                    <SelectItem key={k} value={k}>
-                      {KIND_LABEL[k]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select
-                value={state.taskId === null ? "all" : String(state.taskId)}
-                onValueChange={(v) => patchState({ taskId: v === "all" ? null : Number(v) })}
-              >
-                <SelectTrigger className="h-8 text-xs" aria-label="Task">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Any task</SelectItem>
-                  {tasks.map((t) => (
-                    <SelectItem key={t.id} value={String(t.id)}>
-                      {t.title.slice(0, 40)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select
-                value={state.deliverableStatus}
-                onValueChange={(v) => patchState({ deliverableStatus: v as DeliverableStatus | "all" })}
-              >
-                <SelectTrigger className="h-8 text-xs" aria-label="Deliverable state">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Any deliverable state</SelectItem>
-                  {DELIVERABLE_STATUSES.map((s) => (
-                    <SelectItem key={s} value={s}>
-                      {DELIVERABLE_LABEL_STATUS[s]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <DisciplinePicker value={state.discipline} onChange={(d) => patchState({ discipline: d })} />
-            </div>
-            <div className="flex items-center justify-between gap-2">
-              <Button
-                variant={state.hasDeliverable ? "default" : "outline"}
-                size="sm"
-                className="h-8 border border-border text-xs"
-                aria-pressed={state.hasDeliverable}
-                onClick={() => patchState({ hasDeliverable: !state.hasDeliverable })}
-              >
-                {state.hasDeliverable ? "Linked only" : "Any deliverable link"}
-              </Button>
-              <span className="text-[11px] text-muted-foreground">{deliverableCount} deliverables on file</span>
-            </div>
-            {active > 0 ? (
-              <Button variant="ghost" size="sm" className="h-8 w-full border border-border text-xs" onClick={clearAll}>
-                Clear all filters
-              </Button>
-            ) : null}
-          </PopoverContent>
-        </Popover>
-        {chips.map((chip) => (
-          <span
-            key={chip.key}
-            className="inline-flex h-7 items-center gap-1 rounded-full bg-muted px-2.5 text-[11px]"
-          >
-            {chip.label}
-            <button
-              type="button"
-              className="rounded-full p-0.5 hover:bg-background"
-              aria-label={`Remove ${chip.label} filter`}
-              onClick={chip.onRemove}
-            >
-              <X className="h-3 w-3" aria-hidden />
-            </button>
-          </span>
-        ))}
+        <Select value={state.kind} onValueChange={(v) => patchState({ kind: v as WorkLogKind | "all" })}>
+          <SelectTrigger className={FILTER_TRIGGER} aria-label="Entry kind">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All kinds</SelectItem>
+            {WORK_LOG_KINDS.map((k) => (
+              <SelectItem key={k} value={k}>
+                {KIND_LABEL[k]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select
+          value={state.taskId === null ? "all" : String(state.taskId)}
+          onValueChange={(v) => patchState({ taskId: v === "all" ? null : Number(v) })}
+        >
+          <SelectTrigger className={FILTER_TRIGGER} aria-label="Task">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Any task</SelectItem>
+            {tasks.map((t) => (
+              <SelectItem key={t.id} value={String(t.id)}>
+                {t.title.slice(0, 40)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select
+          value={state.deliverableStatus}
+          onValueChange={(v) => patchState({ deliverableStatus: v as DeliverableStatus | "all" })}
+        >
+          <SelectTrigger className={FILTER_TRIGGER} aria-label="Deliverable state">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Any deliverable state</SelectItem>
+            {DELIVERABLE_STATUSES.map((s) => (
+              <SelectItem key={s} value={s}>
+                {DELIVERABLE_LABEL_STATUS[s]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <DisciplinePicker inline value={state.discipline} onChange={(d) => patchState({ discipline: d })} />
+        <Button
+          variant={state.hasDeliverable ? "default" : "outline"}
+          size="sm"
+          className="h-8 border border-border text-xs"
+          aria-pressed={state.hasDeliverable}
+          onClick={() => patchState({ hasDeliverable: !state.hasDeliverable })}
+        >
+          {state.hasDeliverable ? "Linked only" : "Any deliverable link"}
+        </Button>
+        <span className="text-[11px] text-muted-foreground">{deliverableCount} deliverables on file</span>
       </div>
+      {chips.length > 0 || active > 0 ? (
+        <div className="flex flex-wrap items-center gap-1.5 pb-3">
+          {chips.map((chip) => (
+            <span
+              key={chip.key}
+              className="inline-flex h-7 items-center gap-1 rounded-full bg-muted px-2.5 text-[11px]"
+            >
+              {chip.label}
+              <button
+                type="button"
+                className="rounded-full p-0.5 hover:bg-background"
+                aria-label={`Remove ${chip.label} filter`}
+                onClick={chip.onRemove}
+              >
+                <X className="h-3 w-3" aria-hidden />
+              </button>
+            </span>
+          ))}
+          {active > 0 ? (
+            <Button variant="ghost" size="sm" className="h-7 border border-border text-xs" onClick={clearAll}>
+              Clear all filters
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
     </section>
   )
 }

@@ -75,6 +75,7 @@ import {
 import { BULK_SETTABLE_KINDS, type BulkAction } from "@/lib/worklog/bulk"
 import type { TransitionDto, WorklogSummary } from "@/lib/worklog/summary"
 import { buildDigest } from "@/lib/worklog/digest"
+import { weekdayMinutes } from "@/lib/worklog/rhythm"
 import { VIEW_LABEL, type ViewState, type WorklogView } from "@/lib/worklog/view-state"
 import {
   DISCIPLINE_CATEGORIES,
@@ -1190,6 +1191,66 @@ export function CoverageSection({
 
 // The digest is Markdown over the same summary the cards read, so the panel can never disagree
 // with the page. Copying is the point: it pastes straight into a stand-up note or a report.
+const WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const
+
+export function WeekRhythmSection({ days, loading }: { days: DayBucket[]; loading: boolean }) {
+  const totals = weekdayMinutes(days)
+  const busiest = Math.max(1, ...totals)
+  const hasMinutes = totals.some((minutes) => minutes > 0)
+  return (
+    <SectionCard
+      title="Week rhythm"
+      icon={<CalendarDays className="h-4 w-4" />}
+      className="md:col-span-1 xl:col-span-1"
+    >
+      {loading ? (
+        <Skeleton className="h-24 w-full" />
+      ) : !hasMinutes ? (
+        <EmptyNote>Nothing logged in this range yet.</EmptyNote>
+      ) : (
+        <div>
+          <div className="grid h-28 grid-cols-7 items-end gap-2">
+            {totals.map((minutes, index) => (
+              <div
+                key={WEEKDAY_LABELS[index]}
+                className="flex h-full flex-col items-center justify-end gap-1"
+              >
+                <span className="text-[10px] tabular-nums text-muted-foreground">
+                  {minutes > 0 ? formatMinutes(minutes) : "—"}
+                </span>
+                <div
+                  className="w-full rounded-sm"
+                  style={{
+                    height: `${Math.max(3, Math.round((minutes / busiest) * 78))}%`,
+                    backgroundColor:
+                      minutes === 0
+                        ? "hsl(var(--muted))"
+                        : `color-mix(in srgb, hsl(var(--chart-pine)) ${Math.round(35 + (minutes / busiest) * 60)}%, transparent)`,
+                  }}
+                  title={`${WEEKDAY_LABELS[index]} · ${formatMinutes(minutes)}`}
+                />
+              </div>
+            ))}
+          </div>
+          <div className="mt-1 grid grid-cols-7 gap-2">
+            {WEEKDAY_LABELS.map((label) => (
+              <span
+                key={label}
+                className="text-center text-[10px] uppercase tracking-wide text-muted-foreground"
+              >
+                {label}
+              </span>
+            ))}
+          </div>
+          <p className="mt-2 text-[11px] text-muted-foreground">
+            Minutes by weekday across this range.
+          </p>
+        </div>
+      )}
+    </SectionCard>
+  )
+}
+
 export function DigestDialog({
   open,
   onOpenChange,
