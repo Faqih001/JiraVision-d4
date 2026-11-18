@@ -104,6 +104,15 @@ describe("the overview strip and insight cards", () => {
     expect(overviewFile()).toMatch(/statusCounts\(reports\)/u)
   })
 
+  it("renders the five summary tiles as cards with larger type", () => {
+    const strip = slice("export function ReportsKpiStrip", "export function WorkspaceMixSection")
+    expect(strip.match(/asCard/gu)).toHaveLength(5)
+    const sections = sectionsFile()
+    const stat = sections.slice(sections.indexOf("export function Stat"), sections.indexOf("export function HeaderSection"))
+    expect(stat).toMatch(/asCard \? "bg-card text-card-foreground shadow-sm/u)
+    expect(stat).toMatch(/asCard \? "text-3xl" : "text-lg"/u)
+  })
+
   it("draws the pipeline as a fixed donut with a centre total and a full legend", () => {
     const pipeline = slice("export function PipelineSection", "export function CadenceSection")
     expect(pipeline).toMatch(/<PieChart width=\{160\} height=\{160\}>/u)

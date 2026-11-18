@@ -49,6 +49,7 @@ import {
 } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { EmptyNote, SectionCard, DASHBOARD_SECTION_GRID, DASHBOARD_KPI_GRID } from "@/components/dashboard-kit"
+import { cn } from "@/lib/utils"
 import {
   isSumMetric,
   type Count,
@@ -375,12 +376,27 @@ export function MyReportsSection({
   )
 }
 
-export function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
+export function Stat({
+  label,
+  value,
+  hint,
+  asCard = false,
+}: {
+  label: string
+  value: string
+  hint?: string
+  asCard?: boolean
+}) {
   return (
-    <div className="flex h-full flex-col justify-center rounded-lg border border-border/60 bg-background/40 px-3 py-2">
-      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className="text-lg font-semibold tabular-nums">{value}</p>
-      {hint ? <p className="text-[10px] text-muted-foreground">{hint}</p> : null}
+    <div
+      className={cn(
+        "flex h-full flex-col justify-center rounded-lg border",
+        asCard ? "bg-card text-card-foreground shadow-sm px-4 py-3" : "border-border/60 bg-background/40 px-3 py-2",
+      )}
+    >
+      <p className={cn("uppercase tracking-wide text-muted-foreground", asCard ? "text-xs" : "text-[10px]")}>{label}</p>
+      <p className={cn("font-semibold tabular-nums", asCard ? "text-3xl" : "text-lg")}>{value}</p>
+      {hint ? <p className={cn("text-muted-foreground", asCard ? "text-[11px]" : "text-[10px]")}>{hint}</p> : null}
     </div>
   )
 }

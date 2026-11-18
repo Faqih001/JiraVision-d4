@@ -177,14 +177,15 @@ export function ReportsKpiStrip({ reports, filtered }: { reports: ReportDto[]; f
   return (
     <div className={`${DASHBOARD_KPI_GRID} xl:grid-cols-5`}>
       <Stat
+        asCard
         label="Total reports"
         value={String(reports.length)}
         hint={filtered ? "matching your search" : "in your list"}
       />
-      <Stat label="Drafts" value={String(counts.draft)} hint="still editable" />
-      <Stat label="Awaiting review" value={String(counts.submitted)} hint="with recipients" />
-      <Stat label="Acknowledged" value={String(counts.acknowledged)} hint="read and accepted" />
-      <Stat label="Returned" value={String(counts.returned)} hint="sent back for revision" />
+      <Stat asCard label="Drafts" value={String(counts.draft)} hint="still editable" />
+      <Stat asCard label="Awaiting review" value={String(counts.submitted)} hint="with recipients" />
+      <Stat asCard label="Acknowledged" value={String(counts.acknowledged)} hint="read and accepted" />
+      <Stat asCard label="Returned" value={String(counts.returned)} hint="sent back for revision" />
     </div>
   )
 }
