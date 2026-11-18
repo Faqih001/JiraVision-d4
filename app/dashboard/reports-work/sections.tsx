@@ -19,7 +19,11 @@ import {
   Inbox,
   Loader2,
   NotebookPen,
+  Plus,
+  Send,
   ShieldAlert,
+  Trash2,
+  Undo2,
 } from "lucide-react"
 import Link from "next/link"
 import {
@@ -267,6 +271,10 @@ export function MyReportsSection({
   timezone,
   onQuery,
   onOpen,
+  onSubmit,
+  onRevise,
+  onDelete,
+  onCreate,
 }: {
   reports: ReportDto[]
   loading: boolean
@@ -276,6 +284,10 @@ export function MyReportsSection({
   timezone: string | null
   onQuery: (value: string) => void
   onOpen: (id: number) => void
+  onSubmit: (id: number) => void
+  onRevise: (id: number) => void
+  onDelete: (report: ReportDto) => void
+  onCreate: () => void
 }) {
   return (
     <SectionCard
@@ -301,10 +313,19 @@ export function MyReportsSection({
         {loading ? (
           <Skeleton className="h-24 w-full" />
         ) : reports.length === 0 ? (
-          <ReportEmptyNote>
-            No reports yet. Pick a period on the left and the sections fill themselves from your work
-            log; nothing has to be typed before a report can be read.
-          </ReportEmptyNote>
+          <div className="space-y-3">
+            <ReportEmptyNote>
+              {query.trim() === ""
+                ? "No reports yet. Pick a period on the left and the sections fill themselves from your work log; nothing has to be typed before a report can be read."
+                : "Nothing matches this search. Clear it to see the whole list."}
+            </ReportEmptyNote>
+            {query.trim() === "" ? (
+              <Button type="button" size="sm" onClick={onCreate}>
+                <Plus className="mr-1 h-4 w-4" />
+                Create your first report
+              </Button>
+            ) : null}
+          </div>
         ) : (
           <ul className="divide-y divide-border/60">
             {reports.map((report) => (
@@ -330,6 +351,44 @@ export function MyReportsSection({
                   >
                     Open
                   </Button>
+                  {report.status === "draft" ? (
+                    <>
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="outline"
+                        className="h-9 w-9"
+                        aria-label={`Submit ${report.title}`}
+                        title="Submit to recipients"
+                        onClick={() => onSubmit(report.id)}
+                      >
+                        <Send className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="outline"
+                        className="h-9 w-9"
+                        aria-label={`Delete ${report.title}`}
+                        title="Delete draft"
+                        onClick={() => onDelete(report)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </>
+                  ) : (
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="outline"
+                      className="h-9 w-9"
+                      aria-label={`Revise ${report.title}`}
+                      title="Revise as a new draft"
+                      onClick={() => onRevise(report.id)}
+                    >
+                      <Undo2 className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
                 </div>
               </li>
             ))}

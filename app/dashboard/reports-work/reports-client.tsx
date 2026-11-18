@@ -33,12 +33,14 @@ import {
   effectiveTemplate,
   metricsSource,
   parseReportView,
+  REPORT_VIEW_LABEL,
+  REPORT_VIEWS,
   resolveReportPeriod,
   serializeReportView,
   SOURCE_LABEL,
   type ReportState,
 } from "@/lib/reports/view-state"
-import { ConfirmReportDelete, NewReportDialog, type NewReportDraft } from "./dialogs"
+import { ConfirmReportDelete, NewReportDialog, SubmitReportDialog, type NewReportDraft } from "./dialogs"
 import {
   CadenceSection,
   PipelineSection,
@@ -102,7 +104,8 @@ export default function ReportsClient() {
   const [busy, setBusy] = useState(false)
   const [newOpen, setNewOpen] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<ReportDto | null>(null)
-  const [submitOpen, setSubmitOpen] = useState(false)
+  // The row the member chose to submit, which need not be the one the builder holds open.
+  const [submitTarget, setSubmitTarget] = useState<ReportDto | null>(null)
 
   useEffect(() => {
     setTodayIso(localDay(new Date(), timezone))
@@ -323,17 +326,18 @@ export default function ReportsClient() {
       return
     }
     setPendingDelete(null)
-    patchState({ reportId: null, view: "list" })
+    // Deleting a row from the list must not close a different report the builder holds open.
+    if (pendingDelete.id === state.reportId) patchState({ reportId: null, view: "list" })
     await refresh()
     toast({ title: "Draft deleted" })
-  }, [mutate, patchState, pendingDelete, refresh, toast])
+  }, [mutate, patchState, pendingDelete, refresh, state.reportId, toast])
 
   const submitReport = useCallback(
     async (recipientIds: number[]) => {
-      if (!report) return
+      if (!submitTarget) return
       setBusy(true)
       const json = await readJson(
-        await fetch(`/api/reports/work/${report.id}/submit`, {
+        await fetch(`/api/reports/work/${submitTarget.id}/submit`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ recipientIds }),
@@ -348,18 +352,17 @@ export default function ReportsClient() {
         })
         return
       }
-      setSubmitOpen(false)
+      setSubmitTarget(null)
       await refresh()
       toast({ title: "Report submitted", description: "Recipients have been notified." })
     },
-    [report, toast, refresh],
+    [submitTarget, toast, refresh],
   )
 
-  const reviseReport = useCallback(async () => {
-    if (!report) return
+  const reviseReport = useCallback(async (id: number) => {
     setBusy(true)
     const json = await readJson(
-      await fetch(`/api/reports/work/${report.id}/revise`, {
+      await fetch(`/api/reports/work/${id}/revise`, {
         method: "POST",
       }),
     )
@@ -373,10 +376,10 @@ export default function ReportsClient() {
       return
     }
     const newReport = json.data.report as ReportDto
-    patchState({ reportId: newReport.id })
+    patchState({ view: "build", reportId: newReport.id })
     await refresh()
-    toast({ title: "Revision created", description: `New draft #${newReport.id} based on report #${report.id}` })
-  }, [report, toast, refresh, patchState])
+    toast({ title: "Revision created", description: `New draft #${newReport.id} based on report #${id}` })
+  }, [toast, refresh, patchState])
 
   const exportPdf = useCallback(() => {
     if (!report || !aggregate) return
@@ -485,35 +488,62 @@ export default function ReportsClient() {
             Ask the assistant about {shownPeriod.label}
           </Link>
         </div>
-        <div className="flex shrink-0 gap-2">
+        <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+          <div className="flex rounded-lg border border-border/60 p-0.5" role="group" aria-label="Report view">
+            {REPORT_VIEWS.map((view) => (
+              <Button
+                key={view}
+                type="button"
+                size="sm"
+                variant={state.view === view ? "default" : "ghost"}
+                className="h-7 px-3 text-[12px]"
+                aria-pressed={state.view === view}
+                onClick={() => patchState({ view })}
+              >
+                {REPORT_VIEW_LABEL[view]}
+              </Button>
+            ))}
+          </div>
           <Button type="button" variant="outline" size="sm" onClick={() => setNewOpen(true)}>
             <Plus className="mr-1 h-4 w-4" />
             New report
           </Button>
-          {report?.status === "draft" && (
-            <Button type="button" size="sm" onClick={() => setSubmitOpen(true)} disabled={busy}>
-              <Send className="mr-1 h-4 w-4" />
-              Submit
-            </Button>
-          )}
-          {report && report.status !== "draft" && (
-            <Button type="button" variant="outline" size="sm" onClick={() => void reviseReport()} disabled={busy}>
-              <Undo2 className="mr-1 h-4 w-4" />
-              Revise
-            </Button>
-          )}
-          <Button type="button" size="sm" onClick={() => void saveDraft()} disabled={busy || report?.status !== "draft"} title={dirty ? "Unsaved changes" : "No changes to save"}>
-            <Save className="mr-1 h-4 w-4" />
-            Save draft
-          </Button>
-          <Button type="button" variant="outline" size="sm" onClick={() => void recompute()} disabled={busy || report === null}>
-            <Calculator className="mr-1 h-4 w-4" />
-            Recompute
-          </Button>
-          <Button type="button" variant="outline" size="sm" onClick={() => setPendingDelete(report)} disabled={busy || report === null || report?.status !== "draft"}>
-            <Trash2 className="mr-1 h-4 w-4" />
-            Delete
-          </Button>
+          {state.view === "build" ? (
+            <>
+              {report?.status === "draft" && (
+                <Button type="button" size="sm" onClick={() => setSubmitTarget(report)} disabled={busy}>
+                  <Send className="mr-1 h-4 w-4" />
+                  Submit
+                </Button>
+              )}
+              {report && report.status !== "draft" && (
+                <Button type="button" variant="outline" size="sm" onClick={() => void reviseReport(report.id)} disabled={busy}>
+                  <Undo2 className="mr-1 h-4 w-4" />
+                  Revise
+                </Button>
+              )}
+              <Button type="button" size="sm" onClick={() => void saveDraft()} disabled={busy || report?.status !== "draft"} title={dirty ? "Unsaved changes" : "No changes to save"}>
+                <Save className="mr-1 h-4 w-4" />
+                Save draft
+              </Button>
+              <Button type="button" variant="outline" size="sm" onClick={() => void recompute()} disabled={busy || report === null}>
+                <Calculator className="mr-1 h-4 w-4" />
+                Recompute
+              </Button>
+              <Button type="button" variant="outline" size="sm" onClick={() => setPendingDelete(report)} disabled={busy || report === null || report?.status !== "draft"}>
+                <Trash2 className="mr-1 h-4 w-4" />
+                Delete
+              </Button>
+              <Button type="button" variant="outline" size="sm" onClick={exportPdf} disabled={!report || !aggregate}>
+                <Download className="mr-1 h-4 w-4" />
+                PDF
+              </Button>
+              <Button type="button" variant="outline" size="sm" onClick={() => void exportXlsx()} disabled={!report || !aggregate}>
+                <Download className="mr-1 h-4 w-4" />
+                Excel
+              </Button>
+            </>
+          ) : null}
           <Button type="button" variant="outline" size="sm" onClick={() => void refresh()}>
             <RefreshCw className="mr-1 h-4 w-4" />
             Reload
@@ -521,14 +551,6 @@ export default function ReportsClient() {
           <Button type="button" variant="outline" size="sm" onClick={() => void copyLink()}>
             <Copy className="mr-1 h-4 w-4" />
             Copy link
-          </Button>
-          <Button type="button" variant="outline" size="sm" onClick={exportPdf} disabled={!report || !aggregate}>
-            <Download className="mr-1 h-4 w-4" />
-            PDF
-          </Button>
-          <Button type="button" variant="outline" size="sm" onClick={() => void exportXlsx()} disabled={!report || !aggregate}>
-            <Download className="mr-1 h-4 w-4" />
-            Excel
           </Button>
         </div>
       </div>
@@ -547,6 +569,10 @@ export default function ReportsClient() {
             timezone={timezone}
             onQuery={(value) => patchState({ q: value })}
             onOpen={(id) => patchState({ view: "build", reportId: id })}
+            onSubmit={(id) => setSubmitTarget(reports.find((item) => item.id === id) ?? null)}
+            onRevise={(id) => void reviseReport(id)}
+            onDelete={setPendingDelete}
+            onCreate={() => setNewOpen(true)}
           />
         </div>
         {state.view === "build" ? (
@@ -594,93 +620,14 @@ export default function ReportsClient() {
         onCancel={() => setPendingDelete(null)}
         onConfirm={() => void deleteDraft()}
       />
-      {submitOpen && report ? (
-        <SubmitDialog
-          report={report}
+      {submitTarget ? (
+        <SubmitReportDialog
+          report={submitTarget}
           busy={busy}
           onSubmit={(recipientIds) => void submitReport(recipientIds)}
-          onClose={() => setSubmitOpen(false)}
+          onClose={() => setSubmitTarget(null)}
         />
       ) : null}
-    </div>
-  )
-}
-
-function SubmitDialog({
-  report,
-  busy,
-  onSubmit,
-  onClose,
-}: {
-  report: ReportDto
-  busy: boolean
-  onSubmit: (recipientIds: number[]) => void
-  onClose: () => void
-}) {
-  const [members, setMembers] = useState<{ id: number; name: string }[]>([])
-  const [recipientIds, setRecipientIds] = useState<number[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    Promise.all([
-      fetch("/api/team/members").then((r) => r.json()),
-      fetch("/api/settings").then((r) => r.json()),
-    ]).then(([membersJson, settingsJson]) => {
-      if (membersJson?.success) {
-        setMembers(membersJson.teamMembers.map((m: any) => ({ id: m.id, name: m.name })))
-      }
-      if (settingsJson?.success && Array.isArray(settingsJson.settings.defaultReportRecipients)) {
-        setRecipientIds(settingsJson.settings.defaultReportRecipients)
-      }
-      setLoading(false)
-    })
-  }, [])
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="w-full max-w-md rounded-lg bg-background p-6 shadow-lg">
-        <h2 className="text-lg font-semibold">Submit report</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Choose who receives &quot;{report.title}&quot;. Once submitted, the report is locked.
-        </p>
-        {loading ? (
-          <div className="mt-4 space-y-2">
-            <Skeleton className="h-8 w-full" />
-            <Skeleton className="h-8 w-full" />
-            <Skeleton className="h-8 w-full" />
-          </div>
-        ) : (
-          <div className="mt-4 max-h-64 space-y-2 overflow-y-auto">
-            {members.map((m) => (
-              <label key={m.id} className="flex items-center gap-2 rounded border p-2 hover:bg-muted">
-                <input
-                  type="checkbox"
-                  checked={recipientIds.includes(m.id)}
-                  onChange={(e) => {
-                    setRecipientIds((prev) =>
-                      e.target.checked ? [...prev, m.id] : prev.filter((id) => id !== m.id),
-                    )
-                  }}
-                  className="h-4 w-4"
-                />
-                <span className="text-sm">{m.name}</span>
-              </label>
-            ))}
-          </div>
-        )}
-        <div className="mt-6 flex justify-end gap-2">
-          <Button type="button" variant="outline" onClick={onClose} disabled={busy}>
-            Cancel
-          </Button>
-          <Button
-            type="button"
-            onClick={() => onSubmit(recipientIds)}
-            disabled={busy || recipientIds.length === 0}
-          >
-            Submit
-          </Button>
-        </div>
-      </div>
     </div>
   )
 }

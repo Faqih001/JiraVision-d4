@@ -1,14 +1,16 @@
 "use client"
 
-// Two dialogs, because a report is created with a period and destroyed with a click. Both are
-// controlled forms over a draft object rather than uncontrolled refs: the values shown are the
-// values sent, and the route's whitelist checks them again anyway.
+// The report dialogs: a report is created with a period, sent to chosen recipients, and destroyed
+// with a confirmed click. All are controlled forms over a draft object rather than uncontrolled
+// refs: the values shown are the values sent, and the route's whitelist checks them again anyway.
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   Dialog,
   DialogContent,
@@ -134,6 +136,118 @@ export function NewReportDialog({
           <Button type="button" onClick={submit} disabled={busy || draft.title.trim() === ""}>
             {busy ? <Loader2 className="mr-1 h-4 w-4 animate-spin" aria-hidden /> : null}
             Create draft
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+export function SubmitReportDialog({
+  report,
+  busy,
+  onSubmit,
+  onClose,
+}: {
+  report: ReportDto
+  busy: boolean
+  onSubmit: (recipientIds: number[]) => void
+  onClose: () => void
+}) {
+  const [members, setMembers] = useState<{ id: number; name: string }[]>([])
+  const [recipientIds, setRecipientIds] = useState<number[]>([])
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    const load = async () => {
+      try {
+        const [membersRes, settingsRes] = await Promise.all([
+          fetch("/api/team/members"),
+          fetch("/api/settings"),
+        ])
+        const membersJson = await membersRes.json().catch(() => null)
+        const settingsJson = await settingsRes.json().catch(() => null)
+        if (cancelled) return
+        if (membersJson?.success) {
+          setMembers(
+            (membersJson.teamMembers as { id: number; name: string }[]).map((m) => ({
+              id: m.id,
+              name: m.name,
+            })),
+          )
+        } else {
+          setLoadError(membersJson?.message ?? "Could not load your team")
+        }
+        if (settingsJson?.success && Array.isArray(settingsJson.settings.defaultReportRecipients)) {
+          setRecipientIds(settingsJson.settings.defaultReportRecipients)
+        }
+      } catch (error) {
+        if (!cancelled) setLoadError((error as Error).message)
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    void load()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  return (
+    <Dialog open onOpenChange={(next) => (next ? undefined : onClose())}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Submit report</DialogTitle>
+          <DialogDescription>
+            Choose who receives &quot;{report.title}&quot;. Once submitted, the report is locked —
+            changes go through a revision.
+          </DialogDescription>
+        </DialogHeader>
+        {loading ? (
+          <div className="space-y-2">
+            <Skeleton className="h-9 w-full" />
+            <Skeleton className="h-9 w-full" />
+            <Skeleton className="h-9 w-full" />
+          </div>
+        ) : loadError ? (
+          <p className="text-sm text-destructive">{loadError}</p>
+        ) : members.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            No team members to send this to yet. Invite someone from the Team page, then submit.
+          </p>
+        ) : (
+          <div className="max-h-64 space-y-2 overflow-y-auto">
+            {members.map((member) => (
+              <label
+                key={member.id}
+                className="flex cursor-pointer items-center gap-2 rounded-lg border border-border/60 p-2 hover:bg-muted/50"
+              >
+                <Checkbox
+                  checked={recipientIds.includes(member.id)}
+                  onCheckedChange={(checked) =>
+                    setRecipientIds((prev) =>
+                      checked === true ? [...prev, member.id] : prev.filter((id) => id !== member.id),
+                    )
+                  }
+                />
+                <span className="text-sm">{member.name}</span>
+              </label>
+            ))}
+          </div>
+        )}
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={onClose} disabled={busy}>
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            onClick={() => onSubmit(recipientIds)}
+            disabled={busy || loading || recipientIds.length === 0}
+          >
+            {busy ? <Loader2 className="mr-1 h-4 w-4 animate-spin" aria-hidden /> : null}
+            Submit
           </Button>
         </DialogFooter>
       </DialogContent>

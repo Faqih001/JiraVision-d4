@@ -90,7 +90,7 @@ describe("the overview strip and insight cards", () => {
   it("draws the pipeline as a fixed donut with a centre total and a full legend", () => {
     const pipeline = slice("export function PipelineSection", "export function CadenceSection")
     expect(pipeline).toMatch(/<PieChart width=\{160\} height=\{160\}>/u)
-    expect(pipeline).toMatch(/innerRadius=\{48\} outerRadius=\{75\}/u)
+    expect(pipeline).toMatch(/innerRadius=\{48\}\s+outerRadius=\{75\}/u)
     expect(pipeline).toMatch(/relative h-\[160px\] w-\[160px\] shrink-0/u)
     expect(pipeline).toMatch(/pointer-events-none absolute inset-0/u)
     expect(pipeline).toMatch(/self-stretch/u)
@@ -284,6 +284,77 @@ describe("the metrics card", () => {
     expect(codeOnly(sectionsFile())).not.toMatch(/<ProseSection section="metrics"/u)
     // Only the two computed cards state where their figures came from, and both of them must.
     expect(client().match(/sourceLabel=\{SOURCE_LABEL\[source\]\}/gu)).toHaveLength(2)
+  })
+})
+
+describe("the list rows carry the lifecycle, like the work log", () => {
+  const listSlice = () => {
+    const code = sectionsFile()
+    return code.slice(code.indexOf("export function MyReportsSection"), code.indexOf("export function Stat"))
+  }
+
+  it("gives a draft row Submit and Delete, and a filed row Revise", () => {
+    const list = listSlice()
+    expect(list).toMatch(/onSubmit: \(id: number\) => void/u)
+    expect(list).toMatch(/onRevise: \(id: number\) => void/u)
+    expect(list).toMatch(/onDelete: \(report: ReportDto\) => void/u)
+    expect(list).toMatch(/report\.status === "draft" \?/u)
+    expect(list).toMatch(/aria-label=\{`Submit \$\{report\.title\}`\}/u)
+    expect(list).toMatch(/aria-label=\{`Delete \$\{report\.title\}`\}/u)
+    expect(list).toMatch(/aria-label=\{`Revise \$\{report\.title\}`\}/u)
+  })
+
+  it("offers a first report from the empty state, but not from an empty search", () => {
+    const list = listSlice()
+    expect(list).toMatch(/Create your first report/u)
+    expect(list).toMatch(/query\.trim\(\) === ""/u)
+    expect(list).toMatch(/onCreate: \(\) => void/u)
+  })
+
+  it("routes every row action through the same write paths as the toolbar", () => {
+    expect(client()).toMatch(/const \[submitTarget, setSubmitTarget\] = useState<ReportDto \| null>\(null\)/u)
+    expect(client()).toMatch(
+      /onSubmit=\{\(id\) => setSubmitTarget\(reports\.find\(\(item\) => item\.id === id\) \?\? null\)\}/u,
+    )
+    expect(client()).toMatch(/onRevise=\{\(id\) => void reviseReport\(id\)\}/u)
+    expect(client()).toMatch(/onDelete=\{setPendingDelete\}/u)
+    expect(client()).toMatch(/onCreate=\{\(\) => setNewOpen\(true\)\}/u)
+  })
+
+  it("revises by id and lands in the builder on the new draft", () => {
+    expect(client()).toMatch(/const reviseReport = useCallback\(async \(id: number\)/u)
+    expect(client()).toMatch(/patchState\(\{ view: "build", reportId: newReport\.id \}\)/u)
+  })
+
+  it("submits the row the member chose, not whichever report the builder holds", () => {
+    expect(client()).toMatch(/if \(!submitTarget\) return/u)
+    expect(client()).toMatch(/\/api\/reports\/work\/\$\{submitTarget\.id\}\/submit/u)
+  })
+
+  it("deleting a row that is not open leaves the builder alone", () => {
+    expect(client()).toMatch(/if \(pendingDelete\.id === state\.reportId\)/u)
+  })
+
+  it("switches views with the shared labels, and the toolbar follows the view", () => {
+    expect(client()).toMatch(/REPORT_VIEWS\.map\(\(view\) =>/u)
+    expect(client()).toMatch(/REPORT_VIEW_LABEL\[view\]/u)
+    expect(client()).toMatch(/patchState\(\{ view \}\)/u)
+    // Once for the section grid, once for the toolbar: the list view must not carry five
+    // disabled builder buttons.
+    expect((codeOnly(client()).match(/state\.view === "build"/gu) ?? []).length).toBeGreaterThanOrEqual(2)
+  })
+
+  it("keeps the submit dialog on the shared Dialog primitive, and it never spins forever", () => {
+    expect(dialogsFile()).toMatch(/export function SubmitReportDialog/u)
+    expect(codeOnly(client())).not.toMatch(/function SubmitDialog/u)
+    expect(dialogsFile()).toMatch(/from "@\/components\/ui\/checkbox"/u)
+    const submit = dialogsFile().slice(dialogsFile().indexOf("export function SubmitReportDialog"))
+    // The hand-rolled overlay's Promise.all had no catch: one failed fetch left the member
+    // staring at skeletons with no way out but Cancel.
+    expect(submit).toMatch(/catch/u)
+    expect(submit).toMatch(/finally/u)
+    expect(submit).toMatch(/No team members/u)
+    expect(submit).toMatch(/<Checkbox/u)
   })
 })
 
