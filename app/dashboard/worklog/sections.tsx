@@ -1015,6 +1015,14 @@ export function KindMixSection({
   let totalMinutes = 0
   for (const k of kinds) totalMinutes += k.minutes
   const activeKinds = slices.length
+  let topKindLabel = "—"
+  let topCount = 0
+  for (const k of kinds) {
+    if (k.count > topCount) {
+      topCount = k.count
+      topKindLabel = k.label
+    }
+  }
   return (
     <SectionCard
       title="Mix of work"
@@ -1033,16 +1041,16 @@ export function KindMixSection({
       ) : totalEntries === 0 ? (
         <EmptyNote>Nothing logged in this range yet.</EmptyNote>
       ) : (
-        <>
+        <div className="flex h-full flex-col justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="relative h-[120px] w-[120px] shrink-0">
-              <PieChart width={120} height={120}>
+            <div className="relative h-[160px] w-[160px] shrink-0">
+              <PieChart width={160} height={160}>
                 <Pie
                   data={slices}
                   dataKey="value"
                   nameKey="name"
-                  innerRadius={36}
-                  outerRadius={56}
+                  innerRadius={48}
+                  outerRadius={75}
                   paddingAngle={2}
                   strokeWidth={0}
                 >
@@ -1063,13 +1071,13 @@ export function KindMixSection({
                 />
               </PieChart>
               <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-xl font-semibold tabular-nums">{totalEntries}</span>
+                <span className="text-2xl font-semibold tabular-nums">{totalEntries}</span>
                 <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
                   {totalEntries === 1 ? "entry" : "entries"}
                 </span>
               </div>
             </div>
-            <ul className="min-w-0 flex-1 space-y-1">
+            <ul className="flex min-w-0 flex-1 flex-col justify-between gap-1 py-1">
               {kinds.map((k) => {
                 const pct = totalEntries > 0 ? Math.round((k.count / totalEntries) * 100) : 0
                 return (
@@ -1093,11 +1101,20 @@ export function KindMixSection({
               })}
             </ul>
           </div>
-          <p className="mt-2 text-[11px] text-muted-foreground">
+          <div className="grid grid-cols-2 gap-2">
+            <Stat label="Total time" value={formatMinutes(totalMinutes)} />
+            <Stat
+              label="Avg per entry"
+              value={formatMinutes(totalEntries > 0 ? Math.round(totalMinutes / totalEntries) : 0)}
+            />
+            <Stat label="Kinds active" value={`${activeKinds} of ${kinds.length}`} />
+            <Stat label="Top kind" value={topKindLabel} />
+          </div>
+          <p className="text-[11px] text-muted-foreground">
             {formatMinutes(totalMinutes)} across {activeKinds} {activeKinds === 1 ? "kind" : "kinds"} · share of
             entries by kind.
           </p>
-        </>
+        </div>
       )}
     </SectionCard>
   )
@@ -1223,8 +1240,8 @@ export function WeekRhythmSection({ days, loading }: { days: DayBucket[]; loadin
       ) : !hasMinutes ? (
         <EmptyNote>Nothing logged in this range yet.</EmptyNote>
       ) : (
-        <div>
-          <div className="grid h-28 grid-cols-7 items-end gap-2">
+        <div className="flex h-full flex-col">
+          <div className="grid min-h-0 flex-1 grid-cols-7 grid-rows-1 items-end gap-2">
             {totals.map((minutes, index) => (
               <div
                 key={WEEKDAY_LABELS[index]}

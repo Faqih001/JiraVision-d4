@@ -744,7 +744,7 @@ describe("the redesign", () => {
 
   it("draws the mix of work as a donut with the server's total in the centre", () => {
     const code = sections()
-    expect(code).toMatch(/<PieChart width=\{120\} height=\{120\}>/u)
+    expect(code).toMatch(/<PieChart width=\{160\} height=\{160\}>/u)
     expect(code).toMatch(/totalEntries: number/u)
     expect(client()).toMatch(/totalEntries=\{summary\?\.totals\.entries \?\? 0\}/u)
   })
@@ -753,11 +753,29 @@ describe("the redesign", () => {
     const code = sections()
     const mix = code.slice(code.indexOf("export function KindMixSection"), code.indexOf("export function CoverageSection"))
     expect(mix).toMatch(/className="flex items-center gap-3"/u)
-    expect(mix).toMatch(/className="relative h-\[120px\] w-\[120px\] shrink-0"/u)
-    expect(mix).toMatch(/className="min-w-0 flex-1 space-y-1"/u)
+    expect(mix).toMatch(/className="relative h-\[160px\] w-\[160px\] shrink-0"/u)
+    expect(mix).toMatch(/className="flex min-w-0 flex-1 flex-col justify-between gap-1 py-1"/u)
     expect(mix).toMatch(/title=\{`\$\{k\.label\} · \$\{k\.count\} /u)
     expect(mix).toMatch(/\{pct\}%<\/span>/u)
     expect(mix).toMatch(/\{formatMinutes\(totalMinutes\)\} across \{activeKinds\}/u)
+  })
+
+  it("spreads the mix of work through the whole card like coverage", () => {
+    const code = sections()
+    const mix = code.slice(code.indexOf("export function KindMixSection"), code.indexOf("export function CoverageSection"))
+    expect(mix).toMatch(/className="flex h-full flex-col justify-between gap-4"/u)
+    expect(mix).toMatch(/className="grid grid-cols-2 gap-2"/u)
+    expect(mix).toMatch(/<Stat label="Total time"/u)
+    expect(mix).toMatch(/<Stat\s+label="Avg per entry"/u)
+    expect(mix).toMatch(/<Stat label="Kinds active"/u)
+    expect(mix).toMatch(/<Stat label="Top kind"/u)
+  })
+
+  it("lets the week rhythm bars grow into the card's full height", () => {
+    const code = sections()
+    const rhythm = code.slice(code.indexOf("export function WeekRhythmSection"), code.indexOf("export function DigestDialog"))
+    expect(rhythm).toMatch(/className="flex h-full flex-col"/u)
+    expect(rhythm).toMatch(/className="grid min-h-0 flex-1 grid-cols-7 grid-rows-1 items-end gap-2"/u)
   })
 
   it("gives coverage an eight-week strip independent of the chosen range", () => {
