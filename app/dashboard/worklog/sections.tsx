@@ -81,14 +81,12 @@ const NONE = "none"
 
 // The cards that render in every view, in the order the page puts them. `LogSection` and the bulk
 // bar are absent on purpose: their headings come from `VIEW_LABEL[view]` and from the selection
-// count, so they have no fixed string to declare. Nothing here reads the array at runtime — it
-// exists so the page guard can compare the declared inventory with the cards, which a count of
-// `<SectionCard`s cannot do.
+// count, so they have no fixed string to declare. The command bar, the composer and the filter
+// row are chrome, not cards — they carry no SectionCard title either. Nothing here reads the
+// array at runtime — it exists so the page guard can compare the declared inventory with the
+// cards, which a count of `<SectionCard`s cannot do.
 export const SECTION_TITLES = [
   "This period",
-  "Quick add",
-  "Find in the log",
-  "View",
   "Deliverables",
   "Status changes",
   "Time by task",
@@ -129,6 +127,7 @@ export function EntryLine({
   onEdit,
   onDelete,
   onConvert,
+  onDuplicate,
 }: {
   entry: EntryDto
   selected?: boolean
@@ -138,9 +137,10 @@ export function EntryLine({
   onEdit?: (entry: EntryDto) => void
   onDelete?: (entry: EntryDto) => void
   onConvert?: (entry: EntryDto) => void
+  onDuplicate?: (entry: EntryDto) => void
 }) {
   return (
-    <li className="flex items-start gap-3 rounded-lg border border-border/60 bg-card p-3">
+    <li className="group flex items-stretch gap-3 rounded-lg border border-border/60 bg-card p-3 transition-colors hover:border-border">
       {onToggle ? (
         <input
           type="checkbox"
@@ -150,10 +150,18 @@ export function EntryLine({
           onChange={() => onToggle(entry.id)}
         />
       ) : null}
+      <span
+        className="w-[3px] shrink-0 self-stretch rounded-full"
+        style={{ backgroundColor: KIND_COLOUR[entry.kind] }}
+        aria-hidden
+      />
+      <span className="w-12 shrink-0 pt-0.5 text-right font-mono text-[11px] tabular-nums text-muted-foreground">
+        {entry.createdAt.slice(11, 16)}
+      </span>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <KindBadge kind={entry.kind} />
           <span className="text-sm font-medium leading-snug">{entry.title}</span>
+          <KindBadge kind={entry.kind} />
         </div>
         {entry.body ? <p className="mt-1 whitespace-pre-wrap text-xs text-muted-foreground">{entry.body}</p> : null}
         <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
@@ -161,7 +169,6 @@ export function EntryLine({
             <CalendarDays className="h-3 w-3" aria-hidden />
             {entry.workedOn}
           </span>
-          <span>{entry.minutes === null ? "no time" : formatMinutes(entry.minutes)}</span>
           {entry.taskTitle ? (
             <a href={`/dashboard/tasks?task=${entry.taskId}`} className="underline underline-offset-2 hover:text-foreground">
               {entry.taskTitle}
@@ -173,27 +180,39 @@ export function EntryLine({
           {entry.redatedAt ? <span title={entry.redatedAt}>· re-dated</span> : null}
         </div>
       </div>
-      {onEdit ? (
-        <div className="flex shrink-0 gap-1">
-          <button type="button" className="rounded p-1 text-xs underline underline-offset-2 hover:bg-muted" onClick={() => onEdit(entry)}>
-            Edit
-          </button>
-          {onConvert && entry.kind !== "deliverable" && entry.deliverableId === null ? (
-            <button type="button" className="rounded p-1 text-xs underline underline-offset-2 hover:bg-muted" onClick={() => onConvert(entry)}>
-              To deliverable
+      <div className="flex shrink-0 flex-col items-end justify-between gap-1">
+        <span className="rounded-md bg-muted px-1.5 py-0.5 text-[11px] font-medium tabular-nums">
+          {entry.minutes === null ? "no time" : formatMinutes(entry.minutes)}
+        </span>
+        {onEdit ? (
+          // Hover-revealed on pointer devices, always visible on touch: a hidden action a finger
+          // can never hover is a dead control.
+          <div className="flex gap-1 transition-opacity md:opacity-0 md:group-focus-within:opacity-100 md:group-hover:opacity-100">
+            <button type="button" className="rounded p-1 text-xs underline underline-offset-2 hover:bg-muted" onClick={() => onEdit(entry)}>
+              Edit
             </button>
-          ) : null}
-          {onDelete ? (
-            <button
-              type="button"
-              className="rounded p-1 text-xs text-destructive underline underline-offset-2 hover:bg-muted"
-              onClick={() => onDelete(entry)}
-            >
-              Delete
-            </button>
-          ) : null}
-        </div>
-      ) : null}
+            {onDuplicate ? (
+              <button type="button" className="rounded p-1 text-xs underline underline-offset-2 hover:bg-muted" onClick={() => onDuplicate(entry)}>
+                Duplicate
+              </button>
+            ) : null}
+            {onConvert && entry.kind !== "deliverable" && entry.deliverableId === null ? (
+              <button type="button" className="rounded p-1 text-xs underline underline-offset-2 hover:bg-muted" onClick={() => onConvert(entry)}>
+                To deliverable
+              </button>
+            ) : null}
+            {onDelete ? (
+              <button
+                type="button"
+                className="rounded p-1 text-xs text-destructive underline underline-offset-2 hover:bg-muted"
+                onClick={() => onDelete(entry)}
+              >
+                Delete
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
     </li>
   )
 }
@@ -273,6 +292,7 @@ type RowActions = {
   onEdit?: (entry: EntryDto) => void
   onDelete?: (entry: EntryDto) => void
   onConvert?: (entry: EntryDto) => void
+  onDuplicate?: (entry: EntryDto) => void
 }
 
 function RowList({
@@ -295,6 +315,7 @@ function RowList({
           onEdit={actions.onEdit}
           onDelete={actions.onDelete}
           onConvert={actions.onConvert}
+          onDuplicate={actions.onDuplicate}
         />
       ))}
     </ul>
@@ -500,7 +521,7 @@ export function LogSection({
     <SectionCard
       title={`${VIEW_LABEL[view]} view`}
       icon={<CalendarDays className="h-4 w-4" />}
-      className="md:col-span-1 xl:col-span-1"
+      className="md:col-span-2 xl:col-span-2"
       action={
         <Button variant="outline" size="sm" className="h-7 text-xs" onClick={onAddDay}>
           <Plus className="h-3.5 w-3.5" aria-hidden />
