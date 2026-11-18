@@ -102,6 +102,22 @@ export const METRIC_LABEL: Record<MetricKey, string> = {
   nextPeriodItems: "Planned next",
   storyPointsCompleted: "Story points done",
   sprintItems: "In a sprint",
+  opsEvents: "Ops events",
+  registerItemsHeld: "Register items held",
+  registerVerifications: "Register verifications",
+  ticketsResolved: "Tickets resolved",
+  ticketsOpen: "Open tickets",
+  ticketActions: "Ticket actions",
+  goalCheckins: "Goal check-ins",
+  goalsAchieved: "Goals achieved",
+  meetings: "Meetings",
+  retroNotes: "Retro notes",
+  retroActionsOpen: "Open retro actions",
+  careerSignoffs: "Career sign-offs",
+  careerRequests: "Career requests",
+  growthReviews: "Growth reviews",
+  playbooksPublished: "Playbooks published",
+  playbookRuns: "Playbook runs",
 }
 
 export const CHART_KEYS = ["discipline", "kind", "taskStatus", "priority", "series"] as const

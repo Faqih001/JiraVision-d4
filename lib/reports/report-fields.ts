@@ -6,7 +6,7 @@
 
 import { isIsoDate, rangeDays } from "@/lib/worklog/local-day"
 import { MAX_PERIOD_DAYS, isPeriodType, type PeriodType } from "./period"
-import type { ReportAggregate } from "./aggregate"
+import { AGGREGATE_ARRAY_KEYS, METRIC_KEYS, type ReportAggregate } from "./aggregate"
 import {
   MAX_SECTION_TEXT,
   emptyContent,
@@ -238,7 +238,9 @@ export function parseStoredContent(value: unknown): ReportContent {
 /**
  * A metrics blob is only usable if it is recognisably this aggregate. Anything else reads as
  * null so the builder can say "this draft has no metrics yet — Recompute" instead of rendering
- * half a structure and calling it a report.
+ * half a structure and calling it a report. A blob that IS this aggregate but predates a module
+ * keeps its real numbers and gets the missing keys backfilled — zeros and empty arrays, never
+ * undefined — so an old draft opens instead of crashing on a section it never had.
  */
 export function parseStoredMetrics(value: unknown): ReportAggregate | null {
   if (!isRecord(value)) return null
@@ -246,5 +248,12 @@ export function parseStoredMetrics(value: unknown): ReportAggregate | null {
   if (typeof candidate.generatedAt !== "string") return null
   if (!isRecord(candidate.metrics)) return null
   if (!isRecord(candidate.period) || !Array.isArray(candidate.series)) return null
+  for (const key of METRIC_KEYS) {
+    if (!isRecord(candidate.metrics[key])) candidate.metrics[key] = { value: 0, refs: [] }
+  }
+  const arrays = candidate as unknown as Record<string, unknown>
+  for (const key of AGGREGATE_ARRAY_KEYS) {
+    if (!Array.isArray(arrays[key])) arrays[key] = []
+  }
   return candidate
 }

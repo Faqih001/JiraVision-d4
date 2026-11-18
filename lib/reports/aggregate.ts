@@ -630,6 +630,22 @@ export function aggregateReport(source: ReportSource): ReportAggregate {
       refs: pointsTasks.filter((t) => t.storyPoints > 0).map((t) => `task:${t.id}`),
     },
     sprintItems: countOf(sprintTaskIds.map((id) => `task:${id}`)),
+    opsEvents: countOf(opsInPeriod.map((e) => `ops:${e.id}`)),
+    registerItemsHeld: countOf(registerItems.map((item) => `register:${item.id}`)),
+    registerVerifications: countOf(verifiedInPeriod.map((item) => `register:${item.id}`)),
+    ticketsResolved: countOf(ticketsResolved.map((t) => `ticket:${t.id}`)),
+    ticketsOpen: countOf(ticketsOpen.map((t) => `ticket:${t.id}`)),
+    ticketActions: countOf(ticketActionsInPeriod.map((e) => `ticket-event:${e.id}`)),
+    goalCheckins: countOf(checkinsInPeriod.map((c) => `checkin:${c.id}`)),
+    goalsAchieved: countOf(goalsAchieved.map((g) => `goal:${g.id}`)),
+    meetings: countOf(meetingsInPeriod.map((m) => `meeting:${m.id}`)),
+    retroNotes: countOf(retroNotesInPeriod.map((n) => `retro-note:${n.id}`)),
+    retroActionsOpen: countOf(openRetroActions.map((a) => `retro-action:${a.id}`)),
+    careerSignoffs: countOf(signoffsInPeriod.map((s) => `signoff:${s.id}`)),
+    careerRequests: countOf(requestsInPeriod.map((r) => `request:${r.id}`)),
+    growthReviews: countOf(reviewsInPeriod.map((g) => `review:${g.id}`)),
+    playbooksPublished: countOf(publishedInPeriod.map((p) => `playbook:${p.id}`)),
+    playbookRuns: countOf(playbookRunEntries.map((e) => `entry:${e.id}`)),
   }
 
   const isEmpty =
@@ -639,7 +655,77 @@ export function aggregateReport(source: ReportSource): ReportAggregate {
     inProgressTasks.length === 0 &&
     blockedTasks.length === 0 &&
     overdueTasks.length === 0 &&
-    forward.length === 0
+    forward.length === 0 &&
+    opsRows.length === 0 &&
+    registerRows.length === 0 &&
+    ticketRows.length === 0 &&
+    goalRows.length === 0 &&
+    meetingRows.length === 0 &&
+    retroRows.length === 0 &&
+    careerRows.length === 0 &&
+    playbookRows.length === 0 &&
+    ticketActionsInPeriod.length === 0 &&
+    checkinsInPeriod.length === 0
+
+  // The merged timeline carries only dated activity inside the period — a due date on standing
+  // work is a deadline, not something that happened, so it never appears here.
+  const timeline: TimelineRow[] = [
+    ...logged.map((e) => ({
+      source: "worklog" as ModuleKey,
+      ref: `entry:${e.id}`,
+      title: e.title,
+      detail: KIND_LABEL[e.kind],
+      date: e.workedOn,
+    })),
+    ...completedRows.map((r) => ({ ...r, source: "tasks" as ModuleKey })),
+    ...deliverableRows.map((r) => ({ ...r, source: "deliverables" as ModuleKey })),
+    ...opsRows.map((r) => ({ ...r, source: "operations" as ModuleKey })),
+    ...ticketActionsInPeriod.map((e) => ({
+      source: "serviceDesk" as ModuleKey,
+      ref: `ticket-event:${e.id}`,
+      title: e.ticketSubject ?? `Ticket #${e.ticketId}`,
+      detail: `${e.type}${e.fromValue || e.toValue ? `: ${e.fromValue ?? "?"} to ${e.toValue ?? "?"}` : ""}`,
+      date: dayOf(e.at),
+    })),
+    ...checkinsInPeriod.map((c) => ({
+      source: "goals" as ModuleKey,
+      ref: `checkin:${c.id}`,
+      title: c.goalTitle ?? `Goal #${c.goalId}`,
+      detail: c.note ? `Check-in: ${c.note}` : "Check-in",
+      date: dayOf(c.at),
+    })),
+    ...meetingRows.map((r) => ({ ...r, source: "meetings" as ModuleKey })),
+    ...retroNoteRows.map((r) => ({ ...r, source: "retros" as ModuleKey })),
+    ...careerRows.map((r) => ({ ...r, source: "career" as ModuleKey })),
+    ...publishedInPeriod.map((p) => ({
+      source: "playbooks" as ModuleKey,
+      ref: `playbook:${p.id}`,
+      title: p.title,
+      detail: `Published v${p.version}`,
+      date: dayOf(p.at),
+    })),
+  ]
+    .filter((r) => inPeriod(r.date, period))
+    .sort((a, b) => (b.date as string).localeCompare(a.date as string) || a.ref.localeCompare(b.ref))
+
+  const moduleRows: Array<{ key: ModuleKey; refs: string[]; minutes?: Count }> = [
+    { key: "worklog", refs: entryRefs, minutes: metrics.minutes },
+    { key: "tasks", refs: tasks.map((t) => `task:${t.id}`) },
+    { key: "deliverables", refs: produced.map((d) => `deliverable:${d.id}`) },
+    { key: "planner", refs: forward.map((p) => `plan:${p.id}`) },
+    { key: "operations", refs: opsRows.map((r) => r.ref) },
+    { key: "registers", refs: registerRows.map((r) => r.ref) },
+    { key: "serviceDesk", refs: ticketRows.map((r) => r.ref) },
+    { key: "goals", refs: goalRows.map((r) => r.ref) },
+    { key: "meetings", refs: meetingRows.map((r) => r.ref) },
+    { key: "retros", refs: retroRows.map((r) => r.ref) },
+    { key: "career", refs: careerRows.map((r) => r.ref) },
+    { key: "playbooks", refs: playbookRows.map((r) => r.ref) },
+  ]
+  const byModule: SplitBucket[] = moduleRows
+    .filter((m) => m.refs.length > 0)
+    .map((m) => ({ key: m.key, label: MODULE_LABEL[m.key], count: countOf(m.refs), minutes: m.minutes ?? zero() }))
+    .sort((a, b) => b.count.value - a.count.value || a.label.localeCompare(b.label))
 
   return {
     generatedAt,
@@ -673,12 +759,7 @@ export function aggregateReport(source: ReportSource): ReportAggregate {
       detail: reasonFor(t.id, logged),
       date: t.dueDate,
     })),
-    deliverableRows: produced.map((d) => ({
-      ref: `deliverable:${d.id}`,
-      title: d.name,
-      detail: `${d.type} · ${DELIVERABLE_LABEL_STATUS[d.status] ?? d.status}${d.link ? ` · ${d.link}` : ""}`,
-      date: d.producedOn,
-    })),
+    deliverableRows,
     overdue: overdueTasks.map((t) => ({
       ref: `task:${t.id}`,
       title: t.title,
@@ -691,5 +772,15 @@ export function aggregateReport(source: ReportSource): ReportAggregate {
       detail: `${p.planTitle}${p.startDate ? ` · starts ${p.startDate}` : ""}`,
       date: p.dueDate,
     })),
+    opsRows,
+    registerRows,
+    ticketRows,
+    goalRows,
+    meetingRows,
+    retroRows,
+    careerRows,
+    playbookRows,
+    timeline,
+    byModule,
   }
 }
