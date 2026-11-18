@@ -1084,7 +1084,7 @@ function FilterSection({
           </Label>
           <Input
             id="worklog-search"
-            className="h-9 pl-8"
+            className="h-8 pl-8"
             placeholder="Search titles and notes  ( / )"
             value={state.q}
             onChange={(event) => patchState({ q: event.target.value })}
@@ -1092,7 +1092,7 @@ function FilterSection({
         </div>
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="outline" size="sm" className="h-9 gap-1.5 text-xs">
+            <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs">
               <SlidersHorizontal className="h-3.5 w-3.5" aria-hidden />
               Filters
               {active > 0 ? (
@@ -1155,7 +1155,7 @@ function FilterSection({
               <Button
                 variant={state.hasDeliverable ? "default" : "outline"}
                 size="sm"
-                className="h-7 border border-border text-xs"
+                className="h-8 border border-border text-xs"
                 aria-pressed={state.hasDeliverable}
                 onClick={() => patchState({ hasDeliverable: !state.hasDeliverable })}
               >
@@ -1164,7 +1164,7 @@ function FilterSection({
               <span className="text-[11px] text-muted-foreground">{deliverableCount} deliverables on file</span>
             </div>
             {active > 0 ? (
-              <Button variant="ghost" size="sm" className="h-7 w-full border border-border text-xs" onClick={clearAll}>
+              <Button variant="ghost" size="sm" className="h-8 w-full border border-border text-xs" onClick={clearAll}>
                 Clear all filters
               </Button>
             ) : null}
@@ -1268,7 +1268,7 @@ function ViewToolbarSection({
           </Button>
         </div>
         <Select value={state.preset} onValueChange={(v) => patchState({ preset: v as RangePreset })}>
-          <SelectTrigger className="h-8 w-36 text-xs" aria-label="Range preset">
+          <SelectTrigger className={FILTER_TRIGGER} aria-label="Range preset">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
