@@ -66,9 +66,34 @@ describe("the work-report reads", () => {
       /eq\(careerRequests\.userId, userId\)/u,
       /eq\(growthReviews\.userId, userId\)/u,
       /eq\(playbooks\.authorId, userId\)/u,
+      /eq\(automationRules\.userId, userId\)/u,
+      /eq\(assistantThreads\.userId, userId\)/u,
+      /eq\(messages\.senderId, userId\)/u,
+      /eq\(gamification\.userId, userId\)/u,
+      /eq\(wellbeingMetrics\.userId, userId\)/u,
+      /eq\(emailDigest\.userId, userId\)/u,
     ]) {
       expect(shared()).toMatch(guard)
     }
+  })
+
+  it("scopes automation runs and AI replies through their parent's owner", () => {
+    // automation_runs and assistant_messages carry no user id of their own; the join to the
+    // rule / thread is what keeps another member's runs and replies out of this report.
+    expect(shared()).toMatch(/innerJoin\(automationRules, eq\(automationRuns\.ruleId, automationRules\.id\)\)/u)
+    expect(shared()).toMatch(/innerJoin\(assistantThreads, eq\(assistantMessages\.threadId, assistantThreads\.id\)\)/u)
+  })
+
+  it("reads only the member's own non-deleted chat messages", () => {
+    expect(shared()).toMatch(/eq\(messages\.deleted, false\)/u)
+  })
+
+  it("treats ethical metrics as team context, bounded by period and never by a user id", () => {
+    // ethical_metrics has no owner column: it is a team-wide snapshot. The read is period-bounded
+    // and the aggregate keeps it out of the personal timeline, so it cannot leak a member's rows.
+    expect(shared()).toMatch(/from\(ethicalMetrics\)/u)
+    expect(shared()).toMatch(/gte\(ethicalMetrics\.date, period\.start\)/u)
+    expect(shared()).not.toMatch(/eq\(ethicalMetrics\.userId/u)
   })
 
   it("counts a meeting the member attends, not only one they organise", () => {
@@ -77,7 +102,7 @@ describe("the work-report reads", () => {
 
   it("caps every read, so a yearly report cannot fan out into a timeout", () => {
     expect(shared().match(/\.limit\(/gu)).not.toBeUndefined()
-    expect((shared().match(/\.limit\(/gu) ?? []).length).toBeGreaterThanOrEqual(21)
+    expect((shared().match(/\.limit\(/gu) ?? []).length).toBeGreaterThanOrEqual(29)
   })
 
   it("never treats tasks.updated_at as a work date", () => {

@@ -1,4 +1,4 @@
-// Server-only reads for /api/reports/work/*. One report is nineteen scoped reads plus a pure
+// Server-only reads for /api/reports/work/*. One report is twenty-seven scoped reads plus a pure
 // aggregation, and the aggregation is where the arithmetic lives. This file's whole job is to
 // hand that module rows the caller is allowed to see: every condition list starts with the
 // session user id, and every read is capped, so a yearly report over a noisy account still
@@ -50,7 +50,14 @@ import type { TransitionDto } from "@/lib/worklog/summary"
 import {
   aggregateReport,
   type ReportAggregate,
+  type ReportAssistantMessageRow,
+  type ReportAutomationRuleRow,
+  type ReportAutomationRunRow,
+  type ReportChatMessageRow,
   type ReportCheckinRow,
+  type ReportEmailRow,
+  type ReportEthicsRow,
+  type ReportGamificationRow,
   type ReportGoalRow,
   type ReportGrowthRow,
   type ReportMeetingRow,
@@ -66,8 +73,10 @@ import {
   type ReportTaskRow,
   type ReportTicketEventRow,
   type ReportTicketRow,
+  type ReportWellbeingRow,
 } from "@/lib/reports/aggregate"
 import { parseStoredContent, parseStoredMetrics, type ReportDto } from "@/lib/reports/report-fields"
+import { naiveUtcIso } from "@/lib/reports/naive-time"
 import type { Period } from "@/lib/reports/period"
 
 export { badRequest, notFound, serverError, unauthorized }
@@ -90,6 +99,14 @@ const SIGNOFF_CAP = 500
 const REQUEST_CAP = 200
 const GROWTH_CAP = 200
 const PLAYBOOK_CAP = 200
+const AUTOMATION_RULE_CAP = 200
+const AUTOMATION_RUN_CAP = 1000
+const ASSISTANT_CAP = 1000
+const CHAT_CAP = 1000
+const GAMIFICATION_CAP = 50
+const WELLBEING_CAP = 500
+const ETHICS_CAP = 200
+const EMAIL_CAP = 500
 
 export async function reportSession() {
   const session = await getSession()
@@ -652,6 +669,216 @@ export async function reportPlaybookRead(userId: number): Promise<ReportPlaybook
   return rows.map((row) => ({ ...row, at: row.at.toISOString() }))
 }
 
+/** Standing automation rules; the aggregate keeps the active ones and dates the runs separately. */
+export async function reportAutomationRuleRead(userId: number): Promise<ReportAutomationRuleRow[]> {
+  const rows = await db
+    .select({
+      id: automationRules.id,
+      name: automationRules.name,
+      trigger: automationRules.trigger,
+      isActive: automationRules.isActive,
+      runCount: automationRules.runCount,
+      lastRunAt: automationRules.lastRunAt,
+    })
+    .from(automationRules)
+    .where(eq(automationRules.userId, userId))
+    .orderBy(desc(automationRules.updatedAt))
+    .limit(AUTOMATION_RULE_CAP)
+  return rows.map((row) => ({
+    ...row,
+    runCount: Number(row.runCount),
+    lastRunAt: row.lastRunAt ? row.lastRunAt.toISOString() : null,
+  }))
+}
+
+/** Runs are scoped through their rule's owner — automation_runs carries no user id of its own. */
+export async function reportAutomationRunRead(
+  userId: number,
+  period: Period,
+  timezone: string | null,
+): Promise<ReportAutomationRunRow[]> {
+  const bounds = rangeBoundsUtc(period.start, period.end, timezone)
+  const rows = await db
+    .select({
+      id: automationRuns.id,
+      ruleId: automationRuns.ruleId,
+      ruleName: automationRules.name,
+      status: automationRuns.status,
+      matched: automationRuns.matched,
+      acted: automationRuns.acted,
+      createdAt: automationRuns.createdAt,
+    })
+    .from(automationRuns)
+    .innerJoin(automationRules, eq(automationRuns.ruleId, automationRules.id))
+    .where(
+      and(
+        eq(automationRules.userId, userId),
+        gte(automationRuns.createdAt, bounds.start),
+        lte(automationRuns.createdAt, bounds.end),
+      ),
+    )
+    .orderBy(desc(automationRuns.createdAt))
+    .limit(AUTOMATION_RUN_CAP)
+  return rows.map((row) => ({
+    ...row,
+    matched: Number(row.matched),
+    acted: Number(row.acted),
+    createdAt: row.createdAt.toISOString(),
+  }))
+}
+
+/** AI usage is the member's own assistant threads; the aggregate keeps only the assistant's replies. */
+export async function reportAssistantMessageRead(
+  userId: number,
+  period: Period,
+  timezone: string | null,
+): Promise<ReportAssistantMessageRow[]> {
+  const bounds = rangeBoundsUtc(period.start, period.end, timezone)
+  const rows = await db
+    .select({
+      id: assistantMessages.id,
+      threadTitle: assistantThreads.title,
+      role: assistantMessages.role,
+      tokens: assistantMessages.tokens,
+      createdAt: assistantMessages.createdAt,
+    })
+    .from(assistantMessages)
+    .innerJoin(assistantThreads, eq(assistantMessages.threadId, assistantThreads.id))
+    .where(
+      and(
+        eq(assistantThreads.userId, userId),
+        gte(assistantMessages.createdAt, bounds.start),
+        lte(assistantMessages.createdAt, bounds.end),
+      ),
+    )
+    .orderBy(desc(assistantMessages.createdAt))
+    .limit(ASSISTANT_CAP)
+  return rows.map((row) => ({ ...row, tokens: Number(row.tokens), createdAt: row.createdAt.toISOString() }))
+}
+
+/** Chat messages carry a naive timestamp: read capped-recent, normalize to UTC, let the aggregate date them. */
+export async function reportChatMessageRead(userId: number): Promise<ReportChatMessageRow[]> {
+  const rows = await db
+    .select({
+      id: messages.id,
+      chatName: chats.name,
+      content: messages.content,
+      timestamp: messages.timestamp,
+    })
+    .from(messages)
+    .innerJoin(chats, eq(messages.chatId, chats.id))
+    .where(and(eq(messages.senderId, userId), eq(messages.deleted, false)))
+    .orderBy(desc(messages.timestamp))
+    .limit(CHAT_CAP)
+  return rows
+    .filter((row) => row.timestamp !== null)
+    .map((row) => ({
+      id: row.id,
+      chatName: row.chatName,
+      content: row.content,
+      timestamp: naiveUtcIso(row.timestamp!),
+    }))
+}
+
+/** Gamification is a standing snapshot per member, not a dated event. */
+export async function reportGamificationRead(userId: number): Promise<ReportGamificationRow[]> {
+  const rows = await db
+    .select({
+      id: gamification.id,
+      level: gamification.level,
+      xp: gamification.xp,
+      tasksCompleted: gamification.tasksCompleted,
+    })
+    .from(gamification)
+    .where(eq(gamification.userId, userId))
+    .limit(GAMIFICATION_CAP)
+  return rows.map((row) => ({
+    ...row,
+    level: Number(row.level),
+    xp: Number(row.xp),
+    tasksCompleted: Number(row.tasksCompleted),
+  }))
+}
+
+/** Wellbeing check-ins carry a plain day column, bounded by the period like a worklog entry. */
+export async function reportWellbeingRead(userId: number, period: Period): Promise<ReportWellbeingRow[]> {
+  const rows = await db
+    .select({
+      id: wellbeingMetrics.id,
+      date: wellbeingMetrics.date,
+      wellbeingScore: wellbeingMetrics.wellbeingScore,
+      mood: wellbeingMetrics.mood,
+      workload: wellbeingMetrics.workload,
+      stressLevel: wellbeingMetrics.stressLevel,
+      overtimeHours: wellbeingMetrics.overtimeHours,
+    })
+    .from(wellbeingMetrics)
+    .where(
+      and(
+        eq(wellbeingMetrics.userId, userId),
+        gte(wellbeingMetrics.date, period.start),
+        lte(wellbeingMetrics.date, period.end),
+      ),
+    )
+    .orderBy(desc(wellbeingMetrics.date))
+    .limit(WELLBEING_CAP)
+  return rows.map((row) => ({
+    ...row,
+    wellbeingScore: Number(row.wellbeingScore),
+    stressLevel: Number(row.stressLevel),
+    overtimeHours: Number(row.overtimeHours),
+  }))
+}
+
+/** Ethical metrics are team-wide (no owner): a context snapshot, never a personal timeline event. */
+export async function reportEthicsRead(period: Period): Promise<ReportEthicsRow[]> {
+  const rows = await db
+    .select({
+      id: ethicalMetrics.id,
+      date: ethicalMetrics.date,
+      payEquityScore: ethicalMetrics.payEquityScore,
+      workloadBalanceScore: ethicalMetrics.workloadBalanceScore,
+      deiTaskDistributionScore: ethicalMetrics.deiTaskDistributionScore,
+      overtimeCompliance: ethicalMetrics.overtimeCompliance,
+    })
+    .from(ethicalMetrics)
+    .where(and(gte(ethicalMetrics.date, period.start), lte(ethicalMetrics.date, period.end)))
+    .orderBy(desc(ethicalMetrics.date))
+    .limit(ETHICS_CAP)
+  return rows.map((row) => ({
+    ...row,
+    payEquityScore: Number(row.payEquityScore),
+    workloadBalanceScore: Number(row.workloadBalanceScore),
+    deiTaskDistributionScore: Number(row.deiTaskDistributionScore),
+    overtimeCompliance: Number(row.overtimeCompliance),
+  }))
+}
+
+/** Digests carry a naive timestamp: read capped-recent, normalize to UTC; the aggregate keeps delivered-in-period. */
+export async function reportEmailRead(userId: number): Promise<ReportEmailRow[]> {
+  const rows = await db
+    .select({
+      id: emailDigest.id,
+      subject: emailDigest.subject,
+      eventType: emailDigest.eventType,
+      status: emailDigest.status,
+      createdAt: emailDigest.createdAt,
+    })
+    .from(emailDigest)
+    .where(eq(emailDigest.userId, userId))
+    .orderBy(desc(emailDigest.createdAt))
+    .limit(EMAIL_CAP)
+  return rows
+    .filter((row) => row.createdAt !== null)
+    .map((row) => ({
+      id: row.id,
+      subject: row.subject,
+      eventType: row.eventType,
+      status: row.status ?? "queued",
+      createdAt: naiveUtcIso(row.createdAt!),
+    }))
+}
+
 export async function readReportSource(
   userId: number,
   timezone: string | null,
@@ -678,6 +905,14 @@ export async function readReportSource(
     requestRows,
     growthRows,
     playbookRows,
+    automationRuleRows,
+    automationRunRows,
+    assistantMessageRows,
+    chatMessageRows,
+    gamificationRows,
+    wellbeingRows,
+    ethicsRows,
+    emailRows,
   ] = await Promise.all([
     reportEntryRead(userId, period),
     reportDeliverableRead(userId, period),
@@ -698,6 +933,14 @@ export async function readReportSource(
     reportRequestRead(userId, period, timezone),
     reportGrowthRead(userId, period, timezone),
     reportPlaybookRead(userId),
+    reportAutomationRuleRead(userId),
+    reportAutomationRunRead(userId, period, timezone),
+    reportAssistantMessageRead(userId, period, timezone),
+    reportChatMessageRead(userId),
+    reportGamificationRead(userId),
+    reportWellbeingRead(userId, period),
+    reportEthicsRead(period),
+    reportEmailRead(userId),
   ])
   // The aggregate's deliverable list is the union of both reads: produced-in-period is the
   // section's subject, in-review-now is what `reviewRounds` counts, and they are different sets.
@@ -725,6 +968,14 @@ export async function readReportSource(
     careerRequests: requestRows,
     growthReviews: growthRows,
     playbooks: playbookRows,
+    automationRules: automationRuleRows,
+    automationRuns: automationRunRows,
+    assistantMessages: assistantMessageRows,
+    chatMessages: chatMessageRows,
+    gamification: gamificationRows,
+    wellbeing: wellbeingRows,
+    ethics: ethicsRows,
+    email: emailRows,
   }
 }
 

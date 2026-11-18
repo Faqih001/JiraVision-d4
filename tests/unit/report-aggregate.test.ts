@@ -204,6 +204,82 @@ const playbook = (over: Partial<ReportSource["playbooks"][number]> = {}) => ({
   ...over,
 })
 
+const automationRule = (over: Partial<ReportSource["automationRules"][number]> = {}) => ({
+  id: 401,
+  name: "Nightly backup",
+  trigger: "schedule",
+  isActive: true,
+  runCount: 12,
+  lastRunAt: "2026-10-27T08:00:00.000Z",
+  ...over,
+})
+
+const automationRun = (over: Partial<ReportSource["automationRuns"][number]> = {}) => ({
+  id: 411,
+  ruleId: 401,
+  ruleName: "Nightly backup",
+  status: "ok",
+  matched: 3,
+  acted: 2,
+  createdAt: "2026-10-27T08:00:00.000Z",
+  ...over,
+})
+
+const assistantMessage = (over: Partial<ReportSource["assistantMessages"][number]> = {}) => ({
+  id: 421,
+  threadTitle: "Restore help",
+  role: "assistant",
+  tokens: 120,
+  createdAt: "2026-10-27T09:00:00.000Z",
+  ...over,
+})
+
+const chatMessage = (over: Partial<ReportSource["chatMessages"][number]> = {}) => ({
+  id: "c-431",
+  chatName: "Engineering",
+  content: "Deploy is green",
+  timestamp: "2026-10-27T09:00:00.000Z",
+  ...over,
+})
+
+const gamificationRow = (over: Partial<ReportSource["gamification"][number]> = {}) => ({
+  id: 441,
+  level: 4,
+  xp: 850,
+  tasksCompleted: 17,
+  ...over,
+})
+
+const wellbeingRow = (over: Partial<ReportSource["wellbeing"][number]> = {}) => ({
+  id: 451,
+  date: "2026-10-27",
+  wellbeingScore: 7,
+  mood: "good",
+  workload: "balanced",
+  stressLevel: 3,
+  overtimeHours: 2,
+  ...over,
+})
+
+const ethicsRow = (over: Partial<ReportSource["ethics"][number]> = {}) => ({
+  id: 461,
+  date: "2026-10-27",
+  payEquityScore: 8,
+  workloadBalanceScore: 7,
+  deiTaskDistributionScore: 9,
+  overtimeCompliance: 6,
+  ...over,
+})
+
+const emailRow = (over: Partial<ReportSource["email"][number]> = {}) => ({
+  id: 471,
+  subject: "Weekly digest",
+  eventType: "weekly",
+  status: "delivered",
+  createdAt: "2026-10-27T09:00:00.000Z",
+  ...over,
+})
+
 const source = (over: Partial<ReportSource> = {}): ReportSource => ({
   period,
   todayIso: TODAY,
@@ -226,6 +302,14 @@ const source = (over: Partial<ReportSource> = {}): ReportSource => ({
   careerRequests: [],
   growthReviews: [],
   playbooks: [],
+  automationRules: [],
+  automationRuns: [],
+  assistantMessages: [],
+  chatMessages: [],
+  gamification: [],
+  wellbeing: [],
+  ethics: [],
+  email: [],
   ...over,
 })
 
@@ -315,6 +399,13 @@ describe("the no-number-without-rows invariant", () => {
       ...aggregate.retroRows.map((r) => r.ref),
       ...aggregate.careerRows.map((r) => r.ref),
       ...aggregate.playbookRows.map((r) => r.ref),
+      ...aggregate.automationRows.map((r) => r.ref),
+      ...aggregate.assistantRows.map((r) => r.ref),
+      ...aggregate.chatRows.map((r) => r.ref),
+      ...aggregate.gamificationRows.map((r) => r.ref),
+      ...aggregate.wellbeingRows.map((r) => r.ref),
+      ...aggregate.ethicsRows.map((r) => r.ref),
+      ...aggregate.emailRows.map((r) => r.ref),
       ...aggregate.timeline.map((r) => r.ref),
       ...aggregate.byModule.flatMap((b) => [...b.count.refs, ...b.minutes.refs]),
       ...aggregate.series.flatMap((b) => [...b.entries.refs, ...b.minutes.refs]),
@@ -322,7 +413,7 @@ describe("the no-number-without-rows invariant", () => {
     expect(refs.length).toBeGreaterThan(0)
     for (const value of refs) {
       expect(value).toMatch(
-        /^(entry|task|deliverable|event|plan|day|ops|register|ticket-event|ticket|goal|checkin|meeting|retro-note|retro-action|signoff|request|review|playbook):\S+$/u,
+        /^(entry|task|deliverable|event|plan|day|ops|register|ticket-event|ticket|goal|checkin|meeting|retro-note|retro-action|signoff|request|review|playbook|automation-rule|automation-run|ai-message|chat-message|gamification|wellbeing|ethics|email):\S+$/u,
       )
     }
   })
@@ -648,6 +739,118 @@ describe("playbooks", () => {
   })
 })
 
+describe("automation", () => {
+  it("counts active rules as standing work and runs as the dated activity", () => {
+    const aggregate = aggregateReport(
+      source({
+        automationRules: [automationRule(), automationRule({ id: 402, isActive: false })],
+        automationRuns: [automationRun(), automationRun({ id: 412, createdAt: "2026-10-01T08:00:00.000Z" })],
+      }),
+    )
+    expect(aggregate.metrics.automationRulesActive.value).toBe(1)
+    expect(aggregate.metrics.automationRulesActive.refs).toEqual(["automation-rule:401"])
+    expect(aggregate.metrics.automationRuns.value).toBe(1)
+    expect(aggregate.metrics.automationRuns.refs).toEqual(["automation-run:411"])
+    expect(aggregate.automationRows.map((r) => r.ref)).toEqual(["automation-rule:401"])
+    expect(aggregate.automationRows[0]!.detail).toContain("schedule")
+  })
+
+  it("dates the timeline from runs, not from the standing rules", () => {
+    const aggregate = aggregateReport(source({ automationRules: [automationRule()], automationRuns: [automationRun()] }))
+    expect(aggregate.timeline.map((r) => r.ref)).toEqual(["automation-run:411"])
+    expect(aggregate.timeline[0]!.source).toBe("automation")
+  })
+})
+
+describe("AI assistant", () => {
+  it("counts only the assistant's replies in the period and sums their tokens", () => {
+    const aggregate = aggregateReport(
+      source({
+        assistantMessages: [
+          assistantMessage(),
+          assistantMessage({ id: 422, role: "user", tokens: 40 }),
+          assistantMessage({ id: 423, createdAt: "2026-10-01T09:00:00.000Z", tokens: 999 }),
+        ],
+      }),
+    )
+    expect(aggregate.metrics.aiMessages.value).toBe(1)
+    expect(aggregate.metrics.aiMessages.refs).toEqual(["ai-message:421"])
+    expect(aggregate.metrics.aiTokens.value).toBe(120)
+    expect(aggregate.assistantRows[0]!.detail).toContain("120 tokens")
+  })
+})
+
+describe("chat", () => {
+  it("counts messages sent in the period and keeps the uuid ref", () => {
+    const aggregate = aggregateReport(
+      source({ chatMessages: [chatMessage(), chatMessage({ id: "c-432", timestamp: "2026-10-01T09:00:00.000Z" })] }),
+    )
+    expect(aggregate.metrics.chatMessages.value).toBe(1)
+    expect(aggregate.metrics.chatMessages.refs).toEqual(["chat-message:c-431"])
+    expect(aggregate.chatRows[0]!.title).toBe("Engineering")
+  })
+})
+
+describe("gamification", () => {
+  it("treats a default level-1 profile as no activity, not a report row", () => {
+    const aggregate = aggregateReport(
+      source({ gamification: [gamificationRow({ id: 442, level: 1, xp: 0, tasksCompleted: 0 })] }),
+    )
+    expect(aggregate.gamificationRows).toEqual([])
+    expect(aggregate.metrics.gamificationXp.value).toBe(0)
+    expect(aggregate.isEmpty).toBe(true)
+  })
+
+  it("shows earned progress as a standing snapshot with no date", () => {
+    const aggregate = aggregateReport(source({ gamification: [gamificationRow()] }))
+    expect(aggregate.gamificationRows).toHaveLength(1)
+    expect(aggregate.gamificationRows[0]!.date).toBeNull()
+    expect(aggregate.metrics.gamificationXp.value).toBe(850)
+    expect(aggregate.isEmpty).toBe(false)
+    expect(aggregate.timeline).toEqual([])
+  })
+})
+
+describe("wellbeing", () => {
+  it("counts check-ins dated in the period and drops the rest", () => {
+    const aggregate = aggregateReport(
+      source({ wellbeing: [wellbeingRow(), wellbeingRow({ id: 452, date: "2026-10-01" })] }),
+    )
+    expect(aggregate.metrics.wellbeingCheckins.value).toBe(1)
+    expect(aggregate.metrics.wellbeingCheckins.refs).toEqual(["wellbeing:451"])
+    expect(aggregate.wellbeingRows[0]!.date).toBe("2026-10-27")
+  })
+})
+
+describe("ethical metrics", () => {
+  it("counts a team snapshot as context, not a personal timeline event", () => {
+    const aggregate = aggregateReport(source({ ethics: [ethicsRow()] }))
+    expect(aggregate.metrics.ethicsSnapshots.value).toBe(1)
+    expect(aggregate.ethicsRows).toHaveLength(1)
+    expect(aggregate.isEmpty).toBe(false)
+    expect(aggregate.byModule.map((b) => b.key)).toContain("ethics")
+    expect(aggregate.timeline).toEqual([])
+  })
+})
+
+describe("email digests", () => {
+  it("counts only digests delivered in the period", () => {
+    const aggregate = aggregateReport(
+      source({
+        email: [
+          emailRow(),
+          emailRow({ id: 472, status: "queued" }),
+          emailRow({ id: 473, status: "failed" }),
+          emailRow({ id: 474, createdAt: "2026-10-01T09:00:00.000Z" }),
+        ],
+      }),
+    )
+    expect(aggregate.metrics.emailsDelivered.value).toBe(1)
+    expect(aggregate.metrics.emailsDelivered.refs).toEqual(["email:471"])
+    expect(aggregate.emailRows[0]!.detail).toContain("delivered")
+  })
+})
+
 describe("the merged timeline", () => {
   it("merges dated activity from every module, newest first, each row naming its source", () => {
     const aggregate = aggregateReport(
@@ -788,6 +991,13 @@ describe("a period with no activity", () => {
       aggregate.retroRows,
       aggregate.careerRows,
       aggregate.playbookRows,
+      aggregate.automationRows,
+      aggregate.assistantRows,
+      aggregate.chatRows,
+      aggregate.gamificationRows,
+      aggregate.wellbeingRows,
+      aggregate.ethicsRows,
+      aggregate.emailRows,
       aggregate.timeline,
       aggregate.byModule,
     ]) {
@@ -814,15 +1024,25 @@ describe("a period with no activity", () => {
     expect(aggregateReport(source({ registerItems: [registerItem()] })).isEmpty).toBe(false)
     expect(aggregateReport(source({ ticketEvents: [ticketEvent()] })).isEmpty).toBe(false)
     expect(aggregateReport(source({ goalCheckins: [checkin()] })).isEmpty).toBe(false)
+    expect(aggregateReport(source({ automationRuns: [automationRun()] })).isEmpty).toBe(false)
+    expect(aggregateReport(source({ assistantMessages: [assistantMessage()] })).isEmpty).toBe(false)
+    expect(aggregateReport(source({ chatMessages: [chatMessage()] })).isEmpty).toBe(false)
+    expect(aggregateReport(source({ gamification: [gamificationRow()] })).isEmpty).toBe(false)
+    expect(aggregateReport(source({ wellbeing: [wellbeingRow()] })).isEmpty).toBe(false)
+    expect(aggregateReport(source({ ethics: [ethicsRow()] })).isEmpty).toBe(false)
+    expect(aggregateReport(source({ email: [emailRow()] })).isEmpty).toBe(false)
   })
 })
 
 describe("the metric registry", () => {
   it("has no duplicate key and declares its sums", () => {
     expect(new Set(metricKeys).size).toBe(metricKeys.length)
-    expect(SUM_METRIC_KEYS).toEqual(["minutes", "storyPointsCompleted"])
+    expect(SUM_METRIC_KEYS).toEqual(["minutes", "storyPointsCompleted", "aiTokens", "gamificationXp"])
     expect(metricKeys).toContain("deliverablesProduced")
     for (const key of ["opsEvents", "registerItemsHeld", "ticketsResolved", "goalCheckins", "meetings", "retroNotes", "careerSignoffs", "playbookRuns"]) {
+      expect(metricKeys).toContain(key)
+    }
+    for (const key of ["automationRulesActive", "automationRuns", "aiMessages", "aiTokens", "chatMessages", "gamificationXp", "wellbeingCheckins", "ethicsSnapshots", "emailsDelivered"]) {
       expect(metricKeys).toContain(key)
     }
   })

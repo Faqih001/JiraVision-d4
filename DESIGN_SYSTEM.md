@@ -679,3 +679,25 @@ re-lays-out on data. **No new token** — everything below reuses `--chart-moss`
   way the number is empty).
 - The list view's mix card is fed by the live preview, never a saved snapshot — a stale snapshot of
   the last-opened report would make the overview lie about the period on screen.
+
+## 20. Reports-work module coverage (RW-F2, 2026-11-18)
+
+Extends §19. Seven new module cards join the builder grid — Automation, AI assistant, Chat,
+Gamification, Wellbeing, Ethical metrics, Email — taking `MODULE_SECTIONS` from 8 to 15. **No new
+token and no new component:** each reuses the same `ModuleSectionCard` contract from §19.
+
+| Card | Grid span | Behaviour |
+| --- | --- | --- |
+| Automation / AI assistant / Chat / Gamification / Wellbeing / Ethical metrics / Email | 1 cell each | identical to the original eight: hidden entirely when the module has no rows, caption from `moduleCaption`, 6-row preview, ghost count button (`h-7`, `aria-expanded`) expands the rest and prints mono refs |
+
+- Each new section has an icon in `MODULE_SECTION_ICON` (`module-sections.tsx`) and a label in
+  `MODULE_LABEL` (`aggregate.ts`): "Automation", "AI assistant", "Chat", "Gamification", "Wellbeing",
+  "Ethical metrics", "Email". The `Record<ModuleSectionKey, …>` types force completeness — a new
+  section fails to compile until it is given rows, a caption, an icon and a label.
+- The timeline badge vocabulary is unchanged; the five new dated sources (automation runs, AI
+  replies, chat messages, wellbeing check-ins, delivered digests) carry the same module badge.
+  Gamification (a standing snapshot) and Ethical metrics (team context) are deliberately **not** in
+  the personal timeline.
+- The grid still re-lays-out on nothing: every card owns its span, and the client never re-flows on
+  data. The PDF and XLSX exports iterate the same `MODULE_SECTIONS`, so the new cards print and
+  spreadsheet with no export-side styling change.

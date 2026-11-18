@@ -59,6 +59,14 @@ const source = (over: Partial<ReportSource> = {}): ReportSource => ({
   careerRequests: [],
   growthReviews: [],
   playbooks: [],
+  automationRules: [],
+  automationRuns: [],
+  assistantMessages: [],
+  chatMessages: [],
+  gamification: [],
+  wellbeing: [],
+  ethics: [],
+  email: [],
   ...over,
 })
 

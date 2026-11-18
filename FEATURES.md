@@ -2217,3 +2217,57 @@ per-module scope selector (F3) follow in their own sections.
 - Guards: `tests/unit/report-read-outcome.test.ts` (7 classifier cases) and re-cut source guards in
   `report-page.test.ts` (transient-vs-absent branching, two Retry buttons, the planner link) and
   `report-row-sections.test.ts` (Next period → planner).
+
+## 64. Reports-work aggregates the whole reportable workspace (RW-F2, 2026-11-18)
+
+Extends §62–63. The universal report previously aggregated twelve activity modules; the sidebar
+surfaces that produce reportable work but were not yet counted — Automation, the AI assistant, Chat,
+Gamification, Wellbeing, Ethical metrics and Email — now each feed the same aggregate. **No
+migration:** every table already exists.
+
+- **Eight new scoped reads** in `app/api/reports/work/_shared.ts`, wired into `readReportSource`
+  (now twenty-seven reads). Each names its ownership column and is capped, so a yearly report cannot
+  fan out into a timeout:
+  - `automationRules` — standing snapshot of the member's own rules (`userId`); the *active* ones
+    become the module's rows.
+  - `automationRuns` — dated, scoped through the parent rule (`innerJoin automationRules`,
+    `eq(automationRules.userId, userId)`); runs carry no user id of their own.
+  - `assistantMessages` — dated, scoped through the parent thread (`innerJoin assistantThreads`,
+    `eq(assistantThreads.userId, userId)`), counting only `role = 'assistant'` replies.
+  - `chatMessages` — the member's own non-deleted messages (`eq(messages.senderId, userId)`,
+    `eq(messages.deleted, false)`), joined to `chats` for the room name.
+  - `gamification` — standing snapshot of the member's own profile (`userId`).
+  - `wellbeing` — the member's own check-ins, period-bounded on the `date` column (`userId`).
+  - `ethics` — **team context**, period-bounded on `date`, never by a user id: `ethical_metrics` has
+    no owner column. It is included in `byModule` and the empty check but kept out of the personal
+    timeline, so it cannot leak a member's rows.
+  - `email` — the member's own digests (`userId`), counting only `status = 'delivered'`.
+- **Nine new metrics** (`METRIC_KEYS` 31 → 40): `automationRulesActive`, `automationRuns`,
+  `aiMessages`, `aiTokens` (sum), `chatMessages`, `gamificationXp` (sum), `wellbeingCheckins`,
+  `ethicsSnapshots`, `emailsDelivered`. `SUM_METRIC_KEYS` gains `aiTokens` and `gamificationXp`.
+- **Seven new module cards** (`MODULE_SECTIONS` 8 → 15; `MODULE_KEYS` 12 → 19): Automation, AI
+  assistant, Chat, Gamification, Wellbeing, Ethical metrics, Email. The builder grid, the PDF and the
+  XLSX export all iterate `MODULE_SECTIONS` / `moduleRowsFor` / `MODULE_LABEL`, so they pick the new
+  cards up with no export or grid code change. The timeline gains automation runs, AI replies, chat
+  messages, wellbeing check-ins and delivered digests.
+- **Naive timestamps normalized.** `chats`/`messages` and `email_digest` store naive `TIMESTAMP`
+  columns; `naiveUtcIso` (`lib/reports/naive-time.ts`) treats them as UTC before the period filter,
+  mirroring `toUtcDate` in the chat route. Chat and email are read capped-recent without a SQL period
+  filter, then bounded in the aggregate — the same standing-read pattern registers and playbooks use.
+- **Design rulings** (chosen here; redirect if any is wrong):
+  1. AI usage is counted from `assistant_messages` joined to the member's threads, **not**
+     `ai_usage_daily` (a global daily cap with no user id).
+  2. Gamification is a standing snapshot (`date = null`); a default level-1 / xp-0 / tasks-0 profile
+     is **not** activity, so the card stays hidden and `isEmpty` stays correct until progress is earned.
+  3. Ethical metrics are team context — in `byModule`, out of the personal timeline.
+  4. The email metric counts `delivered` digests only, not queued or failed.
+  5. Automation mirrors registers: active rules are the standing rows, runs are the dated metric and
+     the timeline source.
+- Older stored snapshots backfill automatically: `parseStoredMetrics` fills any missing `METRIC_KEYS`
+  with `{value:0,refs:[]}` and any missing `AGGREGATE_ARRAY_KEYS` with `[]`, so a report filed before
+  this wave still opens with the new sections empty rather than crashing.
+- Guards: `tests/unit/report-coverage.test.ts` (the eight sources' arithmetic and rulings),
+  re-cut `report-aggregate.test.ts` (51 cases) and `report-api.test.ts` (33 source guards: ownership
+  columns, the two parent joins, non-deleted chat, team-scoped ethics, 29 caps). The two independent
+  `source()` builders in `report-charts.test.ts` and `report-row-sections.test.ts` were extended with
+  the eight new fields. Full report suite: 28 files, 417 tests green; `tsc --noEmit` clean.

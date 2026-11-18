@@ -251,3 +251,23 @@ supersedes only the `nextPeriod` claim.
 Guards: `tests/unit/report-read-outcome.test.ts` (the classifier), plus re-cut source guards in
 `report-page.test.ts` and `report-row-sections.test.ts`. No migration; no new dead control.
 
+## 18. Reports-work coverage extension (RW-F2, 2026-11-18) — no new placeholder
+
+Extends §16–17. The seven new module cards (Automation, AI assistant, Chat, Gamification, Wellbeing,
+Ethical metrics, Email) are fed by eight real scoped database reads, not stubs:
+
+- Every read names its ownership column and is capped; automation runs and AI replies are scoped
+  through their parent's owner (`automationRules.userId`, `assistantThreads.userId`) because those
+  child tables carry no user id. Chat reads only the member's own non-deleted messages. Ethical
+  metrics are a team-wide snapshot with no owner column — period-bounded, never user-bounded, and kept
+  out of the personal timeline.
+- A module with no rows is hidden entirely (the same rule the original eight cards use); its empty
+  caption still exists for exports, so no surface prints a bare zero. A default gamification profile
+  (level 1, xp 0, tasks 0) correctly reads as *no activity*, not as a stub.
+- Chat and email naive timestamps are normalized to UTC by `naiveUtcIso` before the period filter —
+  real data, not a placeholder clock.
+- **No migration** (all tables exist), **no new dead control**, and no TODO handler: the builder grid,
+  PDF and XLSX export pick the new cards up through the existing `MODULE_SECTIONS` iteration.
+
+Guards: `tests/unit/report-coverage.test.ts`, `report-aggregate.test.ts`, `report-api.test.ts`.
+
