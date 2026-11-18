@@ -16,6 +16,17 @@ const KIND_TOKENS: Record<string, WorkLogKind> = {
 
 export type QuickAddResult = { title: string; minutes: number | null; kind: WorkLogKind } | { error: string }
 
+// The timer writes its reading through here so a second #minutes token can never reach
+// parseQuickAdd, which refuses two different ones. Kind tokens are left untouched.
+export function appendMinutes(line: string, minutes: number): string {
+  const stripped = line
+    .split(/\s+/u)
+    .filter((token) => !/^#\d{1,4}$/u.test(token.toLowerCase()))
+    .join(" ")
+    .trim()
+  return `${stripped} #${minutes}`.trim()
+}
+
 export function parseQuickAdd(raw: string): QuickAddResult {
   const trimmed = (raw ?? "").trim()
   if (!trimmed) return { error: "Write what you did first." }
