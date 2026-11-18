@@ -685,6 +685,14 @@ describe("the redesign", () => {
     expect(sections()).toMatch(/weekdayMinutes\(days\)/u)
   })
 
+  it("gives every period total its own bordered tile", () => {
+    const code = client()
+    const totals = code.slice(code.indexOf("function TotalsSection"), code.indexOf("function QuickAddSection"))
+    const tiles = totals.match(/<div className="rounded-lg border p-3">/gu) ?? []
+    expect(tiles.length).toBe(4)
+    expect(totals).toMatch(/<p className="w-fit rounded-lg border px-3 py-2 text-xs text-muted-foreground">/u)
+  })
+
   it("persists the timer across a reload and fills the minutes tag on stop", () => {
     expect(client()).toMatch(/TIMER_STORAGE_KEY/u)
     // Restored in an effect, not the initialiser: localStorage does not exist during SSR, and
