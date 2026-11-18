@@ -112,6 +112,109 @@ export type ReportPlanRow = {
   planTitle: string
 }
 
+// The eight activity modules beyond tasks/worklog/deliverables/planner. Instants arrive as ISO
+// strings and are resolved to the member's day here, exactly like task events; `date` columns
+// (lastVerifiedAt, dueDate) arrive as plain ISO days.
+export type ReportOpsRow = {
+  id: number
+  packKey: string
+  entityKey: string
+  status: string | null
+  occurredAt: string
+}
+
+export type ReportRegisterRow = {
+  id: number
+  packKey: string
+  kind: string
+  title: string
+  status: string
+  lastVerifiedAt: string | null
+}
+
+export type ReportTicketRow = {
+  id: number
+  subject: string
+  status: string
+  priority: string
+  resolvedAt: string | null
+}
+
+export type ReportTicketEventRow = {
+  id: number
+  ticketId: number
+  ticketSubject: string | null
+  type: string
+  fromValue: string | null
+  toValue: string | null
+  at: string
+}
+
+export type ReportGoalRow = {
+  id: number
+  title: string
+  status: string
+  current: number
+  target: number
+  metricType: string
+  dueDate: string | null
+}
+
+export type ReportCheckinRow = {
+  id: number
+  goalId: number
+  goalTitle: string | null
+  value: number
+  note: string | null
+  at: string
+}
+
+export type ReportMeetingRow = {
+  id: number
+  title: string
+  eventType: string
+  startTime: string
+  organized: boolean
+}
+
+export type ReportRetroNoteRow = {
+  id: number
+  retroTitle: string | null
+  category: string
+  body: string
+  at: string
+}
+
+export type ReportRetroActionRow = {
+  id: number
+  retroTitle: string | null
+  body: string
+  done: boolean
+  dueDate: string | null
+}
+
+export type ReportSignoffRow = { id: number; itemKey: string; status: string; at: string }
+
+export type ReportRequestRow = {
+  id: number
+  discipline: string
+  fromLevel: number
+  toLevel: number
+  status: string
+  at: string
+}
+
+export type ReportGrowthRow = { id: number; kind: string; at: string }
+
+export type ReportPlaybookRow = {
+  id: number
+  title: string
+  status: string
+  version: number
+  /** The playbook's last publish/edit instant, named `at` because a report never reports edits as work dates. */
+  at: string
+}
+
 export type ReportSource = {
   period: Period
   /** The member's own day, so a period that has not finished is not reported as full of gaps. */
@@ -122,6 +225,19 @@ export type ReportSource = {
   transitions: TransitionDto[]
   tasks: ReportTaskRow[]
   planItems: ReportPlanRow[]
+  opsEvents: ReportOpsRow[]
+  registerItems: ReportRegisterRow[]
+  tickets: ReportTicketRow[]
+  ticketEvents: ReportTicketEventRow[]
+  goals: ReportGoalRow[]
+  goalCheckins: ReportCheckinRow[]
+  meetings: ReportMeetingRow[]
+  retroNotes: ReportRetroNoteRow[]
+  retroActions: ReportRetroActionRow[]
+  careerSignoffs: ReportSignoffRow[]
+  careerRequests: ReportRequestRow[]
+  growthReviews: ReportGrowthRow[]
+  playbooks: ReportPlaybookRow[]
 }
 
 export type SeriesBucket = {
