@@ -26,6 +26,7 @@ import {
   type ReportSectionKey,
 } from "@/lib/reports/templates"
 import type { RowSectionKey } from "@/lib/reports/row-sections"
+import { MODULE_SECTIONS, moduleRowsFor, type ModuleSectionKey } from "@/lib/reports/module-sections"
 import {
   adoptServerAnchor,
   defaultReportState,
@@ -44,7 +45,9 @@ import {
   PipelineSection,
   ReportsKpiStrip,
   TurnaroundSection,
+  WorkspaceMixSection,
 } from "./overview"
+import { ModuleSectionCard, TimelineSection } from "./module-sections"
 import {
   HeaderSection,
   MetricsSection,
@@ -107,6 +110,8 @@ export default function ReportsClient() {
   const [pendingDelete, setPendingDelete] = useState<ReportDto | null>(null)
   // The row the member chose to submit, which need not be the one the builder holds open.
   const [submitTarget, setSubmitTarget] = useState<ReportDto | null>(null)
+  // Module-card drill-down is display state; the six computed sections keep their URL deep-links.
+  const [moduleOpen, setModuleOpen] = useState<ModuleSectionKey | null>(null)
 
   useEffect(() => {
     setTodayIso(localDay(new Date(), timezone))
@@ -160,12 +165,15 @@ export default function ReportsClient() {
       // object comes back: a new one with the same values rebuilds this loader and re-runs it.
       setState((prev) => adoptServerAnchor(prev, todayIso, serverToday))
 
+      // The preview feeds both views: the builder's live figures and the list view's workspace
+      // mix, so neither has to fall back on a stale stored snapshot.
+      const previewJson = await readJson(await fetch(`/api/reports/work/preview?${qs}`))
+      if (previewJson?.success) {
+        setPreview(previewJson.data.aggregate as ReportAggregate)
+        setPeriod(previewJson.data.period as Period)
+      }
+
       if (state.view === "build") {
-        const previewJson = await readJson(await fetch(`/api/reports/work/preview?${qs}`))
-        if (previewJson?.success) {
-          setPreview(previewJson.data.aggregate as ReportAggregate)
-          setPeriod(previewJson.data.period as Period)
-        }
         if (state.reportId === null) {
           setReport(null)
           setMissingId(null)
@@ -416,6 +424,17 @@ export default function ReportsClient() {
     />
   )
 
+  const moduleCard = (section: ModuleSectionKey) =>
+    aggregate && moduleRowsFor(section, aggregate).length > 0 ? (
+      <ModuleSectionCard
+        key={section}
+        section={section}
+        aggregate={aggregate}
+        expanded={moduleOpen === section}
+        onToggle={() => setModuleOpen(moduleOpen === section ? null : section)}
+      />
+    ) : null
+
   // SECTION_ORDER decides the order; the map decides that every declared section is present.
   // A report missing its blockers section is the failure mode §6 warns about, and it is
   // prevented by structure rather than by a reviewer noticing.
@@ -579,6 +598,16 @@ export default function ReportsClient() {
             {SECTION_ORDER.map((key) => (
               <div key={key} className="contents">
                 {sectionNodes[key]}
+                {key === "nextPeriod" ? (
+                  <>
+                    {MODULE_SECTIONS.map((section) => moduleCard(section))}
+                    {aggregate && aggregate.timeline.length > 0 ? (
+                      <div className="md:col-span-2 xl:col-span-3">
+                        <TimelineSection aggregate={aggregate} />
+                      </div>
+                    ) : null}
+                  </>
+                ) : null}
               </div>
             ))}
             {!aggregate ? (
@@ -592,6 +621,7 @@ export default function ReportsClient() {
             <PipelineSection reports={reports} />
             <CadenceSection reports={reports} todayIso={todayIso} timezone={timezone} />
             <TurnaroundSection reports={reports} />
+            <WorkspaceMixSection aggregate={preview} />
           </div>
         )}
       </div>

@@ -26,6 +26,19 @@ describe("the XLSX export module", () => {
     expect(source).toContain('addWorksheet("By status")')
   })
 
+  it("report workbook carries a sheet per activity module", () => {
+    expect(source).toContain("MODULE_SECTIONS")
+    expect(source).toContain("moduleRowsFor")
+    expect(source).toContain("MODULE_LABEL")
+  })
+
+  it("report workbook includes timeline and workspace mix sheets", () => {
+    expect(source).toContain('addWorksheet("Timeline")')
+    expect(source).toContain('addWorksheet("Workspace mix")')
+    expect(source).toContain("metrics.timeline")
+    expect(source).toContain("metrics.byModule")
+  })
+
   it("report layout includes monthly series sheet for yearly periods", () => {
     expect(source).toContain('addWorksheet("Monthly series")')
     expect(source).toContain("metrics.period.monthSeries")

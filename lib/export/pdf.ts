@@ -4,6 +4,8 @@
 
 import { jsPDF } from "jspdf"
 import autoTable from "jspdf-autotable"
+import { MODULE_LABEL } from "@/lib/reports/aggregate"
+import { MODULE_SECTIONS, moduleRowsFor } from "@/lib/reports/module-sections"
 import type { ReportDto } from "@/lib/reports/report-fields"
 import type { ReportAggregate } from "@/lib/reports/aggregate"
 import type { EntryDto, DeliverableDto } from "@/lib/worklog/entries"
@@ -128,6 +130,38 @@ export function exportReportPdf(data: ReportExportData): void {
       startY: currentY,
       head: [["Title", "Detail", "Date"]],
       body: metrics.completed.slice(0, 30).map((r) => [r.title, r.detail, r.date ?? ""]),
+      theme: "striped",
+      headStyles: { fillColor: [41, 128, 185] },
+    })
+    currentY = (doc as any).lastAutoTable.finalY + 10
+  }
+
+  for (const section of MODULE_SECTIONS) {
+    const rows = moduleRowsFor(section, metrics)
+    if (rows.length === 0 || currentY >= 250) continue
+    doc.setFontSize(14)
+    doc.setFont("helvetica", "bold")
+    doc.text(MODULE_LABEL[section], 14, currentY)
+    currentY += 5
+    autoTable(doc, {
+      startY: currentY,
+      head: [["Title", "Detail", "Date"]],
+      body: rows.slice(0, 30).map((r) => [r.title, r.detail, r.date ?? ""]),
+      theme: "striped",
+      headStyles: { fillColor: [41, 128, 185] },
+    })
+    currentY = (doc as any).lastAutoTable.finalY + 10
+  }
+
+  if (metrics.timeline.length > 0 && currentY < 250) {
+    doc.setFontSize(14)
+    doc.setFont("helvetica", "bold")
+    doc.text("Activity timeline", 14, currentY)
+    currentY += 5
+    autoTable(doc, {
+      startY: currentY,
+      head: [["Date", "Source", "Title", "Detail"]],
+      body: metrics.timeline.slice(0, 40).map((r) => [r.date ?? "", MODULE_LABEL[r.source], r.title, r.detail]),
       theme: "striped",
       headStyles: { fillColor: [41, 128, 185] },
     })

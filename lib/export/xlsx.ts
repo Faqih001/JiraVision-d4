@@ -3,6 +3,8 @@
 // Uses exceljs. Multi-sheet workbooks with real date/number formats, frozen header row, autofilter.
 
 import ExcelJS from "exceljs"
+import { MODULE_LABEL } from "@/lib/reports/aggregate"
+import { MODULE_SECTIONS, moduleRowsFor } from "@/lib/reports/module-sections"
 import type { ReportDto } from "@/lib/reports/report-fields"
 import type { ReportAggregate } from "@/lib/reports/aggregate"
 import type { EntryDto, DeliverableDto } from "@/lib/worklog/entries"
@@ -141,6 +143,57 @@ export async function exportReportXlsx(data: ReportExportData): Promise<void> {
     }
     statusSheet.getRow(1).font = { bold: true }
     statusSheet.views = [{ state: "frozen", ySplit: 1 }]
+  }
+
+  // One sheet per activity module that has rows
+  for (const section of MODULE_SECTIONS) {
+    const rows = moduleRowsFor(section, metrics)
+    if (rows.length === 0) continue
+    const moduleSheet = workbook.addWorksheet(MODULE_LABEL[section])
+    moduleSheet.columns = [
+      { header: "Title", key: "title", width: 40 },
+      { header: "Detail", key: "detail", width: 50 },
+      { header: "Date", key: "date", width: 12 },
+    ]
+    for (const r of rows) {
+      moduleSheet.addRow({ title: r.title, detail: r.detail, date: r.date ?? "" })
+    }
+    moduleSheet.getRow(1).font = { bold: true }
+    moduleSheet.views = [{ state: "frozen", ySplit: 1 }]
+    addDateNumberFormats(moduleSheet)
+  }
+
+  // Merged activity timeline
+  if (metrics.timeline.length > 0) {
+    const timelineSheet = workbook.addWorksheet("Timeline")
+    timelineSheet.columns = [
+      { header: "Date", key: "date", width: 12 },
+      { header: "Source", key: "source", width: 15 },
+      { header: "Title", key: "title", width: 40 },
+      { header: "Detail", key: "detail", width: 50 },
+    ]
+    for (const r of metrics.timeline) {
+      timelineSheet.addRow({ date: r.date ?? "", source: MODULE_LABEL[r.source], title: r.title, detail: r.detail })
+    }
+    timelineSheet.getRow(1).font = { bold: true }
+    timelineSheet.views = [{ state: "frozen", ySplit: 1 }]
+    timelineSheet.autoFilter = { from: "A1", to: `D${metrics.timeline.length + 1}` }
+    addDateNumberFormats(timelineSheet)
+  }
+
+  // Workspace mix: per-module counts
+  if (metrics.byModule.length > 0) {
+    const mixSheet = workbook.addWorksheet("Workspace mix")
+    mixSheet.columns = [
+      { header: "Module", key: "module", width: 20 },
+      { header: "Count", key: "count", width: 10 },
+      { header: "Minutes", key: "minutes", width: 10 },
+    ]
+    for (const m of metrics.byModule) {
+      mixSheet.addRow({ module: m.label, count: m.count.value, minutes: m.minutes.value })
+    }
+    mixSheet.getRow(1).font = { bold: true }
+    mixSheet.views = [{ state: "frozen", ySplit: 1 }]
   }
 
   // Monthly series sheet (yearly only)

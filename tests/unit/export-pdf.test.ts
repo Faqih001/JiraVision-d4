@@ -46,6 +46,18 @@ describe("the PDF export module", () => {
     expect(source).toContain("lane.name")
   })
 
+  it("report layout includes the eight activity module sections", () => {
+    expect(source).toMatch(/from ["']@\/lib\/reports\/module-sections["']/u)
+    expect(source).toContain("MODULE_SECTIONS")
+    expect(source).toContain("moduleRowsFor")
+    expect(source).toContain("MODULE_LABEL")
+  })
+
+  it("report layout includes the merged activity timeline", () => {
+    expect(source).toContain("Activity timeline")
+    expect(source).toContain("metrics.timeline")
+  })
+
   it("exports a fourth playbook layout with one page per phase", () => {
     expect(source).toContain("export function exportPlaybookPdf")
     expect(source).toContain("One page per phase")

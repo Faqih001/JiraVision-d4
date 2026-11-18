@@ -4,7 +4,7 @@
 // vocabulary. Every number comes from lib/reports/overview.ts — these cards render counts the
 // lib already made, and the only maths here is display scaling (shares, bar heights).
 
-import { BarChart3, Hourglass, PieChart as PieChartIcon } from "lucide-react"
+import { BarChart3, Hourglass, Layers, PieChart as PieChartIcon } from "lucide-react"
 import { Cell, Pie, PieChart, Tooltip } from "recharts"
 import {
   DASHBOARD_KPI_GRID,
@@ -12,6 +12,7 @@ import {
   SectionCard,
   TOOLTIP_STYLE,
 } from "@/components/dashboard-kit"
+import { MODULE_KEYS, type ReportAggregate } from "@/lib/reports/aggregate"
 import { cadenceTotal, cadenceWeeks, statusCounts, turnaroundStats } from "@/lib/reports/overview"
 import { REPORT_STATUSES, type ReportDto } from "@/lib/reports/report-fields"
 import { REPORT_STATUS_COLOR, REPORT_STATUS_LABEL, Stat } from "./sections"
@@ -177,5 +178,45 @@ export function ReportsKpiStrip({ reports, filtered }: { reports: ReportDto[]; f
       <Stat label="Acknowledged" value={String(counts.acknowledged)} hint="read and accepted" />
       <Stat label="Returned" value={String(counts.returned)} hint="sent back for revision" />
     </div>
+  )
+}
+
+export function WorkspaceMixSection({ aggregate }: { aggregate: ReportAggregate | null }) {
+  const buckets = aggregate?.byModule ?? []
+  const max = Math.max(1, ...buckets.map((bucket) => bucket.count.value))
+
+  return (
+    <SectionCard title="Workspace mix" icon={<Layers className="h-4 w-4" />}>
+      {buckets.length === 0 ? (
+        <EmptyNote>No module activity in this period yet — the mix fills as you work.</EmptyNote>
+      ) : (
+        <div className="flex h-full flex-col justify-between gap-3">
+          <ul className="space-y-1.5">
+            {buckets.map((bucket) => (
+              <li
+                key={bucket.key}
+                className="flex items-center gap-2 text-[11px]"
+                title={`${bucket.label}: ${bucket.count.value}`}
+              >
+                <span className="w-24 shrink-0 truncate">{bucket.label}</span>
+                <span className="h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-muted/40">
+                  <span
+                    className="block h-full rounded-full"
+                    style={{
+                      width: `${(bucket.count.value / max) * 100}%`,
+                      background: "hsl(var(--chart-moss))",
+                    }}
+                  />
+                </span>
+                <span className="w-8 shrink-0 text-right font-medium tabular-nums">{bucket.count.value}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="text-[11px] text-muted-foreground">
+            Where this period&apos;s activity came from — {buckets.length} of {MODULE_KEYS.length} modules.
+          </p>
+        </div>
+      )}
+    </SectionCard>
   )
 }
