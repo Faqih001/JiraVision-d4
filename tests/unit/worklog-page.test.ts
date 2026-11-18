@@ -744,9 +744,20 @@ describe("the redesign", () => {
 
   it("draws the mix of work as a donut with the server's total in the centre", () => {
     const code = sections()
-    expect(code).toMatch(/<PieChart/u)
+    expect(code).toMatch(/<PieChart width=\{120\} height=\{120\}>/u)
     expect(code).toMatch(/totalEntries: number/u)
     expect(client()).toMatch(/totalEntries=\{summary\?\.totals\.entries \?\? 0\}/u)
+  })
+
+  it("fits the mix of work beside its legend and labels every kind's share", () => {
+    const code = sections()
+    const mix = code.slice(code.indexOf("export function KindMixSection"), code.indexOf("export function CoverageSection"))
+    expect(mix).toMatch(/className="flex items-center gap-3"/u)
+    expect(mix).toMatch(/className="relative h-\[120px\] w-\[120px\] shrink-0"/u)
+    expect(mix).toMatch(/className="min-w-0 flex-1 space-y-1"/u)
+    expect(mix).toMatch(/title=\{`\$\{k\.label\} · \$\{k\.count\} /u)
+    expect(mix).toMatch(/\{pct\}%<\/span>/u)
+    expect(mix).toMatch(/\{formatMinutes\(totalMinutes\)\} across \{activeKinds\}/u)
   })
 
   it("gives coverage an eight-week strip independent of the chosen range", () => {

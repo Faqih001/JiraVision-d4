@@ -1012,6 +1012,9 @@ export function KindMixSection({
   const slices = kinds
     .filter((k) => k.count > 0)
     .map((k) => ({ name: k.label, value: k.count, kind: k.kind }))
+  let totalMinutes = 0
+  for (const k of kinds) totalMinutes += k.minutes
+  const activeKinds = slices.length
   return (
     <SectionCard
       title="Mix of work"
@@ -1031,15 +1034,15 @@ export function KindMixSection({
         <EmptyNote>Nothing logged in this range yet.</EmptyNote>
       ) : (
         <>
-          <div className="relative">
-            <ResponsiveContainer width="100%" height={170}>
-              <PieChart>
+          <div className="flex items-center gap-3">
+            <div className="relative h-[120px] w-[120px] shrink-0">
+              <PieChart width={120} height={120}>
                 <Pie
                   data={slices}
                   dataKey="value"
                   nameKey="name"
-                  innerRadius={52}
-                  outerRadius={78}
+                  innerRadius={36}
+                  outerRadius={56}
                   paddingAngle={2}
                   strokeWidth={0}
                 >
@@ -1059,29 +1062,41 @@ export function KindMixSection({
                   }}
                 />
               </PieChart>
-            </ResponsiveContainer>
-            <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-              <span className="text-2xl font-semibold tabular-nums">{totalEntries}</span>
-              <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                {totalEntries === 1 ? "entry" : "entries"}
-              </span>
-            </div>
-          </div>
-          <ul className="grid gap-1.5 sm:grid-cols-2">
-            {kinds.map((k) => (
-              <li key={k.kind} className="flex items-center gap-2 text-xs">
-                <span
-                  className="h-2 w-2 shrink-0 rounded-full"
-                  style={{ background: KIND_COLOUR[k.kind] }}
-                  aria-hidden
-                />
-                <span className="min-w-0 flex-1 truncate">{k.label}</span>
-                <span className="tabular-nums text-muted-foreground">
-                  {k.count} · {formatMinutes(k.minutes)}
+              <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+                <span className="text-xl font-semibold tabular-nums">{totalEntries}</span>
+                <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                  {totalEntries === 1 ? "entry" : "entries"}
                 </span>
-              </li>
-            ))}
-          </ul>
+              </div>
+            </div>
+            <ul className="min-w-0 flex-1 space-y-1">
+              {kinds.map((k) => {
+                const pct = totalEntries > 0 ? Math.round((k.count / totalEntries) * 100) : 0
+                return (
+                  <li
+                    key={k.kind}
+                    title={`${k.label} · ${k.count} ${k.count === 1 ? "entry" : "entries"} · ${formatMinutes(k.minutes)} · ${pct}% of entries`}
+                    className="flex items-center gap-1.5 text-[11px]"
+                  >
+                    <span
+                      className="h-2 w-2 shrink-0 rounded-full"
+                      style={{ background: KIND_COLOUR[k.kind] }}
+                      aria-hidden
+                    />
+                    <span className="min-w-0 flex-1 truncate">{k.label}</span>
+                    <span className="shrink-0 tabular-nums text-muted-foreground">{pct}%</span>
+                    <span className="shrink-0 tabular-nums">
+                      {k.count} · {formatMinutes(k.minutes)}
+                    </span>
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
+          <p className="mt-2 text-[11px] text-muted-foreground">
+            {formatMinutes(totalMinutes)} across {activeKinds} {activeKinds === 1 ? "kind" : "kinds"} · share of
+            entries by kind.
+          </p>
         </>
       )}
     </SectionCard>
