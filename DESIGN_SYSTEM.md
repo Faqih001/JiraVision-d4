@@ -655,3 +655,27 @@ Both entry points are links, not buttons: they navigate, and styling a navigatio
 **Work log** (`app/dashboard/worklog/worklog-client.tsx`): in the view toolbar's day row, after "Today", as a ghost `size="sm"` Button with `asChild` around the Link so it matches the neighbouring controls at `h-7 gap-1 px-2 text-xs`. Label "Ask about this day". The day it asks about is `state.day` — the day the URL already owns, so the link and the screen can never disagree.
 
 **The link itself**: `lib/assistant/ask.ts` owns the wording and the encoding. `/dashboard/assistant?q=…` is asked once (a ref guard makes the effect one-shot) and then the param is replaced away, so a refresh does not ask the same question again.
+
+## 19. Period reports read the whole workspace (2026-11-18)
+
+Extends §12–13; the template-era card table in §12 is the phase-3 record, not the current layout.
+The builder now renders the fixed `SECTION_ORDER` (no template picks the order), followed by the
+module cards and the timeline. Same grid, same rule: every card owns its span, the client never
+re-lays-out on data. **No new token** — everything below reuses `--chart-moss`, `--chart-stone`,
+`--muted` and `--border`.
+
+| Card | Component | Grid span | Behaviour |
+| --- | --- | --- | --- |
+| Module cards (8) | `ModuleSectionCard` (`module-sections.tsx`) | 1 cell each | hidden entirely when the module has no rows; caption from `moduleCaption`, 6-row preview, ghost count button (`h-7`, `aria-expanded`) expands the rest and prints mono refs |
+| Activity timeline | `TimelineSection` | `md:col-span-2 xl:col-span-3` | hidden when no dated activity; 12 rows, remainder in a `<details>`; each row carries a module badge |
+| Workspace mix (list view) | `WorkspaceMixSection` (`overview.tsx`) | 1 cell | horizontal bars, `hsl(var(--chart-moss))` on a `bg-muted/40` track, scaled to the busiest module; empty state is an `EmptyNote` in words |
+
+- The timeline badge is `inline-flex items-center rounded-full border border-border/60 bg-muted/40
+  px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground` — a label, not a status colour.
+- Module-card expansion is local state, not URL state: `?open=` belongs to the six computed sections
+  whose deep links are pinned. A shared link still lands on the same period and the same numbers.
+- Singular/plural comes from the module-private `plural()` in `lib/reports/module-sections.ts`;
+  captions never start with a bare `0` (the card is hidden anyway, and the empty caption says which
+  way the number is empty).
+- The list view's mix card is fed by the live preview, never a saved snapshot — a stale snapshot of
+  the last-opened report would make the overview lie about the period on screen.

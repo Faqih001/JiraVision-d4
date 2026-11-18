@@ -2157,3 +2157,37 @@ and no timestamp anywhere, because `email_digest` has no delivered-at column at 
   no session, so the chain DB row → reader DTO → `heartbeatView` → string is proven on live data, but
   the three lines were not seen rendered on the page. The mounts are covered by comment-stripped source
   guards that require the JSX element, and the label logic by assertions on real output.
+
+## 62. Period reports read the whole workspace (2026-11-18)
+
+This section supersedes §9's template-era description of `/dashboard/reports-work`; §9 stays as the
+phase-3 record. The rework shipped in two arcs: the list-view redesign (overview helpers, KPI strip,
+insight trio, functional rows and dialogs) and the four D batches below.
+
+- **One universal report — templates retired (D1).** The Template dropdown and the `?tpl=` param are
+  gone. Every report renders the same fixed `SECTION_ORDER`; the stored `template` column stays for
+  old rows, new drafts write `general`, and create/patch refuse a `template` key by name with a 400.
+  `lib/reports/templates.ts` remains only as the section-key vocabulary.
+- **Eight more activity sources (D2).** The aggregate now reads Operations, Registers, Service desk,
+  Goals, Meetings, Retros, Career and Playbooks alongside the work log, tasks, deliverables and
+  planner — 12 `MODULE_KEYS`, 31 metrics, 19 capped member-scoped reads in
+  `app/api/reports/work/_shared.ts`. Every read puts `user_id` in its SQL and carries a row cap.
+  `parseStoredMetrics` backfills the new fields when an old snapshot is read, so a report saved
+  before this wave opens without crashing and without inventing numbers. **No migration.**
+- **Module section cards (D3).** The builder renders one bordered card per active module
+  (`lib/reports/module-sections.ts` → `app/dashboard/reports-work/module-sections.tsx`): caption,
+  up to 6 preview rows, and a count button that expands the rest. A module with no rows renders
+  nothing — no empty grid band. Expansion is local display state; the six computed sections keep
+  their `?open=` deep links.
+- **Merged activity timeline (D3).** `aggregate.timeline` collects every dated in-period activity
+  across all 12 modules, newest first. The builder's "Activity timeline" card badges each row with
+  its module (`MODULE_LABEL[row.source]`), shows 12 rows and folds the rest into a `<details>`.
+- **Workspace mix (D3).** The list view gains a "Workspace mix" card — per-module counts as bars,
+  fed by the live preview (deliberately not a possibly-stale saved snapshot). The preview fetch now
+  runs in both views, not only the builder.
+- **Exports carry the new sections (D3).** The report PDF appends a table per active module plus an
+  "Activity timeline" table; the report workbook gains a sheet per module plus `Timeline` and
+  `Workspace mix` sheets, with the same date/number formats and frozen headers as the phase-5 sheets.
+- Guards: `tests/unit/report-module-sections.test.ts` (pure module: row identity, captions, preview
+  caps) and `tests/unit/report-modules-ui.test.ts` (source guards for the cards, wiring and these
+  doc sections), plus new layout guards in `export-{pdf,xlsx}.test.ts`. Suite: 222 files green.

@@ -79,3 +79,11 @@ describe("the workspace mix card", () => {
     expect(codeOnly(client())).toContain("WorkspaceMixSection")
   })
 })
+
+describe("the docs record the rework", () => {
+  it("pins the dated section in each deliverable doc", () => {
+    expect(src("FEATURES.md")).toMatch(/## 62\. Period reports read the whole workspace \(2026-11-18\)/u)
+    expect(src("DESIGN_SYSTEM.md")).toMatch(/## 19\. Period reports read the whole workspace \(2026-11-18\)/u)
+    expect(src("PLACEHOLDERS.md")).toMatch(/## 16\. Period reports read the whole workspace \(2026-11-18\) — no new placeholder/u)
+  })
+})

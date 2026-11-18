@@ -210,3 +210,20 @@ Two of the three rows above are now closed, and the phase removed a genuine plac
 
 Nothing in the assistant stack is a stub: every answer is either a scripted response the code owns (keyword tier, error fallback) or a model response grounded in rows the caller can see.
 
+## 16. Period reports read the whole workspace (2026-11-18) — no new placeholder
+
+The reports-work rework (universal report, 8 new activity sources, module cards, timeline, mix
+card, extended exports) added no `NOTE(PLACEHOLDER)` and no dead control. Every new card reads a
+real aggregate field computed from the member's own rows; every count has a row list behind it.
+
+Three things a reader could mistake for a stub, because each is a deliberate design choice:
+
+| Looks missing | Actually |
+|---|---|
+| A module card (e.g. Retros) not on the builder | hidden when the module has no rows in the period — an empty bordered card would read as broken, so the card renders nothing (`rows.length === 0 → return null`, pinned by `report-modules-ui.test.ts`) |
+| No "Activity timeline" card | same rule: no dated in-period activity, no card. The list view's "Workspace mix" does render at zero, with an `EmptyNote` that says the mix fills as you work |
+| No Template dropdown | retired on purpose (D1): one universal report, fixed section order. The stored `template` column stays for old rows; sending `template` in a create/patch body gets a 400 naming the key |
+
+The `nextPeriod` row remains unlinked, as §8 recorded — the pinned guard still refuses links to
+routes outside the work log from these files.
+
