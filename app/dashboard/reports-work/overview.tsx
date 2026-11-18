@@ -1,10 +1,10 @@
 "use client"
 
-// The list view's overview: a KPI strip and three insight cards, in the work log's visual
+// The list view's overview: a KPI strip and six insight cards, in the work log's visual
 // vocabulary. Every number comes from lib/reports/overview.ts — these cards render counts the
 // lib already made, and the only maths here is display scaling (shares, bar heights).
 
-import { BarChart3, Hourglass, Layers, PieChart as PieChartIcon } from "lucide-react"
+import { BarChart3, CalendarRange, FileClock, Hourglass, Layers, PieChart as PieChartIcon } from "lucide-react"
 import { Cell, Pie, PieChart, Tooltip } from "recharts"
 import {
   DASHBOARD_KPI_GRID,
@@ -13,7 +13,15 @@ import {
   TOOLTIP_STYLE,
 } from "@/components/dashboard-kit"
 import { MODULE_KEYS, type ReportAggregate } from "@/lib/reports/aggregate"
-import { cadenceTotal, cadenceWeeks, statusCounts, turnaroundStats } from "@/lib/reports/overview"
+import {
+  cadenceTotal,
+  cadenceWeeks,
+  draftAging,
+  reportingSpan,
+  statusCounts,
+  turnaroundStats,
+} from "@/lib/reports/overview"
+import { PERIOD_LABEL } from "@/lib/reports/period"
 import { REPORT_STATUSES, type ReportDto } from "@/lib/reports/report-fields"
 import { REPORT_STATUS_COLOR, REPORT_STATUS_LABEL, Stat } from "./sections"
 
@@ -32,7 +40,7 @@ export function PipelineSection({ reports }: { reports: ReportDto[] }) {
         <EmptyNote>No reports yet — the pipeline fills as you create them.</EmptyNote>
       ) : (
         <div className="flex h-full flex-col justify-between gap-4">
-          <div className="flex items-center gap-3">
+          <div className="flex flex-1 items-center gap-3">
             <div className="relative h-[160px] w-[160px] shrink-0">
               <PieChart width={160} height={160}>
                 <Pie
@@ -144,7 +152,7 @@ export function TurnaroundSection({ reports }: { reports: ReportDto[] }) {
   return (
     <SectionCard title="Review turnaround" icon={<Hourglass className="h-4 w-4" />}>
       <div className="flex h-full flex-col justify-between gap-4">
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-2 flex-1 grid-rows-2">
           <Stat label="Awaiting review" value={String(stats.awaiting)} hint="submitted, not yet read" />
           <Stat
             label="Avg time to ack"
@@ -191,7 +199,7 @@ export function WorkspaceMixSection({ aggregate }: { aggregate: ReportAggregate 
         <EmptyNote>No module activity in this period yet — the mix fills as you work.</EmptyNote>
       ) : (
         <div className="flex h-full flex-col justify-between gap-3">
-          <ul className="space-y-1.5">
+          <ul className="flex flex-1 flex-col justify-between gap-1.5">
             {buckets.map((bucket) => (
               <li
                 key={bucket.key}
@@ -214,6 +222,76 @@ export function WorkspaceMixSection({ aggregate }: { aggregate: ReportAggregate 
           </ul>
           <p className="text-[11px] text-muted-foreground">
             Where this period&apos;s activity came from — {buckets.length} of {MODULE_KEYS.length} modules.
+          </p>
+        </div>
+      )}
+    </SectionCard>
+  )
+}
+
+export function OpenDraftsSection({
+  reports,
+  todayIso,
+  timezone,
+}: {
+  reports: ReportDto[]
+  todayIso: string
+  timezone: string | null
+}) {
+  const aging = draftAging(reports, todayIso, timezone)
+  const age = (value: number | null) =>
+    value === null ? "—" : value === 0 ? "today" : `${value} ${value === 1 ? "day" : "days"}`
+
+  return (
+    <SectionCard title="Open drafts" icon={<FileClock className="h-4 w-4" />}>
+      {aging.count === 0 ? (
+        <EmptyNote>No open drafts — every report is filed or acknowledged.</EmptyNote>
+      ) : (
+        <div className="flex h-full flex-col justify-between gap-4">
+          <div className="grid flex-1 grid-cols-2 grid-rows-2 gap-2">
+            <Stat label="Open drafts" value={String(aging.count)} hint="still editable" />
+            <Stat label="Oldest" value={age(aging.oldestDays)} hint="waiting longest" />
+            <Stat label="Newest" value={age(aging.newestDays)} />
+            <Stat label="Avg age" value={age(aging.avgDays)} />
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            A draft only counts once it is submitted — finish the oldest one first.
+          </p>
+        </div>
+      )}
+    </SectionCard>
+  )
+}
+
+export function ReportingSpanSection({ reports }: { reports: ReportDto[] }) {
+  const span = reportingSpan(reports)
+  const shortDate = (iso: string | null) =>
+    iso === null
+      ? "—"
+      : new Date(`${iso}T12:00:00Z`).toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+          timeZone: "UTC",
+        })
+
+  return (
+    <SectionCard title="Reporting span" icon={<CalendarRange className="h-4 w-4" />}>
+      {span.periods === 0 ? (
+        <EmptyNote>No periods covered yet — your first report sets the span.</EmptyNote>
+      ) : (
+        <div className="flex h-full flex-col justify-between gap-4">
+          <div className="grid flex-1 grid-cols-2 grid-rows-2 gap-2">
+            <Stat label="Periods covered" value={String(span.periods)} hint="distinct periods" />
+            <Stat
+              label="Top cadence"
+              value={span.dominantType ? PERIOD_LABEL[span.dominantType] : "—"}
+              hint={`${span.dominantCount} of ${reports.length}`}
+            />
+            <Stat label="First period" value={shortDate(span.earliest)} />
+            <Stat label="Latest period" value={shortDate(span.latest)} />
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            The breadth of your reporting — from the first period to the most recent.
           </p>
         </div>
       )}

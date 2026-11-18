@@ -42,7 +42,9 @@ import {
 import { ConfirmReportDelete, NewReportDialog, SubmitReportDialog, type NewReportDraft } from "./dialogs"
 import {
   CadenceSection,
+  OpenDraftsSection,
   PipelineSection,
+  ReportingSpanSection,
   ReportsKpiStrip,
   TurnaroundSection,
   WorkspaceMixSection,
@@ -617,10 +619,12 @@ export default function ReportsClient() {
             ) : null}
           </div>
         ) : (
-          <div className={DASHBOARD_SECTION_GRID}>
+          <div className={`${DASHBOARD_SECTION_GRID} [&>*]:min-h-[320px]`}>
             <PipelineSection reports={reports} />
             <CadenceSection reports={reports} todayIso={todayIso} timezone={timezone} />
             <TurnaroundSection reports={reports} />
+            <OpenDraftsSection reports={reports} todayIso={todayIso} timezone={timezone} />
+            <ReportingSpanSection reports={reports} />
             <WorkspaceMixSection aggregate={preview} />
           </div>
         )}

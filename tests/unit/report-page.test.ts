@@ -137,11 +137,37 @@ describe("the overview strip and insight cards", () => {
     expect(codeOnly(overviewFile())).not.toMatch(/fetch\(|useState|useRouter|\.reduce\(/u)
   })
 
-  it("renders the strip in both views and the trio in the list view", () => {
+  it("renders the strip in both views and six insight cards in the list view", () => {
     expect(client()).toMatch(/<ReportsKpiStrip reports=\{reports\}/u)
     expect(client()).toMatch(/<PipelineSection reports=\{reports\}/u)
     expect(client()).toMatch(/<CadenceSection reports=\{reports\} todayIso=\{todayIso\} timezone=\{timezone\}/u)
     expect(client()).toMatch(/<TurnaroundSection reports=\{reports\}/u)
+    expect(client()).toMatch(/<OpenDraftsSection reports=\{reports\} todayIso=\{todayIso\} timezone=\{timezone\}/u)
+    expect(client()).toMatch(/<ReportingSpanSection reports=\{reports\}/u)
+    expect(client()).toMatch(/<WorkspaceMixSection aggregate=\{preview\}/u)
+  })
+
+  it("gives the six insight cards one uniform, taller height", () => {
+    expect(client()).toMatch(/\[&>\*\]:min-h-\[320px\]/u)
+  })
+
+  it("ages open drafts from the lib, and nudges toward the oldest", () => {
+    const drafts = slice("export function OpenDraftsSection", "export function ReportingSpanSection")
+    expect(drafts).toMatch(/draftAging\(reports, todayIso, timezone\)/u)
+    expect(drafts).toContain('label="Open drafts"')
+    expect(drafts).toContain('label="Oldest"')
+    expect(drafts).toMatch(/finish the oldest one first/u)
+    expect(drafts).toMatch(/grid flex-1 grid-cols-2 grid-rows-2 gap-2/u)
+  })
+
+  it("spans the reporting breadth from the lib, with a deterministic top cadence", () => {
+    const code = codeOnly(overviewFile())
+    const span = code.slice(code.indexOf("export function ReportingSpanSection"))
+    expect(span).toMatch(/reportingSpan\(reports\)/u)
+    expect(span).toContain('label="Periods covered"')
+    expect(span).toContain('label="Top cadence"')
+    expect(span).toMatch(/PERIOD_LABEL\[span\.dominantType\]/u)
+    expect(span).toMatch(/grid flex-1 grid-cols-2 grid-rows-2 gap-2/u)
   })
 
   it("colours every status from the design tokens, in the list and the header", () => {

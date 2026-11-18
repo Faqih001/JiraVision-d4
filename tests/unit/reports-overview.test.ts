@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest"
-import { cadenceTotal, cadenceWeeks, statusCounts, turnaroundStats } from "@/lib/reports/overview"
+import {
+  cadenceTotal,
+  cadenceWeeks,
+  draftAging,
+  reportingSpan,
+  statusCounts,
+  turnaroundStats,
+} from "@/lib/reports/overview"
 import { REPORT_STATUSES, type ReportDto } from "@/lib/reports/report-fields"
 import { REPORT_TEMPLATES } from "@/lib/reports/templates"
 
@@ -221,5 +228,110 @@ describe("turnaroundStats", () => {
     ])
     expect(stats.avgDays).toBeNull()
     expect(stats.awaiting).toBe(1)
+  })
+})
+
+describe("draftAging", () => {
+  const today = "2026-11-18"
+
+  it("reads zero and null when there are no drafts", () => {
+    expect(draftAging([], today, "UTC")).toEqual({
+      count: 0,
+      oldestDays: null,
+      newestDays: null,
+      avgDays: null,
+    })
+  })
+
+  it("ignores reports that are already filed", () => {
+    const aging = draftAging(
+      [
+        report({ id: 1, status: "submitted", createdAt: "2026-11-01T09:00:00.000Z" }),
+        report({ id: 2, status: "acknowledged", createdAt: "2026-11-01T09:00:00.000Z" }),
+      ],
+      today,
+      "UTC",
+    )
+    expect(aging.count).toBe(0)
+    expect(aging.oldestDays).toBeNull()
+  })
+
+  it("measures how long each draft has waited, in whole days", () => {
+    const aging = draftAging(
+      [
+        report({ id: 1, status: "draft", createdAt: "2026-11-08T09:00:00.000Z" }),
+        report({ id: 2, status: "draft", createdAt: "2026-11-16T09:00:00.000Z" }),
+        report({ id: 3, status: "draft", createdAt: "2026-11-18T09:00:00.000Z" }),
+      ],
+      today,
+      "UTC",
+    )
+    expect(aging.count).toBe(3)
+    expect(aging.oldestDays).toBe(10)
+    expect(aging.newestDays).toBe(0)
+    expect(aging.avgDays).toBe(4)
+  })
+
+  it("reads the creation instant in the member's zone", () => {
+    // 2026-11-17T23:00Z is Tuesday in UTC but already Wednesday 12:00 in Auckland (+13),
+    // so the Auckland draft is a day younger.
+    const created = "2026-11-17T23:00:00.000Z"
+    const utc = draftAging([report({ status: "draft", createdAt: created })], today, "UTC")
+    const akld = draftAging([report({ status: "draft", createdAt: created })], today, "Pacific/Auckland")
+    expect(utc.oldestDays).toBe(1)
+    expect(akld.oldestDays).toBe(0)
+  })
+
+  it("never reads a negative age for a draft created ahead of the server's day", () => {
+    const aging = draftAging(
+      [report({ status: "draft", createdAt: "2026-11-19T09:00:00.000Z" })],
+      today,
+      "UTC",
+    )
+    expect(aging.oldestDays).toBe(0)
+    expect(aging.newestDays).toBe(0)
+  })
+})
+
+describe("reportingSpan", () => {
+  it("reads an empty span when there are no reports", () => {
+    expect(reportingSpan([])).toEqual({
+      periods: 0,
+      earliest: null,
+      latest: null,
+      dominantType: null,
+      dominantCount: 0,
+    })
+  })
+
+  it("spans the first period start to the last period end and counts distinct periods", () => {
+    const span = reportingSpan([
+      report({ id: 1, periodType: "weekly", periodStart: "2026-10-06", periodEnd: "2026-10-12" }),
+      report({ id: 2, periodType: "weekly", periodStart: "2026-11-09", periodEnd: "2026-11-15" }),
+      report({ id: 3, periodType: "monthly", periodStart: "2026-10-01", periodEnd: "2026-10-31" }),
+    ])
+    expect(span.periods).toBe(3)
+    expect(span.earliest).toBe("2026-10-01")
+    expect(span.latest).toBe("2026-11-15")
+    expect(span.dominantType).toBe("weekly")
+    expect(span.dominantCount).toBe(2)
+  })
+
+  it("counts two reports covering the same period as one period", () => {
+    const span = reportingSpan([
+      report({ id: 1, periodStart: "2026-11-09", periodEnd: "2026-11-15" }),
+      report({ id: 2, periodStart: "2026-11-09", periodEnd: "2026-11-15" }),
+    ])
+    expect(span.periods).toBe(1)
+  })
+
+  it("breaks a cadence tie by the declared period order, not list order", () => {
+    const span = reportingSpan([
+      report({ id: 1, periodType: "monthly", periodStart: "2026-10-01", periodEnd: "2026-10-31" }),
+      report({ id: 2, periodType: "weekly", periodStart: "2026-11-09", periodEnd: "2026-11-15" }),
+    ])
+    // weekly precedes monthly in PERIOD_TYPES, so it wins the tie deterministically.
+    expect(span.dominantType).toBe("weekly")
+    expect(span.dominantCount).toBe(1)
   })
 })
