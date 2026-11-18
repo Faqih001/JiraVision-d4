@@ -13,30 +13,52 @@ import {
   ChevronLeft,
   ChevronRight,
   Copy,
+  FileText,
+  Flame,
+  Play,
   RefreshCw,
+  Search,
   SlidersHorizontal,
-  Sparkles,
-  Timer,
+  Square,
+  TrendingDown,
+  TrendingUp,
+  X,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { DateRangePicker } from "@/components/ui/date-range-picker"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { SectionCard, FILTER_TRIGGER, DASHBOARD_SECTION_GRID } from "@/components/dashboard-kit"
 import { LIVE_REFRESH_MS, useLiveRefresh } from "@/hooks/use-live-refresh"
 import { useToast } from "@/hooks/use-toast"
 import { localDay, shiftDays } from "@/lib/worklog/local-day"
-import { parseQuickAdd } from "@/lib/worklog/quick-add"
+import { appendMinutes, parseQuickAdd } from "@/lib/worklog/quick-add"
+import { previousRange, periodDelta, type PeriodDelta } from "@/lib/worklog/period-delta"
+import {
+  IDLE_TIMER,
+  TIMER_STORAGE_KEY,
+  elapsedMs,
+  formatClock,
+  parseTimer,
+  serializeTimer,
+  startTimer,
+  stopTimer,
+  timerMinutes,
+  type TimerState,
+} from "@/lib/worklog/timer"
 import { assistantLink, dayQuestion } from "@/lib/assistant/ask"
 import {
   DELIVERABLE_LABEL_STATUS,
   DELIVERABLE_STATUSES,
+  KIND_COLOUR,
   KIND_LABEL,
   WORK_LOG_KINDS,
   entriesToCsv,
   formatMinutes,
+  type DayBucket,
   type DeliverableDto,
   type DeliverableStatus,
   type EntryDto,
@@ -46,7 +68,7 @@ import type { BulkAction } from "@/lib/worklog/bulk"
 import { exportLogPdf } from "@/lib/export/pdf"
 import { exportLogXlsx } from "@/lib/export/xlsx"
 import type { WorklogSummary } from "@/lib/worklog/summary"
-import type { WorkDiscipline } from "@/lib/roles"
+import { DISCIPLINE_LABEL, type WorkDiscipline } from "@/lib/roles"
 import {
   PRESET_LABEL,
   RANGE_PRESETS,
@@ -57,6 +79,7 @@ import {
   parseViewState,
   resolveRange,
   serializeViewState,
+  type RangePreset,
   type ViewState,
   type WorklogView,
 } from "@/lib/worklog/view-state"
@@ -65,12 +88,12 @@ import { useSettings } from "@/hooks/use-settings"
 import {
   BulkSection,
   CoverageSection,
+  DigestDialog,
   DisciplinePicker,
   DisciplineSplitSection,
   DeliverablesSection,
   KindMixSection,
   LogSection,
-  Stat,
   TimeByTaskSection,
   TransitionsSection,
 } from "./sections"
@@ -114,6 +137,12 @@ export default function WorklogClient() {
   const [state, setState] = useState<ViewState>(() => defaultViewState(localDay(new Date(), null)))
   const [deliverables, setDeliverables] = useState<DeliverableDto[]>([])
   const [summary, setSummary] = useState<WorklogSummary | null>(null)
+  // The equal-length period immediately before this one, for the delta chips; and the last
+  // 8 weeks for the coverage strip. Both are readings, not filters — a failed read of either
+  // leaves the page itself untouched.
+  const [prevSummary, setPrevSummary] = useState<WorklogSummary | null>(null)
+  const [activity, setActivity] = useState<DayBucket[]>([])
+  const [digestOpen, setDigestOpen] = useState(false)
   const [tasks, setTasks] = useState<TaskOption[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -160,10 +189,25 @@ export default function WorklogClient() {
   const refresh = useCallback(async (quiet = false) => {
     if (!quiet) setLoading(true)
     const qs = serializeViewState(state, todayIso)
+    // The comparison period is fetched as a list view with a custom range: day/week/heat views
+    // follow the navigated day and would ignore the preset, so only "list" honours from/to.
+    const prev = previousRange(resolveRange(state, todayIso, weekStartsOn(settings.weekStart)))
+    const prevQs = serializeViewState(
+      { ...state, view: "list", preset: "custom", from: prev.from, to: prev.to },
+      todayIso,
+    )
+    const activityQs = new URLSearchParams({
+      v: "list",
+      p: "custom",
+      from: shiftDays(todayIso, -55),
+      to: todayIso,
+    }).toString()
     try {
-      const [entriesRes, summaryRes] = await Promise.all([
+      const [entriesRes, summaryRes, prevRes, activityRes] = await Promise.all([
         fetch(`/api/worklog/entries?${qs}`),
         fetch(`/api/worklog/summary?${qs}`),
+        fetch(`/api/worklog/summary?${prevQs}`),
+        fetch(`/api/worklog/summary?${activityQs}`),
       ])
       const entriesJson = await readJson(entriesRes)
       if (!entriesJson?.success) throw new Error(entriesJson?.message ?? "Could not load your work log")
@@ -179,6 +223,10 @@ export default function WorklogClient() {
       setState((prev) => adoptServerDay(prev, todayIso, serverToday))
       const summaryJson = await readJson(summaryRes)
       if (summaryJson?.success) setSummary(summaryJson.data as WorklogSummary)
+      const prevJson = await readJson(prevRes)
+      setPrevSummary(prevJson?.success ? (prevJson.data as WorklogSummary) : null)
+      const activityJson = await readJson(activityRes)
+      setActivity(activityJson?.success ? (activityJson.data as WorklogSummary).days : [])
       const deliverablesJson = await readJson(await fetch("/api/worklog/deliverables"))
       if (deliverablesJson?.success) {
         setDeliverables(deliverablesJson.data.deliverables as DeliverableDto[])
@@ -188,7 +236,7 @@ export default function WorklogClient() {
     } finally {
       if (!quiet) setLoading(false)
     }
-  }, [state, todayIso, toast])
+  }, [state, todayIso, toast, settings.weekStart])
 
   useEffect(() => {
     void refresh()
@@ -215,6 +263,36 @@ export default function WorklogClient() {
     [],
   )
 
+  // N / T / arrows are page-level shortcuts, so they stand down while a person is typing or
+  // while a dialog holds the screen — a shortcut must never eat a character or move the day
+  // behind an open form.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.metaKey || event.ctrlKey || event.altKey) return
+      const target = event.target as HTMLElement | null
+      if (target?.closest("input, textarea, select, button, a, [contenteditable=true]")) return
+      if (document.querySelector('[role="dialog"]')) return
+      if (event.key === "n") {
+        event.preventDefault()
+        document.getElementById("quick-add")?.focus()
+      } else if (event.key === "/") {
+        event.preventDefault()
+        document.getElementById("worklog-search")?.focus()
+      } else if (event.key === "ArrowLeft") {
+        event.preventDefault()
+        patchState({ day: shiftDays(state.day, -1) })
+      } else if (event.key === "ArrowRight") {
+        event.preventDefault()
+        patchState({ day: shiftDays(state.day, 1) })
+      } else if (event.key === "t") {
+        event.preventDefault()
+        patchState({ day: todayIso })
+      }
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [patchState, state.day, todayIso])
+
   // One string for the row-scoped routes, so a PUT and a DELETE cannot drift apart from the POST.
   const mutateBase = "/api/worklog/entries"
   // The bulk route is one path for six actions, so the bar, the row's Convert and the batch
@@ -232,6 +310,12 @@ export default function WorklogClient() {
     [selection, viewDaysList],
   )
   const selectedIds = useMemo(() => selectedEntries.map((entry) => entry.id), [selectedEntries])
+  // The newest row in the range, for the composer's "log again" shortcut.
+  const lastEntry = useMemo(() => {
+    const all = viewDaysList.flatMap((bucket) => bucket.entries)
+    if (all.length === 0) return null
+    return [...all].sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0]
+  }, [viewDaysList])
 
   const toggleSelect = useCallback((id: number) => {
     setSelection((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
@@ -244,6 +328,15 @@ export default function WorklogClient() {
       setDraft(toDraft(entry, entry?.workedOn ?? state.day, defaultDiscipline))
     },
     [defaultDiscipline, state.day],
+  )
+
+  // A duplicate is a new row pre-filled from an old one: same words, today's date, no id — so
+  // saving it can never overwrite the row it was copied from.
+  const duplicateEntry = useCallback(
+    (entry: EntryDto) => {
+      setDraft({ ...toDraft(entry, todayIso, defaultDiscipline), id: null })
+    },
+    [todayIso, defaultDiscipline],
   )
 
   const submitEntry = useCallback(
@@ -477,27 +570,27 @@ export default function WorklogClient() {
       : (deliverables.find((d) => d.id === pendingDeliverableDelete)?.name ?? null)
 
   return (
-    <div className="space-y-4">
-      <div className="grid min-w-0 grid-cols-1 items-stretch gap-3 md:grid-cols-2">
-        <TotalsSection summary={summary} loading={loading} range={range} todayIso={todayIso} />
-        <QuickAddSection
-          todayIso={todayIso}
-          saving={saving}
-          setSaving={setSaving}
-          mutate={mutate}
-          refresh={refresh}
-          toast={toast}
-          tasks={tasks}
-        />
-        <FilterSection state={state} patchState={patchState} tasks={tasks} deliverableCount={deliverables.length} />
-        <ViewToolbarSection
-          state={state}
-          patchState={patchState}
-          todayIso={todayIso}
-          refresh={refresh}
-          toast={toast}
-        />
-      </div>
+    <div className="space-y-3">
+      <ViewToolbarSection
+        state={state}
+        patchState={patchState}
+        todayIso={todayIso}
+        refresh={refresh}
+        toast={toast}
+        onOpenDigest={() => setDigestOpen(true)}
+      />
+      <TotalsSection summary={summary} previous={prevSummary} loading={loading} range={range} todayIso={todayIso} />
+      <QuickAddSection
+        todayIso={todayIso}
+        saving={saving}
+        setSaving={setSaving}
+        mutate={mutate}
+        refresh={refresh}
+        toast={toast}
+        tasks={tasks}
+        lastEntry={lastEntry}
+      />
+      <FilterSection state={state} patchState={patchState} tasks={tasks} deliverableCount={deliverables.length} />
       <div className={`${DASHBOARD_SECTION_GRID} md:grid-cols-2 xl:grid-cols-2`}>
       <LogSection
         view={state.view}
@@ -513,6 +606,7 @@ export default function WorklogClient() {
           onEdit: openEntry,
           onDelete: setPendingDelete,
           onConvert: (entry) => void convertEntry(entry),
+          onDuplicate: duplicateEntry,
         }}
         onAddDay={() => openEntry(null)}
       />
@@ -557,6 +651,7 @@ export default function WorklogClient() {
       <KindMixSection
         kinds={summary?.kinds ?? []}
         openBlockers={summary?.openBlockers ?? 0}
+        totalEntries={summary?.totals.entries ?? 0}
         loading={loading}
       />
       <CoverageSection
@@ -565,6 +660,7 @@ export default function WorklogClient() {
         unlinked={summary?.unlinked ?? 0}
         totals={summary?.totals ?? { entries: 0, minutes: 0, activeDays: 0 }}
         range={range}
+        activity={activity}
         loading={loading}
         onPickDay={(day) => patchState({ day, view: "day" })}
       />
@@ -620,23 +716,60 @@ export default function WorklogClient() {
         }}
         onConfirm={() => void confirmBulkDelete()}
       />
+      <DigestDialog
+        open={digestOpen}
+        onOpenChange={setDigestOpen}
+        summary={summary}
+        deliverables={deliverables}
+        onCopied={(ok) =>
+          toast(
+            ok
+              ? { title: "Summary copied", description: "Markdown is on your clipboard." }
+              : {
+                  variant: "destructive",
+                  title: "Copy blocked",
+                  description: "Select the text in the panel and copy it manually.",
+                },
+          )
+        }
+      />
       </div>
     </div>
   )
 }
 
+function DeltaChip({ delta }: { delta: PeriodDelta | null }) {
+  if (!delta) return null
+  const tone =
+    delta.direction === "up"
+      ? "text-emerald-700 dark:text-emerald-400"
+      : delta.direction === "down"
+        ? "text-destructive"
+        : "text-muted-foreground"
+  return (
+    <span className={`mt-1 inline-flex items-center gap-1 text-[11px] font-medium ${tone}`}>
+      {delta.direction === "up" ? <TrendingUp className="h-3 w-3" aria-hidden /> : null}
+      {delta.direction === "down" ? <TrendingDown className="h-3 w-3" aria-hidden /> : null}
+      {delta.label}
+    </span>
+  )
+}
+
 function TotalsSection({
   summary,
+  previous,
   loading,
   range,
   todayIso,
 }: {
   summary: WorklogSummary | null
+  previous: WorklogSummary | null
   loading: boolean
   range: { from: string; to: string }
   todayIso: string
 }) {
   const todayRows = summary?.days.find((d) => d.day === todayIso)
+  const streak = summary?.streak.current ?? 0
   return (
     <SectionCard
       title="This period"
@@ -648,23 +781,47 @@ function TotalsSection({
       }
     >
       {loading && !summary ? (
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
           {Array.from({ length: 4 }, (_, i) => (
-            <Skeleton key={i} className="h-12 rounded-lg" />
+            <Skeleton key={i} className="h-16 rounded-lg" />
           ))}
         </div>
       ) : (
         <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-2">
-            <Stat label="Entries" value={String(summary?.totals.entries ?? 0)} />
-            <Stat label="Time logged" value={formatMinutes(summary?.totals.minutes ?? 0)} />
-            <Stat label="Active days" value={String(summary?.totals.activeDays ?? 0)} />
-            <Stat label="Longest streak" value={`${summary?.streak.longest ?? 0}d`} />
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+            <div>
+              <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Entries</p>
+              <p className="mt-1 text-3xl font-semibold tabular-nums">{summary?.totals.entries ?? 0}</p>
+              <DeltaChip
+                delta={periodDelta(summary?.totals.entries ?? 0, previous ? previous.totals.entries : null, "count")}
+              />
+            </div>
+            <div>
+              <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Time logged</p>
+              <p className="mt-1 text-3xl font-semibold tabular-nums">{formatMinutes(summary?.totals.minutes ?? 0)}</p>
+              <DeltaChip
+                delta={periodDelta(summary?.totals.minutes ?? 0, previous ? previous.totals.minutes : null, "minutes")}
+              />
+            </div>
+            <div>
+              <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Active days</p>
+              <p className="mt-1 text-3xl font-semibold tabular-nums">{summary?.totals.activeDays ?? 0}</p>
+            </div>
+            <div>
+              <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Streak</p>
+              <p className="mt-1 flex items-center gap-1.5 text-3xl font-semibold tabular-nums">
+                <Flame
+                  className={`h-6 w-6 ${streak > 0 ? "text-orange-500" : "text-muted-foreground/40"}`}
+                  aria-hidden
+                />
+                {streak}d
+              </p>
+              <p className="mt-1 text-[11px] text-muted-foreground">longest {summary?.streak.longest ?? 0}d</p>
+            </div>
           </div>
           <p className="text-xs text-muted-foreground">
             Today: {todayRows?.count ?? 0} {todayRows?.count === 1 ? "entry" : "entries"} ·{" "}
-            {formatMinutes(todayRows?.minutes ?? 0)} · current streak {summary?.streak.current ?? 0} day
-            {(summary?.streak.current ?? 0) === 1 ? "" : "s"}
+            {formatMinutes(todayRows?.minutes ?? 0)}
           </p>
         </div>
       )}
@@ -680,6 +837,7 @@ function QuickAddSection({
   refresh,
   toast,
   tasks,
+  lastEntry,
 }: {
   todayIso: string
   saving: boolean
@@ -688,10 +846,40 @@ function QuickAddSection({
   refresh: () => Promise<void>
   toast: ReturnType<typeof useToast>["toast"]
   tasks: TaskOption[]
+  lastEntry: EntryDto | null
 }) {
   const [line, setLine] = useState("")
   const [kind, setKind] = useState<WorkLogKind | "auto">("auto")
   const [taskId, setTaskId] = useState("none")
+  // The timer is restored in an effect, not in the initialiser: localStorage does not exist on
+  // the server, and reading it during render would hydrate a different clock than the markup.
+  const [timer, setTimer] = useState<TimerState>(IDLE_TIMER)
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    setTimer(parseTimer(window.localStorage.getItem(TIMER_STORAGE_KEY)))
+  }, [])
+  useEffect(() => {
+    if (timer.startedAt === null) return
+    const id = window.setInterval(() => setNow(Date.now()), 1000)
+    return () => window.clearInterval(id)
+  }, [timer.startedAt])
+  const running = timer.startedAt !== null
+
+  const persistTimer = (next: TimerState) => {
+    setTimer(next)
+    window.localStorage.setItem(TIMER_STORAGE_KEY, serializeTimer(next))
+  }
+
+  const toggleTimer = () => {
+    if (running) {
+      const minutes = timerMinutes(timer, Date.now())
+      persistTimer(IDLE_TIMER)
+      if (minutes > 0) setLine((prev) => appendMinutes(prev, minutes))
+    } else {
+      setNow(Date.now())
+      persistTimer(startTimer(timer, Date.now()))
+    }
+  }
 
   const submit = async () => {
     const parsed = parseQuickAdd(line)
@@ -718,8 +906,21 @@ function QuickAddSection({
     toast({ title: "Logged", description: body.title })
   }
 
+  const parsed = parseQuickAdd(line)
+  const preview =
+    line.trim() === ""
+      ? "#90 = 90 minutes · #action picks the kind"
+      : "error" in parsed
+        ? parsed.error
+        : `${parsed.title} · ${parsed.minutes === null ? "no time" : formatMinutes(parsed.minutes)} · ${
+            KIND_LABEL[kind === "auto" ? parsed.kind : kind]
+          }`
+
+  const pill =
+    "inline-flex h-7 items-center gap-1.5 rounded-full border border-border/60 px-2.5 text-[11px] transition-colors hover:border-border"
+
   return (
-    <SectionCard title="Quick add" icon={<Sparkles className="h-4 w-4" />}>
+    <section aria-label="Quick add" className="rounded-xl border border-border/60 bg-card p-3">
       <form
         className="space-y-2"
         onSubmit={(event) => {
@@ -727,19 +928,20 @@ function QuickAddSection({
           void submit()
         }}
       >
-        <Label htmlFor="quick-add" className="sr-only">
-          What did you do?
-        </Label>
-        <Input
-          id="quick-add"
-          placeholder="Fixed the failing build #90 #action"
-          value={line}
-          onChange={(event) => setLine(event.target.value)}
-          disabled={saving}
-        />
-        <div className="grid grid-cols-2 gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Label htmlFor="quick-add" className="sr-only">
+            What did you do?
+          </Label>
+          <Input
+            id="quick-add"
+            className="h-10 min-w-52 flex-1"
+            placeholder="Fixed the failing build #90 #action  ( N )"
+            value={line}
+            onChange={(event) => setLine(event.target.value)}
+            disabled={saving}
+          />
           <Select value={taskId} onValueChange={setTaskId}>
-            <SelectTrigger className="h-8 text-xs" aria-label="Link to a task">
+            <SelectTrigger className="h-10 w-full text-xs sm:w-48" aria-label="Link to a task">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -751,31 +953,60 @@ function QuickAddSection({
               ))}
             </SelectContent>
           </Select>
-          <Select value={kind} onValueChange={(v) => setKind(v as WorkLogKind | "auto")}>
-            <SelectTrigger className="h-8 text-xs" aria-label="Kind for this line">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="auto">Kind from tags</SelectItem>
-              {WORK_LOG_KINDS.map((k) => (
-                <SelectItem key={k} value={k}>
-                  {KIND_LABEL[k]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-[11px] text-muted-foreground">
-            <Timer className="mr-1 inline h-3 w-3" aria-hidden />
-            #90 = 90 minutes
-          </span>
-          <Button type="submit" size="sm" disabled={saving}>
+          <Button
+            type="button"
+            variant={running ? "default" : "outline"}
+            size="sm"
+            className="h-10 gap-1.5 px-3 font-mono text-xs tabular-nums"
+            aria-label={running ? "Stop timer" : "Start timer"}
+            onClick={toggleTimer}
+          >
+            {running ? <Square className="h-3.5 w-3.5" aria-hidden /> : <Play className="h-3.5 w-3.5" aria-hidden />}
+            {formatClock(elapsedMs(timer, now))}
+          </Button>
+          <Button type="submit" className="h-10" disabled={saving}>
             {saving ? "Saving…" : "Log it"}
           </Button>
         </div>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <button
+            type="button"
+            className={`${pill} ${kind === "auto" ? "border-transparent bg-muted font-medium" : ""}`}
+            aria-pressed={kind === "auto"}
+            onClick={() => setKind("auto")}
+          >
+            Auto
+          </button>
+          {WORK_LOG_KINDS.map((k) => (
+            <button
+              key={k}
+              type="button"
+              className={`${pill} ${kind === k ? "border-transparent font-medium" : ""}`}
+              style={
+                kind === k
+                  ? { backgroundColor: `color-mix(in srgb, ${KIND_COLOUR[k]} 15%, transparent)` }
+                  : undefined
+              }
+              aria-pressed={kind === k}
+              onClick={() => setKind(k)}
+            >
+              <span className="h-2 w-2 rounded-full" style={{ background: KIND_COLOUR[k] }} aria-hidden />
+              {KIND_LABEL[k]}
+            </button>
+          ))}
+          {lastEntry ? (
+            <button
+              type="button"
+              className={`${pill} text-muted-foreground`}
+              onClick={() => setLine(lastEntry.title)}
+            >
+              Log again: {lastEntry.title.slice(0, 32)}
+            </button>
+          ) : null}
+        </div>
+        <p className="text-[11px] text-muted-foreground">{preview}</p>
       </form>
-    </SectionCard>
+    </section>
   )
 }
 
@@ -808,90 +1039,154 @@ function FilterSection({
       hasDeliverable: false,
     })
 
+  // Every active filter is a chip with its own remove button, so narrowing the log never
+  // requires opening the popover to find out what is narrowing it.
+  const chips: { key: string; label: string; onRemove: () => void }[] = []
+  if (state.kind !== "all") {
+    chips.push({ key: "kind", label: KIND_LABEL[state.kind], onRemove: () => patchState({ kind: "all" }) })
+  }
+  if (state.taskId !== null) {
+    chips.push({
+      key: "task",
+      label: tasks.find((t) => t.id === state.taskId)?.title.slice(0, 24) ?? `Task ${state.taskId}`,
+      onRemove: () => patchState({ taskId: null }),
+    })
+  }
+  if (state.discipline !== "all") {
+    chips.push({
+      key: "discipline",
+      label: DISCIPLINE_LABEL[state.discipline],
+      onRemove: () => patchState({ discipline: "all" }),
+    })
+  }
+  if (state.deliverableStatus !== "all") {
+    chips.push({
+      key: "dstatus",
+      label: DELIVERABLE_LABEL_STATUS[state.deliverableStatus],
+      onRemove: () => patchState({ deliverableStatus: "all" }),
+    })
+  }
+  if (state.hasDeliverable) {
+    chips.push({ key: "dlv", label: "Linked only", onRemove: () => patchState({ hasDeliverable: false }) })
+  }
+
   return (
-    <SectionCard
-      title="Find in the log"
-      icon={<SlidersHorizontal className="h-4 w-4" />}
-      action={
-        active > 0 ? (
-          <Button variant="ghost" size="sm" className="h-7 border border-border px-2 text-xs" onClick={clearAll}>
-            Clear {active}
-          </Button>
-        ) : null
-      }
-    >
-      <div className="space-y-2">
-        <Label htmlFor="worklog-search" className="sr-only">
-          Search titles and notes
-        </Label>
-        <Input
-          id="worklog-search"
-          placeholder="Search titles and notes"
-          value={state.q}
-          onChange={(event) => patchState({ q: event.target.value })}
-        />
-        <div className="grid grid-cols-2 gap-2">
-          <Select value={state.kind} onValueChange={(v) => patchState({ kind: v as WorkLogKind | "all" })}>
-            <SelectTrigger className="h-8 text-xs" aria-label="Entry kind">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All kinds</SelectItem>
-              {WORK_LOG_KINDS.map((k) => (
-                <SelectItem key={k} value={k}>
-                  {KIND_LABEL[k]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select
-            value={state.taskId === null ? "all" : String(state.taskId)}
-            onValueChange={(v) => patchState({ taskId: v === "all" ? null : Number(v) })}
-          >
-            <SelectTrigger className="h-8 text-xs" aria-label="Task">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Any task</SelectItem>
-              {tasks.map((t) => (
-                <SelectItem key={t.id} value={String(t.id)}>
-                  {t.title.slice(0, 40)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select
-            value={state.deliverableStatus}
-            onValueChange={(v) => patchState({ deliverableStatus: v as DeliverableStatus | "all" })}
-          >
-            <SelectTrigger className="h-8 text-xs" aria-label="Deliverable state">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Any deliverable state</SelectItem>
-              {DELIVERABLE_STATUSES.map((s) => (
-                <SelectItem key={s} value={s}>
-                  {DELIVERABLE_LABEL_STATUS[s]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <DisciplinePicker value={state.discipline} onChange={(d) => patchState({ discipline: d })} />
+    <section aria-label="Find in the log" className="rounded-xl border border-border/60 bg-card p-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative w-full sm:w-64">
+          <Search
+            className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground"
+            aria-hidden
+          />
+          <Label htmlFor="worklog-search" className="sr-only">
+            Search titles and notes
+          </Label>
+          <Input
+            id="worklog-search"
+            className="h-9 pl-8"
+            placeholder="Search titles and notes  ( / )"
+            value={state.q}
+            onChange={(event) => patchState({ q: event.target.value })}
+          />
         </div>
-        <div className="flex items-center justify-between gap-2">
-          <Button
-            variant={state.hasDeliverable ? "default" : "outline"}
-            size="sm"
-            className="h-7 border border-border text-xs"
-            aria-pressed={state.hasDeliverable}
-            onClick={() => patchState({ hasDeliverable: !state.hasDeliverable })}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="sm" className="h-9 gap-1.5 text-xs">
+              <SlidersHorizontal className="h-3.5 w-3.5" aria-hidden />
+              Filters
+              {active > 0 ? (
+                <span className="rounded-full bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground">
+                  {active}
+                </span>
+              ) : null}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent align="start" className="w-80 space-y-2">
+            <div className="grid grid-cols-2 gap-2">
+              <Select value={state.kind} onValueChange={(v) => patchState({ kind: v as WorkLogKind | "all" })}>
+                <SelectTrigger className="h-8 text-xs" aria-label="Entry kind">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All kinds</SelectItem>
+                  {WORK_LOG_KINDS.map((k) => (
+                    <SelectItem key={k} value={k}>
+                      {KIND_LABEL[k]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select
+                value={state.taskId === null ? "all" : String(state.taskId)}
+                onValueChange={(v) => patchState({ taskId: v === "all" ? null : Number(v) })}
+              >
+                <SelectTrigger className="h-8 text-xs" aria-label="Task">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Any task</SelectItem>
+                  {tasks.map((t) => (
+                    <SelectItem key={t.id} value={String(t.id)}>
+                      {t.title.slice(0, 40)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select
+                value={state.deliverableStatus}
+                onValueChange={(v) => patchState({ deliverableStatus: v as DeliverableStatus | "all" })}
+              >
+                <SelectTrigger className="h-8 text-xs" aria-label="Deliverable state">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Any deliverable state</SelectItem>
+                  {DELIVERABLE_STATUSES.map((s) => (
+                    <SelectItem key={s} value={s}>
+                      {DELIVERABLE_LABEL_STATUS[s]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <DisciplinePicker value={state.discipline} onChange={(d) => patchState({ discipline: d })} />
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <Button
+                variant={state.hasDeliverable ? "default" : "outline"}
+                size="sm"
+                className="h-7 border border-border text-xs"
+                aria-pressed={state.hasDeliverable}
+                onClick={() => patchState({ hasDeliverable: !state.hasDeliverable })}
+              >
+                {state.hasDeliverable ? "Linked only" : "Any deliverable link"}
+              </Button>
+              <span className="text-[11px] text-muted-foreground">{deliverableCount} deliverables on file</span>
+            </div>
+            {active > 0 ? (
+              <Button variant="ghost" size="sm" className="h-7 w-full border border-border text-xs" onClick={clearAll}>
+                Clear all filters
+              </Button>
+            ) : null}
+          </PopoverContent>
+        </Popover>
+        {chips.map((chip) => (
+          <span
+            key={chip.key}
+            className="inline-flex h-7 items-center gap-1 rounded-full bg-muted px-2.5 text-[11px]"
           >
-            {state.hasDeliverable ? "Linked only" : "Any deliverable link"}
-          </Button>
-          <span className="text-[11px] text-muted-foreground">{deliverableCount} deliverables on file</span>
-        </div>
+            {chip.label}
+            <button
+              type="button"
+              className="rounded-full p-0.5 hover:bg-background"
+              aria-label={`Remove ${chip.label} filter`}
+              onClick={chip.onRemove}
+            >
+              <X className="h-3 w-3" aria-hidden />
+            </button>
+          </span>
+        ))}
       </div>
-    </SectionCard>
+    </section>
   )
 }
 
@@ -901,12 +1196,14 @@ function ViewToolbarSection({
   todayIso,
   refresh,
   toast,
+  onOpenDigest,
 }: {
   state: ViewState
   patchState: (patch: Partial<ViewState>) => void
   todayIso: string
   refresh: () => Promise<void>
   toast: ReturnType<typeof useToast>["toast"]
+  onOpenDigest: () => void
 }) {
   const copyLink = async () => {
     const url = window.location.href
@@ -920,30 +1217,15 @@ function ViewToolbarSection({
   }
 
   return (
-    <SectionCard
-      title="View"
-      icon={<CalendarDays className="h-4 w-4" />}
-      action={
-        <div className="flex items-center gap-1">
-          <Button variant="ghost" size="sm" className="h-7 border border-border px-2 text-xs" onClick={() => void refresh()}>
-            <RefreshCw className="h-3.5 w-3.5" aria-hidden />
-            <span className="sr-only">Reload</span>
-          </Button>
-          <Button variant="ghost" size="sm" className="h-7 border border-border px-2 text-xs" onClick={() => void copyLink()}>
-            <Copy className="h-3.5 w-3.5" aria-hidden />
-            <span className="sr-only">Copy link to this view</span>
-          </Button>
-        </div>
-      }
-    >
-      <div className="space-y-2">
-        <div className="flex flex-wrap gap-1">
+    <div className="sticky top-0 z-30 rounded-xl border border-border/60 bg-card/85 px-3 py-2 shadow-sm backdrop-blur">
+      <div className="flex flex-wrap items-center gap-2">
+        <div role="group" aria-label="Log view" className="flex flex-wrap gap-1">
           {WORKLOG_VIEWS.map((v) => (
             <Button
               key={v}
               variant={state.view === v ? "default" : "outline"}
               size="sm"
-              className="h-7 border border-border px-2 text-xs"
+              className="h-8 border border-border px-2.5 text-xs"
               aria-pressed={state.view === v}
               onClick={() => patchState({ view: v as WorklogView })}
             >
@@ -951,11 +1233,12 @@ function ViewToolbarSection({
             </Button>
           ))}
         </div>
-        <div className="flex flex-wrap items-center gap-1">
+        <div className="flex items-center gap-1">
           <Button
             variant="outline"
             size="sm"
-            className="h-7 w-7 p-0"
+            className="h-8 w-8 p-0"
+            title="Previous day (←)"
             onClick={() => patchState({ day: shiftDays(state.day, -1) })}
           >
             <ChevronLeft className="h-3.5 w-3.5" aria-hidden />
@@ -965,7 +1248,8 @@ function ViewToolbarSection({
           <Button
             variant="outline"
             size="sm"
-            className="h-7 w-7 p-0"
+            className="h-8 w-8 p-0"
+            title="Next day (→)"
             onClick={() => patchState({ day: shiftDays(state.day, 1) })}
           >
             <ChevronRight className="h-3.5 w-3.5" aria-hidden />
@@ -974,35 +1258,26 @@ function ViewToolbarSection({
           <Button
             variant="ghost"
             size="sm"
-            className="h-7 text-xs"
+            className="h-8 text-xs"
+            title="Jump to today (T)"
             onClick={() => patchState({ day: todayIso })}
             disabled={state.day === todayIso}
           >
             Today
           </Button>
-          {/* The day in the URL is the day the question asks about, so the assistant opens already
-              scoped to what the member is looking at. */}
-          <Button variant="ghost" size="sm" className="h-7 gap-1 px-2 text-xs" asChild>
-            <Link href={assistantLink(dayQuestion(state.day))}>
-              <Bot className="h-3.5 w-3.5" aria-hidden />
-              Ask about this day
-            </Link>
-          </Button>
         </div>
-        <div className="flex flex-wrap gap-1">
-          {RANGE_PRESETS.map((p) => (
-            <Button
-              key={p}
-              variant={state.preset === p ? "secondary" : "ghost"}
-              size="sm"
-              className="h-7 px-2 text-[11px]"
-              aria-pressed={state.preset === p}
-              onClick={() => patchState({ preset: p })}
-            >
-              {PRESET_LABEL[p]}
-            </Button>
-          ))}
-        </div>
+        <Select value={state.preset} onValueChange={(v) => patchState({ preset: v as RangePreset })}>
+          <SelectTrigger className="h-8 w-36 text-xs" aria-label="Range preset">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {RANGE_PRESETS.map((p) => (
+              <SelectItem key={p} value={p}>
+                {PRESET_LABEL[p]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         {state.preset === "custom" ? (
           <DateRangePicker
             from={state.from}
@@ -1013,7 +1288,29 @@ function ViewToolbarSection({
             className={FILTER_TRIGGER}
           />
         ) : null}
+        <div className="ml-auto flex items-center gap-1">
+          <Button variant="outline" size="sm" className="h-8 gap-1.5 px-2.5 text-xs" onClick={onOpenDigest}>
+            <FileText className="h-3.5 w-3.5" aria-hidden />
+            Summary
+          </Button>
+          <Button variant="ghost" size="sm" className="h-8 w-8 border border-border p-0" onClick={() => void refresh()}>
+            <RefreshCw className="h-3.5 w-3.5" aria-hidden />
+            <span className="sr-only">Reload</span>
+          </Button>
+          <Button variant="ghost" size="sm" className="h-8 w-8 border border-border p-0" onClick={() => void copyLink()}>
+            <Copy className="h-3.5 w-3.5" aria-hidden />
+            <span className="sr-only">Copy link to this view</span>
+          </Button>
+          {/* The day in the URL is the day the question asks about, so the assistant opens already
+              scoped to what the member is looking at. */}
+          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" asChild>
+            <Link href={assistantLink(dayQuestion(state.day))}>
+              <Bot className="h-3.5 w-3.5" aria-hidden />
+              <span className="sr-only">Ask about this day</span>
+            </Link>
+          </Button>
+        </div>
       </div>
-    </SectionCard>
+    </div>
   )
 }

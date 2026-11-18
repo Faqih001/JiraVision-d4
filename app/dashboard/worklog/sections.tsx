@@ -11,6 +11,7 @@ import {
   CalendarCheck2,
   CalendarDays,
   ChartPie,
+  Copy,
   Download,
   ExternalLink,
   FileStack,
@@ -28,6 +29,9 @@ import {
   Bar,
   BarChart,
   Cell,
+  LabelList,
+  Pie,
+  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -40,6 +44,14 @@ import { Input } from "@/components/ui/input"
 import { DateField } from "@/components/ui/date-range-picker"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { EmptyNote, SectionCard, FILTER_TRIGGER, DASHBOARD_SECTION_GRID } from "@/components/dashboard-kit"
 import { rangeDays } from "@/lib/worklog/local-day"
 import {
@@ -61,7 +73,8 @@ import {
   type WorkLogKind,
 } from "@/lib/worklog/entries"
 import { BULK_SETTABLE_KINDS, type BulkAction } from "@/lib/worklog/bulk"
-import type { TransitionDto } from "@/lib/worklog/summary"
+import type { TransitionDto, WorklogSummary } from "@/lib/worklog/summary"
+import { buildDigest } from "@/lib/worklog/digest"
 import { VIEW_LABEL, type ViewState, type WorklogView } from "@/lib/worklog/view-state"
 import {
   DISCIPLINE_CATEGORIES,
@@ -960,6 +973,12 @@ export function DisciplineSplitSection({
                 {data.map((cell) => (
                   <Cell key={cell.name} fill={cell.fill} />
                 ))}
+                <LabelList
+                  dataKey="minutes"
+                  position="right"
+                  formatter={(value: number) => formatMinutes(value)}
+                  style={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                />
               </Bar>
             </BarChart>
           </ResponsiveContainer>
@@ -976,12 +995,18 @@ export function DisciplineSplitSection({
 export function KindMixSection({
   kinds,
   openBlockers,
+  totalEntries,
   loading,
 }: {
   kinds: KindBucket[]
   openBlockers: number
+  // The centre reading is the server's own total, not a re-add of the slices.
+  totalEntries: number
   loading: boolean
 }) {
+  const slices = kinds
+    .filter((k) => k.count > 0)
+    .map((k) => ({ name: k.label, value: k.count, kind: k.kind }))
   return (
     <SectionCard
       title="Mix of work"
@@ -997,22 +1022,62 @@ export function KindMixSection({
     >
       {loading ? (
         <Skeleton className="h-24 w-full" />
+      ) : totalEntries === 0 ? (
+        <EmptyNote>Nothing logged in this range yet.</EmptyNote>
       ) : (
-        <ul className="grid gap-1.5 sm:grid-cols-2">
-          {kinds.map((k) => (
-            <li key={k.kind} className="flex items-center gap-2 text-xs">
-              <span
-                className="h-2 w-2 shrink-0 rounded-full"
-                style={{ background: KIND_COLOUR[k.kind] }}
-                aria-hidden
-              />
-              <span className="min-w-0 flex-1 truncate">{k.label}</span>
-              <span className="tabular-nums text-muted-foreground">
-                {k.count} · {formatMinutes(k.minutes)}
+        <>
+          <div className="relative">
+            <ResponsiveContainer width="100%" height={170}>
+              <PieChart>
+                <Pie
+                  data={slices}
+                  dataKey="value"
+                  nameKey="name"
+                  innerRadius={52}
+                  outerRadius={78}
+                  paddingAngle={2}
+                  strokeWidth={0}
+                >
+                  {slices.map((slice) => (
+                    <Cell key={slice.kind} fill={KIND_COLOUR[slice.kind]} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  formatter={(value, name) => [
+                    `${value} ${Number(value) === 1 ? "entry" : "entries"}`,
+                    String(name),
+                  ]}
+                  contentStyle={{
+                    background: "hsl(var(--popover))",
+                    border: "1px solid hsl(var(--border))",
+                    fontSize: 11,
+                  }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+              <span className="text-2xl font-semibold tabular-nums">{totalEntries}</span>
+              <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                {totalEntries === 1 ? "entry" : "entries"}
               </span>
-            </li>
-          ))}
-        </ul>
+            </div>
+          </div>
+          <ul className="grid gap-1.5 sm:grid-cols-2">
+            {kinds.map((k) => (
+              <li key={k.kind} className="flex items-center gap-2 text-xs">
+                <span
+                  className="h-2 w-2 shrink-0 rounded-full"
+                  style={{ background: KIND_COLOUR[k.kind] }}
+                  aria-hidden
+                />
+                <span className="min-w-0 flex-1 truncate">{k.label}</span>
+                <span className="tabular-nums text-muted-foreground">
+                  {k.count} · {formatMinutes(k.minutes)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </>
       )}
     </SectionCard>
   )
@@ -1024,6 +1089,7 @@ export function CoverageSection({
   unlinked,
   totals,
   range,
+  activity,
   loading,
   onPickDay,
 }: {
@@ -1032,16 +1098,54 @@ export function CoverageSection({
   unlinked: number
   totals: { entries: number; minutes: number; activeDays: number }
   range: { from: string; to: string }
+  // The last 8 weeks, independent of the chosen range: a long gap in a one-day view should
+  // still show the habit around it.
+  activity: DayBucket[]
   loading: boolean
   onPickDay: (day: string) => void
 }) {
   const spanned = rangeDays(range.from, range.to).length
+  const busiest = Math.max(1, ...activity.map((bucket) => bucket.minutes))
+  // Weeks run Monday-first, matching the heat view; the lead blanks keep each column a weekday.
+  const lead =
+    activity.length > 0 ? (new Date(`${activity[0].day}T00:00:00Z`).getUTCDay() + 6) % 7 : 0
   return (
     <SectionCard title="Coverage" icon={<CalendarCheck2 className="h-4 w-4" />} className="md:col-span-1 xl:col-span-1">
       {loading ? (
         <Skeleton className="h-20 w-full" />
       ) : (
         <div className="space-y-3">
+          {activity.length > 0 ? (
+            <div>
+              <div className="grid grid-cols-7 gap-1">
+                {Array.from({ length: lead }).map((_, index) => (
+                  <span key={`lead-${index}`} aria-hidden />
+                ))}
+                {activity.map((bucket) => {
+                  const ratio = bucket.minutes / busiest
+                  return (
+                    <button
+                      key={bucket.day}
+                      type="button"
+                      onClick={() => onPickDay(bucket.day)}
+                      aria-label={bucket.day}
+                      title={`${bucket.day} · ${bucket.count} entries · ${formatMinutes(bucket.minutes)}`}
+                      className="h-3.5 rounded-sm border border-border/40 transition-colors hover:border-foreground"
+                      style={{
+                        backgroundColor:
+                          bucket.count === 0
+                            ? "transparent"
+                            : `color-mix(in srgb, hsl(var(--chart-pine)) ${Math.round(12 + ratio * 55)}%, transparent)`,
+                      }}
+                    />
+                  )
+                })}
+              </div>
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                Last {activity.length} days · click a square to open that day.
+              </p>
+            </div>
+          ) : null}
           <div className="flex flex-wrap gap-2">
             <Stat label="Days logged" value={`${totals.activeDays} of ${spanned}`} />
             <Stat label="Current streak" value={`${streak.current} ${streak.current === 1 ? "day" : "days"}`} />
@@ -1077,5 +1181,57 @@ export function CoverageSection({
         </div>
       )}
     </SectionCard>
+  )
+}
+
+// The digest is Markdown over the same summary the cards read, so the panel can never disagree
+// with the page. Copying is the point: it pastes straight into a stand-up note or a report.
+export function DigestDialog({
+  open,
+  onOpenChange,
+  summary,
+  deliverables,
+  onCopied,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  summary: WorklogSummary | null
+  deliverables: DeliverableDto[]
+  onCopied: (ok: boolean) => void
+}) {
+  const markdown = summary ? buildDigest(summary, deliverables) : null
+  const copy = async () => {
+    if (!markdown) return
+    try {
+      await navigator.clipboard.writeText(markdown)
+      onCopied(true)
+    } catch {
+      onCopied(false)
+    }
+  }
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Period summary</DialogTitle>
+          <DialogDescription>
+            The same numbers the cards show, as Markdown you can paste anywhere.
+          </DialogDescription>
+        </DialogHeader>
+        {markdown ? (
+          <pre className="max-h-80 overflow-auto whitespace-pre-wrap rounded-lg border border-border/60 bg-muted/40 p-3 font-mono text-xs leading-relaxed">
+            {markdown}
+          </pre>
+        ) : (
+          <EmptyNote>Nothing to summarise yet.</EmptyNote>
+        )}
+        <DialogFooter>
+          <Button variant="outline" onClick={copy} disabled={!markdown}>
+            <Copy className="h-4 w-4" aria-hidden />
+            Copy as Markdown
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }
