@@ -647,3 +647,83 @@ describe("the finished page", () => {
     expect(nav).toMatch(/title: "Work Log"/u)
   })
 })
+
+describe("the redesign", () => {
+  const client = () => src("app/dashboard/worklog/worklog-client.tsx")
+  const sections = () => src("app/dashboard/worklog/sections.tsx")
+
+  it("keeps the command bar reachable while the log scrolls", () => {
+    expect(client()).toMatch(/sticky top-0 z-30/u)
+    expect(client()).toMatch(/backdrop-blur/u)
+  })
+
+  it("replaces the kind dropdown with pressed-state pills", () => {
+    expect(client()).toMatch(/aria-pressed=\{kind === k\}/u)
+    expect(client()).toMatch(/aria-pressed=\{kind === "auto"\}/u)
+    // The pills carry the shared chart colour as a dot and a tint, never as label text.
+    expect(client()).toMatch(/KIND_COLOUR\[k\]/u)
+  })
+
+  it("moves the seven dropdowns behind one Filters popover with removable chips", () => {
+    expect(client()).toMatch(/<PopoverContent/u)
+    expect(client()).toMatch(/aria-label=\{`Remove \$\{chip\.label\} filter`\}/u)
+    expect(client()).toMatch(/Clear all filters/u)
+  })
+
+  it("persists the timer across a reload and fills the minutes tag on stop", () => {
+    expect(client()).toMatch(/TIMER_STORAGE_KEY/u)
+    // Restored in an effect, not the initialiser: localStorage does not exist during SSR, and
+    // reading it in render would hydrate a clock the server markup never had.
+    expect(client()).toMatch(/parseTimer\(window\.localStorage\.getItem\(TIMER_STORAGE_KEY\)\)/u)
+    expect(client()).toMatch(/appendMinutes\(prev, minutes\)/u)
+    expect(client()).toMatch(/formatClock\(elapsedMs\(timer, now\)\)/u)
+  })
+
+  it("duplicates a row as a new entry dated today, never as an overwrite", () => {
+    expect(client()).toMatch(/\.\.\.toDraft\(entry, todayIso, defaultDiscipline\), id: null/u)
+    expect(client()).toMatch(/onDuplicate: duplicateEntry/u)
+    expect(sections()).toMatch(/onDuplicate=\{actions\.onDuplicate\}/u)
+    expect(client()).toMatch(/Log again: \{lastEntry\.title\.slice\(0, 32\)\}/u)
+  })
+
+  it("builds the digest from the same summary the cards read", () => {
+    expect(client()).toMatch(/<DigestDialog/u)
+    expect(sections()).toMatch(/buildDigest\(summary, deliverables\)/u)
+    expect(sections()).toMatch(/Copy as Markdown/u)
+    expect(client()).toMatch(/onOpenDigest=\{\(\) => setDigestOpen\(true\)\}/u)
+  })
+
+  it("answers the keyboard shortcuts only outside typing and dialogs", () => {
+    const code = client()
+    expect(code).toMatch(/document\.getElementById\("quick-add"\)\?\.focus\(\)/u)
+    expect(code).toMatch(/document\.getElementById\("worklog-search"\)\?\.focus\(\)/u)
+    expect(code).toMatch(/target\?\.closest\("input, textarea, select, button, a, \[contenteditable=true\]"\)/u)
+    expect(code).toMatch(/document\.querySelector\('\[role="dialog"\]'\)/u)
+  })
+
+  it("compares against the equal-length previous period, fetched as a list range", () => {
+    const code = client()
+    expect(code).toMatch(/previousRange\(resolveRange\(state, todayIso, weekStartsOn\(settings\.weekStart\)\)\)/u)
+    // Day/week/heat views follow the navigated day and ignore the preset; only "list" honours
+    // from/to, so the comparison fetch must force it or it would re-read the current period.
+    expect(code).toMatch(/view: "list", preset: "custom", from: prev\.from, to: prev\.to/u)
+    expect(code).toMatch(/periodDelta\(/u)
+    // An unfetched previous period is null, never zero: "same as prev" would be a claim about
+    // data nobody read.
+    expect(code).toMatch(/previous \? previous\.totals\.entries : null/u)
+  })
+
+  it("draws the mix of work as a donut with the server's total in the centre", () => {
+    const code = sections()
+    expect(code).toMatch(/<PieChart/u)
+    expect(code).toMatch(/totalEntries: number/u)
+    expect(client()).toMatch(/totalEntries=\{summary\?\.totals\.entries \?\? 0\}/u)
+  })
+
+  it("gives coverage an eight-week strip independent of the chosen range", () => {
+    expect(client()).toMatch(/activity=\{activity\}/u)
+    expect(client()).toMatch(/from: shiftDays\(todayIso, -55\)/u)
+    expect(sections()).toMatch(/activity: DayBucket\[\]/u)
+    expect(sections()).toMatch(/Last \{activity\.length\} days/u)
+  })
+})
