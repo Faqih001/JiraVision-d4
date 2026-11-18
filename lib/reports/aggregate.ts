@@ -23,6 +23,8 @@ import type { Period, PeriodBucket, PeriodType } from "./period"
 // and a career meter cannot disagree about what "done" meant.
 export const IN_PROGRESS_STATUSES = ["in_progress", "doing", "active", "review", "testing"]
 export const BLOCKED_STATUSES = ["blocked"]
+// The terminal ticket words from lib/tickets.ts; anything else is still open work.
+export const TICKET_FINISHED_STATUSES = ["resolved", "closed"]
 
 export type TaskBucketName = "completed" | "in_progress" | "blocked" | "other"
 
@@ -251,6 +253,64 @@ export type SeriesBucket = {
 
 export type SplitBucket = { key: string; label: string; count: Count; minutes: Count }
 
+/** The modules a report can draw activity from — the badge vocabulary of the merged timeline. */
+export const MODULE_KEYS = [
+  "worklog",
+  "tasks",
+  "deliverables",
+  "planner",
+  "operations",
+  "registers",
+  "serviceDesk",
+  "goals",
+  "meetings",
+  "retros",
+  "career",
+  "playbooks",
+] as const
+export type ModuleKey = (typeof MODULE_KEYS)[number]
+export const MODULE_LABEL: Record<ModuleKey, string> = {
+  worklog: "Work log",
+  tasks: "Tasks",
+  deliverables: "Deliverables",
+  planner: "Planner",
+  operations: "Operations",
+  registers: "Registers",
+  serviceDesk: "Service desk",
+  goals: "Goals",
+  meetings: "Meetings",
+  retros: "Retros",
+  career: "Career",
+  playbooks: "Playbooks",
+}
+
+export type TimelineRow = ReportRow & { source: ModuleKey }
+
+/** Every array-valued field of the aggregate — what an older stored snapshot must backfill with []. */
+export const AGGREGATE_ARRAY_KEYS = [
+  "series",
+  "byDiscipline",
+  "byKind",
+  "byTaskStatus",
+  "byPriority",
+  "completed",
+  "inProgress",
+  "blocked",
+  "deliverableRows",
+  "overdue",
+  "nextPeriod",
+  "opsRows",
+  "registerRows",
+  "ticketRows",
+  "goalRows",
+  "meetingRows",
+  "retroRows",
+  "careerRows",
+  "playbookRows",
+  "timeline",
+  "byModule",
+] as const
+
 export type ReportAggregate = {
   generatedAt: string
   isEmpty: boolean
@@ -275,10 +335,26 @@ export type ReportAggregate = {
   deliverableRows: ReportRow[]
   overdue: ReportRow[]
   nextPeriod: ReportRow[]
+  opsRows: ReportRow[]
+  registerRows: ReportRow[]
+  ticketRows: ReportRow[]
+  goalRows: ReportRow[]
+  meetingRows: ReportRow[]
+  retroRows: ReportRow[]
+  careerRows: ReportRow[]
+  playbookRows: ReportRow[]
+  /** Dated activity from every module, newest first — the builder's merged timeline. */
+  timeline: TimelineRow[]
+  /** Per-module row counts for the workspace mix; only modules with rows appear. */
+  byModule: SplitBucket[]
 }
 
 function inPeriod(dayIso: string | null, period: Period): boolean {
   return !!dayIso && dayIso >= period.start && dayIso <= period.end
+}
+
+function instantInPeriod(at: string, period: Period, timezone: string | null): boolean {
+  return inPeriod(localDay(new Date(at), timezone), period)
 }
 
 function reasonFor(taskId: number, entries: EntryDto[]): string {
@@ -359,8 +435,31 @@ function splitTasks(
 }
 
 export function aggregateReport(source: ReportSource): ReportAggregate {
-  const { period, entries, deliverables, transitions, tasks, planItems, todayIso, timezone } = source
+  const {
+    period,
+    entries,
+    deliverables,
+    transitions,
+    tasks,
+    planItems,
+    todayIso,
+    timezone,
+    opsEvents,
+    registerItems,
+    tickets,
+    ticketEvents,
+    goals,
+    goalCheckins,
+    meetings,
+    retroNotes,
+    retroActions,
+    careerSignoffs,
+    careerRequests,
+    growthReviews,
+    playbooks,
+  } = source
   const generatedAt = new Date().toISOString()
+  const dayOf = (at: string): string => localDay(new Date(at), timezone)
 
   const logged = entries.filter((e) => inPeriod(e.workedOn, period))
   const entryRefs = logged.map((e) => `entry:${e.id}`)
@@ -405,6 +504,109 @@ export function aggregateReport(source: ReportSource): ReportAggregate {
   const forward = planItems
     .filter((p) => statusBucket(p.status) !== "completed" && p.dueDate !== null && p.dueDate > period.end)
     .sort((a, b) => (a.dueDate as string).localeCompare(b.dueDate as string))
+
+  const deliverableRows: ReportRow[] = produced.map((d) => ({
+    ref: `deliverable:${d.id}`,
+    title: d.name,
+    detail: `${d.type} · ${DELIVERABLE_LABEL_STATUS[d.status] ?? d.status}${d.link ? ` · ${d.link}` : ""}`,
+    date: d.producedOn,
+  }))
+
+  // Operations: dated activity, resolved to the member's day like task events.
+  const opsInPeriod = opsEvents.filter((e) => instantInPeriod(e.occurredAt, period, timezone))
+  const opsRows: ReportRow[] = opsInPeriod.map((e) => ({
+    ref: `ops:${e.id}`,
+    title: e.entityKey,
+    detail: `${e.packKey}${e.status ? ` · ${e.status}` : ""}`,
+    date: dayOf(e.occurredAt),
+  }))
+
+  // Registers: held items are standing work; only a verification dated in the period is activity.
+  const registerRows: ReportRow[] = registerItems.map((item) => ({
+    ref: `register:${item.id}`,
+    title: item.title,
+    detail: `${item.packKey} · ${item.kind} · ${item.status}`,
+    date: item.lastVerifiedAt,
+  }))
+  const verifiedInPeriod = registerItems.filter((item) => inPeriod(item.lastVerifiedAt, period))
+
+  // Service desk: resolved-in-period and still-open are different sets; a ticket in both is listed once.
+  const ticketsResolved = tickets.filter((t) => t.resolvedAt !== null && instantInPeriod(t.resolvedAt, period, timezone))
+  const ticketsOpen = tickets.filter((t) => !TICKET_FINISHED_STATUSES.includes(t.status))
+  const ticketById = new Map<number, ReportTicketRow>()
+  for (const t of [...ticketsResolved, ...ticketsOpen]) ticketById.set(t.id, t)
+  const ticketRows: ReportRow[] = [...ticketById.values()].map((t) => ({
+    ref: `ticket:${t.id}`,
+    title: t.subject,
+    detail: `${t.status} · ${t.priority}`,
+    date: t.resolvedAt ? dayOf(t.resolvedAt) : null,
+  }))
+  const ticketActionsInPeriod = ticketEvents.filter((e) => instantInPeriod(e.at, period, timezone))
+
+  // Goals: the goal itself is standing work; a check-in is the dated activity.
+  const goalRows: ReportRow[] = goals.map((g) => ({
+    ref: `goal:${g.id}`,
+    title: g.title,
+    detail: `${g.current}/${g.target} ${g.metricType} · ${g.status}`,
+    date: g.dueDate,
+  }))
+  const goalsAchieved = goals.filter((g) => g.status === "achieved")
+  const checkinsInPeriod = goalCheckins.filter((c) => instantInPeriod(c.at, period, timezone))
+
+  const meetingsInPeriod = meetings.filter((m) => instantInPeriod(m.startTime, period, timezone))
+  const meetingRows: ReportRow[] = meetingsInPeriod.map((m) => ({
+    ref: `meeting:${m.id}`,
+    title: m.title,
+    detail: `${m.eventType} · ${m.organized ? "organised" : "attended"}`,
+    date: dayOf(m.startTime),
+  }))
+
+  const retroNotesInPeriod = retroNotes.filter((n) => instantInPeriod(n.at, period, timezone))
+  const openRetroActions = retroActions.filter((a) => !a.done)
+  const retroNoteRows: ReportRow[] = retroNotesInPeriod.map((n) => ({
+    ref: `retro-note:${n.id}`,
+    title: n.retroTitle ?? "Retro",
+    detail: `${n.category} · ${n.body}`,
+    date: dayOf(n.at),
+  }))
+  const retroRows: ReportRow[] = [
+    ...retroNoteRows,
+    ...openRetroActions.map((a) => ({
+      ref: `retro-action:${a.id}`,
+      title: a.retroTitle ?? "Retro",
+      detail: `Action: ${a.body}`,
+      date: a.dueDate,
+    })),
+  ]
+
+  const signoffsInPeriod = careerSignoffs.filter((s) => instantInPeriod(s.at, period, timezone))
+  const requestsInPeriod = careerRequests.filter((r) => instantInPeriod(r.at, period, timezone))
+  const reviewsInPeriod = growthReviews.filter((g) => instantInPeriod(g.at, period, timezone))
+  const careerRows: ReportRow[] = [
+    ...signoffsInPeriod.map((s) => ({ ref: `signoff:${s.id}`, title: s.itemKey, detail: s.status, date: dayOf(s.at) })),
+    ...requestsInPeriod.map((r) => ({
+      ref: `request:${r.id}`,
+      title: `${r.discipline} L${r.fromLevel} to L${r.toLevel}`,
+      detail: r.status,
+      date: dayOf(r.at),
+    })),
+    ...reviewsInPeriod.map((g) => ({ ref: `review:${g.id}`, title: g.kind, detail: "Growth review", date: dayOf(g.at) })),
+  ]
+
+  // Playbooks: a run is a worklog entry that cites one; publishing is dated by the playbook's own instant.
+  const playbookRunEntries = logged.filter((e) => e.playbookId !== null)
+  const runsByPlaybook = new Map<number, number>()
+  for (const e of playbookRunEntries) {
+    const id = e.playbookId as number
+    runsByPlaybook.set(id, (runsByPlaybook.get(id) ?? 0) + 1)
+  }
+  const publishedInPeriod = playbooks.filter((p) => p.status === "published" && instantInPeriod(p.at, period, timezone))
+  const playbookRows: ReportRow[] = playbooks.map((p) => ({
+    ref: `playbook:${p.id}`,
+    title: p.title,
+    detail: `${p.status} · v${p.version} · ${runsByPlaybook.get(p.id) ?? 0} runs this period`,
+    date: dayOf(p.at),
+  }))
 
   const metrics: Metrics = {
     entries: countOf(entryRefs),
