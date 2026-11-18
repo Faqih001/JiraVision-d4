@@ -271,3 +271,21 @@ Ethical metrics, Email) are fed by eight real scoped database reads, not stubs:
 
 Guards: `tests/unit/report-coverage.test.ts`, `report-aggregate.test.ts`, `report-api.test.ts`.
 
+## 19. Reports-work per-module scope selector (RW-F3, 2026-11-18) — no new placeholder
+
+Extends §16–18. The scope selector is a real, fully-wired control, not a stub:
+
+- Every checkbox toggles persisted URL state (`?mods=`) through `toggleModuleScope`; the "All
+  modules" reset clears it; `scopeSummary` names the current choice. No TODO handler, no dead button.
+- The choice actually filters four surfaces — builder module cards, builder timeline, PDF
+  sections + timeline, XLSX sheets + timeline + workspace mix — through the pure `lib/reports/scope.ts`
+  helpers. Both export call sites pass `scope: state.scope`.
+- **No migration** (scope is view-state, not a row column), **no new dead control**: the backbone
+  modules and computed sections always stay, an empty/full selection collapses to "all", and the
+  list-view overview keeps full-workspace numbers so nothing renders a misleading zero.
+- The reset button's off-ladder `h-6` was caught by the control-height guard and corrected to `h-7` —
+  a real fix, not a suppressed warning.
+
+Guards: `tests/unit/report-scope.test.ts`, `report-view-state.test.ts`, `report-modules-ui.test.ts`,
+`export-pdf.test.ts`, `export-xlsx.test.ts`, `control-height-uniformity.test.ts`.
+

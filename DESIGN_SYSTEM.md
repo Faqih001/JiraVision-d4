@@ -701,3 +701,26 @@ token and no new component:** each reuses the same `ModuleSectionCard` contract 
 - The grid still re-lays-out on nothing: every card owns its span, and the client never re-flows on
   data. The PDF and XLSX exports iterate the same `MODULE_SECTIONS`, so the new cards print and
   spreadsheet with no export-side styling change.
+
+## 21. Reports-work per-module scope selector (RW-F3, 2026-11-18)
+
+Extends §19–20. The builder gains one control that narrows which of the fifteen activity-module cards
+a report covers. **No new token:** it reuses the existing outline-button, Popover, Checkbox and Label
+primitives and the dashboard height ladder.
+
+| Control | Rung | Behaviour |
+| --- | --- | --- |
+| Scope trigger (`Filter` icon + `scopeSummary`) | `size="sm"` (`h-9`) | first control in the builder command row; label reads "All 15 modules" / "<Label> only" / "N of 15 modules" |
+| "All modules" reset (ghost) | `h-7` chip rung | sits in the Popover header beside the title; disabled when scope is already `null` |
+| Module checkboxes (15) | Radix `h-4 w-4` | one per `MODULE_SECTIONS`, canonical order, `Label htmlFor` paired; list scrolls at `max-h-72` |
+
+- The Popover is `align="end"`, `w-64 p-3`; the checkbox list is `max-h-72 overflow-auto` so fifteen
+  rows never push the panel past the viewport. The footer note states the invariant in plain copy:
+  "Work log, tasks, deliverables and planner always stay. The choice rides in the link."
+- The reset button was first written at `h-6` and the control-height guard
+  (`control-height-uniformity.test.ts`) rejected it — `h-6` is off the four-rung ladder
+  (`h-7/8/9/10`). Corrected to `h-7`, the chip-row rung, since the header holds a label and one button.
+- Scope is URL view-state (`?mods=`), styled and behaved like the existing `open`/`q` params: it
+  changes what the builder and exports render, never the stored snapshot, and the list-view overview
+  cards keep their full-workspace numbers. No card re-flows on data; toggling a checkbox patches state
+  and the grid re-gates exactly as the empty-row rule already does.

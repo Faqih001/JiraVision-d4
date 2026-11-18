@@ -67,6 +67,34 @@ describe("the builder wiring", () => {
   })
 })
 
+describe("the per-module report scope (F3)", () => {
+  it("filters the merged timeline in the presentational component", () => {
+    const code = codeOnly(modulesFile())
+    expect(code).toMatch(/from ["']@\/lib\/reports\/scope["']/u)
+    expect(code).toContain("scope?: ModuleScope")
+    expect(code).toContain("scopedTimeline(aggregate?.timeline ?? [], scope)")
+  })
+
+  it("gates each module card on the report scope", () => {
+    const code = codeOnly(client())
+    expect(code).toMatch(/from ["']@\/lib\/reports\/scope["']/u)
+    expect(code).toContain("inScope(section, state.scope)")
+  })
+
+  it("scopes the builder timeline and passes the scope to both exports", () => {
+    const code = codeOnly(client())
+    expect(code).toContain("scopedTimeline")
+    expect(code).toContain("scope={state.scope}")
+    expect(code.match(/scope: state\.scope/gu)?.length ?? 0).toBeGreaterThanOrEqual(2)
+  })
+
+  it("mounts a scope selector that toggles modules and summarises the choice", () => {
+    const code = codeOnly(client())
+    expect(code).toContain("toggleModuleScope(")
+    expect(code).toContain("scopeSummary(")
+  })
+})
+
 describe("the workspace mix card", () => {
   it("is a presentational card in the overview, fed by the aggregate's byModule", () => {
     const code = codeOnly(overviewFile())

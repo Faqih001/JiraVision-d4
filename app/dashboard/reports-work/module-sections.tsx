@@ -27,6 +27,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { SectionCard } from "@/components/dashboard-kit"
 import { MODULE_LABEL, type ReportAggregate } from "@/lib/reports/aggregate"
+import { scopedTimeline, type ModuleScope } from "@/lib/reports/scope"
 import {
   hiddenModuleRowCount,
   moduleCaption,
@@ -157,8 +158,8 @@ function TimelineRowItem({ row }: { row: ReportAggregate["timeline"][number] }) 
   )
 }
 
-export function TimelineSection({ aggregate }: { aggregate: ReportAggregate | null }) {
-  const rows = aggregate?.timeline ?? []
+export function TimelineSection({ aggregate, scope = null }: { aggregate: ReportAggregate | null; scope?: ModuleScope }) {
+  const rows = scopedTimeline(aggregate?.timeline ?? [], scope)
   if (rows.length === 0) return null
   const shown = rows.slice(0, TIMELINE_PREVIEW_LIMIT)
   const rest = rows.slice(TIMELINE_PREVIEW_LIMIT)

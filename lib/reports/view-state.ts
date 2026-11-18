@@ -5,6 +5,7 @@
 import { isIsoDate } from "@/lib/worklog/local-day"
 import { PERIOD_TYPES, resolvePeriod, type Period, type PeriodType } from "./period"
 import { isReportSectionKey, type ReportSectionKey } from "./templates"
+import { parseModuleScope, serializeModuleScope, type ModuleScope } from "./scope"
 import type { ReportDto } from "./report-fields"
 
 export const REPORT_VIEWS = ["list", "build"] as const
@@ -25,6 +26,8 @@ export type ReportState = {
   reportId: number | null
   /** Which drill-down row list is open, so a shared link can land on an expanded section. */
   open: ReportSectionKey | null
+  /** Which activity-module cards the report includes; null means all of them. */
+  scope: ModuleScope
   q: string
 }
 
@@ -45,6 +48,7 @@ export function defaultReportState(dayIso: string): ReportState {
     customTo: dayIso,
     reportId: null,
     open: null,
+    scope: null,
     q: "",
   }
 }
@@ -85,6 +89,7 @@ export function parseReportView(search: URLSearchParams, todayIso: string): Repo
     customTo,
     reportId: Number.isInteger(rawId) && rawId > 0 ? rawId : null,
     open: rawOpen !== null && isReportSectionKey(rawOpen) ? rawOpen : null,
+    scope: parseModuleScope(search.get("mods")),
     q: search.get("q") ?? "",
   }
 }
@@ -101,6 +106,8 @@ export function serializeReportView(state: ReportState, todayIso: string): strin
   }
   if (state.reportId !== null) params.set("r", String(state.reportId))
   if (state.open !== null) params.set("open", state.open)
+  const mods = serializeModuleScope(state.scope)
+  if (mods !== null) params.set("mods", mods)
   if (state.q.trim()) params.set("q", state.q.trim())
   return params.toString()
 }

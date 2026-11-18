@@ -26,17 +26,21 @@ describe("the XLSX export module", () => {
     expect(source).toContain('addWorksheet("By status")')
   })
 
-  it("report workbook carries a sheet per activity module", () => {
-    expect(source).toContain("MODULE_SECTIONS")
+  it("report workbook carries a sheet per activity module, honouring the report scope", () => {
+    expect(source).toContain("scopedModuleSections")
     expect(source).toContain("moduleRowsFor")
     expect(source).toContain("MODULE_LABEL")
+    expect(source).toContain("scope?: ModuleScope")
+    expect(source).toContain("scopedModuleSections(scope)")
   })
 
-  it("report workbook includes timeline and workspace mix sheets", () => {
+  it("report workbook includes timeline and workspace mix sheets, scoped like the cards", () => {
     expect(source).toContain('addWorksheet("Timeline")')
     expect(source).toContain('addWorksheet("Workspace mix")')
     expect(source).toContain("metrics.timeline")
     expect(source).toContain("metrics.byModule")
+    expect(source).toContain("scopedTimeline(metrics.timeline, scope)")
+    expect(source).toContain("scopedByModule(metrics.byModule, scope)")
   })
 
   it("report layout includes monthly series sheet for yearly periods", () => {

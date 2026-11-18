@@ -7,6 +7,7 @@ import {
   parseReportView,
   resolveReportPeriod,
   serializeReportView,
+  type ReportState,
 } from "@/lib/reports/view-state"
 
 const TODAY = "2026-10-26"
@@ -21,6 +22,7 @@ describe("defaults", () => {
     expect(state.reportId).toBeNull()
     expect(state.open).toBeNull()
     expect(state.q).toBe("")
+    expect(state.scope).toBeNull()
   })
 
   it("serialises nothing for the default state, so a clean link stays clean", () => {
@@ -43,6 +45,7 @@ describe("parseReportView", () => {
       reportId: 17,
       open: "blocked",
       q: "sprint",
+      scope: null,
     })
   })
 
@@ -85,6 +88,7 @@ describe("parseReportView", () => {
       "v=build&p=yearly&d=2026-01-01",
       "v=build&p=custom&from=2026-09-01&to=2026-09-30",
       "r=8&v=build&open=nextPeriod&q=audit",
+      "v=build&mods=serviceDesk,goals",
     ]) {
       const state = parseReportView(search(raw), TODAY)
       expect(parseReportView(search(serializeReportView(state, TODAY)), TODAY)).toEqual(state)
@@ -97,6 +101,28 @@ describe("parseReportView", () => {
     expect(serialised).toBe("v=build")
     expect(serialised).not.toMatch(/view=/u)
     expect(serialised).not.toMatch(/periodType=/u)
+  })
+})
+
+describe("module scope", () => {
+  it("reads the mods param into a canonical card selection", () => {
+    expect(parseReportView(search("v=build&mods=goals,serviceDesk"), TODAY).scope).toEqual([
+      "serviceDesk",
+      "goals",
+    ])
+  })
+
+  it("treats no mods, an unknown mods and a full mods as all modules", () => {
+    expect(parseReportView(search("v=build"), TODAY).scope).toBeNull()
+    expect(parseReportView(search("v=build&mods=widgets"), TODAY).scope).toBeNull()
+  })
+
+  it("writes mods only when a proper subset is picked, and round-trips it", () => {
+    const state: ReportState = { ...defaultReportState(TODAY), view: "build", scope: ["serviceDesk"] }
+    const serialised = serializeReportView(state, TODAY)
+    expect(serialised).toContain("mods=serviceDesk")
+    expect(parseReportView(search(serialised), TODAY).scope).toEqual(["serviceDesk"])
+    expect(serializeReportView(defaultReportState(TODAY), TODAY)).not.toMatch(/mods/u)
   })
 })
 

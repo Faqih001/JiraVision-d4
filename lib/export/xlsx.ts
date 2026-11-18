@@ -4,7 +4,8 @@
 
 import ExcelJS from "exceljs"
 import { MODULE_LABEL } from "@/lib/reports/aggregate"
-import { MODULE_SECTIONS, moduleRowsFor } from "@/lib/reports/module-sections"
+import { moduleRowsFor } from "@/lib/reports/module-sections"
+import { scopedModuleSections, scopedTimeline, scopedByModule, type ModuleScope } from "@/lib/reports/scope"
 import type { ReportDto } from "@/lib/reports/report-fields"
 import type { ReportAggregate } from "@/lib/reports/aggregate"
 import type { EntryDto, DeliverableDto } from "@/lib/worklog/entries"
@@ -14,6 +15,7 @@ export type ReportExportData = {
   metrics: ReportAggregate
   authorName: string
   recipientNames: string[]
+  scope?: ModuleScope
 }
 
 export type LogExportData = {
@@ -62,7 +64,7 @@ async function downloadWorkbook(workbook: ExcelJS.Workbook, filename: string): P
 }
 
 export async function exportReportXlsx(data: ReportExportData): Promise<void> {
-  const { report, metrics, authorName, recipientNames } = data
+  const { report, metrics, authorName, recipientNames, scope = null } = data
   const workbook = new ExcelJS.Workbook()
   const stamp = report.submittedAt?.slice(0, 10) ?? report.createdAt.slice(0, 10)
 
@@ -146,7 +148,7 @@ export async function exportReportXlsx(data: ReportExportData): Promise<void> {
   }
 
   // One sheet per activity module that has rows
-  for (const section of MODULE_SECTIONS) {
+  for (const section of scopedModuleSections(scope)) {
     const rows = moduleRowsFor(section, metrics)
     if (rows.length === 0) continue
     const moduleSheet = workbook.addWorksheet(MODULE_LABEL[section])
@@ -164,7 +166,8 @@ export async function exportReportXlsx(data: ReportExportData): Promise<void> {
   }
 
   // Merged activity timeline
-  if (metrics.timeline.length > 0) {
+  const timeline = scopedTimeline(metrics.timeline, scope)
+  if (timeline.length > 0) {
     const timelineSheet = workbook.addWorksheet("Timeline")
     timelineSheet.columns = [
       { header: "Date", key: "date", width: 12 },
@@ -172,24 +175,25 @@ export async function exportReportXlsx(data: ReportExportData): Promise<void> {
       { header: "Title", key: "title", width: 40 },
       { header: "Detail", key: "detail", width: 50 },
     ]
-    for (const r of metrics.timeline) {
+    for (const r of timeline) {
       timelineSheet.addRow({ date: r.date ?? "", source: MODULE_LABEL[r.source], title: r.title, detail: r.detail })
     }
     timelineSheet.getRow(1).font = { bold: true }
     timelineSheet.views = [{ state: "frozen", ySplit: 1 }]
-    timelineSheet.autoFilter = { from: "A1", to: `D${metrics.timeline.length + 1}` }
+    timelineSheet.autoFilter = { from: "A1", to: `D${timeline.length + 1}` }
     addDateNumberFormats(timelineSheet)
   }
 
   // Workspace mix: per-module counts
-  if (metrics.byModule.length > 0) {
+  const byModule = scopedByModule(metrics.byModule, scope)
+  if (byModule.length > 0) {
     const mixSheet = workbook.addWorksheet("Workspace mix")
     mixSheet.columns = [
       { header: "Module", key: "module", width: 20 },
       { header: "Count", key: "count", width: 10 },
       { header: "Minutes", key: "minutes", width: 10 },
     ]
-    for (const m of metrics.byModule) {
+    for (const m of byModule) {
       mixSheet.addRow({ module: m.label, count: m.count.value, minutes: m.minutes.value })
     }
     mixSheet.getRow(1).font = { bold: true }

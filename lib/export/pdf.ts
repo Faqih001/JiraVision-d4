@@ -5,7 +5,8 @@
 import { jsPDF } from "jspdf"
 import autoTable from "jspdf-autotable"
 import { MODULE_LABEL } from "@/lib/reports/aggregate"
-import { MODULE_SECTIONS, moduleRowsFor } from "@/lib/reports/module-sections"
+import { moduleRowsFor } from "@/lib/reports/module-sections"
+import { scopedModuleSections, scopedTimeline, type ModuleScope } from "@/lib/reports/scope"
 import type { ReportDto } from "@/lib/reports/report-fields"
 import type { ReportAggregate } from "@/lib/reports/aggregate"
 import type { EntryDto, DeliverableDto } from "@/lib/worklog/entries"
@@ -16,6 +17,7 @@ export type ReportExportData = {
   metrics: ReportAggregate
   authorName: string
   recipientNames: string[]
+  scope?: ModuleScope
 }
 
 export type LogExportData = {
@@ -66,7 +68,7 @@ function addFooter(doc: jsPDF) {
 }
 
 export function exportReportPdf(data: ReportExportData): void {
-  const { report, metrics, authorName, recipientNames } = data
+  const { report, metrics, authorName, recipientNames, scope = null } = data
   const doc = new jsPDF()
   const stamp = report.submittedAt?.slice(0, 10) ?? report.createdAt.slice(0, 10)
 
@@ -136,7 +138,7 @@ export function exportReportPdf(data: ReportExportData): void {
     currentY = (doc as any).lastAutoTable.finalY + 10
   }
 
-  for (const section of MODULE_SECTIONS) {
+  for (const section of scopedModuleSections(scope)) {
     const rows = moduleRowsFor(section, metrics)
     if (rows.length === 0 || currentY >= 250) continue
     doc.setFontSize(14)
@@ -153,7 +155,8 @@ export function exportReportPdf(data: ReportExportData): void {
     currentY = (doc as any).lastAutoTable.finalY + 10
   }
 
-  if (metrics.timeline.length > 0 && currentY < 250) {
+  const timeline = scopedTimeline(metrics.timeline, scope)
+  if (timeline.length > 0 && currentY < 250) {
     doc.setFontSize(14)
     doc.setFont("helvetica", "bold")
     doc.text("Activity timeline", 14, currentY)
@@ -161,7 +164,7 @@ export function exportReportPdf(data: ReportExportData): void {
     autoTable(doc, {
       startY: currentY,
       head: [["Date", "Source", "Title", "Detail"]],
-      body: metrics.timeline.slice(0, 40).map((r) => [r.date ?? "", MODULE_LABEL[r.source], r.title, r.detail]),
+      body: timeline.slice(0, 40).map((r) => [r.date ?? "", MODULE_LABEL[r.source], r.title, r.detail]),
       theme: "striped",
       headStyles: { fillColor: [41, 128, 185] },
     })

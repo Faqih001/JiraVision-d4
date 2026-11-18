@@ -2271,3 +2271,43 @@ migration:** every table already exists.
   columns, the two parent joins, non-deleted chat, team-scoped ethics, 29 caps). The two independent
   `source()` builders in `report-charts.test.ts` and `report-row-sections.test.ts` were extended with
   the eight new fields. Full report suite: 28 files, 417 tests green; `tsc --noEmit` clean.
+
+## 65. Reports-work: choose which activity modules a report covers (RW-F3, 2026-11-18)
+
+Extends §62–64. After F2 the universal report aggregates fifteen activity-module cards; a member who
+only wants, say, Tickets and Goals had no way to narrow it. The builder now carries a **per-module
+scope selector**, and the choice rides in the shareable link. **No migration:** scope is URL
+view-state, not a column on the report row.
+
+- **Pure helper** `lib/reports/scope.ts` (`ModuleScope = ModuleSectionKey[] | null`, `null` = all):
+  `parseModuleScope` / `serializeModuleScope` (canonical `MODULE_SECTIONS` order, dedupe, unknown →
+  `null`, full or empty selection collapses to `null`), `inScope`, `scopedModuleSections`,
+  `toggleModuleScope` (deselect-from-all → 14, reselect-to-all → `null`, last-one-out → `null`),
+  `moduleInScope`, `scopedTimeline`, `scopedByModule`, `scopeSummary` ("All 15 modules" /
+  "<Label> only" / "N of 15 modules"). 20 unit cases.
+- **URL grammar** `lib/reports/view-state.ts`: `ReportState` gains `scope`; `parseReportView` reads
+  `?mods=`, `serializeReportView` emits `mods` only for a proper subset, so a clean link stays clean
+  and an all-modules link carries no parameter. Round-trips with the rest of the state.
+- **Selector UI** in `reports-client.tsx`: a `Filter`-icon outline button labelled with
+  `scopeSummary(state.scope)` opens a Popover of the fifteen module checkboxes plus an "All modules"
+  reset (`h-7`, disabled when scope is already `null`). Toggling patches `state.scope`; the choice is
+  written to the URL by the existing serializer, so **Copy link** carries it.
+- **What the scope filters:** the builder module cards (`inScope` gate), the builder timeline
+  (`scopedTimeline`), the PDF module sections + timeline, and the XLSX module sheets + timeline +
+  workspace-mix sheet (`scopedByModule`). Both export call sites pass `scope: state.scope`.
+- **Design rulings** (chosen here; redirect if any is wrong):
+  1. The four backbone modules — work log, tasks, deliverables, planner — and the six computed
+     sections, summary, metrics and notes **always stay**; they are not deselectable cards.
+     `moduleInScope` returns true for backbone keys regardless of scope.
+  2. Scope is a **builder/export** concern. The list-view overview cards (KPI strip, insight trio,
+     workspace mix) stay full-workspace; narrowing them would misrepresent the period totals.
+  3. Scope lives in the URL like `open`/`q`, **not** on the stored row — a saved snapshot's metrics
+     are untouched, and the same report can be viewed at different scopes without re-filing.
+  4. An empty or full selection collapses to `null` (all), so the selector can never produce a report
+     with zero module cards and no way back except the reset.
+- Guards: `tests/unit/report-scope.test.ts` (20), re-cut `report-view-state.test.ts` (mods grammar +
+  round-trip), `report-modules-ui.test.ts` (F3 wiring: timeline filter, `inScope` gate, scoped
+  timeline, `scope={state.scope}`, two export scope args, selector), and the export source guards
+  (`scopedModuleSections` / `scopedTimeline` / `scopedByModule`). The control-height guard caught the
+  reset button at `h-6`; corrected to the `h-7` chip rung. Full suite: 226 files, 3680 tests green;
+  `tsc --noEmit` clean.

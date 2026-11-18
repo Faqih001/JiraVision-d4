@@ -7,8 +7,11 @@
 import { useCallback, useEffect, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
-import { Bot, Calculator, Copy, Download, Plus, RefreshCw, Save, Send, Trash2, Undo2 } from "lucide-react"
+import { Bot, Calculator, Copy, Download, Filter, Plus, RefreshCw, Save, Send, Trash2, Undo2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Label } from "@/components/ui/label"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useToast } from "@/hooks/use-toast"
 import { localDay } from "@/lib/worklog/local-day"
@@ -16,7 +19,7 @@ import { assistantLink, periodQuestion } from "@/lib/assistant/ask"
 import { exportReportPdf } from "@/lib/export/pdf"
 import { exportReportXlsx } from "@/lib/export/xlsx"
 import { DASHBOARD_SECTION_GRID } from "@/components/dashboard-kit"
-import type { ReportAggregate } from "@/lib/reports/aggregate"
+import { MODULE_LABEL, type ReportAggregate } from "@/lib/reports/aggregate"
 import { resolvePeriod, type Period } from "@/lib/reports/period"
 import type { ReportDto } from "@/lib/reports/report-fields"
 import { classifyRowRead } from "@/lib/reports/read-outcome"
@@ -28,6 +31,7 @@ import {
 } from "@/lib/reports/templates"
 import type { RowSectionKey } from "@/lib/reports/row-sections"
 import { MODULE_SECTIONS, moduleRowsFor, type ModuleSectionKey } from "@/lib/reports/module-sections"
+import { inScope, scopeSummary, scopedTimeline, toggleModuleScope } from "@/lib/reports/scope"
 import {
   adoptServerAnchor,
   defaultReportState,
@@ -421,9 +425,10 @@ export default function ReportsClient() {
       metrics: aggregate,
       authorName: "You",
       recipientNames: [],
+      scope: state.scope,
     })
     toast({ title: "PDF exported" })
-  }, [report, aggregate, toast])
+  }, [report, aggregate, state.scope, toast])
 
   const exportXlsx = useCallback(async () => {
     if (!report || !aggregate) return
@@ -432,9 +437,10 @@ export default function ReportsClient() {
       metrics: aggregate,
       authorName: "You",
       recipientNames: [],
+      scope: state.scope,
     })
     toast({ title: "Excel exported" })
-  }, [report, aggregate, toast])
+  }, [report, aggregate, state.scope, toast])
 
   // A plain function, not a callback: its closure over the current aggregate, URL state and prose
   // is the point, and the map below is rebuilt every render by design.
@@ -452,7 +458,7 @@ export default function ReportsClient() {
   )
 
   const moduleCard = (section: ModuleSectionKey) =>
-    aggregate && moduleRowsFor(section, aggregate).length > 0 ? (
+    inScope(section, state.scope) && aggregate && moduleRowsFor(section, aggregate).length > 0 ? (
       <ModuleSectionCard
         key={section}
         section={section}
@@ -552,6 +558,56 @@ export default function ReportsClient() {
           </Button>
           {state.view === "build" ? (
             <>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    aria-label="Choose which activity modules this report covers"
+                  >
+                    <Filter className="mr-1 h-4 w-4" />
+                    {scopeSummary(state.scope)}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-64 p-3">
+                  <div className="mb-2 flex items-center justify-between gap-2">
+                    <p className="text-[12px] font-semibold">Modules in this report</p>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-[11px]"
+                      onClick={() => patchState({ scope: null })}
+                      disabled={state.scope === null}
+                    >
+                      All modules
+                    </Button>
+                  </div>
+                  <div className="max-h-72 space-y-1 overflow-auto pr-1">
+                    {MODULE_SECTIONS.map((section) => {
+                      const id = `scope-${section}`
+                      return (
+                        <div key={section} className="flex items-center gap-2">
+                          <Checkbox
+                            id={id}
+                            checked={inScope(section, state.scope)}
+                            onCheckedChange={() =>
+                              patchState({ scope: toggleModuleScope(state.scope, section) })
+                            }
+                          />
+                          <Label htmlFor={id} className="cursor-pointer text-[12px] font-normal">
+                            {MODULE_LABEL[section]}
+                          </Label>
+                        </div>
+                      )
+                    })}
+                  </div>
+                  <p className="mt-2 text-[11px] text-muted-foreground">
+                    Work log, tasks, deliverables and planner always stay. The choice rides in the link.
+                  </p>
+                </PopoverContent>
+              </Popover>
               {report?.status === "draft" && (
                 <Button type="button" size="sm" onClick={() => setSubmitTarget(report)} disabled={busy}>
                   <Send className="mr-1 h-4 w-4" />
@@ -648,9 +704,9 @@ export default function ReportsClient() {
                 {key === "nextPeriod" ? (
                   <>
                     {MODULE_SECTIONS.map((section) => moduleCard(section))}
-                    {aggregate && aggregate.timeline.length > 0 ? (
+                    {aggregate && scopedTimeline(aggregate.timeline, state.scope).length > 0 ? (
                       <div className="md:col-span-2 xl:col-span-3">
-                        <TimelineSection aggregate={aggregate} />
+                        <TimelineSection aggregate={aggregate} scope={state.scope} />
                       </div>
                     ) : null}
                   </>
