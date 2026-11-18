@@ -119,12 +119,12 @@ describe("the preview route", () => {
     expect(preview()).toMatch(/resolveReportPeriod\(state\)/u)
   })
 
-  it("resolves the template from the work, so ?tpl=auto is honest", () => {
-    expect(preview()).toMatch(/effectiveTemplate\(state, aggregate\)/u)
+  it("resolves no template — the preview is one universal report", () => {
+    expect(codeOnly(preview())).not.toMatch(/template/iu)
   })
 
   it("returns the aggregate and nothing that looks like a lifecycle", () => {
-    expect(preview()).toMatch(/data: \{ period, aggregate, template/u)
+    expect(preview()).toMatch(/data: \{ period, aggregate, today, timezone/u)
     // A preview is read-only by construction: only GET is exported.
     expect(codeOnly(preview())).not.toMatch(/export async function (POST|PATCH|PUT|DELETE)|status:\s*"/u)
   })
@@ -154,7 +154,7 @@ describe("the single-report route", () => {
   })
 
   it("fills every prose key so a stored blob always has the whole section set", () => {
-    expect(row()).toMatch(/emptyContent\(template\)/u)
+    expect(row()).toMatch(/emptyContent\(\)/u)
   })
 
   it("refuses to delete a filed report and says why", () => {
