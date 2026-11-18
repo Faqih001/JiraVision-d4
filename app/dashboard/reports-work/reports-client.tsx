@@ -15,7 +15,7 @@ import { localDay } from "@/lib/worklog/local-day"
 import { assistantLink, periodQuestion } from "@/lib/assistant/ask"
 import { exportReportPdf } from "@/lib/export/pdf"
 import { exportReportXlsx } from "@/lib/export/xlsx"
-import { DASHBOARD_KPI_GRID, DASHBOARD_SECTION_GRID } from "@/components/dashboard-kit"
+import { DASHBOARD_SECTION_GRID } from "@/components/dashboard-kit"
 import type { ReportAggregate } from "@/lib/reports/aggregate"
 import { resolvePeriod, type Period } from "@/lib/reports/period"
 import type { ReportDto } from "@/lib/reports/report-fields"
@@ -573,7 +573,7 @@ export default function ReportsClient() {
       <ReportsKpiStrip reports={reports} filtered={state.q.trim() !== ""} />
 
       <div className="space-y-4">
-        <div className={`${DASHBOARD_KPI_GRID} md:grid-cols-3`}>
+        <div className="grid grid-cols-1 gap-4">
           <PeriodSection state={state} period={shownPeriod} patch={patchState} />
           <MyReportsSection
             reports={reports}

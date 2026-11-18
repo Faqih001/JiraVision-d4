@@ -270,7 +270,6 @@ export function MyReportsSection({
     <SectionCard
       title="My reports"
       icon={<FileText className="h-4 w-4" />}
-      className="md:col-span-2 xl:col-span-2"
     >
       <div className="space-y-3">
         <Input
@@ -293,7 +292,7 @@ export function MyReportsSection({
           <div className="space-y-3">
             <ReportEmptyNote>
               {query.trim() === ""
-                ? "No reports yet. Pick a period on the left and the sections fill themselves from your work log; nothing has to be typed before a report can be read."
+                ? "No reports yet. Pick a period above and the sections fill themselves from your work log; nothing has to be typed before a report can be read."
                 : "Nothing matches this search. Clear it to see the whole list."}
             </ReportEmptyNote>
             {query.trim() === "" ? (

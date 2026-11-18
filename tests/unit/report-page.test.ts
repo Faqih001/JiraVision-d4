@@ -416,6 +416,18 @@ describe("the finished phase 3", () => {
     expect(codeOnly(sectionsFile()).match(/<SectionCard/gu)).toHaveLength(6)
   })
 
+  it("stacks Period and My reports, each on its own full-width row", () => {
+    const code = codeOnly(client())
+    const periodAt = code.indexOf("<PeriodSection")
+    const wrapper = code.slice(code.lastIndexOf("<div", periodAt), periodAt)
+    expect(wrapper).toContain("grid-cols-1")
+    expect(wrapper).not.toMatch(/grid-cols-[2-9]/u)
+    const sections = codeOnly(sectionsFile())
+    const start = sections.indexOf("export function MyReportsSection")
+    const list = sections.slice(start, sections.indexOf("export function", start + 1))
+    expect(list).not.toMatch(/col-span/u)
+  })
+
   it("gives every editable section an editor", () => {
     expect(PROSE_SECTIONS).toHaveLength(8)
     for (const key of PROSE_SECTIONS) {
