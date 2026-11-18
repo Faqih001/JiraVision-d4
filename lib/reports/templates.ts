@@ -118,6 +118,15 @@ export const METRIC_LABEL: Record<MetricKey, string> = {
   growthReviews: "Growth reviews",
   playbooksPublished: "Playbooks published",
   playbookRuns: "Playbook runs",
+  automationRulesActive: "Active automation rules",
+  automationRuns: "Automation runs",
+  aiMessages: "AI replies",
+  aiTokens: "AI tokens",
+  chatMessages: "Chat messages",
+  gamificationXp: "XP earned",
+  wellbeingCheckins: "Wellbeing check-ins",
+  ethicsSnapshots: "Team ethics snapshots",
+  emailsDelivered: "Digests delivered",
 }
 
 export const CHART_KEYS = ["discipline", "kind", "taskStatus", "priority", "series"] as const

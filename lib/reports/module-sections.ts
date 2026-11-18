@@ -16,6 +16,13 @@ export const MODULE_SECTIONS = [
   "retros",
   "career",
   "playbooks",
+  "automation",
+  "assistant",
+  "chat",
+  "gamification",
+  "wellbeing",
+  "ethics",
+  "email",
 ] as const satisfies readonly ModuleKey[]
 
 export type ModuleSectionKey = (typeof MODULE_SECTIONS)[number]
@@ -37,6 +44,13 @@ const EMPTY_CAPTION: Record<ModuleSectionKey, string> = {
   retros: "No retro note or open action.",
   career: "No sign-off, request or review in this period.",
   playbooks: "No playbook is held.",
+  automation: "No automation rule is active.",
+  assistant: "No AI reply was generated in this period.",
+  chat: "No chat message was sent in this period.",
+  gamification: "No progress has been earned yet.",
+  wellbeing: "No wellbeing check-in fell in this period.",
+  ethics: "No team ethics snapshot fell in this period.",
+  email: "No digest was delivered in this period.",
 }
 
 function plural(value: number, noun: string): string {
@@ -62,6 +76,20 @@ export function moduleRowsFor(section: ModuleSectionKey, aggregate: ReportAggreg
       return aggregate.careerRows
     case "playbooks":
       return aggregate.playbookRows
+    case "automation":
+      return aggregate.automationRows
+    case "assistant":
+      return aggregate.assistantRows
+    case "chat":
+      return aggregate.chatRows
+    case "gamification":
+      return aggregate.gamificationRows
+    case "wellbeing":
+      return aggregate.wellbeingRows
+    case "ethics":
+      return aggregate.ethicsRows
+    case "email":
+      return aggregate.emailRows
   }
 }
 
@@ -87,6 +115,20 @@ export function moduleCaption(section: ModuleSectionKey, aggregate: ReportAggreg
       return `${plural(metrics.careerSignoffs.value, "sign-off")} · ${plural(metrics.careerRequests.value, "request")} · ${plural(metrics.growthReviews.value, "review")}`
     case "playbooks":
       return `${plural(metrics.playbooksPublished.value, "playbook")} published this period · ${plural(metrics.playbookRuns.value, "run")} logged`
+    case "automation":
+      return `${plural(metrics.automationRulesActive.value, "active rule")} · ${plural(metrics.automationRuns.value, "run")} this period`
+    case "assistant":
+      return `${metrics.aiMessages.value} AI ${metrics.aiMessages.value === 1 ? "reply" : "replies"} · ${metrics.aiTokens.value} tokens`
+    case "chat":
+      return `${plural(metrics.chatMessages.value, "message")} sent this period`
+    case "gamification":
+      return `Standing progress · ${metrics.gamificationXp.value} XP`
+    case "wellbeing":
+      return `${plural(metrics.wellbeingCheckins.value, "check-in")} this period`
+    case "ethics":
+      return `${plural(metrics.ethicsSnapshots.value, "team snapshot")} this period`
+    case "email":
+      return `${plural(metrics.emailsDelivered.value, "digest")} delivered this period`
   }
 }
 

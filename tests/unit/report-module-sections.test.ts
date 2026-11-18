@@ -57,6 +57,14 @@ const source = (over: Partial<ReportSource> = {}): ReportSource => ({
   careerRequests: [],
   growthReviews: [],
   playbooks: [],
+  automationRules: [],
+  automationRuns: [],
+  assistantMessages: [],
+  chatMessages: [],
+  gamification: [],
+  wellbeing: [],
+  ethics: [],
+  email: [],
   ...over,
 })
 
@@ -98,6 +106,26 @@ const busy = aggregateReport(
     ],
     growthReviews: [{ id: 211, kind: "quarterly", at: "2026-10-29T13:00:00.000Z" }],
     playbooks: [{ id: 221, title: "Deploy runbook", status: "published", version: 2, at: "2026-10-28T14:00:00.000Z" }],
+    automationRules: [
+      { id: 401, name: "Nightly backup", trigger: "schedule", isActive: true, runCount: 12, lastRunAt: "2026-10-27T09:00:00.000Z" },
+    ],
+    automationRuns: [
+      { id: 411, ruleId: 401, ruleName: "Nightly backup", status: "ok", matched: 3, acted: 3, createdAt: "2026-10-27T09:00:00.000Z" },
+    ],
+    assistantMessages: [
+      { id: 421, threadTitle: "Sprint planning", role: "assistant", tokens: 120, createdAt: "2026-10-27T09:00:00.000Z" },
+    ],
+    chatMessages: [{ id: "c-431", chatName: "Engineering", content: "Deploy is green", timestamp: "2026-10-27T09:00:00.000Z" }],
+    gamification: [{ id: 441, level: 4, xp: 850, tasksCompleted: 17 }],
+    wellbeing: [
+      { id: 451, date: "2026-10-27", wellbeingScore: 72, mood: "good", workload: "balanced", stressLevel: 3, overtimeHours: 1.5 },
+    ],
+    ethics: [
+      { id: 461, date: "2026-10-27", payEquityScore: 90, workloadBalanceScore: 80, deiTaskDistributionScore: 75, overtimeCompliance: 95 },
+    ],
+    email: [
+      { id: 471, subject: "Your weekly digest", eventType: "digest", status: "delivered", createdAt: "2026-10-27T09:00:00.000Z" },
+    ],
   }),
 )
 
@@ -115,8 +143,8 @@ const crowded = aggregateReport(
   }),
 )
 
-describe("the eight module sections", () => {
-  it("names the eight activity modules beyond the six computed sections, in reading order", () => {
+describe("the fifteen module sections", () => {
+  it("names the fifteen activity modules beyond the six computed sections, in reading order", () => {
     expect([...MODULE_SECTIONS]).toEqual([
       "operations",
       "registers",
@@ -126,8 +154,16 @@ describe("the eight module sections", () => {
       "retros",
       "career",
       "playbooks",
+      "automation",
+      "assistant",
+      "chat",
+      "gamification",
+      "wellbeing",
+      "ethics",
+      "email",
     ])
     expect(isModuleSection("operations")).toBe(true)
+    expect(isModuleSection("email")).toBe(true)
     expect(isModuleSection("completed")).toBe(false)
     expect(isModuleSection(null)).toBe(false)
   })
@@ -141,6 +177,13 @@ describe("the eight module sections", () => {
     expect(moduleRowsFor("retros", busy)).toBe(busy.retroRows)
     expect(moduleRowsFor("career", busy)).toBe(busy.careerRows)
     expect(moduleRowsFor("playbooks", busy)).toBe(busy.playbookRows)
+    expect(moduleRowsFor("automation", busy)).toBe(busy.automationRows)
+    expect(moduleRowsFor("assistant", busy)).toBe(busy.assistantRows)
+    expect(moduleRowsFor("chat", busy)).toBe(busy.chatRows)
+    expect(moduleRowsFor("gamification", busy)).toBe(busy.gamificationRows)
+    expect(moduleRowsFor("wellbeing", busy)).toBe(busy.wellbeingRows)
+    expect(moduleRowsFor("ethics", busy)).toBe(busy.ethicsRows)
+    expect(moduleRowsFor("email", busy)).toBe(busy.emailRows)
   })
 
   it("gives every row a ref, a title and a date the card can print", () => {
@@ -149,7 +192,7 @@ describe("the eight module sections", () => {
       expect(rows.length).toBeGreaterThan(0)
       for (const row of rows) {
         expect(row.ref).toMatch(
-          /^(ops|register|ticket|goal|meeting|retro-note|retro-action|signoff|request|review|playbook):\d+$/u,
+          /^(ops|register|ticket|goal|meeting|retro-note|retro-action|signoff|request|review|playbook|automation-rule|automation-run|ai-message|chat-message|gamification|wellbeing|ethics|email):\S+$/u,
         )
         expect(row.title.trim()).not.toBe("")
         expect(row.date === null || row.date.match(/^\d{4}-\d{2}-\d{2}$/u)).toBeTruthy()
@@ -168,6 +211,13 @@ describe("the caption on the module card", () => {
     expect(moduleCaption("retros", busy)).toBe("1 note this period · 1 open action")
     expect(moduleCaption("career", busy)).toBe("1 sign-off · 1 request · 1 review")
     expect(moduleCaption("playbooks", busy)).toBe("1 playbook published this period · 1 run logged")
+    expect(moduleCaption("automation", busy)).toBe("1 active rule · 1 run this period")
+    expect(moduleCaption("assistant", busy)).toBe("1 AI reply · 120 tokens")
+    expect(moduleCaption("chat", busy)).toBe("1 message sent this period")
+    expect(moduleCaption("gamification", busy)).toBe("Standing progress · 850 XP")
+    expect(moduleCaption("wellbeing", busy)).toBe("1 check-in this period")
+    expect(moduleCaption("ethics", busy)).toBe("1 team snapshot this period")
+    expect(moduleCaption("email", busy)).toBe("1 digest delivered this period")
   })
 
   it("says so when a module is empty, instead of printing a bare zero", () => {

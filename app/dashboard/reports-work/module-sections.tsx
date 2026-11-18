@@ -7,15 +7,22 @@
 import {
   Activity,
   BookOpen,
+  Bot,
   CalendarDays,
   ChevronDown,
   ChevronUp,
   ClipboardList,
+  HeartPulse,
   History,
   LifeBuoy,
+  Mail,
+  MessageSquare,
   MessagesSquare,
+  Scale,
   Target,
   TrendingUp,
+  Trophy,
+  Zap,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { SectionCard } from "@/components/dashboard-kit"
@@ -37,6 +44,13 @@ const MODULE_SECTION_ICON: Record<ModuleSectionKey, React.ReactNode> = {
   retros: <MessagesSquare className="h-4 w-4" aria-hidden />,
   career: <TrendingUp className="h-4 w-4" aria-hidden />,
   playbooks: <ClipboardList className="h-4 w-4" aria-hidden />,
+  automation: <Zap className="h-4 w-4" aria-hidden />,
+  assistant: <Bot className="h-4 w-4" aria-hidden />,
+  chat: <MessageSquare className="h-4 w-4" aria-hidden />,
+  gamification: <Trophy className="h-4 w-4" aria-hidden />,
+  wellbeing: <HeartPulse className="h-4 w-4" aria-hidden />,
+  ethics: <Scale className="h-4 w-4" aria-hidden />,
+  email: <Mail className="h-4 w-4" aria-hidden />,
 }
 
 function ModuleCountButton({

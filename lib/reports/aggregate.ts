@@ -82,10 +82,19 @@ export const METRIC_KEYS = [
   "growthReviews",
   "playbooksPublished",
   "playbookRuns",
+  "automationRuns",
+  "automationRulesActive",
+  "aiMessages",
+  "aiTokens",
+  "chatMessages",
+  "gamificationXp",
+  "wellbeingCheckins",
+  "ethicsSnapshots",
+  "emailsDelivered",
 ] as const
 export type MetricKey = (typeof METRIC_KEYS)[number]
 export type Metrics = Record<MetricKey, Count>
-export const SUM_METRIC_KEYS = ["minutes", "storyPointsCompleted"] as const
+export const SUM_METRIC_KEYS = ["minutes", "storyPointsCompleted", "aiTokens", "gamificationXp"] as const
 export function isSumMetric(key: MetricKey): boolean {
   return (SUM_METRIC_KEYS as readonly string[]).includes(key)
 }
@@ -217,6 +226,79 @@ export type ReportPlaybookRow = {
   at: string
 }
 
+// F2 coverage: the seven further reportable surfaces. Automation rules are standing work (like
+// registers) and their runs are the dated activity; assistant/chat/email instants arrive as ISO
+// strings (chat/email naive wall-time already normalised to UTC by the read); wellbeing and ethics
+// carry a plain `date` day column; gamification is a standing progress snapshot with no date.
+export type ReportAutomationRuleRow = {
+  id: number
+  name: string
+  trigger: string
+  isActive: boolean
+  runCount: number
+  lastRunAt: string | null
+}
+
+export type ReportAutomationRunRow = {
+  id: number
+  ruleId: number
+  ruleName: string
+  status: string
+  matched: number
+  acted: number
+  createdAt: string
+}
+
+export type ReportAssistantMessageRow = {
+  id: number
+  threadTitle: string | null
+  role: string
+  tokens: number
+  createdAt: string
+}
+
+export type ReportChatMessageRow = {
+  /** messages.id is a uuid, so a chat ref is a string, not a number. */
+  id: string
+  chatName: string
+  content: string
+  timestamp: string
+}
+
+export type ReportGamificationRow = {
+  id: number
+  level: number
+  xp: number
+  tasksCompleted: number
+}
+
+export type ReportWellbeingRow = {
+  id: number
+  date: string
+  wellbeingScore: number | null
+  mood: string | null
+  workload: string | null
+  stressLevel: number | null
+  overtimeHours: number
+}
+
+export type ReportEthicsRow = {
+  id: number
+  date: string
+  payEquityScore: number | null
+  workloadBalanceScore: number | null
+  deiTaskDistributionScore: number | null
+  overtimeCompliance: number | null
+}
+
+export type ReportEmailRow = {
+  id: number
+  subject: string | null
+  eventType: string | null
+  status: string
+  createdAt: string
+}
+
 export type ReportSource = {
   period: Period
   /** The member's own day, so a period that has not finished is not reported as full of gaps. */
@@ -240,6 +322,14 @@ export type ReportSource = {
   careerRequests: ReportRequestRow[]
   growthReviews: ReportGrowthRow[]
   playbooks: ReportPlaybookRow[]
+  automationRules: ReportAutomationRuleRow[]
+  automationRuns: ReportAutomationRunRow[]
+  assistantMessages: ReportAssistantMessageRow[]
+  chatMessages: ReportChatMessageRow[]
+  gamification: ReportGamificationRow[]
+  wellbeing: ReportWellbeingRow[]
+  ethics: ReportEthicsRow[]
+  email: ReportEmailRow[]
 }
 
 export type SeriesBucket = {
@@ -267,6 +357,13 @@ export const MODULE_KEYS = [
   "retros",
   "career",
   "playbooks",
+  "automation",
+  "assistant",
+  "chat",
+  "gamification",
+  "wellbeing",
+  "ethics",
+  "email",
 ] as const
 export type ModuleKey = (typeof MODULE_KEYS)[number]
 export const MODULE_LABEL: Record<ModuleKey, string> = {
@@ -282,6 +379,13 @@ export const MODULE_LABEL: Record<ModuleKey, string> = {
   retros: "Retros",
   career: "Career",
   playbooks: "Playbooks",
+  automation: "Automation",
+  assistant: "AI assistant",
+  chat: "Chat",
+  gamification: "Gamification",
+  wellbeing: "Wellbeing",
+  ethics: "Ethical metrics",
+  email: "Email",
 }
 
 export type TimelineRow = ReportRow & { source: ModuleKey }
@@ -307,6 +411,13 @@ export const AGGREGATE_ARRAY_KEYS = [
   "retroRows",
   "careerRows",
   "playbookRows",
+  "automationRows",
+  "assistantRows",
+  "chatRows",
+  "gamificationRows",
+  "wellbeingRows",
+  "ethicsRows",
+  "emailRows",
   "timeline",
   "byModule",
 ] as const
@@ -343,6 +454,13 @@ export type ReportAggregate = {
   retroRows: ReportRow[]
   careerRows: ReportRow[]
   playbookRows: ReportRow[]
+  automationRows: ReportRow[]
+  assistantRows: ReportRow[]
+  chatRows: ReportRow[]
+  gamificationRows: ReportRow[]
+  wellbeingRows: ReportRow[]
+  ethicsRows: ReportRow[]
+  emailRows: ReportRow[]
   /** Dated activity from every module, newest first — the builder's merged timeline. */
   timeline: TimelineRow[]
   /** Per-module row counts for the workspace mix; only modules with rows appear. */
@@ -457,6 +575,14 @@ export function aggregateReport(source: ReportSource): ReportAggregate {
     careerRequests,
     growthReviews,
     playbooks,
+    automationRules,
+    automationRuns,
+    assistantMessages,
+    chatMessages,
+    gamification,
+    wellbeing,
+    ethics,
+    email,
   } = source
   const generatedAt = new Date().toISOString()
   const dayOf = (at: string): string => localDay(new Date(at), timezone)
@@ -608,6 +734,72 @@ export function aggregateReport(source: ReportSource): ReportAggregate {
     date: dayOf(p.at),
   }))
 
+  // Automation mirrors registers: an active rule is standing work, a run dated in the period is activity.
+  const activeRules = automationRules.filter((r) => r.isActive)
+  const automationRows: ReportRow[] = activeRules.map((r) => ({
+    ref: `automation-rule:${r.id}`,
+    title: r.name,
+    detail: `${r.trigger} · ${r.runCount} runs total`,
+    date: r.lastRunAt ? dayOf(r.lastRunAt) : null,
+  }))
+  const automationRunsInPeriod = automationRuns.filter((r) => instantInPeriod(r.createdAt, period, timezone))
+
+  // AI usage: only the assistant's replies are the member's generated output; the prompt is not activity.
+  const assistantInPeriod = assistantMessages.filter(
+    (m) => m.role === "assistant" && instantInPeriod(m.createdAt, period, timezone),
+  )
+  const assistantRows: ReportRow[] = assistantInPeriod.map((m) => ({
+    ref: `ai-message:${m.id}`,
+    title: m.threadTitle ?? "Assistant",
+    detail: `${m.tokens} tokens`,
+    date: dayOf(m.createdAt),
+  }))
+
+  // Chat: the member's own messages, named by the chat they landed in.
+  const chatInPeriod = chatMessages.filter((m) => instantInPeriod(m.timestamp, period, timezone))
+  const chatRows: ReportRow[] = chatInPeriod.map((m) => ({
+    ref: `chat-message:${m.id}`,
+    title: m.chatName,
+    detail: m.content.trim().slice(0, 80),
+    date: dayOf(m.timestamp),
+  }))
+
+  // Gamification is a standing snapshot, not a dated event; a default level-1 profile is not progress.
+  const progressed = gamification.filter((g) => g.xp > 0 || g.tasksCompleted > 0 || g.level > 1)
+  const gamificationRows: ReportRow[] = progressed.map((g) => ({
+    ref: `gamification:${g.id}`,
+    title: `Level ${g.level}`,
+    detail: `${g.xp} XP · ${g.tasksCompleted} tasks completed`,
+    date: null,
+  }))
+
+  // Wellbeing check-ins carry a plain day column, like a worklog entry.
+  const wellbeingInPeriod = wellbeing.filter((w) => inPeriod(w.date, period))
+  const wellbeingRows: ReportRow[] = wellbeingInPeriod.map((w) => ({
+    ref: `wellbeing:${w.id}`,
+    title: `Wellbeing ${w.date}`,
+    detail: `score ${w.wellbeingScore ?? "—"} · ${w.mood ?? "no mood"} · stress ${w.stressLevel ?? "—"}`,
+    date: w.date,
+  }))
+
+  // Ethical metrics are team-wide (no owner): counted in the mix, never on a personal timeline.
+  const ethicsInPeriod = ethics.filter((e) => inPeriod(e.date, period))
+  const ethicsRows: ReportRow[] = ethicsInPeriod.map((e) => ({
+    ref: `ethics:${e.id}`,
+    title: `Team ethics ${e.date}`,
+    detail: `pay equity ${e.payEquityScore ?? "—"} · workload ${e.workloadBalanceScore ?? "—"} · DEI ${e.deiTaskDistributionScore ?? "—"}`,
+    date: e.date,
+  }))
+
+  // Email: a digest that actually went out, not one still queued.
+  const emailInPeriod = email.filter((e) => e.status === "delivered" && instantInPeriod(e.createdAt, period, timezone))
+  const emailRows: ReportRow[] = emailInPeriod.map((e) => ({
+    ref: `email:${e.id}`,
+    title: e.subject ?? "Digest",
+    detail: `${e.eventType ?? "system"} · delivered`,
+    date: dayOf(e.createdAt),
+  }))
+
   const metrics: Metrics = {
     entries: countOf(entryRefs),
     minutes: {
@@ -646,6 +838,21 @@ export function aggregateReport(source: ReportSource): ReportAggregate {
     growthReviews: countOf(reviewsInPeriod.map((g) => `review:${g.id}`)),
     playbooksPublished: countOf(publishedInPeriod.map((p) => `playbook:${p.id}`)),
     playbookRuns: countOf(playbookRunEntries.map((e) => `entry:${e.id}`)),
+    automationRulesActive: countOf(activeRules.map((r) => `automation-rule:${r.id}`)),
+    automationRuns: countOf(automationRunsInPeriod.map((r) => `automation-run:${r.id}`)),
+    aiMessages: countOf(assistantInPeriod.map((m) => `ai-message:${m.id}`)),
+    aiTokens: {
+      value: assistantInPeriod.reduce((total, m) => total + (m.tokens ?? 0), 0),
+      refs: assistantInPeriod.filter((m) => (m.tokens ?? 0) > 0).map((m) => `ai-message:${m.id}`),
+    },
+    chatMessages: countOf(chatInPeriod.map((m) => `chat-message:${m.id}`)),
+    gamificationXp: {
+      value: progressed.reduce((total, g) => total + (g.xp ?? 0), 0),
+      refs: progressed.filter((g) => (g.xp ?? 0) > 0).map((g) => `gamification:${g.id}`),
+    },
+    wellbeingCheckins: countOf(wellbeingInPeriod.map((w) => `wellbeing:${w.id}`)),
+    ethicsSnapshots: countOf(ethicsInPeriod.map((e) => `ethics:${e.id}`)),
+    emailsDelivered: countOf(emailInPeriod.map((e) => `email:${e.id}`)),
   }
 
   const isEmpty =
@@ -665,7 +872,15 @@ export function aggregateReport(source: ReportSource): ReportAggregate {
     careerRows.length === 0 &&
     playbookRows.length === 0 &&
     ticketActionsInPeriod.length === 0 &&
-    checkinsInPeriod.length === 0
+    checkinsInPeriod.length === 0 &&
+    automationRows.length === 0 &&
+    automationRunsInPeriod.length === 0 &&
+    assistantRows.length === 0 &&
+    chatRows.length === 0 &&
+    gamificationRows.length === 0 &&
+    wellbeingRows.length === 0 &&
+    ethicsRows.length === 0 &&
+    emailRows.length === 0
 
   // The merged timeline carries only dated activity inside the period — a due date on standing
   // work is a deadline, not something that happened, so it never appears here.
@@ -704,6 +919,17 @@ export function aggregateReport(source: ReportSource): ReportAggregate {
       detail: `Published v${p.version}`,
       date: dayOf(p.at),
     })),
+    ...automationRunsInPeriod.map((r) => ({
+      source: "automation" as ModuleKey,
+      ref: `automation-run:${r.id}`,
+      title: r.ruleName,
+      detail: `${r.status} · ${r.matched} matched · ${r.acted} acted`,
+      date: dayOf(r.createdAt),
+    })),
+    ...assistantRows.map((r) => ({ ...r, source: "assistant" as ModuleKey })),
+    ...chatRows.map((r) => ({ ...r, source: "chat" as ModuleKey })),
+    ...wellbeingRows.map((r) => ({ ...r, source: "wellbeing" as ModuleKey })),
+    ...emailRows.map((r) => ({ ...r, source: "email" as ModuleKey })),
   ]
     .filter((r) => inPeriod(r.date, period))
     .sort((a, b) => (b.date as string).localeCompare(a.date as string) || a.ref.localeCompare(b.ref))
@@ -721,6 +947,13 @@ export function aggregateReport(source: ReportSource): ReportAggregate {
     { key: "retros", refs: retroRows.map((r) => r.ref) },
     { key: "career", refs: careerRows.map((r) => r.ref) },
     { key: "playbooks", refs: playbookRows.map((r) => r.ref) },
+    { key: "automation", refs: automationRows.map((r) => r.ref) },
+    { key: "assistant", refs: assistantRows.map((r) => r.ref) },
+    { key: "chat", refs: chatRows.map((r) => r.ref) },
+    { key: "gamification", refs: gamificationRows.map((r) => r.ref) },
+    { key: "wellbeing", refs: wellbeingRows.map((r) => r.ref) },
+    { key: "ethics", refs: ethicsRows.map((r) => r.ref) },
+    { key: "email", refs: emailRows.map((r) => r.ref) },
   ]
   const byModule: SplitBucket[] = moduleRows
     .filter((m) => m.refs.length > 0)
@@ -780,6 +1013,13 @@ export function aggregateReport(source: ReportSource): ReportAggregate {
     retroRows,
     careerRows,
     playbookRows,
+    automationRows,
+    assistantRows,
+    chatRows,
+    gamificationRows,
+    wellbeingRows,
+    ethicsRows,
+    emailRows,
     timeline,
     byModule,
   }
