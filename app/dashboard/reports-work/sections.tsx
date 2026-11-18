@@ -12,6 +12,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronUp,
+  CircleDot,
   Clock,
   FileStack,
   FileText,
@@ -69,7 +70,7 @@ import {
   worklogHref,
   type RowSectionKey,
 } from "@/lib/reports/row-sections"
-import { MAX_REPORT_TITLE, type ReportDto } from "@/lib/reports/report-fields"
+import { MAX_REPORT_TITLE, type ReportDto, type ReportStatus } from "@/lib/reports/report-fields"
 import {
   CHART_LABEL,
   formatMetricValue,
@@ -103,6 +104,40 @@ export function ReportEmptyNote({ children }: { children: React.ReactNode }) {
       <Inbox className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
       <p>{children}</p>
     </div>
+  )
+}
+
+/**
+ * The lifecycle palette, from the same chart tokens the work log uses — a status reads the same
+ * colour in the list, the header and the pipeline donut, and none of it hard-codes a light-mode
+ * shade that would glare in the dark theme.
+ */
+export const REPORT_STATUS_COLOR: Record<ReportStatus, string> = {
+  draft: "hsl(var(--chart-stone))",
+  submitted: "hsl(var(--chart-moss))",
+  acknowledged: "hsl(var(--chart-pine))",
+  returned: "hsl(var(--chart-clay))",
+}
+
+export const REPORT_STATUS_LABEL: Record<ReportStatus, string> = {
+  draft: "Draft",
+  submitted: "Submitted",
+  acknowledged: "Acknowledged",
+  returned: "Returned",
+}
+
+export function ReportStatusPill({ status }: { status: ReportStatus }) {
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium"
+      style={{
+        backgroundColor: `color-mix(in srgb, ${REPORT_STATUS_COLOR[status]} 15%, transparent)`,
+        color: REPORT_STATUS_COLOR[status],
+      }}
+    >
+      <CircleDot className="h-3 w-3" />
+      {REPORT_STATUS_LABEL[status]}
+    </span>
   )
 }
 
@@ -286,9 +321,7 @@ export function MyReportsSection({
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
-                  <span className="rounded-full border border-border/70 px-2 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
-                    {report.status}
-                  </span>
+                  <ReportStatusPill status={report.status} />
                   <Button
                     type="button"
                     size="sm"
@@ -332,21 +365,7 @@ export function HeaderSection({
   sourceLabel: string
   onTitle: (value: string) => void
 }) {
-  const statusBadge = report ? (
-    <span
-      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-        report.status === "draft"
-          ? "bg-muted text-muted-foreground"
-          : report.status === "submitted"
-            ? "bg-blue-100 text-blue-800"
-            : report.status === "acknowledged"
-              ? "bg-green-100 text-green-800"
-              : "bg-amber-100 text-amber-800"
-      }`}
-    >
-      {report.status.charAt(0).toUpperCase() + report.status.slice(1)}
-    </span>
-  ) : null
+  const statusBadge = report ? <ReportStatusPill status={report.status} /> : null
 
   return (
     <SectionCard
@@ -379,9 +398,17 @@ export function HeaderSection({
           nothing typed here can change them.
         </p>
         {report?.status === "returned" && report.returnedNote && (
-          <div className="rounded border border-amber-200 bg-amber-50 p-3 text-sm">
-            <p className="font-medium text-amber-900">Return note:</p>
-            <p className="text-amber-800">{report.returnedNote}</p>
+          <div
+            className="rounded-lg border p-3 text-sm"
+            style={{
+              borderColor: "color-mix(in srgb, hsl(var(--chart-clay)) 40%, transparent)",
+              backgroundColor: "color-mix(in srgb, hsl(var(--chart-clay)) 8%, transparent)",
+            }}
+          >
+            <p className="font-medium" style={{ color: "hsl(var(--chart-clay))" }}>
+              Return note:
+            </p>
+            <p className="text-foreground">{report.returnedNote}</p>
           </div>
         )}
       </div>

@@ -40,6 +40,12 @@ import {
 } from "@/lib/reports/view-state"
 import { ConfirmReportDelete, NewReportDialog, type NewReportDraft } from "./dialogs"
 import {
+  CadenceSection,
+  PipelineSection,
+  ReportsKpiStrip,
+  TurnaroundSection,
+} from "./overview"
+import {
   HeaderSection,
   MetricsSection,
   MyReportsSection,
@@ -527,6 +533,8 @@ export default function ReportsClient() {
         </div>
       </div>
 
+      <ReportsKpiStrip reports={reports} filtered={state.q.trim() !== ""} />
+
       <div className="space-y-4">
         <div className={`${DASHBOARD_KPI_GRID} md:grid-cols-3`}>
           <PeriodSection state={state} period={shownPeriod} patch={patchState} />
@@ -541,22 +549,29 @@ export default function ReportsClient() {
             onOpen={(id) => patchState({ view: "build", reportId: id })}
           />
         </div>
-        <div className={`${DASHBOARD_SECTION_GRID} md:grid-cols-2 xl:grid-cols-3`}>
-        {/* The template's order is the document's order, so every member's report reads the same
-            way top to bottom; the `contents` wrapper keeps the grid while giving each row a key. */}
-        {state.view === "build"
-          ? sectionsFor(templateChoice).map((key) => (
+        {state.view === "build" ? (
+          <div className={`${DASHBOARD_SECTION_GRID} md:grid-cols-2 xl:grid-cols-3`}>
+            {/* The template's order is the document's order, so every member's report reads the
+                same way top to bottom; the `contents` wrapper keeps the grid while giving each
+                row a key. */}
+            {sectionsFor(templateChoice).map((key) => (
               <div key={key} className="contents">
                 {sectionNodes[key]}
               </div>
-            ))
-          : null}
-        {state.view === "build" && !aggregate ? (
-          <div className="md:col-span-2 xl:col-span-3">
-            <Skeleton className="h-40 w-full rounded-xl" />
+            ))}
+            {!aggregate ? (
+              <div className="md:col-span-2 xl:col-span-3">
+                <Skeleton className="h-40 w-full rounded-xl" />
+              </div>
+            ) : null}
           </div>
-        ) : null}
-        </div>
+        ) : (
+          <div className={DASHBOARD_SECTION_GRID}>
+            <PipelineSection reports={reports} />
+            <CadenceSection reports={reports} todayIso={todayIso} timezone={timezone} />
+            <TurnaroundSection reports={reports} />
+          </div>
+        )}
       </div>
 
       {/* Mounted only while open, so the draft's defaults are always the period and template the

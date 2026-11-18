@@ -20,6 +20,7 @@ const page = () => src("app/dashboard/reports-work/page.tsx")
 const client = () => src("app/dashboard/reports-work/reports-client.tsx")
 const sectionsFile = () => src("app/dashboard/reports-work/sections.tsx")
 const dialogsFile = () => src("app/dashboard/reports-work/dialogs.tsx")
+const overviewFile = () => src("app/dashboard/reports-work/overview.tsx")
 
 /** Comment-stripped: a guard about the code cannot be satisfied by a sentence in a comment. */
 function codeOnly(text: string): string {
@@ -68,6 +69,73 @@ describe("the reports-work page", () => {
   it("renders the empty state instead of a spinner when there is nothing to show", () => {
     expect(sectionsFile()).toMatch(/No reports yet/u)
     expect(sectionsFile()).toMatch(/function ReportEmptyNote/u)
+  })
+})
+
+describe("the overview strip and insight cards", () => {
+  const slice = (from: string, to: string) => {
+    const code = overviewFile()
+    return code.slice(code.indexOf(from), code.indexOf(to))
+  }
+
+  it("summarises the list with five bordered tiles", () => {
+    expect(overviewFile()).toMatch(/export function ReportsKpiStrip/u)
+    expect(overviewFile()).toMatch(/xl:grid-cols-5/u)
+    for (const label of ["Total reports", "Drafts", "Awaiting review", "Acknowledged", "Returned"]) {
+      expect(overviewFile()).toContain(`label="${label}"`)
+    }
+    expect(overviewFile()).toMatch(/statusCounts\(reports\)/u)
+  })
+
+  it("draws the pipeline as a fixed donut with a centre total and a full legend", () => {
+    const pipeline = slice("export function PipelineSection", "export function CadenceSection")
+    expect(pipeline).toMatch(/<PieChart width=\{160\} height=\{160\}>/u)
+    expect(pipeline).toMatch(/innerRadius=\{48\} outerRadius=\{75\}/u)
+    expect(pipeline).toMatch(/relative h-\[160px\] w-\[160px\] shrink-0/u)
+    expect(pipeline).toMatch(/pointer-events-none absolute inset-0/u)
+    expect(pipeline).toMatch(/self-stretch/u)
+    expect(pipeline).toMatch(/fill=\{REPORT_STATUS_COLOR\[slice\.status\]\}/u)
+    expect(pipeline).not.toMatch(/fill="#/u)
+    expect(pipeline).toMatch(/flex h-full flex-col justify-between gap-4/u)
+  })
+
+  it("bars the creation cadence by week, with value labels over the bars", () => {
+    const cadence = slice("export function CadenceSection", "export function TurnaroundSection")
+    expect(cadence).toMatch(/cadenceWeeks\(reports, todayIso, timezone\)/u)
+    expect(cadence).toMatch(/cadenceTotal\(weeks\)/u)
+    expect(cadence).toMatch(/grid min-h-0 flex-1 grid-cols-8 grid-rows-1 items-end gap-2/u)
+    expect(cadence).toMatch(/\{week\.count > 0 \? week\.count : ""\}/u)
+    expect(cadence).toMatch(/flex h-full flex-col/u)
+  })
+
+  it("measures review turnaround from the lib, and says so when nothing is acked yet", () => {
+    const turnaround = slice("export function TurnaroundSection", "export function ReportsKpiStrip")
+    expect(turnaround).toMatch(/turnaroundStats\(reports\)/u)
+    expect(turnaround).toContain('label="Avg time to ack"')
+    expect(turnaround).toMatch(/no acknowledgements yet/u)
+    expect(turnaround).toMatch(/grid grid-cols-2 gap-2/u)
+  })
+
+  it("keeps the overview presentational: no fetching, no state, no aggregation", () => {
+    expect(codeOnly(overviewFile())).not.toMatch(/fetch\(|useState|useRouter|\.reduce\(/u)
+  })
+
+  it("renders the strip in both views and the trio in the list view", () => {
+    expect(client()).toMatch(/<ReportsKpiStrip reports=\{reports\}/u)
+    expect(client()).toMatch(/<PipelineSection reports=\{reports\}/u)
+    expect(client()).toMatch(/<CadenceSection reports=\{reports\} todayIso=\{todayIso\} timezone=\{timezone\}/u)
+    expect(client()).toMatch(/<TurnaroundSection reports=\{reports\}/u)
+  })
+
+  it("colours every status from the design tokens, in the list and the header", () => {
+    expect(sectionsFile()).toMatch(/export function ReportStatusPill/u)
+    expect(sectionsFile()).toMatch(
+      /color-mix\(in srgb, \$\{REPORT_STATUS_COLOR\[status\]\} 15%, transparent\)/u,
+    )
+    expect(codeOnly(sectionsFile())).not.toMatch(
+      /bg-blue-100|bg-green-100|bg-amber-100|border-amber-200|bg-amber-50/u,
+    )
+    expect(sectionsFile()).toMatch(/<ReportStatusPill status=\{report\.status\} \/>/u)
   })
 })
 
@@ -221,7 +289,7 @@ describe("the metrics card", () => {
 
 describe("the finished phase 3", () => {
   const pageSource = () =>
-    ["page.tsx", "reports-client.tsx", "sections.tsx", "dialogs.tsx"]
+    ["page.tsx", "reports-client.tsx", "sections.tsx", "dialogs.tsx", "overview.tsx"]
       .map((name) => src(`app/dashboard/reports-work/${name}`))
       .join("\n")
   const routeSource = () =>
@@ -271,6 +339,7 @@ describe("the finished phase 3", () => {
     const names = [
       ...sectionsFile().matchAll(/^export function (\w+)/gmu),
       ...dialogsFile().matchAll(/^export function (\w+)/gmu),
+      ...overviewFile().matchAll(/^export function (\w+)/gmu),
     ].map((match) => match[1])
     expect(names.length).toBeGreaterThan(10)
     const all = pageSource()
