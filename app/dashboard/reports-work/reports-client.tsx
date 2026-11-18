@@ -19,6 +19,7 @@ import { DASHBOARD_SECTION_GRID } from "@/components/dashboard-kit"
 import type { ReportAggregate } from "@/lib/reports/aggregate"
 import { resolvePeriod, type Period } from "@/lib/reports/period"
 import type { ReportDto } from "@/lib/reports/report-fields"
+import { classifyRowRead } from "@/lib/reports/read-outcome"
 import {
   PROSE_SECTIONS,
   SECTION_ORDER,
@@ -100,6 +101,10 @@ export default function ReportsClient() {
   const [loading, setLoading] = useState(true)
   const [missingId, setMissingId] = useState<number | null>(null)
   const [period, setPeriod] = useState<Period | null>(null)
+  // A transient row-read failure (a waking database, a dropped connection) is not "this report is
+  // not yours": it gets its own message and a retry, never the absent-report notice.
+  const [rowError, setRowError] = useState<string | null>(null)
+  const [previewError, setPreviewError] = useState<string | null>(null)
 
   // The form is separate from the loaded row: `saved*` holds what the server has, and the pair of
   // them is the only honest way to say "unsaved changes" across eight textareas.
@@ -168,34 +173,54 @@ export default function ReportsClient() {
       setState((prev) => adoptServerAnchor(prev, todayIso, serverToday))
 
       // The preview feeds both views: the builder's live figures and the list view's workspace
-      // mix, so neither has to fall back on a stale stored snapshot.
-      const previewJson = await readJson(await fetch(`/api/reports/work/preview?${qs}`))
+      // mix, so neither has to fall back on a stale stored snapshot. A failure is surfaced, not
+      // swallowed — empty figures with no explanation read as a quiet period rather than an error.
+      const previewRes = await fetch(`/api/reports/work/preview?${qs}`)
+      const previewJson = await readJson(previewRes)
       if (previewJson?.success) {
         setPreview(previewJson.data.aggregate as ReportAggregate)
         setPeriod(previewJson.data.period as Period)
+        setPreviewError(null)
+      } else {
+        setPreviewError(
+          previewJson?.message ?? `Could not load the period figures (${previewRes.status || "network error"}).`,
+        )
       }
 
       if (state.view === "build") {
         if (state.reportId === null) {
           setReport(null)
           setMissingId(null)
+          setRowError(null)
           setTitle("")
           setProse({})
           setSavedProse({})
           setSavedTitle("")
         } else {
-          const rowJson = await readJson(await fetch(`/api/reports/work/${state.reportId}`))
-          if (rowJson?.success) {
+          const rowRes = await fetch(`/api/reports/work/${state.reportId}`)
+          const rowJson = await readJson(rowRes)
+          const outcome = classifyRowRead(rowRes.status, rowJson?.success === true)
+          if (outcome === "ok") {
             const loaded = rowJson.data.report as ReportDto
             setReport(loaded)
             setMissingId(null)
+            setRowError(null)
             setTitle(loaded.title)
             setProse(proseFromContent(loaded.content))
             setSavedProse(proseFromContent(loaded.content))
             setSavedTitle(loaded.title)
-          } else {
+          } else if (outcome === "absent") {
             setReport(null)
             setMissingId(state.reportId)
+            setRowError(null)
+          } else {
+            // A transient failure is retryable, not a privacy violation: keep the absent notice
+            // off and offer a retry instead of disabling the editor against a waking database.
+            setReport(null)
+            setMissingId(null)
+            setRowError(
+              rowJson?.message ?? `Could not load report ${state.reportId} (${rowRes.status || "network error"}).`,
+            )
           }
         }
       }
@@ -592,6 +617,26 @@ export default function ReportsClient() {
             onCreate={() => setNewOpen(true)}
           />
         </div>
+        {previewError !== null ? (
+          <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/40 px-4 py-3">
+            <p className="text-sm text-muted-foreground">
+              {previewError} The figures stay empty until this loads.
+            </p>
+            <Button type="button" size="sm" variant="outline" onClick={() => void refresh()}>
+              <RefreshCw className="mr-1 h-4 w-4" />
+              Retry
+            </Button>
+          </div>
+        ) : null}
+        {state.view === "build" && rowError !== null ? (
+          <div className="flex items-center justify-between gap-3 rounded-lg border border-destructive/40 bg-destructive/5 px-4 py-3">
+            <p className="text-sm text-destructive">{rowError}</p>
+            <Button type="button" size="sm" variant="outline" onClick={() => void refresh()}>
+              <RefreshCw className="mr-1 h-4 w-4" />
+              Retry
+            </Button>
+          </div>
+        ) : null}
         {state.view === "build" ? (
           <div className={`${DASHBOARD_SECTION_GRID} md:grid-cols-2 xl:grid-cols-3`}>
             {/* The fixed section order is the document's order, so every member's report reads

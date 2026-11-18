@@ -227,3 +227,27 @@ Three things a reader could mistake for a stub, because each is a deliberate des
 The `nextPeriod` row remains unlinked, as §8 recorded — the pinned guard still refuses links to
 routes outside the work log from these files.
 
+## 17. Reports-work reliability and the Next-period link (RW-F, 2026-11-18)
+
+The RW-F audit wave resolved the one placeholder §8 and §16 carried, and hardened two reads that
+could misreport a waking database. Those earlier sections stay as their dated records; this section
+supersedes only the `nextPeriod` claim.
+
+- **The Next-period section now links to the live Planner (F1c).** The planner shipped in phase 7
+  (§12), so the "plans get their own page in a later phase" copy was stale. `worklogHref(period,
+  "nextPeriod")` returns `/dashboard/planner`, and the card's link reads "Open these plans in the
+  planner". The pinned guard that refused non-work-log links was re-cut to allow this one real route;
+  it still refuses every other outside route. No placeholder remains in the six computed sections.
+- **A transient row read is no longer called a privacy violation (F1).** `classifyRowRead`
+  (`lib/reports/read-outcome.ts`) separates a true 404 (a stranger's report id → "this report is not
+  yours") from every other non-success (a 503 while Neon wakes, a 500, a dropped connection →
+  transient). The builder shows a destructive-tinted notice with a Retry button for the transient
+  case, and the absent-report notice only for a genuine 404. A cold start no longer disables the
+  editor and claims the report is absent.
+- **A failed preview fetch says so (F1).** The period-figures fetch keeps the `Response`, and on
+  failure surfaces a muted notice with Retry in both views instead of silently leaving stale or empty
+  figures. The happy path is visually unchanged — both notices render only on failure.
+
+Guards: `tests/unit/report-read-outcome.test.ts` (the classifier), plus re-cut source guards in
+`report-page.test.ts` and `report-row-sections.test.ts`. No migration; no new dead control.
+

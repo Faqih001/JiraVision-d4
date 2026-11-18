@@ -2191,3 +2191,29 @@ insight trio, functional rows and dialogs) and the four D batches below.
 - Guards: `tests/unit/report-module-sections.test.ts` (pure module: row identity, captions, preview
   caps) and `tests/unit/report-modules-ui.test.ts` (source guards for the cards, wiring and these
   doc sections), plus new layout guards in `export-{pdf,xlsx}.test.ts`. Suite: 222 files green.
+
+## 63. Reports-work: a waking database is not a privacy violation, and Next period opens the planner (RW-F1, 2026-11-18)
+
+The RW-F audit of `/dashboard/reports-work` found three reliability/coverage gaps; this section
+records the first option (F1 + F1c), the reliability fixes. The coverage extension (F2) and the
+per-module scope selector (F3) follow in their own sections.
+
+- **A transient row read gets its own message and a Retry (F1).** `classifyRowRead(status, success)`
+  in `lib/reports/read-outcome.ts` returns `ok` / `absent` / `transient`: only a true 404 is `absent`
+  (a stranger's report id), every other non-success — a 503 while Neon wakes, a 500, a 0 network
+  failure — is `transient`. The builder keeps the `Response` (the old `readJson` discarded the
+  status), and renders a destructive-tinted "Could not load report N" notice with Retry for the
+  transient case, the absent-report notice only for a genuine 404. A cold start no longer disables
+  the editor and claims the report is not yours.
+- **A failed preview fetch is surfaced (F1).** The period-figures fetch keeps its `Response` and, on
+  failure, sets a `previewError` shown as a muted notice with Retry in both the list and build views,
+  instead of silently leaving stale or empty figures.
+- **Next period links to the live Planner (F1c).** `worklogHref(period, "nextPeriod")` returns
+  `/dashboard/planner` (the planner shipped in phase 7); the card link reads "Open these plans in the
+  planner", replacing the stale "plans get their own page in a later phase" copy. The six computed
+  sections now all link somewhere real.
+- The happy path is visually unchanged: both error notices render only on failure, and the planner
+  link only replaces text that previously said the route did not exist. **No migration.**
+- Guards: `tests/unit/report-read-outcome.test.ts` (7 classifier cases) and re-cut source guards in
+  `report-page.test.ts` (transient-vs-absent branching, two Retry buttons, the planner link) and
+  `report-row-sections.test.ts` (Next period → planner).

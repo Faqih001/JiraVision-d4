@@ -369,8 +369,8 @@ describe("the work log link", () => {
     expect(worklogHref(period, "completed")).toBe(worklogHref(period))
   })
 
-  it("sends Next period nowhere, because the planner page does not exist yet", () => {
-    expect(worklogHref(period, "nextPeriod")).toBeNull()
+  it("sends Next period to the planner, which shipped in phase 7", () => {
+    expect(worklogHref(period, "nextPeriod")).toBe("/dashboard/planner")
   })
 
   it("links a task row to its own log and refuses a row the work log cannot show", () => {

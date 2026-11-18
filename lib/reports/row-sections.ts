@@ -127,11 +127,11 @@ function periodHref(period: Period): string {
 
 /**
  * The work log's own URL grammar (`lib/worklog/view-state.ts:82-130`), so the link opens the same
- * rows the report counted. `nextPeriod` has no target: plan items have no page until the planner
- * phase ships, and a link to a route that does not exist is worse than no link.
+ * rows the report counted. `nextPeriod` rows are plan items, so they open the planner — the page
+ * that shipped in phase 7 — rather than the work log that never held them.
  */
 export function worklogHref(period: Period, section?: RowSectionKey): string | null {
-  if (section === "nextPeriod") return null
+  if (section === "nextPeriod") return "/dashboard/planner"
   const base = periodHref(period)
   if (section === "blocked") return `${base}&kind=blocker`
   if (section === "deliverables") return `${base}&dlv=1`

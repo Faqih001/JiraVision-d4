@@ -688,16 +688,13 @@ export function RowSection({
             href={link}
             className="text-[11px] underline decoration-border underline-offset-4 hover:decoration-foreground"
           >
-            {rows.length > 0
-              ? `Open these ${rows.length} rows in the work log`
-              : "Open this period in the work log"}
+            {section === "nextPeriod"
+              ? "Open these plans in the planner"
+              : rows.length > 0
+                ? `Open these ${rows.length} rows in the work log`
+                : "Open this period in the work log"}
           </Link>
-        ) : (
-          <p className="text-[11px] text-muted-foreground">
-            These rows come from a plan, and plans get their own page in a later phase — there is
-            nowhere to open them yet.
-          </p>
-        )}
+        ) : null}
         <CommentField section={section} value={comment} onChange={onComment} />
       </div>
     </SectionCard>

@@ -280,9 +280,11 @@ describe("the six computed row cards", () => {
   it("links out only where the link is real", () => {
     expect(sectionsFile()).toMatch(/worklogHref\(period, section\)/u)
     expect(sectionsFile()).toMatch(/refHref\(row\.ref, period\)/u)
-    // No invented routes: the planner page arrives with its own phase.
+    // The planner shipped in phase 7, so next-period rows open it; work-log rows open the log.
+    expect(sectionsFile()).toMatch(/Open these plans in the planner/u)
+    // No invented routes remain.
     expect(codeOnly(sectionsFile())).not.toMatch(
-      /dashboard\/planner|dashboard\/tasks\/\$\{|dashboard\/deliverables/u,
+      /dashboard\/tasks\/\$\{|dashboard\/deliverables/u,
     )
   })
 })
@@ -502,7 +504,7 @@ describe("the finished phase 3", () => {
     expect(code).not.toMatch(/onClick=\{\(\) => \{\s*\}\}/u)
     expect(code).not.toMatch(/console\.log|TODO|FIXME|window\.(alert|confirm|prompt)\s*\(/u)
     expect(codeOnly(routeSource())).not.toMatch(/console\.log|TODO|FIXME|Response\("stub/u)
-    expect(code).not.toMatch(/dashboard\/planner|dashboard\/deliverables|dashboard\/tasks\/\$\{|reports-work\/inbox/u)
+    expect(code).not.toMatch(/dashboard\/deliverables|dashboard\/tasks\/\$\{|reports-work\/inbox/u)
     // Every out-link from a report is a work-log filter built by one of the two helpers.
     expect(code).toMatch(/worklogHref\(period, section\)/u)
     expect(code).toMatch(/refHref\(row\.ref, period\)/u)
@@ -521,5 +523,34 @@ describe("the finished phase 3", () => {
     expect(src("PLACEHOLDERS.md")).not.toMatch(/No "Group into report draft" in the bulk bar/u)
     expect(spec).not.toMatch(/\*\*"group into a report draft" is phase 3/u)
     expect(spec).toMatch(/\*\*Lifecycle\*\* \*\(phase 4\)\*/u)
+  })
+})
+
+describe("a transient read failure is not a privacy violation (RW-F1)", () => {
+  it("classifies the row read instead of calling every failure absent", () => {
+    expect(client()).toMatch(/import \{ classifyRowRead \} from "@\/lib\/reports\/read-outcome"/u)
+    const code = codeOnly(client())
+    expect(code).toMatch(/classifyRowRead\(rowRes\.status, rowJson\?\.success === true\)/u)
+    const absentAt = code.indexOf('outcome === "absent"')
+    expect(absentAt).toBeGreaterThan(-1)
+    const transientAt = code.indexOf("} else {", absentAt)
+    // The absent notice is set only in the absent branch; the transient branch clears it and
+    // offers a retry instead of disabling the editor against a waking database.
+    expect(code.slice(absentAt, transientAt)).toMatch(/setMissingId\(state\.reportId\)/u)
+    const transient = code.slice(transientAt)
+    expect(transient).toMatch(/setMissingId\(null\)/u)
+    expect(transient).toMatch(/setRowError\(/u)
+  })
+
+  it("surfaces a failed preview rather than swallowing it", () => {
+    const code = codeOnly(client())
+    expect(code).toMatch(/setPreviewError\(/u)
+    expect(code).toMatch(/previewError !== null/u)
+  })
+
+  it("offers a retry for both transient failures", () => {
+    const code = codeOnly(client())
+    expect(code.match(/Retry/gu)).toHaveLength(2)
+    expect(code).toMatch(/rowError !== null/u)
   })
 })
