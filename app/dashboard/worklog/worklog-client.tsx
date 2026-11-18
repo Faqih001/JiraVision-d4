@@ -1041,34 +1041,35 @@ function FilterSection({
 
   // Every active filter is a chip with its own remove button, so narrowing the log never
   // requires opening the popover to find out what is narrowing it.
-  const chips: { key: string; label: string; onRemove: () => void }[] = []
-  if (state.kind !== "all") {
-    chips.push({ key: "kind", label: KIND_LABEL[state.kind], onRemove: () => patchState({ kind: "all" }) })
-  }
-  if (state.taskId !== null) {
-    chips.push({
-      key: "task",
-      label: tasks.find((t) => t.id === state.taskId)?.title.slice(0, 24) ?? `Task ${state.taskId}`,
-      onRemove: () => patchState({ taskId: null }),
-    })
-  }
-  if (state.discipline !== "all") {
-    chips.push({
-      key: "discipline",
-      label: DISCIPLINE_LABEL[state.discipline],
-      onRemove: () => patchState({ discipline: "all" }),
-    })
-  }
-  if (state.deliverableStatus !== "all") {
-    chips.push({
-      key: "dstatus",
-      label: DELIVERABLE_LABEL_STATUS[state.deliverableStatus],
-      onRemove: () => patchState({ deliverableStatus: "all" }),
-    })
-  }
-  if (state.hasDeliverable) {
-    chips.push({ key: "dlv", label: "Linked only", onRemove: () => patchState({ hasDeliverable: false }) })
-  }
+  const chips = [
+    state.kind !== "all"
+      ? { key: "kind", label: KIND_LABEL[state.kind], onRemove: () => patchState({ kind: "all" }) }
+      : null,
+    state.taskId !== null
+      ? {
+          key: "task",
+          label: tasks.find((t) => t.id === state.taskId)?.title.slice(0, 24) ?? `Task ${state.taskId}`,
+          onRemove: () => patchState({ taskId: null }),
+        }
+      : null,
+    state.discipline !== "all"
+      ? {
+          key: "discipline",
+          label: DISCIPLINE_LABEL[state.discipline],
+          onRemove: () => patchState({ discipline: "all" }),
+        }
+      : null,
+    state.deliverableStatus !== "all"
+      ? {
+          key: "dstatus",
+          label: DELIVERABLE_LABEL_STATUS[state.deliverableStatus],
+          onRemove: () => patchState({ deliverableStatus: "all" }),
+        }
+      : null,
+    state.hasDeliverable
+      ? { key: "dlv", label: "Linked only", onRemove: () => patchState({ hasDeliverable: false }) }
+      : null,
+  ].filter((chip): chip is { key: string; label: string; onRemove: () => void } => chip !== null)
 
   return (
     <section aria-label="Find in the log" className="rounded-xl border border-border/60 bg-card p-3">

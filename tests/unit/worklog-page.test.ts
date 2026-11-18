@@ -578,9 +578,6 @@ describe("the finished page", () => {
     const titles = [...declared![1].matchAll(/"([^"]+)"/gu)].map((m) => m[1])
     expect(titles).toEqual([
       "This period",
-      "Quick add",
-      "Find in the log",
-      "View",
       "Deliverables",
       "Status changes",
       "Time by task",
