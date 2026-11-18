@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 import { weekdayMinutes } from "@/lib/worklog/rhythm"
 import type { DayBucket } from "@/lib/worklog/entries"
 
-const bucket = (day: string, minutes: number): DayBucket => ({ day, count: minutes > 0 ? 1 : 0, minutes })
+const bucket = (day: string, minutes: number): DayBucket => ({ day, count: minutes > 0 ? 1 : 0, minutes, entries: [] })
 
 describe("weekdayMinutes", () => {
   it("returns seven Monday-first zeroes for an empty log", () => {

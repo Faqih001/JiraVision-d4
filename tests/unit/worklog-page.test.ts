@@ -549,7 +549,7 @@ describe("the finished page", () => {
       .map(src)
       .join("\n")
 
-  it("has eleven always-visible sections and one conditional bar", () => {
+  it("has twelve always-visible sections and one conditional bar", () => {
     const code = client()
     const names = [
       "TotalsSection",
@@ -563,6 +563,7 @@ describe("the finished page", () => {
       "DisciplineSplitSection",
       "KindMixSection",
       "CoverageSection",
+      "WeekRhythmSection",
     ]
     for (const name of names) {
       expect(code).toMatch(new RegExp(`<${name}[\\s(]`, "u"))
@@ -584,6 +585,7 @@ describe("the finished page", () => {
       "Where the time went",
       "Mix of work",
       "Coverage",
+      "Week rhythm",
     ])
     // Read from the declaration, then checked against the cards: a heading renamed in one place
     // without the other fails here, and the list cannot be trimmed to whatever a test repeats.
@@ -664,10 +666,23 @@ describe("the redesign", () => {
     expect(client()).toMatch(/KIND_COLOUR\[k\]/u)
   })
 
-  it("moves the seven dropdowns behind one Filters popover with removable chips", () => {
-    expect(client()).toMatch(/<PopoverContent/u)
-    expect(client()).toMatch(/aria-label=\{`Remove \$\{chip\.label\} filter`\}/u)
-    expect(client()).toMatch(/Clear all filters/u)
+  it("lays the filter dropdowns inline in one row, with removable chips", () => {
+    const code = client()
+    // No popover: every dropdown sits in the shared bar row, sized by its own text.
+    expect(code).not.toMatch(/<PopoverContent/u)
+    expect(code).toMatch(/className=\{FILTER_BAR\}/u)
+    expect(code).toMatch(/className=\{FILTER_SEARCH\}/u)
+    expect(code).toMatch(/<SelectTrigger className=\{FILTER_TRIGGER\} aria-label="Entry kind">/u)
+    expect(code).toMatch(/<DisciplinePicker inline/u)
+    expect(code).toMatch(/aria-label=\{`Remove \$\{chip\.label\} filter`\}/u)
+    expect(code).toMatch(/Clear all filters/u)
+  })
+
+  it("gives the insight row three cards on desktop", () => {
+    const code = client()
+    expect(code).toMatch(/col-span-full grid min-w-0 gap-4 lg:grid-cols-3/u)
+    expect(code).toMatch(/<WeekRhythmSection days=\{summary\?\.days \?\? \[\]\} loading=\{loading\} \/>/u)
+    expect(sections()).toMatch(/weekdayMinutes\(days\)/u)
   })
 
   it("persists the timer across a reload and fills the minutes tag on stop", () => {

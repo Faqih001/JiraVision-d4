@@ -647,7 +647,7 @@ export default function WorklogClient() {
         loading={loading}
         totalMinutes={summary?.totals.minutes ?? 0}
       />
-      <div className="grid gap-4 md:col-span-2 lg:grid-cols-3 xl:col-span-2">
+      <div className="col-span-full grid min-w-0 gap-4 lg:grid-cols-3">
         <KindMixSection
           kinds={summary?.kinds ?? []}
           openBlockers={summary?.openBlockers ?? 0}
