@@ -693,6 +693,12 @@ describe("the redesign", () => {
     expect(totals).toMatch(/<p className="w-fit rounded-lg border px-3 py-2 text-xs text-muted-foreground">/u)
   })
 
+  it("gives the day readout a bordered pill sized to its text", () => {
+    expect(client()).toMatch(
+      /<span className="inline-flex h-8 w-fit items-center rounded-lg border px-3 text-xs font-medium tabular-nums">\{state\.day\}<\/span>/u,
+    )
+  })
+
   it("persists the timer across a reload and fills the minutes tag on stop", () => {
     expect(client()).toMatch(/TIMER_STORAGE_KEY/u)
     // Restored in an effect, not the initialiser: localStorage does not exist during SSR, and

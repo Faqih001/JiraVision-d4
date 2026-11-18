@@ -1232,7 +1232,7 @@ function ViewToolbarSection({
             <ChevronLeft className="h-3.5 w-3.5" aria-hidden />
             <span className="sr-only">Previous day</span>
           </Button>
-          <span className="min-w-24 text-center text-xs font-medium tabular-nums">{state.day}</span>
+          <span className="inline-flex h-8 w-fit items-center rounded-lg border px-3 text-xs font-medium tabular-nums">{state.day}</span>
           <Button
             variant="outline"
             size="sm"
