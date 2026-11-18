@@ -1077,7 +1077,7 @@ export function KindMixSection({
                 </span>
               </div>
             </div>
-            <ul className="flex min-w-0 flex-1 flex-col justify-between gap-1 py-1">
+            <ul className="flex min-w-0 flex-1 flex-col justify-between gap-1 py-1 self-stretch">
               {kinds.map((k) => {
                 const pct = totalEntries > 0 ? Math.round((k.count / totalEntries) * 100) : 0
                 return (

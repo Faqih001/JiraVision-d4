@@ -754,7 +754,7 @@ describe("the redesign", () => {
     const mix = code.slice(code.indexOf("export function KindMixSection"), code.indexOf("export function CoverageSection"))
     expect(mix).toMatch(/className="flex items-center gap-3"/u)
     expect(mix).toMatch(/className="relative h-\[160px\] w-\[160px\] shrink-0"/u)
-    expect(mix).toMatch(/className="flex min-w-0 flex-1 flex-col justify-between gap-1 py-1"/u)
+    expect(mix).toMatch(/className="flex min-w-0 flex-1 flex-col justify-between gap-1 py-1 self-stretch"/u)
     expect(mix).toMatch(/title=\{`\$\{k\.label\} · \$\{k\.count\} /u)
     expect(mix).toMatch(/\{pct\}%<\/span>/u)
     expect(mix).toMatch(/\{formatMinutes\(totalMinutes\)\} across \{activeKinds\}/u)
