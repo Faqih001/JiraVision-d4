@@ -12,6 +12,7 @@ import { resolvePeriod } from "@/lib/reports/period"
 import { emptyContent, type ReportContent } from "@/lib/reports/templates"
 import { isDraft, isFail, pickReportUpdates } from "@/lib/reports/report-fields"
 import type { ReportAggregate } from "@/lib/reports/aggregate"
+import type { ReportDto } from "@/lib/reports/report-fields"
 import {
   assembleReport,
   badRequest,
