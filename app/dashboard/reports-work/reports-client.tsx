@@ -324,6 +324,7 @@ export default function ReportsClient() {
         view: "build",
         periodType: draft.periodType,
         reportId: (json.data.report as ReportDto).id,
+        scope: draft.scope,
       })
       await refresh()
       toast({ title: "Draft created", description: draft.title })
@@ -740,6 +741,7 @@ export default function ReportsClient() {
           busy={busy}
           defaultTitle={shownPeriod.label}
           defaultPeriodType={state.periodType}
+          defaultScope={state.scope}
           onClose={() => setNewOpen(false)}
           onCreate={(draft) => void createDraft(draft)}
         />

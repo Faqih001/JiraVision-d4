@@ -28,10 +28,17 @@ import {
 } from "@/components/ui/select"
 import { MAX_REPORT_TITLE, type ReportDto } from "@/lib/reports/report-fields"
 import { PERIOD_LABEL, PERIOD_TYPES, type PeriodType } from "@/lib/reports/period"
+import { MODULE_LABEL } from "@/lib/reports/aggregate"
+import {
+  MODULE_SECTIONS,
+  type ModuleSectionKey,
+} from "@/lib/reports/module-sections"
+import { type ModuleScope } from "@/lib/reports/scope"
 
 export type NewReportDraft = {
   title: string
   periodType: PeriodType
+  scope: ModuleScope
 }
 
 export function NewReportDialog({
@@ -39,6 +46,7 @@ export function NewReportDialog({
   busy,
   defaultTitle,
   defaultPeriodType,
+  defaultScope,
   onClose,
   onCreate,
 }: {
@@ -46,13 +54,32 @@ export function NewReportDialog({
   busy: boolean
   defaultTitle: string
   defaultPeriodType: PeriodType
+  defaultScope: ModuleScope
   onClose: () => void
   onCreate: (draft: NewReportDraft) => void
 }) {
+  const allModules = [...MODULE_SECTIONS]
   const [draft, setDraft] = useState<NewReportDraft>({
     title: defaultTitle,
     periodType: defaultPeriodType,
+    scope: defaultScope,
   })
+  const selectedModules = draft.scope ?? allModules
+
+  const toggleModule = (module: ModuleSectionKey) => {
+    const selected = new Set(selectedModules)
+    if (selected.has(module)) {
+      if (selected.size === 1) return
+      selected.delete(module)
+    } else {
+      selected.add(module)
+    }
+    const ordered = MODULE_SECTIONS.filter((key) => selected.has(key))
+    setDraft((prev) => ({
+      ...prev,
+      scope: ordered.length === MODULE_SECTIONS.length ? null : ordered,
+    }))
+  }
 
   const submit = () => {
     const title = draft.title.trim()
@@ -66,8 +93,8 @@ export function NewReportDialog({
         <DialogHeader>
           <DialogTitle>New report</DialogTitle>
           <DialogDescription>
-            The period from the builder is used as-is, and every section fills itself from your work
-            log. Only the name is yours to choose.
+            Choose the period and data sections to include. Core work-log, task, deliverable and
+            planning data is always included; these modules control the additional report cards.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
@@ -99,6 +126,23 @@ export function NewReportDialog({
                 ))}
               </SelectContent>
             </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Data sections</Label>
+            <div className="max-h-56 space-y-2 overflow-y-auto rounded-lg border border-border/60 p-3">
+              {MODULE_SECTIONS.map((module) => (
+                <label key={module} className="flex cursor-pointer items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={selectedModules.includes(module)}
+                    onCheckedChange={() => toggleModule(module)}
+                  />
+                  <span>{MODULE_LABEL[module]}</span>
+                </label>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Select at least one section. You can change this view later from the report builder.
+            </p>
           </div>
         </div>
         <DialogFooter>
