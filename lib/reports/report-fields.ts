@@ -239,7 +239,7 @@ export function pickReportUpdates(input: unknown, status: unknown): Read<{ value
   if ("moduleScope" in input) {
     const moduleScope = readModuleScope(input.moduleScope)
     if (isFail(moduleScope)) return moduleScope
-    value.moduleScope = moduleScope.value
+    value.moduleScope = moduleScope
   }
   if (Object.keys(value).length === 0) return { error: "nothing to update" }
   return { value }
