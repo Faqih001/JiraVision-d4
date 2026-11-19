@@ -213,6 +213,9 @@ export default function ReportsClient() {
             setProse(proseFromContent(loaded.content))
             setSavedProse(proseFromContent(loaded.content))
             setSavedTitle(loaded.title)
+             if (search.get("mods") === null && loaded.moduleScope !== undefined) {
+               setState((prev) => ({ ...prev, scope: loaded.moduleScope ?? null }))
+             }
           } else if (outcome === "absent") {
             setReport(null)
             setMissingId(state.reportId)
@@ -250,7 +253,9 @@ export default function ReportsClient() {
   const shownPeriod = period ?? resolved
   const source = metricsSource(report)
   const aggregate = report?.metrics ?? preview
-  const dirty = serializeProse(prose) !== serializeProse(savedProse) || title !== savedTitle
+  const scopeKey = (scope: ReportState["scope"]) => scope?.join(",") ?? "all"
+  const scopeDirty = report !== null && scopeKey(state.scope) !== scopeKey(report.moduleScope ?? null)
+  const dirty = serializeProse(prose) !== serializeProse(savedProse) || title !== savedTitle || scopeDirty
   const askHref = assistantLink(periodQuestion(shownPeriod.label, shownPeriod.start, shownPeriod.end))
 
   const copyLink = useCallback(async () => {
@@ -276,6 +281,7 @@ export default function ReportsClient() {
       body: JSON.stringify({
         title,
         content: Object.fromEntries(PROSE_SECTIONS.map((key) => [key, { text: prose[key] ?? "" }])),
+        moduleScope: state.scope,
       }),
     })
     setBusy(false)
@@ -287,7 +293,7 @@ export default function ReportsClient() {
     setSavedTitle(title)
     await refresh()
     toast({ title: "Draft saved", description: title })
-  }, [mutate, prose, refresh, report, title, toast])
+  }, [mutate, prose, refresh, report, state.scope, title, toast])
 
   const createDraft = useCallback(
     async (draft: NewReportDraft) => {

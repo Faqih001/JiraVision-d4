@@ -87,7 +87,7 @@ export async function PATCH(request: NextRequest, context: Context) {
       periodStart,
       periodEnd,
       content: patch.content ? { ...emptyContent(), ...patch.content } : existing.content,
-      moduleScope: patch.moduleScope ?? existing.moduleScope,
+      moduleScope: patch.moduleScope !== undefined ? patch.moduleScope : existing.moduleScope ?? null,
       updatedAt: new Date(),
     }
 
