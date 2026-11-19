@@ -213,7 +213,7 @@ export default function ReportsClient() {
             setProse(proseFromContent(loaded.content))
             setSavedProse(proseFromContent(loaded.content))
             setSavedTitle(loaded.title)
-             if (search.get("mods") === null && loaded.moduleScope !== undefined) {
+             if (state.scope === null && loaded.moduleScope !== undefined) {
                setState((prev) => ({ ...prev, scope: loaded.moduleScope ?? null }))
              }
           } else if (outcome === "absent") {
