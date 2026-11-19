@@ -54,6 +54,7 @@ export async function POST(_request: Request, context: Context) {
         metrics,
         revisionOf: id,
         status: "draft",
+        moduleScope: existing.moduleScope,
       })
       .returning()
 

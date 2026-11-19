@@ -32,6 +32,8 @@ import {
   type ModuleSectionKey,
 } from "@/lib/reports/module-sections"
 import { type ModuleScope } from "@/lib/reports/scope"
+import type { ReportAggregate } from "@/lib/reports/aggregate"
+import { moduleRowsFor } from "@/lib/reports/module-sections"
 import {
   CORE_REPORT_SOURCES,
   REPORT_SOURCE_GROUPS,
@@ -50,6 +52,7 @@ export function NewReportDialog({
   defaultTitle,
   defaultPeriodType,
   defaultScope,
+  preview,
   onClose,
   onCreate,
 }: {
@@ -58,6 +61,7 @@ export function NewReportDialog({
   defaultTitle: string
   defaultPeriodType: PeriodType
   defaultScope: ModuleScope
+  preview: ReportAggregate | null
   onClose: () => void
   onCreate: (draft: NewReportDraft) => void
 }) {
@@ -167,6 +171,21 @@ export function NewReportDialog({
               Select at least one optional source, or keep all selected. Billing, integrations,
               settings and configuration pages are intentionally excluded from supervisor reports.
             </p>
+            {preview ? (
+              <div className="rounded-lg bg-muted/40 p-3 text-xs">
+                <p className="font-medium">Preview for {preview.period.label}</p>
+                <p className="mt-1 text-muted-foreground">
+                  {preview.metrics.taskEvents.value} work-log events · {preview.metrics.completedTasks.value} completed tasks ·{" "}
+                  {preview.deliverableRows.length} deliverables · {preview.metrics.blockedTasks.value} blockers
+                </p>
+                <p className="mt-1 text-muted-foreground">
+                  {allModules
+                    .filter((module) => selectedModules.includes(module))
+                    .map((module) => `${moduleRowsFor(module, preview).length} ${reportSourceLabel(module).toLowerCase()}`)
+                    .join(" · ")}
+                </p>
+              </div>
+            ) : null}
           </div>
         </div>
         <DialogFooter>

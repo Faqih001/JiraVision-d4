@@ -75,6 +75,7 @@ export async function PATCH(request: NextRequest, context: Context) {
       periodStart: string
       periodEnd: string
       content: ReportContent
+      moduleScope: ReportDto["moduleScope"]
       metrics?: ReportAggregate
       updatedAt: Date
     } = {
@@ -85,6 +86,7 @@ export async function PATCH(request: NextRequest, context: Context) {
       periodStart,
       periodEnd,
       content: patch.content ? { ...emptyContent(), ...patch.content } : existing.content,
+      moduleScope: patch.moduleScope ?? existing.moduleScope,
       updatedAt: new Date(),
     }
 

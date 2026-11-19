@@ -307,6 +307,7 @@ export default function ReportsClient() {
             periodType: draft.periodType,
             periodStart: span.start,
             periodEnd: span.end,
+            moduleScope: draft.scope,
           }),
         }),
       )
@@ -742,6 +743,7 @@ export default function ReportsClient() {
           defaultTitle={shownPeriod.label}
           defaultPeriodType={state.periodType}
           defaultScope={state.scope}
+          preview={preview}
           onClose={() => setNewOpen(false)}
           onCreate={(draft) => void createDraft(draft)}
         />

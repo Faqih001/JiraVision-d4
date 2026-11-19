@@ -125,6 +125,7 @@ export const reportColumns = {
   status: workReports.status,
   content: workReports.content,
   metrics: workReports.metrics,
+  moduleScope: workReports.moduleScope,
   revisionOf: workReports.revisionOf,
   submittedAt: workReports.submittedAt,
   acknowledgedAt: workReports.acknowledgedAt,
@@ -144,6 +145,7 @@ type ReportDbRow = {
   status: string
   content: unknown
   metrics: unknown
+  moduleScope: unknown
   revisionOf: number | null
   submittedAt: Date | null
   acknowledgedAt: Date | null
@@ -168,6 +170,7 @@ export function mapReport(row: ReportDbRow): ReportDto {
     status: row.status as ReportDto["status"],
     content: parseStoredContent(row.content),
     metrics: parseStoredMetrics(row.metrics),
+    moduleScope: Array.isArray(row.moduleScope) ? row.moduleScope as ReportDto["moduleScope"] : null,
     revisionOf: row.revisionOf,
     submittedAt: row.submittedAt ? row.submittedAt.toISOString() : null,
     acknowledgedAt: row.acknowledgedAt ? row.acknowledgedAt.toISOString() : null,

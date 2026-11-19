@@ -128,6 +128,7 @@ CREATE TABLE IF NOT EXISTS work_reports (
   status VARCHAR(20) NOT NULL DEFAULT 'draft',
   content JSONB NOT NULL DEFAULT '{}'::jsonb,
   metrics JSONB NOT NULL DEFAULT '{}'::jsonb,
+  module_scope JSONB,
   revision_of INTEGER REFERENCES work_reports(id) ON DELETE SET NULL,
   submitted_at TIMESTAMPTZ,
   acknowledged_at TIMESTAMPTZ,
@@ -135,6 +136,15 @@ CREATE TABLE IF NOT EXISTS work_reports (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'work_reports' AND column_name = 'module_scope'
+  ) THEN
+    ALTER TABLE work_reports ADD COLUMN module_scope JSONB;
+  END IF;
+END $$;
 CREATE TABLE IF NOT EXISTS work_report_recipients (
   report_id INTEGER NOT NULL REFERENCES work_reports(id) ON DELETE CASCADE,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

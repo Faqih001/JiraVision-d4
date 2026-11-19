@@ -598,6 +598,7 @@ export const workReports = pgTable(
     status: varchar("status", { length: 20 }).notNull().default("draft"),
     content: jsonb("content").notNull().default("{}"),
     metrics: jsonb("metrics").notNull().default("{}"),
+    moduleScope: jsonb("module_scope").default(null),
     revisionOf: integer("revision_of").references((): any => workReports.id, {
       onDelete: "set null",
     }),

@@ -78,6 +78,7 @@ export async function POST(request: NextRequest) {
         periodEnd: value.periodEnd,
         content: value.content,
         metrics,
+        moduleScope: value.moduleScope,
       })
       .returning(reportColumns)
 

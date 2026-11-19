@@ -7,6 +7,7 @@
 import { isIsoDate, rangeDays } from "@/lib/worklog/local-day"
 import { MAX_PERIOD_DAYS, isPeriodType, type PeriodType } from "./period"
 import { AGGREGATE_ARRAY_KEYS, METRIC_KEYS, type ReportAggregate } from "./aggregate"
+import { MODULE_SECTIONS, type ModuleScope } from "./scope"
 import {
   MAX_SECTION_TEXT,
   emptyContent,
@@ -80,6 +81,8 @@ export type ReportDto = {
   content: ReportContent
   /** Null when the stored blob predates or does not match this shape — the page asks for a recompute. */
   metrics: ReportAggregate | null
+  /** Null means all optional report modules. */
+  moduleScope: ModuleScope
   revisionOf: number | null
   submittedAt: string | null
   acknowledgedAt: string | null
@@ -94,6 +97,7 @@ export type ReportCreateInput = {
   periodStart: string
   periodEnd: string
   content: ReportContent
+  moduleScope: ModuleScope
 }
 
 export type ReportPatch = {
@@ -102,6 +106,7 @@ export type ReportPatch = {
   periodStart?: string
   periodEnd?: string
   content?: ReportContent
+  moduleScope?: ModuleScope
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -130,6 +135,20 @@ function readPeriodRange(start: unknown, end: unknown): Read<{ start: string; en
   if (rangeDays(start, end, MAX_PERIOD_DAYS + 1).length > MAX_PERIOD_DAYS) {
     return { error: `period is too long (${MAX_PERIOD_DAYS} days maximum)` }
   }
+
+  function readModuleScope(input: unknown): Read<ModuleScope> {
+    if (input === undefined || input === null) return { value: null }
+    if (!Array.isArray(input)) return { error: "moduleScope must be an array of report module keys or null" }
+    const selected = new Set<string>()
+    for (const value of input) {
+      if (typeof value !== "string" || !(MODULE_SECTIONS as readonly string[]).includes(value)) {
+        return { error: "moduleScope contains an unknown report module" }
+      }
+      selected.add(value)
+    }
+    if (selected.size === 0 || selected.size === MODULE_SECTIONS.length) return { value: null }
+    return { value: MODULE_SECTIONS.filter((section) => selected.has(section)) }
+  }
   return { start, end }
 }
 
@@ -145,6 +164,8 @@ export function readReportCreate(input: unknown): Read<{ value: ReportCreateInpu
   }
   const range = readPeriodRange(input.periodStart, input.periodEnd)
   if (isFail(range)) return range
+  const moduleScope = readModuleScope(input.moduleScope)
+  if (isFail(moduleScope)) return moduleScope
 
   return {
     value: {
@@ -153,6 +174,7 @@ export function readReportCreate(input: unknown): Read<{ value: ReportCreateInpu
       periodStart: range.start,
       periodEnd: range.end,
       content: emptyContent(),
+      moduleScope: moduleScope.value,
     },
   }
 }
@@ -211,6 +233,11 @@ export function pickReportUpdates(input: unknown, status: unknown): Read<{ value
     const content = readContent(input.content)
     if (isFail(content)) return content
     value.content = content.value
+  }
+  if ("moduleScope" in input) {
+    const moduleScope = readModuleScope(input.moduleScope)
+    if (isFail(moduleScope)) return moduleScope
+    value.moduleScope = moduleScope.value
   }
   if (Object.keys(value).length === 0) return { error: "nothing to update" }
   return { value }
