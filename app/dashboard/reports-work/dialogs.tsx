@@ -28,12 +28,15 @@ import {
 } from "@/components/ui/select"
 import { MAX_REPORT_TITLE, type ReportDto } from "@/lib/reports/report-fields"
 import { PERIOD_LABEL, PERIOD_TYPES, type PeriodType } from "@/lib/reports/period"
-import { MODULE_LABEL } from "@/lib/reports/aggregate"
 import {
-  MODULE_SECTIONS,
   type ModuleSectionKey,
 } from "@/lib/reports/module-sections"
 import { type ModuleScope } from "@/lib/reports/scope"
+import {
+  CORE_REPORT_SOURCES,
+  REPORT_SOURCE_GROUPS,
+  reportSourceLabel,
+} from "@/lib/reports/source-catalog"
 
 export type NewReportDraft = {
   title: string
@@ -58,7 +61,7 @@ export function NewReportDialog({
   onClose: () => void
   onCreate: (draft: NewReportDraft) => void
 }) {
-  const allModules = [...MODULE_SECTIONS]
+  const allModules = REPORT_SOURCE_GROUPS.flatMap((group) => group.sections)
   const [draft, setDraft] = useState<NewReportDraft>({
     title: defaultTitle,
     periodType: defaultPeriodType,
@@ -74,10 +77,10 @@ export function NewReportDialog({
     } else {
       selected.add(module)
     }
-    const ordered = MODULE_SECTIONS.filter((key) => selected.has(key))
+    const ordered = allModules.filter((key) => selected.has(key))
     setDraft((prev) => ({
       ...prev,
-      scope: ordered.length === MODULE_SECTIONS.length ? null : ordered,
+      scope: ordered.length === allModules.length ? null : ordered,
     }))
   }
 
@@ -93,8 +96,8 @@ export function NewReportDialog({
         <DialogHeader>
           <DialogTitle>New report</DialogTitle>
           <DialogDescription>
-            Choose the period and data sections to include. Core work-log, task, deliverable and
-            planning data is always included; these modules control the additional report cards.
+            Create a supervisor-ready report from the work your team recorded during the selected
+            period. Core delivery data is always included; choose any additional sources below.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
@@ -128,20 +131,41 @@ export function NewReportDialog({
             </Select>
           </div>
           <div className="space-y-1.5">
-            <Label>Data sections</Label>
-            <div className="max-h-56 space-y-2 overflow-y-auto rounded-lg border border-border/60 p-3">
-              {MODULE_SECTIONS.map((module) => (
-                <label key={module} className="flex cursor-pointer items-center gap-2 text-sm">
-                  <Checkbox
-                    checked={selectedModules.includes(module)}
-                    onCheckedChange={() => toggleModule(module)}
-                  />
-                  <span>{MODULE_LABEL[module]}</span>
-                </label>
+            <Label>Report coverage</Label>
+            <div className="max-h-72 space-y-4 overflow-y-auto rounded-lg border border-border/60 p-3">
+              <div>
+                <p className="text-xs font-medium">Always included</p>
+                <ul className="mt-1 space-y-1 text-xs text-muted-foreground">
+                  {CORE_REPORT_SOURCES.map((source) => (
+                    <li key={source.label}>
+                      <span className="font-medium text-foreground">{source.label}</span>
+                      {" — "}
+                      {source.description}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              {REPORT_SOURCE_GROUPS.map((group) => (
+                <div key={group.label}>
+                  <p className="text-xs font-medium">{group.label}</p>
+                  <p className="mb-1 text-[11px] text-muted-foreground">{group.description}</p>
+                  <div className="space-y-2">
+                    {group.sections.map((module) => (
+                      <label key={module} className="flex cursor-pointer items-center gap-2 text-sm">
+                        <Checkbox
+                          checked={selectedModules.includes(module)}
+                          onCheckedChange={() => toggleModule(module)}
+                        />
+                        <span>{reportSourceLabel(module)}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
               ))}
             </div>
             <p className="text-xs text-muted-foreground">
-              Select at least one section. You can change this view later from the report builder.
+              Select at least one optional source, or keep all selected. Billing, integrations,
+              settings and configuration pages are intentionally excluded from supervisor reports.
             </p>
           </div>
         </div>

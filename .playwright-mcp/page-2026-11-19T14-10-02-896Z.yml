@@ -1,0 +1,50 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - link "Skip to content" [ref=e4] [cursor=pointer]:
+      - /url: "#main"
+    - main [ref=e5]:
+      - generic [ref=e6]:
+        - generic [ref=e7]:
+          - img "A teammate at a desktop screen showing a task board, others working at desks behind" [ref=e8]
+          - generic [ref=e10]:
+            - heading "Welcome back" [level=2] [ref=e11]
+            - paragraph [ref=e12]: Log in to your JiraVision account to pick up where your team left off.
+        - generic [ref=e14]:
+          - generic [ref=e15]:
+            - link "Home" [ref=e16] [cursor=pointer]:
+              - /url: /
+            - button "Translate this page" [ref=e21] [cursor=pointer]:
+              - generic [ref=e25]: Translate
+          - heading "Sign in to your account" [level=1] [ref=e29]
+          - paragraph [ref=e30]:
+            - text: Or
+            - link "create a new account" [ref=e31] [cursor=pointer]:
+              - /url: /signup
+          - generic [ref=e32]:
+            - generic [ref=e33]:
+              - generic [ref=e34]:
+                - text: Email address
+                - textbox "Email address" [ref=e36]:
+                  - /placeholder: name@example.com
+              - generic [ref=e37]:
+                - generic [ref=e38]:
+                  - generic [ref=e39]: Password
+                  - link "Forgot your password?" [ref=e40] [cursor=pointer]:
+                    - /url: /forgot-password
+                - generic [ref=e41]:
+                  - textbox "Password" [ref=e42]:
+                    - /placeholder: ••••••••
+                  - button "Show password" [ref=e43] [cursor=pointer]
+              - button "Sign in" [ref=e47] [cursor=pointer]
+            - paragraph [ref=e48]:
+              - text: Protected by sign-in rate limits. Need help?
+              - link "Contact support" [ref=e49] [cursor=pointer]:
+                - /url: /contact
+              - text: .
+  - region "Notifications (F8)":
+    - list
+  - button "Open JiraVision assistant" [ref=e50] [cursor=pointer]:
+    - generic [ref=e51]: Assistant
+  - alert [ref=e52]
+  - button "Open the accessibility menu" [ref=e53] [cursor=pointer]:
+    - generic [ref=e60]: Accessibility
