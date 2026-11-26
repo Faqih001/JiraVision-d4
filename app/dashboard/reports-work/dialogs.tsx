@@ -10,9 +10,9 @@ import { previewReportPdfUrl } from "@/lib/export/pdf"
 import { previewReportXlsxSheets } from "@/lib/export/xlsx"
 import {
   defaultExportSections,
-  EXPORT_SECTION_KEYS,
-  EXPORT_SECTION_LABEL,
   exportSectionCount,
+  exportSectionKeysForScope,
+  exportSectionLabel,
   type ExportSectionKey,
   type ExportSectionSelection,
 } from "@/lib/export/report-sections"
@@ -384,6 +384,10 @@ export function ExportPreviewDialog({
   const [activeSheet, setActiveSheet] = useState(0)
   const [downloading, setDownloading] = useState(false)
 
+  const availableKeys = useMemo(() => exportSectionKeysForScope(scope), [scope])
+  const authorName = report.authorName?.trim() || "You"
+  const recipientNames = report.recipientNames ?? []
+
   useEffect(() => {
     setFormat(initialFormat)
   }, [initialFormat, open])
@@ -393,9 +397,11 @@ export function ExportPreviewDialog({
   }
 
   const setAllSections = (value: boolean) => {
-    setSections(
-      Object.fromEntries(EXPORT_SECTION_KEYS.map((key) => [key, value])) as ExportSectionSelection,
-    )
+    setSections((prev) => {
+      const next = { ...prev }
+      for (const key of availableKeys) next[key] = value
+      return next
+    })
   }
 
   const pdfUrl = useMemo(() => {
@@ -403,12 +409,12 @@ export function ExportPreviewDialog({
     return previewReportPdfUrl({
       report,
       metrics,
-      authorName: "You",
-      recipientNames: [],
+      authorName,
+      recipientNames,
       scope,
       sections,
     })
-  }, [open, format, report, metrics, scope, sections])
+  }, [open, format, report, metrics, authorName, recipientNames, scope, sections])
 
   useEffect(() => {
     return () => {
@@ -421,12 +427,12 @@ export function ExportPreviewDialog({
     return previewReportXlsxSheets({
       report,
       metrics,
-      authorName: "You",
-      recipientNames: [],
+      authorName,
+      recipientNames,
       scope,
       sections,
     })
-  }, [open, format, report, metrics, scope, sections])
+  }, [open, format, report, metrics, authorName, recipientNames, scope, sections])
 
   const safeSheetIndex = sheets.length > 0 ? Math.min(activeSheet, sheets.length - 1) : 0
   const currentSheet = sheets[safeSheetIndex] ?? null
@@ -503,7 +509,7 @@ export function ExportPreviewDialog({
               </div>
             </div>
             <div className="max-h-[54vh] space-y-2 overflow-y-auto pr-1">
-              {EXPORT_SECTION_KEYS.map((key) => {
+              {availableKeys.map((key) => {
                 const count = exportSectionCount(key, report, metrics, scope)
                 const id = `export-section-${key}`
                 return (
@@ -515,7 +521,7 @@ export function ExportPreviewDialog({
                         onCheckedChange={() => toggleSection(key)}
                       />
                       <Label htmlFor={id} className="cursor-pointer truncate text-xs font-normal">
-                        {EXPORT_SECTION_LABEL[key]}
+                        {exportSectionLabel(key)}
                       </Label>
                     </div>
                     {count !== null ? (

@@ -196,11 +196,10 @@ function buildReportPdfDoc(data: ReportExportData): { doc: jsPDF; stamp: string 
     currentY = appendRowSection(doc, currentY, "Next Period", metrics.nextPeriod)
   }
 
-  if (isSectionIncluded(sections, "modules")) {
-    for (const section of scopedModuleSections(scope)) {
-      const rows = moduleRowsFor(section, metrics)
-      currentY = appendRowSection(doc, currentY, MODULE_LABEL[section], rows)
-    }
+  for (const section of scopedModuleSections(scope)) {
+    if (!isSectionIncluded(sections, section)) continue
+    const rows = moduleRowsFor(section, metrics)
+    currentY = appendRowSection(doc, currentY, MODULE_LABEL[section], rows)
   }
 
   if (isSectionIncluded(sections, "timeline")) {

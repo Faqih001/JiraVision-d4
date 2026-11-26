@@ -4,7 +4,7 @@
 // session user id, and every read is capped, so a yearly report over a noisy account still
 // returns in one round trip instead of timing out into a blank page.
 
-import { and, desc, eq, gt, gte, lte, or, sql, type SQL } from "drizzle-orm"
+import { and, desc, eq, gt, gte, inArray, lte, or, sql, type SQL } from "drizzle-orm"
 import {
   agentPlans,
   assistantMessages,
@@ -32,9 +32,11 @@ import {
   retros,
   sprints,
   taskEvents,
+  taskInstances,
   tasks,
   ticketEvents,
   tickets,
+  users,
   wellbeingMetrics,
   workLogEntries,
   workReportRecipients,
@@ -70,6 +72,7 @@ import {
   type ReportRetroNoteRow,
   type ReportSignoffRow,
   type ReportSource,
+  type ReportTaskInstanceRow,
   type ReportTaskRow,
   type ReportTicketEventRow,
   type ReportTicketRow,
@@ -111,7 +114,7 @@ const EMAIL_CAP = 500
 export async function reportSession() {
   const session = await getSession()
   if (!session || typeof session.id !== "number") return null
-  return { id: session.id, timezone: session.timezone ?? null }
+  return { id: session.id, name: session.name ?? null, timezone: session.timezone ?? null }
 }
 
 export const reportColumns = {
@@ -180,6 +183,35 @@ export function mapReport(row: ReportDbRow): ReportDto {
   }
 }
 
+async function attachPeople(reports: ReportDto[]): Promise<ReportDto[]> {
+  if (reports.length === 0) return reports
+  const reportIds = reports.map((r) => r.id)
+  const authorIds = [...new Set(reports.map((r) => r.userId))]
+
+  const [authorRows, recipientRows] = await Promise.all([
+    db.select({ id: users.id, name: users.name }).from(users).where(inArray(users.id, authorIds)),
+    db
+      .select({ reportId: workReportRecipients.reportId, name: users.name })
+      .from(workReportRecipients)
+      .innerJoin(users, eq(workReportRecipients.userId, users.id))
+      .where(inArray(workReportRecipients.reportId, reportIds)),
+  ])
+
+  const authorById = new Map(authorRows.map((a) => [a.id, a.name]))
+  const recipientsByReport = new Map<number, string[]>()
+  for (const row of recipientRows) {
+    const list = recipientsByReport.get(row.reportId) ?? []
+    list.push(row.name)
+    recipientsByReport.set(row.reportId, list)
+  }
+
+  return reports.map((r) => ({
+    ...r,
+    authorName: authorById.get(r.userId) ?? "You",
+    recipientNames: recipientsByReport.get(r.id) ?? [],
+  }))
+}
+
 export async function listReports(userId: number, q: string): Promise<ReportDto[]> {
   const conditions: SQL[] = [eq(workReports.userId, userId)]
   if (q.trim()) {
@@ -193,7 +225,7 @@ export async function listReports(userId: number, q: string): Promise<ReportDto[
     .where(and(...conditions))
     .orderBy(desc(workReports.updatedAt))
     .limit(REPORT_LIST_LIMIT)
-  return rows.map(mapReport)
+  return attachPeople(rows.map(mapReport))
 }
 
 /**
@@ -206,7 +238,9 @@ export async function readOwnReport(userId: number, id: number): Promise<ReportD
     .from(workReports)
     .where(and(eq(workReports.id, id), eq(workReports.userId, userId)))
     .limit(1)
-  return rows.length ? mapReport(rows[0]) : null
+  if (!rows.length) return null
+  const [enriched] = await attachPeople([mapReport(rows[0])])
+  return enriched
 }
 
 export async function reportEntryRead(userId: number, period: Period): Promise<EntryDto[]> {
@@ -320,12 +354,40 @@ export async function reportTaskRead(userId: number): Promise<ReportTaskRow[]> {
       dueDate: tasks.dueDate,
       storyPoints: tasks.storyPoints,
       sprintTitle: sprints.name,
+      cadence: tasks.cadence,
     })
     .from(tasks)
     .leftJoin(sprints, eq(tasks.sprintId, sprints.id))
     .where(eq(tasks.assigneeId, userId))
     .orderBy(desc(tasks.dueDate))
     .limit(TASK_CAP)
+  return rows
+}
+
+export async function reportTaskInstanceRead(
+  userId: number,
+  period: Period,
+): Promise<ReportTaskInstanceRow[]> {
+  const rows = await db
+    .select({
+      id: taskInstances.id,
+      taskId: taskInstances.taskId,
+      taskTitle: tasks.title,
+      cadence: tasks.cadence,
+      instanceDate: taskInstances.instanceDate,
+      status: taskInstances.status,
+    })
+    .from(taskInstances)
+    .innerJoin(tasks, eq(taskInstances.taskId, tasks.id))
+    .where(
+      and(
+        or(eq(tasks.assigneeId, userId), eq(taskInstances.completedBy, userId)),
+        gte(taskInstances.instanceDate, period.start),
+        lte(taskInstances.instanceDate, period.end),
+      ),
+    )
+    .orderBy(desc(taskInstances.instanceDate))
+    .limit(EVENT_CAP)
   return rows
 }
 
@@ -894,6 +956,7 @@ export async function readReportSource(
     awaitingReview,
     transitions,
     taskRows,
+    taskInstanceRows,
     planRows,
     opsEvents,
     registerRows,
@@ -922,6 +985,7 @@ export async function readReportSource(
     reportReviewRead(userId),
     reportTransitionRead(userId, period, timezone),
     reportTaskRead(userId),
+    reportTaskInstanceRead(userId, period),
     reportPlanItemRead(userId, period),
     reportOpsRead(userId, period, timezone),
     reportRegisterRead(userId),
@@ -957,6 +1021,7 @@ export async function readReportSource(
     deliverables: [...byId.values()],
     transitions,
     tasks: taskRows,
+    taskInstances: taskInstanceRows,
     planItems: planRows,
     opsEvents,
     registerItems: registerRows,

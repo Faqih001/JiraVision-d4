@@ -84,6 +84,8 @@ export type ReportDto = {
   metrics: ReportAggregate | null
   /** Null means all optional report modules. */
   moduleScope?: ModuleScope
+  authorName?: string
+  recipientNames?: string[]
   revisionOf: number | null
   submittedAt: string | null
   acknowledgedAt: string | null

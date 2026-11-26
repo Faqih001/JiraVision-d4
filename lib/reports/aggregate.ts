@@ -112,6 +112,16 @@ export type ReportTaskRow = {
   dueDate: string | null
   storyPoints: number
   sprintTitle: string | null
+  cadence?: string | null
+}
+
+export type ReportTaskInstanceRow = {
+  id: number
+  taskId: number
+  taskTitle: string | null
+  cadence: string | null
+  instanceDate: string
+  status: string
 }
 
 export type ReportPlanRow = {
@@ -308,6 +318,7 @@ export type ReportSource = {
   deliverables: DeliverableDto[]
   transitions: TransitionDto[]
   tasks: ReportTaskRow[]
+  taskInstances?: ReportTaskInstanceRow[]
   planItems: ReportPlanRow[]
   opsEvents: ReportOpsRow[]
   registerItems: ReportRegisterRow[]
@@ -599,20 +610,52 @@ export function aggregateReport(source: ReportSource): ReportAggregate {
     .filter((day) => day <= todayIso && !loggedDaySet.has(day))
     .map((day) => `day:${day}`)
 
+  const instances = source.taskInstances ?? []
+  const completedInstances = instances.filter(
+    (inst) => statusBucket(inst.status) === "completed" && inPeriod(inst.instanceDate, period),
+  )
+  const completedInstanceTaskIds = new Set(completedInstances.map((inst) => inst.taskId))
+  const openTodayInstanceTaskIds = new Set(
+    instances
+      .filter((inst) => inst.instanceDate === todayIso && statusBucket(inst.status) !== "completed")
+      .map((inst) => inst.taskId),
+  )
+
   const completionEvents = transitions.filter((t) => statusBucket(t.toStatus) === "completed")
-  const completedTaskIds = [...new Set(completionEvents.map((t) => t.taskId))]
-  const completedRows: ReportRow[] = completionEvents
-    .slice()
-    .sort((a, b) => a.at.localeCompare(b.at))
-    .map((event) => ({
+  const completedTaskIds = [
+    ...new Set([
+      ...completionEvents.map((t) => t.taskId),
+      ...completedInstances.map((inst) => inst.taskId),
+    ]),
+  ]
+  const completedRows: ReportRow[] = [
+    ...completionEvents.map((event) => ({
       ref: `event:${event.id}`,
       title: event.taskTitle ?? `Task #${event.taskId}`,
       detail: `${event.fromStatus} to ${event.toStatus}`,
       date: localDay(new Date(event.at), timezone),
-    }))
+      sortKey: event.at,
+    })),
+    ...completedInstances.map((inst) => ({
+      ref: `instance:${inst.id}`,
+      title: inst.taskTitle ?? `Task #${inst.taskId}`,
+      detail: `${inst.cadence && inst.cadence !== "one-off" ? `${inst.cadence} · ` : ""}done for ${inst.instanceDate}`,
+      date: inst.instanceDate,
+      sortKey: inst.instanceDate,
+    })),
+  ]
+    .sort((a, b) => a.sortKey.localeCompare(b.sortKey))
+    .map(({ sortKey: _sortKey, ...row }) => row)
   const pointsTasks = tasks.filter((t) => completedTaskIds.includes(t.id))
 
-  const inProgressTasks = tasks.filter((t) => statusBucket(t.status) === "in_progress")
+  const inProgressTasks = tasks.filter((t) => {
+    if (statusBucket(t.status) !== "in_progress") return false
+    const isRecurring = Boolean(t.cadence && t.cadence !== "one-off")
+    if (isRecurring && completedInstanceTaskIds.has(t.id) && !openTodayInstanceTaskIds.has(t.id)) {
+      return false
+    }
+    return true
+  })
   const blockedTasks = tasks.filter((t) => statusBucket(t.status) === "blocked")
   const overdueTasks = tasks.filter(
     (t) => statusBucket(t.status) !== "completed" && t.dueDate !== null && t.dueDate < period.start,

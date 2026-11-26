@@ -450,8 +450,8 @@ export default function ReportsClient() {
         exportReportPdf({
           report: r,
           metrics: m,
-          authorName: "You",
-          recipientNames: [],
+          authorName: r.authorName?.trim() || "You",
+          recipientNames: r.recipientNames ?? [],
           scope: state.scope,
           sections,
         })
@@ -468,8 +468,8 @@ export default function ReportsClient() {
         await exportReportXlsx({
           report: r,
           metrics: m,
-          authorName: "You",
-          recipientNames: [],
+          authorName: r.authorName?.trim() || "You",
+          recipientNames: r.recipientNames ?? [],
           scope: state.scope,
           sections,
         })

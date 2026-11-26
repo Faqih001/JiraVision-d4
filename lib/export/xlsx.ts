@@ -165,11 +165,10 @@ export function previewReportXlsxSheets(data: ReportExportData): PreviewXlsxShee
     }
   }
 
-  if (isSectionIncluded(sections, "modules")) {
-    for (const section of scopedModuleSections(scope)) {
-      const rows = moduleRowsFor(section, metrics)
-      if (rows.length > 0) rowSheet(MODULE_LABEL[section], rows)
-    }
+  for (const section of scopedModuleSections(scope)) {
+    if (!isSectionIncluded(sections, section)) continue
+    const rows = moduleRowsFor(section, metrics)
+    if (rows.length > 0) rowSheet(MODULE_LABEL[section], rows)
   }
 
   if (isSectionIncluded(sections, "timeline")) {
@@ -329,12 +328,11 @@ export async function exportReportXlsx(data: ReportExportData): Promise<void> {
   }
 
   // One sheet per activity module that has rows
-  if (isSectionIncluded(sections, "modules")) {
-    for (const section of scopedModuleSections(scope)) {
-      const rows = moduleRowsFor(section, metrics)
-      if (rows.length === 0) continue
-      populateRowSheet(workbook.addWorksheet(MODULE_LABEL[section]), rows)
-    }
+  for (const section of scopedModuleSections(scope)) {
+    if (!isSectionIncluded(sections, section)) continue
+    const rows = moduleRowsFor(section, metrics)
+    if (rows.length === 0) continue
+    populateRowSheet(workbook.addWorksheet(MODULE_LABEL[section]), rows)
   }
 
   // Merged activity timeline

@@ -1,11 +1,11 @@
 // Shared section definitions for PDF and Excel report exports and their pre-download preview.
 
-import type { ReportAggregate } from "@/lib/reports/aggregate"
-import { moduleRowsFor } from "@/lib/reports/module-sections"
+import { MODULE_LABEL, type ReportAggregate } from "@/lib/reports/aggregate"
+import { MODULE_SECTIONS, moduleRowsFor, type ModuleSectionKey } from "@/lib/reports/module-sections"
 import type { ReportDto } from "@/lib/reports/report-fields"
 import { scopedModuleSections, scopedTimeline, type ModuleScope } from "@/lib/reports/scope"
 
-export const EXPORT_SECTION_KEYS = [
+export const CORE_EXPORT_SECTION_KEYS = [
   "summary",
   "completed",
   "deliverables",
@@ -15,15 +15,14 @@ export const EXPORT_SECTION_KEYS = [
   "nextPeriod",
   "notes",
   "breakdowns",
-  "modules",
   "timeline",
 ] as const
 
-export type ExportSectionKey = (typeof EXPORT_SECTION_KEYS)[number]
-
+export type CoreExportSectionKey = (typeof CORE_EXPORT_SECTION_KEYS)[number]
+export type ExportSectionKey = CoreExportSectionKey | ModuleSectionKey
 export type ExportSectionSelection = Record<ExportSectionKey, boolean>
 
-export const EXPORT_SECTION_LABEL: Record<ExportSectionKey, string> = {
+export const CORE_EXPORT_SECTION_LABEL: Record<CoreExportSectionKey, string> = {
   summary: "Summary",
   completed: "Completed tasks",
   deliverables: "Deliverables",
@@ -33,24 +32,39 @@ export const EXPORT_SECTION_LABEL: Record<ExportSectionKey, string> = {
   nextPeriod: "Next period",
   notes: "Notes and asks",
   breakdowns: "Metrics & breakdowns",
-  modules: "Activity modules",
   timeline: "Activity timeline",
 }
 
-export function defaultExportSections(): ExportSectionSelection {
-  return {
-    summary: true,
-    completed: true,
-    deliverables: true,
-    inProgress: true,
-    blocked: true,
-    overdue: true,
-    nextPeriod: true,
-    notes: true,
-    breakdowns: true,
-    modules: true,
-    timeline: true,
+export function exportSectionLabel(key: ExportSectionKey): string {
+  if (key in CORE_EXPORT_SECTION_LABEL) {
+    return CORE_EXPORT_SECTION_LABEL[key as CoreExportSectionKey]
   }
+  return MODULE_LABEL[key as ModuleSectionKey]
+}
+
+export function exportSectionKeysForScope(scope: ModuleScope): ExportSectionKey[] {
+  const modules = scopedModuleSections(scope)
+  return [
+    "summary",
+    "completed",
+    "deliverables",
+    "inProgress",
+    "blocked",
+    "overdue",
+    "nextPeriod",
+    ...modules,
+    "timeline",
+    "breakdowns",
+    "notes",
+  ]
+}
+
+export function defaultExportSections(): ExportSectionSelection {
+  const entries: [ExportSectionKey, boolean][] = [
+    ...CORE_EXPORT_SECTION_KEYS.map((key): [ExportSectionKey, boolean] => [key, true]),
+    ...MODULE_SECTIONS.map((key): [ExportSectionKey, boolean] => [key, true]),
+  ]
+  return Object.fromEntries(entries) as ExportSectionSelection
 }
 
 export function isSectionIncluded(
@@ -85,12 +99,9 @@ export function exportSectionCount(
       return report.content.notes?.text?.trim() ? 1 : 0
     case "breakdowns":
       return null
-    case "modules":
-      return scopedModuleSections(scope).reduce(
-        (sum, mod) => sum + moduleRowsFor(mod, metrics).length,
-        0,
-      )
     case "timeline":
       return scopedTimeline(metrics.timeline, scope).length
+    default:
+      return moduleRowsFor(key, metrics).length
   }
 }
