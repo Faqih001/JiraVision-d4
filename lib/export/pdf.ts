@@ -81,27 +81,93 @@ function ensurePageSpace(doc: jsPDF, currentY: number, minSpace = 36): number {
   return currentY
 }
 
+function formatDayHeading(isoDate: string): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(isoDate)
+  if (!match) return isoDate
+  const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])))
+  return date.toLocaleDateString("en-US", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  })
+}
+
 function appendRowSection(
   doc: jsPDF,
   currentY: number,
   title: string,
   rows: ReportRow[],
-  limit = 30,
 ): number {
   if (rows.length === 0) return currentY
   let y = ensurePageSpace(doc, currentY)
   doc.setFontSize(14)
   doc.setFont("helvetica", "bold")
-  doc.text(title, 14, y)
+  doc.text(`${title} (${rows.length})`, 14, y)
   y += 5
   autoTable(doc, {
     startY: y,
     head: [["Title", "Detail", "Date"]],
-    body: rows.slice(0, limit).map((r) => [r.title, r.detail, r.date ?? ""]),
+    body: rows.map((r) => [r.title, r.detail, r.date ?? ""]),
     theme: "striped",
     headStyles: { fillColor: [41, 128, 185] },
   })
   return (doc as any).lastAutoTable.finalY + 10
+}
+
+function appendGroupedByDaySection(
+  doc: jsPDF,
+  currentY: number,
+  title: string,
+  rows: ReportRow[],
+): number {
+  if (rows.length === 0) return currentY
+  let y = ensurePageSpace(doc, currentY)
+  doc.setFontSize(14)
+  doc.setFont("helvetica", "bold")
+  doc.text(`${title} (${rows.length})`, 14, y)
+  y += 7
+
+  const groups = new Map<string, ReportRow[]>()
+  for (const row of rows) {
+    const key = row.date ?? "Undated"
+    const list = groups.get(key) ?? []
+    list.push(row)
+    groups.set(key, list)
+  }
+
+  const orderedKeys = [...groups.keys()].sort((a, b) => {
+    if (a === "Undated") return 1
+    if (b === "Undated") return -1
+    return a.localeCompare(b)
+  })
+
+  for (const dayKey of orderedKeys) {
+    const dayRows = groups.get(dayKey) ?? []
+    y = ensurePageSpace(doc, y, 28)
+    doc.setFontSize(11)
+    doc.setFont("helvetica", "bold")
+    doc.setTextColor(41, 128, 185)
+    const label = dayKey === "Undated" ? "Undated" : formatDayHeading(dayKey)
+    doc.text(`${label} (${dayRows.length})`, 14, y)
+    doc.setTextColor(0)
+    y += 3
+
+    autoTable(doc, {
+      startY: y,
+      head: [["Title", "Detail"]],
+      body: dayRows.map((r) => [
+        r.title,
+        dayKey !== "Undated" ? r.detail.replace(` · done for ${dayKey}`, " · done").replace(`done for ${dayKey}`, "done") : r.detail,
+      ]),
+      theme: "striped",
+      headStyles: { fillColor: [41, 128, 185] },
+    })
+    y = (doc as any).lastAutoTable.finalY + 7
+  }
+
+  return y + 3
 }
 
 function appendProseSection(
@@ -181,7 +247,7 @@ function buildReportPdfDoc(data: ReportExportData): { doc: jsPDF; stamp: string 
     currentY = appendRowSection(doc, currentY, "Deliverables", metrics.deliverableRows)
   }
   if (isSectionIncluded(sections, "completed")) {
-    currentY = appendRowSection(doc, currentY, "Completed Tasks", metrics.completed)
+    currentY = appendGroupedByDaySection(doc, currentY, "Completed Tasks", metrics.completed)
   }
   if (isSectionIncluded(sections, "inProgress")) {
     currentY = appendRowSection(doc, currentY, "In Progress", metrics.inProgress)
@@ -208,16 +274,41 @@ function buildReportPdfDoc(data: ReportExportData): { doc: jsPDF; stamp: string 
       let y = ensurePageSpace(doc, currentY)
       doc.setFontSize(14)
       doc.setFont("helvetica", "bold")
-      doc.text("Activity timeline", 14, y)
-      y += 5
-      autoTable(doc, {
-        startY: y,
-        head: [["Date", "Source", "Title", "Detail"]],
-        body: timeline.slice(0, 40).map((r) => [r.date ?? "", MODULE_LABEL[r.source], r.title, r.detail]),
-        theme: "striped",
-        headStyles: { fillColor: [41, 128, 185] },
+      doc.text(`Activity timeline (${timeline.length})`, 14, y)
+      y += 7
+
+      const groups = new Map<string, typeof timeline>()
+      for (const row of timeline) {
+        const key = row.date ?? "Undated"
+        const list = groups.get(key) ?? []
+        list.push(row)
+        groups.set(key, list)
+      }
+      const orderedKeys = [...groups.keys()].sort((a, b) => {
+        if (a === "Undated") return 1
+        if (b === "Undated") return -1
+        return a.localeCompare(b)
       })
-      currentY = (doc as any).lastAutoTable.finalY + 10
+
+      for (const dayKey of orderedKeys) {
+        const dayRows = groups.get(dayKey) ?? []
+        y = ensurePageSpace(doc, y, 28)
+        doc.setFontSize(11)
+        doc.setFont("helvetica", "bold")
+        doc.setTextColor(41, 128, 185)
+        doc.text(`${dayKey === "Undated" ? "Undated" : formatDayHeading(dayKey)} (${dayRows.length})`, 14, y)
+        doc.setTextColor(0)
+        y += 3
+        autoTable(doc, {
+          startY: y,
+          head: [["Source", "Title", "Detail"]],
+          body: dayRows.map((r) => [MODULE_LABEL[r.source], r.title, r.detail]),
+          theme: "striped",
+          headStyles: { fillColor: [41, 128, 185] },
+        })
+        y = (doc as any).lastAutoTable.finalY + 7
+      }
+      currentY = y + 3
     }
   }
 
