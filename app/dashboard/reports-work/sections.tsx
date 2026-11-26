@@ -14,6 +14,7 @@ import {
   ChevronUp,
   CircleDot,
   Clock,
+  Eye,
   FileStack,
   FileText,
   Inbox,
@@ -249,6 +250,7 @@ export function MyReportsSection({
   timezone,
   onQuery,
   onOpen,
+  onPreview,
   onSubmit,
   onRevise,
   onDelete,
@@ -262,6 +264,7 @@ export function MyReportsSection({
   timezone: string | null
   onQuery: (value: string) => void
   onOpen: (id: number) => void
+  onPreview: (report: ReportDto) => void
   onSubmit: (id: number) => void
   onRevise: (id: number) => void
   onDelete: (report: ReportDto) => void
@@ -320,6 +323,17 @@ export function MyReportsSection({
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                   <ReportStatusPill status={report.status} />
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    aria-label={`Preview ${report.title}`}
+                    title="Preview PDF or Excel and download"
+                    onClick={() => onPreview(report)}
+                  >
+                    <Eye className="mr-1 h-3.5 w-3.5" />
+                    Preview
+                  </Button>
                   <Button
                     type="button"
                     size="sm"

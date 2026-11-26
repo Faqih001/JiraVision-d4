@@ -131,7 +131,11 @@ export default function ReportsClient() {
   const [submitTarget, setSubmitTarget] = useState<ReportDto | null>(null)
   // Module-card drill-down is display state; the six computed sections keep their URL deep-links.
   const [moduleOpen, setModuleOpen] = useState<ModuleSectionKey | null>(null)
-  const [exportPreviewFormat, setExportPreviewFormat] = useState<ExportFormat | null>(null)
+  const [exportPreviewTarget, setExportPreviewTarget] = useState<{
+    report: ReportDto
+    metrics: ReportAggregate
+    format: ExportFormat
+  } | null>(null)
 
   useEffect(() => {
     setTodayIso(localDay(new Date(), timezone))
@@ -439,35 +443,74 @@ export default function ReportsClient() {
   }, [toast, refresh, patchState])
 
   const exportPdf = useCallback(
-    (sections?: ExportSectionSelection) => {
-      if (!report || !aggregate) return
-      exportReportPdf({
-        report,
-        metrics: aggregate,
-        authorName: "You",
-        recipientNames: [],
-        scope: state.scope,
-        sections,
-      })
-      toast({ title: "PDF exported" })
-    },
-    [report, aggregate, state.scope, toast],
+      (sections?: ExportSectionSelection, target?: { report: ReportDto; metrics: ReportAggregate }) => {
+        const r = target?.report ?? report
+        const m = target?.metrics ?? aggregate
+        if (!r || !m) return
+        exportReportPdf({
+          report: r,
+          metrics: m,
+          authorName: "You",
+          recipientNames: [],
+          scope: state.scope,
+          sections,
+        })
+        toast({ title: "PDF exported" })
+      },
+        [report, aggregate, state.scope, toast],
   )
 
   const exportXlsx = useCallback(
-    async (sections?: ExportSectionSelection) => {
-      if (!report || !aggregate) return
-      await exportReportXlsx({
-        report,
-        metrics: aggregate,
-        authorName: "You",
-        recipientNames: [],
-        scope: state.scope,
-        sections,
-      })
-      toast({ title: "Excel exported" })
+      async (sections?: ExportSectionSelection, target?: { report: ReportDto; metrics: ReportAggregate }) => {
+        const r = target?.report ?? report
+        const m = target?.metrics ?? aggregate
+        if (!r || !m) return
+        await exportReportXlsx({
+          report: r,
+          metrics: m,
+          authorName: "You",
+          recipientNames: [],
+          scope: state.scope,
+          sections,
+        })
+        toast({ title: "Excel exported" })
+      },
+        [report, aggregate, state.scope, toast],
+  )
+
+  const openReportPreview = useCallback(
+    async (targetReport: ReportDto, format: ExportFormat = "pdf") => {
+      if (targetReport.metrics) {
+        setExportPreviewTarget({ report: targetReport, metrics: targetReport.metrics, format })
+        return
+      }
+      setBusy(true)
+      try {
+        const params = new URLSearchParams({
+          p: targetReport.periodType,
+          d: targetReport.periodStart,
+          from: targetReport.periodStart,
+          to: targetReport.periodEnd,
+        })
+        const json = await readJson(await fetch(`/api/reports/work/preview?${params.toString()}`))
+        if (!json?.success) {
+          toast({
+            variant: "destructive",
+            title: "Preview failed",
+            description: json?.message ?? "Could not load report figures for preview.",
+          })
+          return
+        }
+        setExportPreviewTarget({
+          report: targetReport,
+          metrics: json.data.aggregate as ReportAggregate,
+          format,
+        })
+      } finally {
+        setBusy(false)
+      }
     },
-    [report, aggregate, state.scope, toast],
+    [toast],
   )
 
   // A plain function, not a callback: its closure over the current aggregate, URL state and prose
@@ -660,148 +703,154 @@ export default function ReportsClient() {
                 <Trash2 className="mr-1 h-4 w-4" />
                 Delete
               </Button>
-              <Button type="button" variant="outline" size="sm" onClick={() => setExportPreviewFormat("pdf")} disabled={!report || !aggregate}>
-                <Download className="mr-1 h-4 w-4" />
-                PDF
-              </Button>
-              <Button type="button" variant="outline" size="sm" onClick={() => setExportPreviewFormat("xlsx")} disabled={!report || !aggregate}>
-                <Download className="mr-1 h-4 w-4" />
-                Excel
-              </Button>
-            </>
+                <Button type="button" variant="outline" size="sm" onClick={() => report && aggregate && setExportPreviewTarget({ report, metrics: aggregate, format: "pdf" })} disabled={!report || !aggregate}>
+                  <Download className="mr-1 h-4 w-4" />
+                  PDF
+                </Button>
+                  <Button type="button" variant="outline" size="sm" onClick={() => report && aggregate && setExportPreviewTarget({ report, metrics: aggregate, format: "xlsx" })} disabled={!report || !aggregate}>
+                    <Download className="mr-1 h-4 w-4" />
+                    Excel
+                  </Button>
+                </>
           ) : null}
-          <Button type="button" variant="outline" size="sm" onClick={() => void refresh()}>
-            <RefreshCw className="mr-1 h-4 w-4" />
-            Reload
-          </Button>
-          <Button type="button" variant="outline" size="sm" onClick={() => void copyLink()}>
-            <Copy className="mr-1 h-4 w-4" />
-            Copy link
-          </Button>
-        </div>
-      </div>
-
-      <ReportsKpiStrip reports={reports} filtered={state.q.trim() !== ""} />
-
-      <div className="space-y-4">
-        <div className="grid grid-cols-1 gap-4">
-          <PeriodSection state={state} period={shownPeriod} patch={patchState} />
-          <MyReportsSection
-            reports={reports}
-            loading={loading && reports.length === 0}
-            openId={state.reportId}
-            missingId={state.view === "build" ? missingId : null}
-            query={state.q}
-            timezone={timezone}
-            onQuery={(value) => patchState({ q: value })}
-            onOpen={(id) => patchState({ view: "build", reportId: id })}
-            onSubmit={(id) => setSubmitTarget(reports.find((item) => item.id === id) ?? null)}
-            onRevise={(id) => void reviseReport(id)}
-            onDelete={setPendingDelete}
-            onCreate={() => setNewOpen(true)}
-          />
-        </div>
-        {previewError !== null ? (
-          <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/40 px-4 py-3">
-            <p className="text-sm text-muted-foreground">
-              {previewError} The figures stay empty until this loads.
-            </p>
-            <Button type="button" size="sm" variant="outline" onClick={() => void refresh()}>
-              <RefreshCw className="mr-1 h-4 w-4" />
-              Retry
-            </Button>
-          </div>
-        ) : null}
-        {state.view === "build" && rowError !== null ? (
-          <div className="flex items-center justify-between gap-3 rounded-lg border border-destructive/40 bg-destructive/5 px-4 py-3">
-            <p className="text-sm text-destructive">{rowError}</p>
-            <Button type="button" size="sm" variant="outline" onClick={() => void refresh()}>
-              <RefreshCw className="mr-1 h-4 w-4" />
-              Retry
-            </Button>
-          </div>
-        ) : null}
-        {state.view === "build" ? (
-          <div className={`${DASHBOARD_SECTION_GRID} md:grid-cols-2 xl:grid-cols-3`}>
-            {/* The fixed section order is the document's order, so every member's report reads
-                the same way top to bottom; the `contents` wrapper keeps the grid while giving
-                each row a key. */}
-            {SECTION_ORDER.map((key) => (
-              <div key={key} className="contents">
-                {sectionNodes[key]}
-                {key === "nextPeriod" ? (
-                  <>
-                    {MODULE_SECTIONS.map((section) => moduleCard(section))}
-                    {aggregate && scopedTimeline(aggregate.timeline, state.scope).length > 0 ? (
-                      <div className="md:col-span-2 xl:col-span-3">
-                        <TimelineSection aggregate={aggregate} scope={state.scope} />
-                      </div>
-                    ) : null}
-                  </>
-                ) : null}
+                <Button type="button" variant="outline" size="sm" onClick={() => void refresh()}>
+                  <RefreshCw className="mr-1 h-4 w-4" />
+                  Reload
+                </Button>
+                <Button type="button" variant="outline" size="sm" onClick={() => void copyLink()}>
+                  <Copy className="mr-1 h-4 w-4" />
+                  Copy link
+                </Button>
               </div>
-            ))}
-            {!aggregate ? (
-              <div className="md:col-span-2 xl:col-span-3">
-                <Skeleton className="h-40 w-full rounded-xl" />
+            </div>
+
+          <ReportsKpiStrip reports={reports} filtered={state.q.trim() !== ""} />
+
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 gap-4">
+              <PeriodSection state={state} period={shownPeriod} patch={patchState} />
+              <MyReportsSection
+                reports={reports}
+                loading={loading && reports.length === 0}
+                openId={state.reportId}
+                missingId={state.view === "build" ? missingId : null}
+                query={state.q}
+                timezone={timezone}
+                onQuery={(value) => patchState({ q: value })}
+                onOpen={(id) => patchState({ view: "build", reportId: id })}
+                onPreview={(target) => void openReportPreview(target, "pdf")}
+                onSubmit={(id) => setSubmitTarget(reports.find((item) => item.id === id) ?? null)}
+                onRevise={(id) => void reviseReport(id)}
+                onDelete={setPendingDelete}
+                onCreate={() => setNewOpen(true)}
+              />
+            </div>
+            {previewError !== null ? (
+              <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/40 px-4 py-3">
+                <p className="text-sm text-muted-foreground">
+                  {previewError} The figures stay empty until this loads.
+                </p>
+                <Button type="button" size="sm" variant="outline" onClick={() => void refresh()}>
+                  <RefreshCw className="mr-1 h-4 w-4" />
+                  Retry
+                </Button>
               </div>
             ) : null}
+            {state.view === "build" && rowError !== null ? (
+              <div className="flex items-center justify-between gap-3 rounded-lg border border-destructive/40 bg-destructive/5 px-4 py-3">
+                <p className="text-sm text-destructive">{rowError}</p>
+                <Button type="button" size="sm" variant="outline" onClick={() => void refresh()}>
+                  <RefreshCw className="mr-1 h-4 w-4" />
+                  Retry
+                </Button>
+              </div>
+            ) : null}
+            {state.view === "build" ? (
+              <div className={`${DASHBOARD_SECTION_GRID} md:grid-cols-2 xl:grid-cols-3`}>
+                {/* The fixed section order is the document's order, so every member's report reads
+                the same way top to bottom; the `contents` wrapper keeps the grid while giving
+                each row a key. */}
+                {SECTION_ORDER.map((key) => (
+                  <div key={key} className="contents">
+                    {sectionNodes[key]}
+                    {key === "nextPeriod" ? (
+                      <>
+                        {MODULE_SECTIONS.map((section) => moduleCard(section))}
+                        {aggregate && scopedTimeline(aggregate.timeline, state.scope).length > 0 ? (
+                          <div className="md:col-span-2 xl:col-span-3">
+                            <TimelineSection aggregate={aggregate} scope={state.scope} />
+                          </div>
+                        ) : null}
+                      </>
+                    ) : null}
+                  </div>
+                ))}
+                {!aggregate ? (
+                  <div className="md:col-span-2 xl:col-span-3">
+                    <Skeleton className="h-40 w-full rounded-xl" />
+                  </div>
+                ) : null}
+              </div>
+            ) : (
+              <div className={`${DASHBOARD_SECTION_GRID} [&>*]:min-h-[320px]`}>
+                <PipelineSection reports={reports} />
+                <CadenceSection reports={reports} todayIso={todayIso} timezone={timezone} />
+                <TurnaroundSection reports={reports} />
+                <OpenDraftsSection reports={reports} todayIso={todayIso} timezone={timezone} />
+                <ReportingSpanSection reports={reports} />
+                <WorkspaceMixSection aggregate={preview} />
+              </div>
+            )}
           </div>
-        ) : (
-          <div className={`${DASHBOARD_SECTION_GRID} [&>*]:min-h-[320px]`}>
-            <PipelineSection reports={reports} />
-            <CadenceSection reports={reports} todayIso={todayIso} timezone={timezone} />
-            <TurnaroundSection reports={reports} />
-            <OpenDraftsSection reports={reports} todayIso={todayIso} timezone={timezone} />
-            <ReportingSpanSection reports={reports} />
-            <WorkspaceMixSection aggregate={preview} />
-          </div>
-        )}
-      </div>
 
-      {/* Mounted only while open, so the draft's defaults are always the period the builder is
+          {/* Mounted only while open, so the draft's defaults are always the period the builder is
           showing. Kept mounted, its first-render defaults would go stale and the create route
           would refuse the mismatch between periodType and the period sent. */}
-      {newOpen ? (
-        <NewReportDialog
-          open
-          busy={busy}
-          defaultTitle={shownPeriod.label}
-          defaultPeriodType={state.periodType}
-          defaultScope={state.scope}
-          preview={preview}
-          onClose={() => setNewOpen(false)}
-          onCreate={(draft) => void createDraft(draft)}
-        />
-      ) : null}
-      <ConfirmReportDelete
-        report={pendingDelete}
-        busy={busy}
-        onCancel={() => setPendingDelete(null)}
-        onConfirm={() => void deleteDraft()}
-      />
-      {submitTarget ? (
-        <SubmitReportDialog
-          report={submitTarget}
-          busy={busy}
-          onSubmit={(recipientIds) => void submitReport(recipientIds)}
-          onClose={() => setSubmitTarget(null)}
-        />
-      ) : null}
-      {exportPreviewFormat && report && aggregate ? (
+          {newOpen ? (
+            <NewReportDialog
+              open
+              busy={busy}
+              defaultTitle={shownPeriod.label}
+              defaultPeriodType={state.periodType}
+              defaultScope={state.scope}
+              preview={preview}
+              onClose={() => setNewOpen(false)}
+              onCreate={(draft) => void createDraft(draft)}
+            />
+          ) : null}
+          <ConfirmReportDelete
+            report={pendingDelete}
+            busy={busy}
+            onCancel={() => setPendingDelete(null)}
+            onConfirm={() => void deleteDraft()}
+          />
+          {submitTarget ? (
+            <SubmitReportDialog
+              report={submitTarget}
+              busy={busy}
+              onSubmit={(recipientIds) => void submitReport(recipientIds)}
+              onClose={() => setSubmitTarget(null)}
+            />
+          ) : null}
+            {
+              exportPreviewTarget?(
         <ExportPreviewDialog
           open
-          initialFormat={exportPreviewFormat}
-          report={report}
-          metrics={aggregate}
-          scope={state.scope}
-          onClose={() => setExportPreviewFormat(null)}
+          initialFormat={exportPreviewTarget.format}
+          report={exportPreviewTarget.report}
+          metrics={exportPreviewTarget.metrics}
+          scope={exportPreviewTarget.report.moduleScope ?? state.scope}
+          onClose={() => setExportPreviewTarget(null)}
           onDownload={async (format, sections) => {
-            if (format === "pdf") exportPdf(sections)
-            else await exportXlsx(sections)
+            const target = {
+              report: exportPreviewTarget.report,
+              metrics: exportPreviewTarget.metrics,
+            }
+            if (format === "pdf") exportPdf(sections, target)
+            else await exportXlsx(sections, target)
           }}
         />
       ) : null}
-    </div>
-  )
+        </div>
+        )
 }
