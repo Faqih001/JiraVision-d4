@@ -90,11 +90,7 @@ type NavCategory = { title: string; items: NavItem[] }
 
 const badgeCount = (count: number) => (count > 99 ? "99+" : String(count))
 
-/**
- * The five account actions, shared by the top bar and the sidebar footer so the two
- * triggers can never drift apart. "Home" leaves the workspace for the public site;
- * everything else stays inside it.
- */
+/** Account actions shown by the top-bar dropdown. */
 function AccountMenuContent() {
   const { user, logout } = useAuth()
   // `theme` is the preference and is usually "system"; only resolvedTheme says what
@@ -150,7 +146,7 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
-  const { user, isLoading, status, sessionReason, retrySession } = useAuth()
+  const { user, isLoading, status, sessionReason, retrySession, logout } = useAuth()
   const { settings } = useSettings()
   const router = useRouter()
   const pathname = usePathname()
@@ -685,31 +681,20 @@ export default function DashboardLayout({
               <GoogleTranslateSelect />
             </div>
           )}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                className={cn(
-                  "w-full justify-start gap-2 rounded-full border border-border bg-card",
-                  sidebarCollapsed && "justify-center p-1",
-                )}
-              >
-                <Avatar className="h-8 w-8 border border-border">
-                  <AvatarImage src={user.avatar || "/placeholder.svg"} alt={user.name} />
-                  <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
-                </Avatar>
-                {!sidebarCollapsed && (
-                  <>
-                    <span className="truncate">{user.name}</span>
-                    <ChevronDown className="ml-auto h-4 w-4" />
-                  </>
-                )}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align={sidebarCollapsed ? "center" : "start"} side="top" sideOffset={8} className="w-60">
-              <AccountMenuContent />
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => void logout()}
+            aria-label="Log out"
+            title={sidebarCollapsed ? "Log out" : undefined}
+            className={cn(
+              "h-11 w-full justify-start gap-3 rounded-lg bg-amber-400 px-3 text-amber-950 hover:bg-amber-500 hover:text-amber-950 focus-visible:ring-amber-600 dark:bg-amber-400 dark:text-gray-950 dark:hover:bg-amber-300 dark:hover:text-gray-950",
+              sidebarCollapsed && "justify-center px-0",
+            )}
+          >
+            <LogOut className="h-4 w-4 shrink-0" aria-hidden="true" />
+            <span className={cn("truncate", sidebarCollapsed && "sr-only")}>Log out</span>
+          </Button>
         </div>
       </aside>
 
