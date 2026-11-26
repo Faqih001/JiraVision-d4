@@ -420,7 +420,7 @@ export function HeaderSection({
     <SectionCard
       title={SECTION_TITLE.header}
       icon={<FileText className="h-4 w-4" />}
-      className="md:col-span-2 xl:col-span-2"
+      className="md:col-span-2 xl:col-span-3"
     >
       <div className="space-y-2">
         <div className="flex items-center gap-2">
@@ -488,7 +488,7 @@ export function ProseSection({
     <SectionCard
       title={SECTION_TITLE[section]}
       icon={<NotebookPen className="h-4 w-4" />}
-      className="md:col-span-2 xl:col-span-2"
+      className={cn("md:col-span-2", section === "notes" && "xl:col-span-3")}
     >
       <div className="space-y-2">
         <Textarea
