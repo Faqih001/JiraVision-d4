@@ -8,9 +8,13 @@ import { MODULE_LABEL } from "@/lib/reports/aggregate"
 import { moduleRowsFor } from "@/lib/reports/module-sections"
 import { scopedModuleSections, scopedTimeline, type ModuleScope } from "@/lib/reports/scope"
 import type { ReportDto } from "@/lib/reports/report-fields"
-import type { ReportAggregate } from "@/lib/reports/aggregate"
+import type { ReportAggregate, ReportRow } from "@/lib/reports/aggregate"
 import type { EntryDto, DeliverableDto } from "@/lib/worklog/entries"
 import type { PlaybookStep } from "@/lib/playbooks/method"
+import {
+  isSectionIncluded,
+  type ExportSectionSelection,
+} from "@/lib/export/report-sections"
 
 export type ReportExportData = {
   report: ReportDto
@@ -18,6 +22,7 @@ export type ReportExportData = {
   authorName: string
   recipientNames: string[]
   scope?: ModuleScope
+  sections?: Partial<ExportSectionSelection>
 }
 
 export type LogExportData = {
@@ -67,8 +72,64 @@ function addFooter(doc: jsPDF) {
   }
 }
 
-export function exportReportPdf(data: ReportExportData): void {
-  const { report, metrics, authorName, recipientNames, scope = null } = data
+function ensurePageSpace(doc: jsPDF, currentY: number, minSpace = 36): number {
+  const pageHeight = doc.internal.pageSize.getHeight()
+  if (currentY + minSpace > pageHeight - 18) {
+    doc.addPage()
+    return 20
+  }
+  return currentY
+}
+
+function appendRowSection(
+  doc: jsPDF,
+  currentY: number,
+  title: string,
+  rows: ReportRow[],
+  limit = 30,
+): number {
+  if (rows.length === 0) return currentY
+  let y = ensurePageSpace(doc, currentY)
+  doc.setFontSize(14)
+  doc.setFont("helvetica", "bold")
+  doc.text(title, 14, y)
+  y += 5
+  autoTable(doc, {
+    startY: y,
+    head: [["Title", "Detail", "Date"]],
+    body: rows.slice(0, limit).map((r) => [r.title, r.detail, r.date ?? ""]),
+    theme: "striped",
+    headStyles: { fillColor: [41, 128, 185] },
+  })
+  return (doc as any).lastAutoTable.finalY + 10
+}
+
+function appendProseSection(
+  doc: jsPDF,
+  currentY: number,
+  title: string,
+  text: string | undefined,
+): number {
+  const trimmed = text?.trim()
+  if (!trimmed) return currentY
+  let y = ensurePageSpace(doc, currentY)
+  doc.setFontSize(14)
+  doc.setFont("helvetica", "bold")
+  doc.text(title, 14, y)
+  y += 6
+  doc.setFontSize(10)
+  doc.setFont("helvetica", "normal")
+  const lines = doc.splitTextToSize(trimmed, doc.internal.pageSize.getWidth() - 28) as string[]
+  for (const line of lines) {
+    y = ensurePageSpace(doc, y, 14)
+    doc.text(line, 14, y)
+    y += 5
+  }
+  return y + 6
+}
+
+function buildReportPdfDoc(data: ReportExportData): { doc: jsPDF; stamp: string } {
+  const { report, metrics, authorName, recipientNames, scope = null, sections } = data
   const doc = new jsPDF()
   const stamp = report.submittedAt?.slice(0, 10) ?? report.createdAt.slice(0, 10)
 
@@ -87,90 +148,95 @@ export function exportReportPdf(data: ReportExportData): void {
   }
   doc.text(`Recipients: ${recipientNames.join(", ") || "None"}`, 14, 63)
 
+  let currentY = 82
+
   // KPI strip
-  const kpiY = 85
-  doc.setFontSize(10)
-  doc.setFont("helvetica", "bold")
-  const kpis = [
-    { label: "Entries", value: metrics.metrics.taskEvents.value },
-    { label: "Hours", value: Math.round(metrics.metrics.minutes.value / 60) },
-    { label: "Tasks done", value: metrics.metrics.completedTasks.value },
-    { label: "Deliverables", value: metrics.metrics.deliverablesProduced.value },
-    { label: "Blockers", value: metrics.metrics.blockedTasks.value },
-  ]
-  const kpiWidth = 35
-  kpis.forEach((kpi, i) => {
-    const x = 14 + i * kpiWidth
-    doc.text(kpi.label, x, kpiY)
-    doc.setFont("helvetica", "normal")
-    doc.text(String(kpi.value), x, kpiY + 7)
+  if (isSectionIncluded(sections, "breakdowns")) {
+    const kpiY = currentY
+    doc.setFontSize(10)
     doc.setFont("helvetica", "bold")
-  })
-
-  // Sections as tables
-  let currentY = 110
-
-  if (metrics.deliverableRows.length > 0 && currentY < 250) {
-    doc.setFontSize(14)
-    doc.text("Deliverables", 14, currentY)
-    currentY += 5
-    autoTable(doc, {
-      startY: currentY,
-      head: [["Title", "Detail", "Date"]],
-      body: metrics.deliverableRows.slice(0, 30).map((r) => [r.title, r.detail, r.date ?? ""]),
-      theme: "striped",
-      headStyles: { fillColor: [41, 128, 185] },
+    const kpis = [
+      { label: "Entries", value: metrics.metrics.entries.value },
+      { label: "Hours", value: Math.round(metrics.metrics.minutes.value / 60) },
+      { label: "Tasks done", value: metrics.metrics.completedTasks.value },
+      { label: "Deliverables", value: metrics.metrics.deliverablesProduced.value },
+      { label: "Blockers", value: metrics.metrics.blockedTasks.value },
+    ]
+    const kpiWidth = 35
+    kpis.forEach((kpi, i) => {
+      const x = 14 + i * kpiWidth
+      doc.text(kpi.label, x, kpiY)
+      doc.setFont("helvetica", "normal")
+      doc.text(String(kpi.value), x, kpiY + 7)
+      doc.setFont("helvetica", "bold")
     })
-    currentY = (doc as any).lastAutoTable.finalY + 10
+    currentY = kpiY + 25
   }
 
-  if (metrics.completed.length > 0 && currentY < 250) {
-    doc.setFontSize(14)
-    doc.text("Completed Tasks", 14, currentY)
-    currentY += 5
-    autoTable(doc, {
-      startY: currentY,
-      head: [["Title", "Detail", "Date"]],
-      body: metrics.completed.slice(0, 30).map((r) => [r.title, r.detail, r.date ?? ""]),
-      theme: "striped",
-      headStyles: { fillColor: [41, 128, 185] },
-    })
-    currentY = (doc as any).lastAutoTable.finalY + 10
+  // Sections as tables & prose
+  if (isSectionIncluded(sections, "summary")) {
+    currentY = appendProseSection(doc, currentY, "Summary", report.content.summary?.text)
+  }
+  if (isSectionIncluded(sections, "deliverables")) {
+    currentY = appendRowSection(doc, currentY, "Deliverables", metrics.deliverableRows)
+  }
+  if (isSectionIncluded(sections, "completed")) {
+    currentY = appendRowSection(doc, currentY, "Completed Tasks", metrics.completed)
+  }
+  if (isSectionIncluded(sections, "inProgress")) {
+    currentY = appendRowSection(doc, currentY, "In Progress", metrics.inProgress)
+  }
+  if (isSectionIncluded(sections, "blocked")) {
+    currentY = appendRowSection(doc, currentY, "Blocked / At Risk", metrics.blocked)
+  }
+  if (isSectionIncluded(sections, "overdue")) {
+    currentY = appendRowSection(doc, currentY, "Overdue Carried Forward", metrics.overdue)
+  }
+  if (isSectionIncluded(sections, "nextPeriod")) {
+    currentY = appendRowSection(doc, currentY, "Next Period", metrics.nextPeriod)
   }
 
-  for (const section of scopedModuleSections(scope)) {
-    const rows = moduleRowsFor(section, metrics)
-    if (rows.length === 0 || currentY >= 250) continue
-    doc.setFontSize(14)
-    doc.setFont("helvetica", "bold")
-    doc.text(MODULE_LABEL[section], 14, currentY)
-    currentY += 5
-    autoTable(doc, {
-      startY: currentY,
-      head: [["Title", "Detail", "Date"]],
-      body: rows.slice(0, 30).map((r) => [r.title, r.detail, r.date ?? ""]),
-      theme: "striped",
-      headStyles: { fillColor: [41, 128, 185] },
-    })
-    currentY = (doc as any).lastAutoTable.finalY + 10
+  if (isSectionIncluded(sections, "modules")) {
+    for (const section of scopedModuleSections(scope)) {
+      const rows = moduleRowsFor(section, metrics)
+      currentY = appendRowSection(doc, currentY, MODULE_LABEL[section], rows)
+    }
   }
 
-  const timeline = scopedTimeline(metrics.timeline, scope)
-  if (timeline.length > 0 && currentY < 250) {
-    doc.setFontSize(14)
-    doc.setFont("helvetica", "bold")
-    doc.text("Activity timeline", 14, currentY)
-    currentY += 5
-    autoTable(doc, {
-      startY: currentY,
-      head: [["Date", "Source", "Title", "Detail"]],
-      body: timeline.slice(0, 40).map((r) => [r.date ?? "", MODULE_LABEL[r.source], r.title, r.detail]),
-      theme: "striped",
-      headStyles: { fillColor: [41, 128, 185] },
-    })
+  if (isSectionIncluded(sections, "timeline")) {
+    const timeline = scopedTimeline(metrics.timeline, scope)
+    if (timeline.length > 0) {
+      let y = ensurePageSpace(doc, currentY)
+      doc.setFontSize(14)
+      doc.setFont("helvetica", "bold")
+      doc.text("Activity timeline", 14, y)
+      y += 5
+      autoTable(doc, {
+        startY: y,
+        head: [["Date", "Source", "Title", "Detail"]],
+        body: timeline.slice(0, 40).map((r) => [r.date ?? "", MODULE_LABEL[r.source], r.title, r.detail]),
+        theme: "striped",
+        headStyles: { fillColor: [41, 128, 185] },
+      })
+      currentY = (doc as any).lastAutoTable.finalY + 10
+    }
+  }
+
+  if (isSectionIncluded(sections, "notes")) {
+    currentY = appendProseSection(doc, currentY, "Notes and Asks", report.content.notes?.text)
   }
 
   addFooter(doc)
+  return { doc, stamp }
+}
+
+export function previewReportPdfUrl(data: ReportExportData): string {
+  const { doc } = buildReportPdfDoc(data)
+  return URL.createObjectURL(doc.output("blob"))
+}
+
+export function exportReportPdf(data: ReportExportData): void {
+  const { doc, stamp } = buildReportPdfDoc(data)
   doc.save(filename("report", stamp))
 }
 

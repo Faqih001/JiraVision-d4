@@ -18,6 +18,7 @@ import { localDay } from "@/lib/worklog/local-day"
 import { assistantLink, periodQuestion } from "@/lib/assistant/ask"
 import { exportReportPdf } from "@/lib/export/pdf"
 import { exportReportXlsx } from "@/lib/export/xlsx"
+import type { ExportSectionSelection } from "@/lib/export/report-sections"
 import { DASHBOARD_SECTION_GRID } from "@/components/dashboard-kit"
 import { MODULE_LABEL, type ReportAggregate } from "@/lib/reports/aggregate"
 import { resolvePeriod, type Period } from "@/lib/reports/period"
@@ -44,7 +45,14 @@ import {
   SOURCE_LABEL,
   type ReportState,
 } from "@/lib/reports/view-state"
-import { ConfirmReportDelete, NewReportDialog, SubmitReportDialog, type NewReportDraft } from "./dialogs"
+import {
+  ConfirmReportDelete,
+  ExportPreviewDialog,
+  NewReportDialog,
+  SubmitReportDialog,
+  type ExportFormat,
+  type NewReportDraft,
+} from "./dialogs"
 import {
   CadenceSection,
   OpenDraftsSection,
@@ -123,6 +131,7 @@ export default function ReportsClient() {
   const [submitTarget, setSubmitTarget] = useState<ReportDto | null>(null)
   // Module-card drill-down is display state; the six computed sections keep their URL deep-links.
   const [moduleOpen, setModuleOpen] = useState<ModuleSectionKey | null>(null)
+  const [exportPreviewFormat, setExportPreviewFormat] = useState<ExportFormat | null>(null)
 
   useEffect(() => {
     setTodayIso(localDay(new Date(), timezone))
@@ -215,9 +224,10 @@ export default function ReportsClient() {
             setProse(proseFromContent(loaded.content))
             setSavedProse(proseFromContent(loaded.content))
             setSavedTitle(loaded.title)
-             if (state.scope === null && loaded.moduleScope !== undefined) {
-               setState((prev) => ({ ...prev, scope: loaded.moduleScope ?? null }))
-             }
+            const loadedScope = loaded.moduleScope
+            if (state.scope === null && loadedScope && loadedScope.length > 0) {
+              setState((prev) => (prev.scope !== null ? prev : { ...prev, scope: loadedScope }))
+            }
           } else if (outcome === "absent") {
             setReport(null)
             setMissingId(state.reportId)
@@ -428,29 +438,37 @@ export default function ReportsClient() {
     toast({ title: "Revision created", description: `New draft #${newReport.id} based on report #${id}` })
   }, [toast, refresh, patchState])
 
-  const exportPdf = useCallback(() => {
-    if (!report || !aggregate) return
-    exportReportPdf({
-      report,
-      metrics: aggregate,
-      authorName: "You",
-      recipientNames: [],
-      scope: state.scope,
-    })
-    toast({ title: "PDF exported" })
-  }, [report, aggregate, state.scope, toast])
+  const exportPdf = useCallback(
+    (sections?: ExportSectionSelection) => {
+      if (!report || !aggregate) return
+      exportReportPdf({
+        report,
+        metrics: aggregate,
+        authorName: "You",
+        recipientNames: [],
+        scope: state.scope,
+        sections,
+      })
+      toast({ title: "PDF exported" })
+    },
+    [report, aggregate, state.scope, toast],
+  )
 
-  const exportXlsx = useCallback(async () => {
-    if (!report || !aggregate) return
-    await exportReportXlsx({
-      report,
-      metrics: aggregate,
-      authorName: "You",
-      recipientNames: [],
-      scope: state.scope,
-    })
-    toast({ title: "Excel exported" })
-  }, [report, aggregate, state.scope, toast])
+  const exportXlsx = useCallback(
+    async (sections?: ExportSectionSelection) => {
+      if (!report || !aggregate) return
+      await exportReportXlsx({
+        report,
+        metrics: aggregate,
+        authorName: "You",
+        recipientNames: [],
+        scope: state.scope,
+        sections,
+      })
+      toast({ title: "Excel exported" })
+    },
+    [report, aggregate, state.scope, toast],
+  )
 
   // A plain function, not a callback: its closure over the current aggregate, URL state and prose
   // is the point, and the map below is rebuilt every render by design.
@@ -642,11 +660,11 @@ export default function ReportsClient() {
                 <Trash2 className="mr-1 h-4 w-4" />
                 Delete
               </Button>
-              <Button type="button" variant="outline" size="sm" onClick={exportPdf} disabled={!report || !aggregate}>
+              <Button type="button" variant="outline" size="sm" onClick={() => setExportPreviewFormat("pdf")} disabled={!report || !aggregate}>
                 <Download className="mr-1 h-4 w-4" />
                 PDF
               </Button>
-              <Button type="button" variant="outline" size="sm" onClick={() => void exportXlsx()} disabled={!report || !aggregate}>
+              <Button type="button" variant="outline" size="sm" onClick={() => setExportPreviewFormat("xlsx")} disabled={!report || !aggregate}>
                 <Download className="mr-1 h-4 w-4" />
                 Excel
               </Button>
@@ -670,7 +688,7 @@ export default function ReportsClient() {
           <PeriodSection state={state} period={shownPeriod} patch={patchState} />
           <MyReportsSection
             reports={reports}
-            loading={loading}
+            loading={loading && reports.length === 0}
             openId={state.reportId}
             missingId={state.view === "build" ? missingId : null}
             query={state.q}
@@ -768,6 +786,20 @@ export default function ReportsClient() {
           busy={busy}
           onSubmit={(recipientIds) => void submitReport(recipientIds)}
           onClose={() => setSubmitTarget(null)}
+        />
+      ) : null}
+      {exportPreviewFormat && report && aggregate ? (
+        <ExportPreviewDialog
+          open
+          initialFormat={exportPreviewFormat}
+          report={report}
+          metrics={aggregate}
+          scope={state.scope}
+          onClose={() => setExportPreviewFormat(null)}
+          onDownload={async (format, sections) => {
+            if (format === "pdf") exportPdf(sections)
+            else await exportXlsx(sections)
+          }}
         />
       ) : null}
     </div>

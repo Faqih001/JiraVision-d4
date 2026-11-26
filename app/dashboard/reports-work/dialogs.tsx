@@ -4,8 +4,18 @@
 // with a confirmed click. All are controlled forms over a draft object rather than uncontrolled
 // refs: the values shown are the values sent, and the route's whitelist checks them again anyway.
 
-import { useEffect, useState } from "react"
-import { Loader2 } from "lucide-react"
+import { useEffect, useMemo, useState } from "react"
+import { Download, FileSpreadsheet, FileText, Loader2 } from "lucide-react"
+import { previewReportPdfUrl } from "@/lib/export/pdf"
+import { previewReportXlsxSheets } from "@/lib/export/xlsx"
+import {
+  defaultExportSections,
+  EXPORT_SECTION_KEYS,
+  EXPORT_SECTION_LABEL,
+  exportSectionCount,
+  type ExportSectionKey,
+  type ExportSectionSelection,
+} from "@/lib/export/report-sections"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
@@ -343,6 +353,265 @@ export function ConfirmReportDelete({
           <Button type="button" variant="destructive" onClick={onConfirm} disabled={busy}>
             {busy ? <Loader2 className="mr-1 h-4 w-4 animate-spin" aria-hidden /> : null}
             Delete draft
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+export type ExportFormat = "pdf" | "xlsx"
+
+export function ExportPreviewDialog({
+  open,
+  initialFormat,
+  report,
+  metrics,
+  scope,
+  onClose,
+  onDownload,
+}: {
+  open: boolean
+  initialFormat: ExportFormat
+  report: ReportDto
+  metrics: ReportAggregate
+  scope: ModuleScope
+  onClose: () => void
+  onDownload: (format: ExportFormat, sections: ExportSectionSelection) => void | Promise<void>
+}) {
+  const [format, setFormat] = useState<ExportFormat>(initialFormat)
+  const [sections, setSections] = useState<ExportSectionSelection>(() => defaultExportSections())
+  const [activeSheet, setActiveSheet] = useState(0)
+  const [downloading, setDownloading] = useState(false)
+
+  useEffect(() => {
+    setFormat(initialFormat)
+  }, [initialFormat, open])
+
+  const toggleSection = (key: ExportSectionKey) => {
+    setSections((prev) => ({ ...prev, [key]: !prev[key] }))
+  }
+
+  const setAllSections = (value: boolean) => {
+    setSections(
+      Object.fromEntries(EXPORT_SECTION_KEYS.map((key) => [key, value])) as ExportSectionSelection,
+    )
+  }
+
+  const pdfUrl = useMemo(() => {
+    if (!open || format !== "pdf") return null
+    return previewReportPdfUrl({
+      report,
+      metrics,
+      authorName: "You",
+      recipientNames: [],
+      scope,
+      sections,
+    })
+  }, [open, format, report, metrics, scope, sections])
+
+  useEffect(() => {
+    return () => {
+      if (pdfUrl) URL.revokeObjectURL(pdfUrl)
+    }
+  }, [pdfUrl])
+
+  const sheets = useMemo(() => {
+    if (!open || format !== "xlsx") return []
+    return previewReportXlsxSheets({
+      report,
+      metrics,
+      authorName: "You",
+      recipientNames: [],
+      scope,
+      sections,
+    })
+  }, [open, format, report, metrics, scope, sections])
+
+  const safeSheetIndex = sheets.length > 0 ? Math.min(activeSheet, sheets.length - 1) : 0
+  const currentSheet = sheets[safeSheetIndex] ?? null
+
+  const handleDownload = async () => {
+    setDownloading(true)
+    try {
+      await onDownload(format, sections)
+      onClose()
+    } finally {
+      setDownloading(false)
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(next) => (next ? undefined : onClose())}>
+      <DialogContent className="max-w-5xl">
+        <DialogHeader>
+          <div className="flex flex-wrap items-center justify-between gap-2 pr-6">
+            <div>
+              <DialogTitle>Export preview</DialogTitle>
+              <DialogDescription>
+                Choose which sections appear in your {format === "pdf" ? "PDF" : "Excel workbook"} before downloading.
+              </DialogDescription>
+            </div>
+            <div className="flex rounded-lg border border-border/60 p-0.5" role="group" aria-label="Export format">
+              <Button
+                type="button"
+                size="sm"
+                variant={format === "pdf" ? "default" : "ghost"}
+                className="h-7 px-3 text-[12px]"
+                onClick={() => setFormat("pdf")}
+              >
+                <FileText className="mr-1.5 h-3.5 w-3.5" />
+                PDF
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={format === "xlsx" ? "default" : "ghost"}
+                className="h-7 px-3 text-[12px]"
+                onClick={() => setFormat("xlsx")}
+              >
+                <FileSpreadsheet className="mr-1.5 h-3.5 w-3.5" />
+                Excel
+              </Button>
+            </div>
+          </div>
+        </DialogHeader>
+
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-[240px_1fr]">
+          <div className="space-y-3 rounded-lg border border-border/60 p-3">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs font-semibold">Sections to include</p>
+              <div className="flex gap-1">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 px-1.5 text-[11px]"
+                  onClick={() => setAllSections(true)}
+                >
+                  All
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 px-1.5 text-[11px]"
+                  onClick={() => setAllSections(false)}
+                >
+                  None
+                </Button>
+              </div>
+            </div>
+            <div className="max-h-[54vh] space-y-2 overflow-y-auto pr-1">
+              {EXPORT_SECTION_KEYS.map((key) => {
+                const count = exportSectionCount(key, report, metrics, scope)
+                const id = `export-section-${key}`
+                return (
+                  <div key={key} className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Checkbox
+                        id={id}
+                        checked={sections[key]}
+                        onCheckedChange={() => toggleSection(key)}
+                      />
+                      <Label htmlFor={id} className="cursor-pointer truncate text-xs font-normal">
+                        {EXPORT_SECTION_LABEL[key]}
+                      </Label>
+                    </div>
+                    {count !== null ? (
+                      <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
+                        {count}
+                      </span>
+                    ) : null}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          <div className="min-w-0 rounded-lg border border-border/60 bg-muted/20 p-2">
+            {format === "pdf" ? (
+              pdfUrl ? (
+                <iframe
+                  src={pdfUrl}
+                  title="PDF export preview"
+                  className="h-[58vh] w-full rounded border border-border/40 bg-white"
+                />
+              ) : (
+                <div className="flex h-[58vh] items-center justify-center text-sm text-muted-foreground">
+                  Generating PDF preview…
+                </div>
+              )
+            ) : (
+              <div className="flex h-[58vh] flex-col gap-2">
+                <div className="flex flex-wrap gap-1 border-b border-border/60 pb-2">
+                  {sheets.map((sheet, idx) => (
+                    <Button
+                      key={sheet.name}
+                      type="button"
+                      size="sm"
+                      variant={idx === safeSheetIndex ? "default" : "outline"}
+                      className="h-7 px-2.5 text-[11px]"
+                      onClick={() => setActiveSheet(idx)}
+                    >
+                      {sheet.name}
+                      <span className="ml-1.5 opacity-70 tabular-nums">{sheet.rows.length}</span>
+                    </Button>
+                  ))}
+                </div>
+                {currentSheet ? (
+                  <div className="flex-1 overflow-auto rounded border border-border/40 bg-background">
+                    <table className="w-full border-collapse text-left text-xs">
+                      <thead className="sticky top-0 bg-muted/90 backdrop-blur">
+                        <tr>
+                          {currentSheet.columns.map((col) => (
+                            <th
+                              key={col.key}
+                              className="border-b border-border/60 px-3 py-2 font-semibold whitespace-nowrap"
+                            >
+                              {col.header}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border/40">
+                        {currentSheet.rows.map((row, rowIdx) => (
+                          <tr key={rowIdx} className="hover:bg-muted/30">
+                            {currentSheet.columns.map((col) => (
+                              <td
+                                key={col.key}
+                                className="max-w-[280px] truncate px-3 py-1.5 align-top"
+                                title={String(row[col.key] ?? "")}
+                              >
+                                {String(row[col.key] ?? "")}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
+                    No sheets selected.
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={onClose} disabled={downloading}>
+            Close
+          </Button>
+          <Button type="button" onClick={() => void handleDownload()} disabled={downloading}>
+            {downloading ? (
+              <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden />
+            ) : (
+              <Download className="mr-1.5 h-4 w-4" aria-hidden />
+            )}
+            Download {format === "pdf" ? "PDF" : "Excel"}
           </Button>
         </DialogFooter>
       </DialogContent>
