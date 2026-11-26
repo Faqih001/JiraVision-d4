@@ -62,8 +62,11 @@ console.log('Database connection: Using Neon PostgreSQL Database');
 // nearly every dev request paid a cold connect and some failed it outright.
 const connectionOptions: postgres.Options<{}> = {
   max: 10, // Maximum pool size for Neon
-  idle_timeout: 300,
+  idle_timeout: 60,
+  max_lifetime: 60 * 5,
+  keep_alive: 30,
   connect_timeout: 30,
+  prepare: !connectionString.includes('-pooler'),
   // Neon requires SSL
   ssl: 'require',
   // Connection pooling for better performance
