@@ -221,7 +221,7 @@ const DONE_COLUMN = "done"
  * What the board hides by default. A board is a look at one day, so the week behind it is the
  * context; the tasks page, which is a query tool, defaults to `all` instead.
  */
-const KANBAN_DONE_DEFAULT: DoneWindow = "week"
+const KANBAN_DONE_DEFAULT: DoneWindow = "day"
 
 /**
  * The column a card draws in, or null when the row draws no card at all.

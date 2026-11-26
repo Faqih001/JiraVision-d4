@@ -34,9 +34,9 @@ describe("the Done window segment is one shared control", () => {
 })
 
 describe("the board carries its Done window in the address", () => {
-  it("defaults the board to a week", () => {
+  it("defaults the board to a day", () => {
     const page = codeOnly(src(KANBAN))
-    expect(page).toMatch(/const KANBAN_DONE_DEFAULT: DoneWindow = "week"/)
+    expect(page).toMatch(/const KANBAN_DONE_DEFAULT: DoneWindow = "day"/)
     expect(page).toMatch(/resolveDoneWindow\(urlParams\.get\("doneWindow"\), KANBAN_DONE_DEFAULT\)/)
   })
 
