@@ -688,7 +688,7 @@ export default function DashboardLayout({
             aria-label="Log out"
             title={sidebarCollapsed ? "Log out" : undefined}
             className={cn(
-              "h-11 w-full justify-start gap-3 rounded-lg bg-amber-400 px-3 text-amber-950 hover:bg-amber-500 hover:text-amber-950 focus-visible:ring-amber-600 dark:bg-amber-400 dark:text-gray-950 dark:hover:bg-amber-300 dark:hover:text-gray-950",
+              "h-11 w-full justify-start gap-3 rounded-lg bg-red-600 px-3 text-white hover:bg-red-700 hover:text-white focus-visible:ring-red-500 dark:bg-red-600 dark:text-white dark:hover:bg-red-700 dark:hover:text-white",
               sidebarCollapsed && "justify-center px-0",
             )}
           >
