@@ -41,6 +41,34 @@ function filename(scope: string, stamp: string): string {
   return `jiravision-${scope}-${stamp}.xlsx`
 }
 
+function formatDayLabel(isoDate: string | null): string {
+  if (!isoDate) return "Undated"
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(isoDate)
+  if (!match) return isoDate
+  const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])))
+  return date.toLocaleDateString("en-US", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  })
+}
+
+function sortByDateAsc<T extends { date: string | null }>(rows: readonly T[]): T[] {
+  return [...rows].sort((a, b) => {
+    if (!a.date && !b.date) return 0
+    if (!a.date) return 1
+    if (!b.date) return -1
+    return a.date.localeCompare(b.date)
+  })
+}
+
+function cleanCompletedDetail(detail: string, date: string | null): string {
+  if (!date) return detail
+  return detail.replace(` · done for ${date}`, " · done").replace(`done for ${date}`, "done")
+}
+
 function addDateNumberFormats(worksheet: ExcelJS.Worksheet) {
   worksheet.eachRow((row, rowNumber) => {
     if (rowNumber === 1) return
@@ -119,7 +147,22 @@ export function previewReportXlsxSheets(data: ReportExportData): PreviewXlsxShee
   }
 
   if (isSectionIncluded(sections, "completed") && metrics.completed.length > 0) {
-    rowSheet("Completed", metrics.completed)
+    const sorted = sortByDateAsc(metrics.completed)
+    sheets.push({
+      name: "Completed",
+      columns: [
+        { header: "Day", key: "day" },
+        { header: "Date", key: "date" },
+        { header: "Title", key: "title" },
+        { header: "Detail", key: "detail" },
+      ],
+      rows: sorted.map((r) => ({
+        day: formatDayLabel(r.date),
+        date: r.date ?? "",
+        title: r.title,
+        detail: cleanCompletedDetail(r.detail, r.date),
+      })),
+    })
   }
   if (isSectionIncluded(sections, "deliverables") && metrics.deliverableRows.length > 0) {
     rowSheet("Deliverables", metrics.deliverableRows)
@@ -172,17 +215,19 @@ export function previewReportXlsxSheets(data: ReportExportData): PreviewXlsxShee
   }
 
   if (isSectionIncluded(sections, "timeline")) {
-    const timeline = scopedTimeline(metrics.timeline, scope)
+    const timeline = sortByDateAsc(scopedTimeline(metrics.timeline, scope))
     if (timeline.length > 0) {
       sheets.push({
         name: "Timeline",
         columns: [
+          { header: "Day", key: "day" },
           { header: "Date", key: "date" },
           { header: "Source", key: "source" },
           { header: "Title", key: "title" },
           { header: "Detail", key: "detail" },
         ],
         rows: timeline.map((r) => ({
+          day: formatDayLabel(r.date),
           date: r.date ?? "",
           source: MODULE_LABEL[r.source],
           title: r.title,
@@ -272,9 +317,28 @@ export async function exportReportXlsx(data: ReportExportData): Promise<void> {
     addDateNumberFormats(sheet)
   }
 
-  // Completed tasks sheet
+  // Completed tasks sheet (categorized chronologically by day)
   if (isSectionIncluded(sections, "completed") && metrics.completed.length > 0) {
-    populateRowSheet(workbook.addWorksheet("Completed"), metrics.completed)
+    const sorted = sortByDateAsc(metrics.completed)
+    const completedSheet = workbook.addWorksheet("Completed")
+    completedSheet.columns = [
+      { header: "Day", key: "day", width: 18 },
+      { header: "Date", key: "date", width: 12 },
+      { header: "Title", key: "title", width: 42 },
+      { header: "Detail", key: "detail", width: 32 },
+    ]
+    for (const r of sorted) {
+      completedSheet.addRow({
+        day: formatDayLabel(r.date),
+        date: r.date ?? "",
+        title: r.title,
+        detail: cleanCompletedDetail(r.detail, r.date),
+      })
+    }
+    completedSheet.getRow(1).font = { bold: true }
+    completedSheet.views = [{ state: "frozen", ySplit: 1 }]
+    completedSheet.autoFilter = { from: "A1", to: `D${sorted.length + 1}` }
+    addDateNumberFormats(completedSheet)
   }
 
   // Deliverables sheet
@@ -335,23 +399,30 @@ export async function exportReportXlsx(data: ReportExportData): Promise<void> {
     populateRowSheet(workbook.addWorksheet(MODULE_LABEL[section]), rows)
   }
 
-  // Merged activity timeline
+  // Merged activity timeline (categorized chronologically by day)
   if (isSectionIncluded(sections, "timeline")) {
-    const timeline = scopedTimeline(metrics.timeline, scope)
+    const timeline = sortByDateAsc(scopedTimeline(metrics.timeline, scope))
     if (timeline.length > 0) {
       const timelineSheet = workbook.addWorksheet("Timeline")
       timelineSheet.columns = [
+        { header: "Day", key: "day", width: 18 },
         { header: "Date", key: "date", width: 12 },
         { header: "Source", key: "source", width: 15 },
         { header: "Title", key: "title", width: 40 },
         { header: "Detail", key: "detail", width: 50 },
       ]
       for (const r of timeline) {
-        timelineSheet.addRow({ date: r.date ?? "", source: MODULE_LABEL[r.source], title: r.title, detail: r.detail })
+        timelineSheet.addRow({
+          day: formatDayLabel(r.date),
+          date: r.date ?? "",
+          source: MODULE_LABEL[r.source],
+          title: r.title,
+          detail: r.detail,
+        })
       }
       timelineSheet.getRow(1).font = { bold: true }
       timelineSheet.views = [{ state: "frozen", ySplit: 1 }]
-      timelineSheet.autoFilter = { from: "A1", to: `D${timeline.length + 1}` }
+      timelineSheet.autoFilter = { from: "A1", to: `E${timeline.length + 1}` }
       addDateNumberFormats(timelineSheet)
     }
   }
