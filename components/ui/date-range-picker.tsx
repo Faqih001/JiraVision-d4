@@ -99,7 +99,12 @@ export function DateRangePicker({
           numberOfMonths={compact ? 1 : 2}
           selected={from || to ? { from: fromIsoDate(from) ?? undefined, to: fromIsoDate(to) ?? undefined } : undefined}
           onSelect={(range: DayRange | undefined) => {
-            onChange(range?.from ? toIsoDate(range.from) : null, range?.to ? toIsoDate(range.to) : null)
+            const nextFrom = range?.from ? toIsoDate(range.from) : null
+            const nextTo = range?.to ? toIsoDate(range.to) : null
+            onChange(nextFrom, nextTo)
+            if (nextFrom && nextTo && nextFrom !== nextTo) {
+              setOpen(false)
+            }
           }}
           disabled={disabledMatchers}
           modifiers={{ weekend: WEEKEND }}
@@ -117,7 +122,10 @@ export function DateRangePicker({
               variant="ghost"
               size="sm"
               className="h-6 px-2 text-[11px]"
-              onClick={() => onChange(null, null)}
+              onClick={() => {
+                onChange(null, null)
+                setOpen(false)
+              }}
             >
               Clear
             </Button>
@@ -161,133 +169,155 @@ export function DateField({
   "aria-invalid": ariaInvalid,
   "aria-describedby": ariaDescribedBy,
 }: DateFieldProps) {
+  const [open, setOpen] = React.useState(false)
   const [weekendOverride, setWeekendOverride] = React.useState(false)
   const disabledMatchers = disabledDayMatchers({ allowWeekends, weekendOverride, min, max })
 
   return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <Button
-          id={id}
-          type="button"
-          variant="outline"
-          disabled={disabled}
-          onBlur={onBlur}
-          aria-label={ariaLabel}
-          aria-invalid={ariaInvalid}
-          aria-describedby={ariaDescribedBy}
-          className={cn(
-            "w-full justify-start text-left font-normal",
-            !value && "text-muted-foreground",
-            className,
-          )}
-        >
-          <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
-          <span className="truncate">{value ? formatDay(value) : placeholder}</span>
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent side="bottom" align="start" className="max-w-[calc(100vw-1rem)] overflow-x-auto p-0">
-        <Calendar
-          mode="single"
-          selected={fromIsoDate(value) ?? undefined}
-          onSelect={(day: Date | undefined) => onChange(day ? toIsoDate(day) : null)}
-          disabled={disabledMatchers}
-          modifiers={allowWeekends ? undefined : { weekend: WEEKEND }}
-          modifiersClassNames={allowWeekends ? undefined : { weekend: "text-muted-foreground/40" }}
-          defaultMonth={fromIsoDate(value) ?? undefined}
-        />
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t px-3 py-2">
-          {!allowWeekends && weekendToggle(weekendOverride, setWeekendOverride)}
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
           <Button
+            id={id}
             type="button"
-            variant="ghost"
-            size="sm"
-            className="ml-auto h-6 px-2 text-[11px]"
-            onClick={() => onChange(null)}
+            variant="outline"
+            disabled={disabled}
+            onBlur={onBlur}
+            aria-label={ariaLabel}
+            aria-invalid={ariaInvalid}
+            aria-describedby={ariaDescribedBy}
+            className={cn(
+              "w-full justify-start text-left font-normal",
+              !value && "text-muted-foreground",
+              className,
+            )}
           >
-            Clear
+            <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
+            <span className="truncate">{value ? formatDay(value) : placeholder}</span>
           </Button>
-        </div>
-      </PopoverContent>
-    </Popover>
-  )
+        </PopoverTrigger>
+        <PopoverContent side="bottom" align="start" className="max-w-[calc(100vw-1rem)] overflow-x-auto p-0">
+          <Calendar
+            mode="single"
+            selected={fromIsoDate(value) ?? undefined}
+            onSelect={(day: Date | undefined) => {
+              onChange(day ? toIsoDate(day) : null)
+              if (day) setOpen(false)
+            }}
+            disabled={disabledMatchers}
+            modifiers={allowWeekends ? undefined : { weekend: WEEKEND }}
+            modifiersClassNames={allowWeekends ? undefined : { weekend: "text-muted-foreground/40" }}
+            defaultMonth={fromIsoDate(value) ?? undefined}
+          />
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t px-3 py-2">
+            {!allowWeekends && weekendToggle(weekendOverride, setWeekendOverride)}
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="ml-auto h-6 px-2 text-[11px]"
+              onClick={() => {
+                onChange(null)
+                setOpen(false)
+              }}
+            >
+              Clear
+            </Button>
+          </div>
+        </PopoverContent>
+      </Popover>
+      )
 }
 
-export interface DateTimeFieldProps {
-  value: string | null
+      export interface DateTimeFieldProps {
+        value: string | null
   onChange: (value: string | null) => void
-  id?: string
-  placeholder?: string
-  min?: string | null
-  max?: string | null
-  className?: string
-  disabled?: boolean
-  "aria-label"?: string
+      id?: string
+      placeholder?: string
+      min?: string | null
+      max?: string | null
+      className?: string
+      disabled?: boolean
+      "aria-label"?: string
 }
 
-export function DateTimeField({
-  value,
-  onChange,
-  id,
-  placeholder = "Pick a date & time",
-  min,
-  max,
-  className,
-  disabled,
-  "aria-label": ariaLabel,
+      export function DateTimeField({
+        value,
+        onChange,
+        id,
+        placeholder = "Pick a date & time",
+        min,
+        max,
+        className,
+        disabled,
+        "aria-label": ariaLabel,
 }: DateTimeFieldProps) {
-  const { date, time } = splitDateTime(value)
-  const disabledMatchers = disabledDayMatchers({ allowWeekends: true, min, max })
+  const [open, setOpen] = React.useState(false)
+      const {date, time} = splitDateTime(value)
+      const disabledMatchers = disabledDayMatchers({allowWeekends: true, min, max })
 
-  return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <Button
-          id={id}
-          type="button"
-          variant="outline"
-          disabled={disabled}
-          aria-label={ariaLabel}
-          className={cn(
-            "w-full justify-start text-left font-normal",
-            !value && "text-muted-foreground",
-            className,
-          )}
-        >
-          <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
-          <span className="truncate">{value ? formatDateTime(value) : placeholder}</span>
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent side="bottom" align="start" className="max-w-[calc(100vw-1rem)] overflow-x-auto p-0">
-        <Calendar
-          mode="single"
-          selected={fromIsoDate(date) ?? undefined}
-          onSelect={(day: Date | undefined) => onChange(combineDateTime(day ? toIsoDate(day) : null, time ?? "00:00"))}
-          disabled={disabledMatchers}
-          defaultMonth={fromIsoDate(date) ?? undefined}
-        />
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t px-3 py-2">
-          <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-            Time
-            <Input
-              type="time"
-              className="h-7 w-[110px] text-[12px]"
-              value={time ?? ""}
-              disabled={!date}
-              onChange={(event) => onChange(combineDateTime(date, event.target.value || "00:00"))}
+      return (
+        <Popover open={open} onOpenChange={setOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              id={id}
+              type="button"
+              variant="outline"
+              disabled={disabled}
+              aria-label={ariaLabel}
+              className={cn(
+                "w-full justify-start text-left font-normal",
+                !value && "text-muted-foreground",
+                className,
+              )}
+            >
+              <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
+              <span className="truncate">{value ? formatDateTime(value) : placeholder}</span>
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent side="bottom" align="start" className="max-w-[calc(100vw-1rem)] overflow-x-auto p-0">
+            <Calendar
+              mode="single"
+              selected={fromIsoDate(date) ?? undefined}
+              onSelect={(day: Date | undefined) => onChange(combineDateTime(day ? toIsoDate(day) : null, time ?? "00:00"))}
+              disabled={disabledMatchers}
+              defaultMonth={fromIsoDate(date) ?? undefined}
             />
-          </label>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-6 px-2 text-[11px]"
-            onClick={() => onChange(null)}
-          >
-            Clear
-          </Button>
-        </div>
-      </PopoverContent>
-    </Popover>
-  )
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t px-3 py-2">
+              <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                Time
+                <Input
+                  type="time"
+                  className="h-7 w-[110px] text-[12px]"
+                  value={time ?? ""}
+                  disabled={!date}
+                  onChange={(event) => onChange(combineDateTime(date, event.target.value || "00:00"))}
+                />
+              </label>
+              <div className="flex items-center gap-1">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 px-2 text-[11px]"
+                  onClick={() => {
+                    onChange(null)
+                    setOpen(false)
+                  }}
+                >
+                  Clear
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  className="h-6 px-2 text-[11px]"
+                  onClick={() => setOpen(false)}
+                >
+                  Done
+                </Button>
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
+        )
 }
