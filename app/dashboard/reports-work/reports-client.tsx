@@ -171,6 +171,8 @@ export default function ReportsClient() {
       setReports(listJson.data.reports as ReportDto[])
       setTimezone(listJson.data.timezone as string | null)
       setTodayIso(serverToday)
+      // The list has its own loading state; don't keep its card spinning on slower preview/row reads.
+      setLoading(false)
       // A day nobody chose follows the server's clock. Left alone, a stale browser guess would be
       // pinned into the URL as `?d=` the moment todayIso moves. Once the anchor matches, the same
       // object comes back: a new one with the same values rebuilds this loader and re-runs it.
